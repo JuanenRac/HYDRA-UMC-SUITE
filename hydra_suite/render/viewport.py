@@ -6,12 +6,16 @@
 # Real-time 3D robot viewport - QOpenGLWidget + a small GLSL shader
 # (core profile, not legacy immediate-mode glBegin/glEnd, since Qt's own
 # default-created context on most drivers is a core-profile one that
-# doesn't support the legacy path at all). Renders the real UR5e STL
-# meshes (render/mesh.py), posed every frame from the real forward
-# kinematics (render/kinematics.py) driven by live joint angles from a
-# connected HydraConnection's own RobotView - not a stylized placeholder,
-# the same "real geometry, real chain" standard HYDRA-UMC-STUDIO's own
-# *Arm.tsx components already hold themselves to.
+# doesn't support the legacy path at all). Renders the real STL meshes
+# (render/mesh.py) for all 9 real robot models plus a primitive-built
+# "Generic" fallback (render/generic_rig.py), posed every frame from the
+# real forward kinematics (render/kinematics.py) driven by live joint
+# angles from a connected HydraConnection's own RobotView - not a
+# stylized placeholder, the same "real geometry, real chain" standard
+# HYDRA-UMC-STUDIO's own *Arm.tsx components already hold themselves to.
+#
+# Y-up world (matches Three.js/HYDRA-UMC-STUDIO, see kinematics.py's own
+# header) - the camera's own up vector and pan axes below are Y-up too.
 # =============================================================================
 from __future__ import annotations
 
@@ -23,16 +27,13 @@ from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
-from hydra_suite.render.kinematics import (
-    UR5E_CHAIN,
-    UR5E_HOME_POSE_DEG,
-    UR5E_LINK_NAMES,
-    UR5E_MESH_OFFSETS,
-    mesh_world_transforms,
-)
-from hydra_suite.render.mesh import Mesh, load_link_set
+from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
+from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_link_transforms, ur_mesh_world_transforms
+from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "meshes"
+
+DEFAULT_MODEL = "UR5e (6-DOF)"
 
 VERTEX_SHADER = """
 #version 330 core
@@ -80,7 +81,7 @@ void main() {
 
     // Faint cyan rim light - the "futuristic industrial" accent this
     // whole app's own QSS theme uses elsewhere, not just a plain gray
-    // robot floating in a plain gray void.
+    // robot floating in a plain void.
     float rim = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0) * 0.5;
     vec3 rimColor = vec3(0.13, 0.83, 0.93);
 
@@ -143,20 +144,34 @@ class GLMeshBuffer:
 
 class RobotViewport(QOpenGLWidget):
     """Orbit camera (left-drag rotate, wheel zoom, right/middle-drag pan)
-    over a live-posed UR5e - only model wired up in this first pass, see
-    docs/ROADMAP.md for extending to the other 8."""
+    over a live-posed robot - any of the 9 real STL-backed models
+    (ROBOT_REGISTRY in kinematics.py) plus a primitive-built "Generic"
+    fallback (generic_rig.py), switched at runtime via set_robot_model()."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumSize(320, 240)
         self._program: int | None = None
-        self._buffers: dict[str, GLMeshBuffer] = {}
-        self._joints_deg: dict[str, float] = dict(UR5E_HOME_POSE_DEG)
+        self._gl_ready = False
+
+        # Real-mesh robots: one GLMeshBuffer set per mesh_dir, loaded lazily
+        # and cached (a server might have several robots of the same
+        # model - no point re-uploading identical geometry to the GPU for
+        # each one) rather than eagerly loading all 9 robots' meshes at
+        # startup, most of which may never be viewed in a given session.
+        self._mesh_buffers_by_dir: dict[str, dict[str, GLMeshBuffer]] = {}
+        # Generic rig: one buffer per SEGMENTS index, built once (fixed
+        # geometry - only the pose changes frame to frame).
+        self._generic_buffers: list[GLMeshBuffer] = []
+
+        self._model_name = DEFAULT_MODEL
+        entry = ROBOT_REGISTRY[DEFAULT_MODEL]
+        self._joints_deg: dict[str, float] = dict(entry.home_pose_deg)
 
         self._yaw = -35.0
         self._pitch = 20.0
         self._distance = 2.2
-        self._target = np.array([0.0, 0.0, 0.4], dtype=np.float32)
+        self._target = np.array([0.0, 0.4, 0.0], dtype=np.float32)
         self._last_mouse_pos: QPointF | None = None
         self._drag_button: Qt.MouseButton | None = None
 
@@ -164,59 +179,96 @@ class RobotViewport(QOpenGLWidget):
         self._joints_deg = dict(joints)
         self.update()
 
+    def set_robot_model(self, model_name: str) -> None:
+        """Switches which robot is rendered - loads that model's own STL
+        set on first use (a no-op for models already cached, and for
+        "Generic", which has no STL to load at all)."""
+        if model_name not in ROBOT_REGISTRY:
+            return
+        self._model_name = model_name
+        entry = ROBOT_REGISTRY[model_name]
+        self._joints_deg = dict(entry.home_pose_deg)
+        if self._gl_ready and entry.family in ("ur", "quat") and entry.mesh_dir not in self._mesh_buffers_by_dir:
+            self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
+        self.update()
+
+    def _load_mesh_set(self, mesh_dir: str, link_names: tuple[str, ...], mesh_files: dict[str, str]) -> None:
+        meshes = load_link_set(ASSETS_DIR / mesh_dir, mesh_files)
+        self._mesh_buffers_by_dir[mesh_dir] = {name: GLMeshBuffer(meshes[name]) for name in link_names}
+
     # --- Qt/OpenGL lifecycle -------------------------------------------------
 
     def initializeGL(self) -> None:
         gl.glEnable(gl.GL_DEPTH_TEST)
-        gl.glClearColor(0.043, 0.055, 0.071, 1.0)  # matches the app's own dark industrial theme background
+        gl.glClearColor(1.0, 1.0, 1.0, 1.0)  # white 3D viewport background, per explicit request
 
         self._program = self._compile_program(VERTEX_SHADER, FRAGMENT_SHADER)
 
-        # Real filenames on disk (Universal Robots' own naming, copied
-        # verbatim from HYDRA-UMC-STUDIO's own public/models/ur5e/) -
-        # mapped explicitly rather than derived from UR5E_LINK_NAMES by a
-        # naming-convention guess, since "wrist_1" -> "wrist1.stl" isn't a
-        # simple underscore-strip for every entry (base/shoulder keep no
-        # suffix at all).
-        link_files = {
-            "base": "base.stl",
-            "shoulder": "shoulder.stl",
-            "upper_arm": "upperarm.stl",
-            "forearm": "forearm.stl",
-            "wrist_1": "wrist1.stl",
-            "wrist_2": "wrist2.stl",
-            "wrist_3": "wrist3.stl",
-        }
-        meshes = load_link_set(ASSETS_DIR / "ur5e", link_files)
-        self._buffers = {name: GLMeshBuffer(mesh) for name, mesh in meshes.items()}
+        self._generic_buffers = [
+            GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
+            for seg in SEGMENTS
+        ]
+
+        self._gl_ready = True
+        entry = ROBOT_REGISTRY[self._model_name]
+        if entry.family in ("ur", "quat"):
+            self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
 
     def resizeGL(self, w: int, h: int) -> None:
         gl.glViewport(0, 0, max(1, w), max(1, h))
 
     def paintGL(self) -> None:
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        if self._program is None or not self._buffers:
+        if self._program is None:
             return
 
         gl.glUseProgram(self._program)
 
         eye = self._camera_eye()
-        view = look_at(eye, self._target, np.array([0.0, 0.0, 1.0], dtype=np.float32))
+        view = look_at(eye, self._target, np.array([0.0, 1.0, 0.0], dtype=np.float32))
         aspect = max(self.width(), 1) / max(self.height(), 1)
         proj = perspective(45.0, aspect, 0.01, 50.0)
 
         gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uView"), 1, gl.GL_TRUE, view)
         gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uProjection"), 1, gl.GL_TRUE, proj)
         gl.glUniform3f(gl.glGetUniformLocation(self._program, "uCameraPos"), *eye)
+
+        entry = ROBOT_REGISTRY.get(self._model_name)
+        if entry is None:
+            return
+
+        if entry.family == "generic":
+            self._draw_generic()
+            return
+
+        buffers = self._mesh_buffers_by_dir.get(entry.mesh_dir)
+        if not buffers:
+            return  # not loaded yet (only happens for a brand-new model right at startup, before initializeGL's own preload runs)
+
         gl.glUniform3f(gl.glGetUniformLocation(self._program, "uBaseColor"), 0.72, 0.75, 0.80)
 
-        transforms = mesh_world_transforms(UR5E_CHAIN, UR5E_MESH_OFFSETS, self._joints_deg)
-        for name, model in zip(UR5E_LINK_NAMES, transforms):
-            model32 = model.astype(np.float32)
-            normal_matrix = np.linalg.inv(model32[:3, :3]).T.astype(np.float32)
-            gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uModel"), 1, gl.GL_TRUE, model32)
-            gl.glUniformMatrix3fv(gl.glGetUniformLocation(self._program, "uNormalMatrix"), 1, gl.GL_TRUE, normal_matrix)
-            self._buffers[name].draw()
+        if entry.family == "ur":
+            transforms = ur_mesh_world_transforms(entry.chain, entry.mesh_offsets, self._joints_deg)
+        else:  # "quat"
+            cfg = entry.quat_config
+            transforms = quat_family_link_transforms(cfg.chain, cfg.root_axis_target, cfg.base_offset, self._joints_deg)
+
+        for name, model in zip(entry.link_names, transforms):
+            self._draw_model(model, buffers[name])
+
+    def _draw_generic(self) -> None:
+        frames = generic_frame_transforms(self._joints_deg)
+        for seg, buf in zip(SEGMENTS, self._generic_buffers):
+            model = segment_world_transform(frames, seg)
+            gl.glUniform3f(gl.glGetUniformLocation(self._program, "uBaseColor"), *seg.color)
+            self._draw_model(model, buf)
+
+    def _draw_model(self, model: np.ndarray, buf: GLMeshBuffer) -> None:
+        model32 = model.astype(np.float32)
+        normal_matrix = np.linalg.inv(model32[:3, :3]).T.astype(np.float32)
+        gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uModel"), 1, gl.GL_TRUE, model32)
+        gl.glUniformMatrix3fv(gl.glGetUniformLocation(self._program, "uNormalMatrix"), 1, gl.GL_TRUE, normal_matrix)
+        buf.draw()
 
     # --- camera ---------------------------------------------------------------
 
@@ -224,8 +276,8 @@ class RobotViewport(QOpenGLWidget):
         yaw = np.radians(self._yaw)
         pitch = np.radians(self._pitch)
         x = self._distance * np.cos(pitch) * np.cos(yaw)
-        y = self._distance * np.cos(pitch) * np.sin(yaw)
-        z = self._distance * np.sin(pitch)
+        z = self._distance * np.cos(pitch) * np.sin(yaw)
+        y = self._distance * np.sin(pitch)
         return self._target + np.array([x, y, z], dtype=np.float32)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
@@ -247,8 +299,8 @@ class RobotViewport(QOpenGLWidget):
             self.update()
         elif self._drag_button in (Qt.MouseButton.RightButton, Qt.MouseButton.MiddleButton):
             yaw = np.radians(self._yaw)
-            right = np.array([-np.sin(yaw), np.cos(yaw), 0.0], dtype=np.float32)
-            up = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+            right = np.array([-np.sin(yaw), 0.0, np.cos(yaw)], dtype=np.float32)
+            up = np.array([0.0, 1.0, 0.0], dtype=np.float32)
             pan_scale = self._distance * 0.0015
             self._target -= right * delta.x() * pan_scale
             self._target += up * delta.y() * pan_scale

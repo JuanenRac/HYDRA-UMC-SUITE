@@ -416,3 +416,36 @@ AR4 = QuatRobotConfig(
     },
     home_pose_deg={"j1": 0.0, "j2": 40.0, "j3": -30.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
 )
+
+
+# =============================================================================
+# Robot registry - one entry per robot.model string HYDRA-UMC-STUDIO's own
+# store.tsx RobotModel type uses verbatim (see src/store.tsx's own
+# RobotModel union and src/components/3d/RobotArm.tsx's own switch), so a
+# RobotView.model straight off the wire looks itself up here with no
+# separate name-mapping table to keep in sync.
+# =============================================================================
+@dataclass(frozen=True)
+class RobotModelEntry:
+    family: str  # "ur" | "quat" | "generic"
+    mesh_dir: str | None  # under assets/meshes/ - None for "generic" (no STL)
+    link_names: tuple[str, ...] | None
+    mesh_files: dict[str, str] | None
+    chain: list[JointStep] | None = None  # "ur" family
+    mesh_offsets: list[JointStep] | None = None  # "ur" family
+    quat_config: QuatRobotConfig | None = None  # "quat" family
+    home_pose_deg: dict[str, float] = field(default_factory=dict)
+
+
+ROBOT_REGISTRY: dict[str, RobotModelEntry] = {
+    "UR3e (6-DOF)": RobotModelEntry("ur", "ur3e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR3E_CHAIN, mesh_offsets=UR3E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR5e (6-DOF)": RobotModelEntry("ur", "ur5e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR5E_CHAIN, mesh_offsets=UR5E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR10e (6-DOF)": RobotModelEntry("ur", "ur10e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR10E_CHAIN, mesh_offsets=UR10E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR16e (6-DOF)": RobotModelEntry("ur", "ur16e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR16E_CHAIN, mesh_offsets=UR16E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR20 (6-DOF)": RobotModelEntry("ur", "ur20", UR_LINK_NAMES, UR_MESH_FILES, chain=UR20_CHAIN, mesh_offsets=UR20_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "Parol6 (6-DOF)": RobotModelEntry("quat", "parol6", PAROL6.link_names, PAROL6.mesh_files, quat_config=PAROL6, home_pose_deg=PAROL6.home_pose_deg),
+    "Faze4 (6-DOF)": RobotModelEntry("quat", "faze4", FAZE4.link_names, FAZE4.mesh_files, quat_config=FAZE4, home_pose_deg=FAZE4.home_pose_deg),
+    "AR3 (6-DOF)": RobotModelEntry("quat", "ar3", AR3.link_names, AR3.mesh_files, quat_config=AR3, home_pose_deg=AR3.home_pose_deg),
+    "AR4 (6-DOF)": RobotModelEntry("quat", "ar4", AR4.link_names, AR4.mesh_files, quat_config=AR4, home_pose_deg=AR4.home_pose_deg),
+    "Generic (6-DOF)": RobotModelEntry("generic", None, None, None, home_pose_deg={"j1": 0.0, "j2": -45.0, "j3": 45.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}),
+}

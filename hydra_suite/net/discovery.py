@@ -100,8 +100,20 @@ async def scan_subnets(hosts: list[str] | None = None, port: int = DEFAULT_PORT)
     duration.
     """
     if hosts is None:
-        hosts = []
-        for local_ip in local_ipv4_addresses():
+        # "127.0.0.1" first, always - the single most common real setup
+        # (documented in the project spec) is HYDRA-UMC STUDIO's own dev
+        # server running on the SAME machine as SUITE, which
+        # candidate_hosts_for() below deliberately excludes (it only
+        # returns OTHER hosts on the subnet) and local_ipv4_addresses()
+        # never returns in the first place (loopback is filtered there on
+        # purpose, since scanning the whole 127.0.0.0/24 range would be
+        # pointless) - without this, a same-machine server was never
+        # actually probed by the "auto-detect" scan at all.
+        hosts = ["127.0.0.1"]
+        local_ips = local_ipv4_addresses()
+        for local_ip in local_ips:
+            if local_ip not in hosts:
+                hosts.append(local_ip)  # the machine's own LAN IP - a server bound to it (not just localhost) answers here too
             hosts.extend(candidate_hosts_for(local_ip))
     if not hosts:
         return

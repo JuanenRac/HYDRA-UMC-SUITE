@@ -1,7 +1,10 @@
 """Manual smoke test specifically for the OpenGL viewport - temporarily
-sets one robot's model to UR5e (via direct API write, restored after) to
-exercise the actual GL context creation, shader compile/link, and mesh
-rendering path, the highest-risk least-tested part of this app."""
+sets one robot's model through each of the 3 render families (via direct
+API write, restored after) to exercise the actual GL context creation,
+shader compile/link, and mesh rendering path for all of them, not just
+UR5e: "ur" (UR5e - shared engine, mesh_offsets), "quat" (AR3 - arbitrary
+joint axes, quat_family_link_transforms), and "generic" (no STL at all,
+render/generic_rig.py's own primitive geometry)."""
 import asyncio
 import sys
 
@@ -36,31 +39,36 @@ def main():
         robot = active.robots[0]
         original_model = robot.raw.get("model")
         print("Original model:", original_model)
-        robot.raw["model"] = "UR5e (6-DOF)"
-        window.controller.push_active_state()
-        await asyncio.sleep(0.5)
 
-        # Drive the viewport panel directly rather than through the combo
-        # box - QComboBox.setCurrentIndex(0) is a no-op signal-wise when
-        # the index is ALREADY 0 (Qt only emits on an actual index change),
-        # which this scenario's own robot[0] already was before the model
-        # mutation below - not what this test is actually trying to
-        # exercise (the OpenGL render path itself).
-        window.viewport_panel.set_selected_robot(robot)
-        await asyncio.sleep(0.3)
-        current_widget = window.viewport_panel._stack.currentWidget()
-        print("Viewport current widget after UR5e select:", current_widget.__class__.__name__)
-        assert current_widget is window.viewport_panel._viewport, "viewport did not switch to the real GL widget for UR5e"
+        test_poses = [
+            {"j1": 30, "j2": -60, "j3": 20, "j4": -45, "j5": 10, "j6": 90},
+            {"j1": -30, "j2": -30, "j3": 60, "j4": 0, "j5": -20, "j6": 0},
+        ]
 
-        # Force a couple of paints with different joint poses to exercise
-        # the real shader/uniform/draw path, not just widget construction.
-        window.viewport_panel._viewport.set_joints_deg({"j1": 30, "j2": -60, "j3": 20, "j4": -45, "j5": 10, "j6": 90})
-        app.processEvents()
-        await asyncio.sleep(0.2)
-        window.viewport_panel._viewport.set_joints_deg({"j1": -30, "j2": -30, "j3": 60, "j4": 0, "j5": -20, "j6": 0})
-        app.processEvents()
-        await asyncio.sleep(0.2)
-        print("GL PAINT PASSES COMPLETED WITHOUT EXCEPTION")
+        for model_name in ("UR5e (6-DOF)", "AR3 (6-DOF)", "Generic (6-DOF)"):
+            robot.raw["model"] = model_name
+            window.controller.push_active_state()
+            await asyncio.sleep(0.3)
+
+            # Drive the viewport panel directly rather than through the
+            # combo box - QComboBox.setCurrentIndex(0) is a no-op
+            # signal-wise when the index is ALREADY 0 (Qt only emits on an
+            # actual index change), not what this test is actually trying
+            # to exercise (the OpenGL render path itself for each family).
+            window.viewport_panel.set_selected_robot(robot)
+            await asyncio.sleep(0.3)
+            current_widget = window.viewport_panel._stack.currentWidget()
+            print(f"[{model_name}] viewport widget:", current_widget.__class__.__name__)
+            assert current_widget is window.viewport_panel._viewport, f"viewport did not switch to the real GL widget for {model_name}"
+
+            # Force a couple of paints with different joint poses to
+            # exercise the real shader/uniform/draw path for THIS
+            # family's own kinematics engine, not just widget construction.
+            for pose in test_poses:
+                window.viewport_panel._viewport.set_joints_deg(pose)
+                app.processEvents()
+                await asyncio.sleep(0.2)
+            print(f"[{model_name}] GL PAINT PASSES COMPLETED WITHOUT EXCEPTION")
 
         # restore original model on the server so this test doesn't leave
         # the real settings.json permanently mutated
@@ -69,7 +77,7 @@ def main():
         await asyncio.sleep(0.5)
         print("Restored original model:", original_model)
 
-        print("VIEWPORT SMOKE TEST PASSED")
+        print("VIEWPORT SMOKE TEST PASSED (ur / quat / generic families)")
         QTimer.singleShot(300, app.quit)
 
     asyncio.ensure_future(run_scenario())

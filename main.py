@@ -4,12 +4,13 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Starts fullscreen at a 1920x1080 minimum, per the project owner's own
-# spec ("se ejecutara a pantalla completa con una resolución mínima de
-# 1920x1080"). F11 toggles fullscreen <-> maximized-windowed, so the app
-# never actually traps the user without an escape hatch - true OS-level
-# fullscreen with zero way back out would be a real usability problem on
-# a control application, not a faithful reading of "runs fullscreen".
+# Starts MAXIMIZED (not true OS-level fullscreen) at a 1920x1080 minimum,
+# per the project owner's own spec ("se ejecutara a pantalla completa con
+# una resolución mínima de 1920x1080") while keeping the native title bar
+# and its minimize/maximize/close buttons visible - true showFullScreen()
+# hides that title bar entirely on Windows, which read as "missing window
+# controls" rather than "running fullscreen". F11 still toggles into real
+# borderless fullscreen for whoever wants that, and back out again.
 #
 # qasync's QEventLoop is what lets every `async def` elsewhere in this
 # app (net/client.py, net/discovery.py, app.py) run on the SAME event
@@ -49,7 +50,7 @@ def main() -> int:
     shortcut = QShortcut(QKeySequence(Qt.Key.Key_F11), window)
     shortcut.activated.connect(toggle_fullscreen)
 
-    window.showFullScreen()
+    window.showMaximized()
 
     with loop:
         return loop.run_forever()

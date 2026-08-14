@@ -66,9 +66,24 @@ for i, pose in enumerate(POSES):
     ref_radius = np.hypot(ref_x, ref_y)
     check(f"pose{i} radius", radius, ref_radius)
 
-print("=== Parol6 (cylindrical radius + height check) ===")
+# NOTE: the TS *JointsToCartesian() functions deliberately compute FK
+# WITHOUT applying BASE_OFFSET (confirmed by reading parol6Kinematics.ts /
+# faze4Kinematics.ts's own fkPosition(): `let m = ROOT` / `let m =
+# ROOT_M.clone()`, no translate(BASE_OFFSET) anywhere) - BASE_OFFSET is a
+# render-only correction applied in *Arm.tsx's own outer <group
+# position={...}>, confirmed by reading Parol6Arm.tsx line 123:
+# `<group position={PAROL6_BASE_OFFSET}><group rotation={[-Math.PI/2,...]}>`
+# which matches quat_family_link_transforms()'s own
+# `translation(base_offset) @ root` exactly. So the ROOT+joint-chain math
+# is verified here with base_offset=(0,0,0) (apples-to-apples against the
+# TS reference), and BASE_OFFSET itself is validated by direct source
+# comparison instead of numerically, since it's a literal constant with a
+# known-correct origin already confirmed above.
+NO_OFFSET = (0.0, 0.0, 0.0)
+
+print("=== Parol6 (cylindrical radius + height check, base_offset excluded) ===")
 for i, pose in enumerate(POSES):
-    transforms = quat_family_link_transforms(PAROL6.chain, PAROL6.root_axis_target, PAROL6.base_offset, pose)
+    transforms = quat_family_link_transforms(PAROL6.chain, PAROL6.root_axis_target, NO_OFFSET, pose)
     p = transforms[-1][:3, 3] * 1000  # L6, mm
     radius = np.hypot(p[0], p[2])
     ref_x, ref_y, ref_z = REF_PAROL6[i]
@@ -77,10 +92,10 @@ for i, pose in enumerate(POSES):
     Z_OFFSET_MM = 334
     check(f"pose{i} height (p.y)", p[1], ref_z + Z_OFFSET_MM)
 
-print("=== Faze4 (direct x/y/z reconstruction - exact match expected) ===")
+print("=== Faze4 (direct x/y/z reconstruction, base_offset excluded) ===")
 Z_OFFSET_MM = 597
 for i, pose in enumerate(POSES):
-    transforms = quat_family_link_transforms(FAZE4.chain, FAZE4.root_axis_target, FAZE4.base_offset, pose)
+    transforms = quat_family_link_transforms(FAZE4.chain, FAZE4.root_axis_target, NO_OFFSET, pose)
     p = transforms[-1][:3, 3] * 1000  # hvataljka, mm
     ref_x, ref_y, ref_z = REF_FAZE4[i]
     # TS remap: x_out=p.x*1000, y_out=p.z*1000, z_out=p.y*1000-OFFSET
@@ -88,20 +103,20 @@ for i, pose in enumerate(POSES):
     check(f"pose{i} p.z", p[2], ref_y)
     check(f"pose{i} p.y", p[1], ref_z + Z_OFFSET_MM)
 
-print("=== AR3 (direct x/y/z reconstruction - exact match expected) ===")
+print("=== AR3 (direct x/y/z reconstruction, base_offset excluded) ===")
 Z_OFFSET_MM = 541
 for i, pose in enumerate(POSES):
-    transforms = quat_family_link_transforms(AR3.chain, AR3.root_axis_target, AR3.base_offset, pose)
+    transforms = quat_family_link_transforms(AR3.chain, AR3.root_axis_target, NO_OFFSET, pose)
     p = transforms[-1][:3, 3] * 1000  # link_6, mm
     ref_x, ref_y, ref_z = REF_AR3[i]
     check(f"pose{i} p.x", p[0], ref_x)
     check(f"pose{i} p.z", p[2], ref_y)
     check(f"pose{i} p.y", p[1], ref_z + Z_OFFSET_MM)
 
-print("=== AR4 (direct x/y/z reconstruction - exact match expected) ===")
+print("=== AR4 (direct x/y/z reconstruction, base_offset excluded) ===")
 Z_OFFSET_MM = 177
 for i, pose in enumerate(POSES):
-    transforms = quat_family_link_transforms(AR4.chain, AR4.root_axis_target, AR4.base_offset, pose)
+    transforms = quat_family_link_transforms(AR4.chain, AR4.root_axis_target, NO_OFFSET, pose)
     p = transforms[-1][:3, 3] * 1000  # link_6, mm
     ref_x, ref_y, ref_z = REF_AR4[i]
     check(f"pose{i} p.x", p[0], ref_x)

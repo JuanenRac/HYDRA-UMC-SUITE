@@ -1,0 +1,22 @@
+UR20 mesh files (base.stl, shoulder.stl, upperarm.stl, forearm.stl,
+wrist1.stl, wrist2.stl, wrist3.stl)
+
+Source: https://github.com/UniversalRobots/Universal_Robots_ROS2_Description
+Path:   meshes/ur20/collision/
+License: BSD-3-Clause, per that repository's own LICENSE file. Official
+Universal Robots repository.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's UR20Arm.tsx
+3D view. The COLLISION mesh set was used (not the higher-poly VISUAL .dae
+set in the same repo, meshes/ur20/visual/) to keep bundle size down - same
+STLLoader-based loading pipeline every other robot in this folder already
+uses, so no new mesh format/loader was introduced.
+
+Joint kinematic chain (origin xyz/rpy) and per-link mesh_offset come from
+that repository's own config/ur20/default_kinematics.yaml and
+config/ur20/visual_parameters.yaml directly - see
+src/examples/ur20Kinematics.ts for where those exact numbers were
+transcribed to. Every UR e-Series joint rotates about its own local Z axis
+(ur_macro.xacro's own <axis xyz="0 0 1"/>, no exceptions), so the FK/IK
+engine is shared with every other UR model in this project - see
+src/examples/urKinematicsShared.ts's own header comment.
