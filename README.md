@@ -4,7 +4,144 @@
 
 # 🧰 HYDRA-UMC SUITE
 
-**Status: planned, not yet started.** This repository is a placeholder - even its purpose within the ecosystem hasn't been defined yet by the project owner (name suggests some kind of umbrella/companion toolset, but that's a guess, not a specification). Nothing in this folder should be treated as a source of truth about what this project will actually do until the owner defines it.
+### 🖥️ Multi-Controller Swarm Command Center for the HYDRA-UMC Platform
+
+---
+
+## 🎯 Overview
+
+**HYDRA-UMC SUITE** is a native Windows/Linux desktop application (Python
++ PySide6/Qt6) built as a mission-control center for a whole fleet of
+[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) controllers at once -
+scan the local network (or add one manually, including through an
+already-connected VPN tunnel to a HYDRA-UMC on a different physical
+network), connect to as many as are found, and jog/monitor/reconfigure
+any of them live, side by side, from one fullscreen industrial dashboard.
+
+It speaks the exact same wire protocol
+[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)'s own
+browser UI does - see
+[`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
+for the full contract, added specifically to support this project. A
+change made from SUITE shows up live in an open browser tab, and vice
+versa - real bidirectional sync over a WebSocket, not a one-shot import/
+export.
+
+**Honesty note, matching the rest of this ecosystem's own documentation
+convention:** this is a first real, working pass, not a finished product.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's genuinely
+implemented and verified end-to-end today vs. deliberately scoped out for
+later (most notably: only the UR5e robot model has real 3D geometry wired
+up so far, out of the 9 models this ecosystem now supports).
+
+---
+
+## 🏭 Features
+
+- **🔍 Network discovery** - concurrent subnet scan for real HYDRA-UMC
+  STUDIO servers (`GET /api/hydra-info`), plus manual add-by-address for
+  anything a scan can't reach (a different subnet, a VPN tunnel).
+- **🐝 Swarm connections** - connect to as many HYDRA-UMC servers
+  simultaneously as you want, each with its own live WebSocket sync; pick
+  which one is "active" for the other panels.
+- **📊 Overview** - per-controller robot roster: model, role, online
+  status, speed/acceleration, at a glance.
+- **🦾 Robot control** - rotary knob + slider per joint (the desktop
+  counterpart to HYDRA-UMC STUDIO's own `RotaryKnob`+`FuturisticSlider`
+  jog pair), speed/acceleration sliders, all writing back live.
+- **🧊 Real 3D viewport** - OpenGL 3.3, real STL meshes, real forward
+  kinematics (numerically verified against HYDRA-UMC STUDIO's own
+  TypeScript implementation, bit-for-bit identical results) - not a
+  stylized placeholder. UR5e today, see `docs/ROADMAP.md` for extending
+  to the rest.
+- **📍 Trajectory points** - record the selected robot's live pose, jog
+  back to any recorded point on demand.
+- **🪟 Photoshop-style dockable workspace** - every panel is a real
+  `QDockWidget`: drag to float free, drag back to dock or merge into a
+  tab group, split the workspace, close, and re-show from the View menu.
+
+---
+
+## 📸 Photos
+
+No screenshots yet - this is a freshly-built application as of 15 August
+2026, not yet captured for documentation. Launch it (see below) to see
+the real thing rather than trust a stale image here later.
+
+---
+
+## 📂 Repository Structure
+
+```text
+HYDRA-UMC-SUITE/
+├── main.py                      # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed
+├── requirements.txt
+├── hydra_suite/
+│   ├── models.py                 # HydraState/ControllerView/RobotView - thin, mutation-friendly views over the real settings.json shape
+│   ├── app.py                    # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
+│   ├── net/
+│   │   ├── discovery.py           # Concurrent subnet scan against GET /api/hydra-info
+│   │   └── client.py              # Per-server REST + WebSocket connection, live bidirectional sync
+│   ├── render/
+│   │   ├── kinematics.py          # Forward kinematics (ported from HYDRA-UMC-STUDIO's own urKinematicsShared.ts)
+│   │   ├── mesh.py                # STL loading (numpy-stl)
+│   │   └── viewport.py            # QOpenGLWidget - real GLSL shader pipeline, orbit camera
+│   └── ui/
+│       ├── main_window.py         # QMainWindow + QDockWidget workspace
+│       ├── theme.py                # Loads assets/qss/industrial_dark.qss
+│       ├── widgets/rotary_knob.py  # Custom-painted rotary knob (desktop counterpart to RotaryKnob.tsx)
+│       └── panels/                 # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py
+├── assets/
+│   ├── qss/industrial_dark.qss   # The futuristic-industrial Qt stylesheet
+│   └── meshes/ur5e/               # Real STL meshes, copied from HYDRA-UMC-STUDIO's own public/models/ur5e/ (BSD-3-Clause, see its own ATTRIBUTION.txt)
+├── docs/
+│   └── ROADMAP.md                 # Honest real-vs-not-yet scope statement
+├── tests/                         # Manual integration smoke tests (require a real running HYDRA-UMC STUDIO server - not a mocked unit suite)
+└── .vscode/                       # Python interpreter path, launch configs, recommended extensions
+```
+
+---
+
+## 🚀 Getting Started
+
+### Requirements
+- Python 3.12+ (developed/tested against 3.14)
+- A running [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) server to connect to
+
+### Installation
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate      # Windows
+# source .venv/bin/activate   # Linux
+
+pip install -r requirements.txt
+```
+
+### Running
+
+```bash
+python main.py
+```
+
+Starts fullscreen at a 1920x1080 minimum (per this app's own design spec)
+- press **F11** to toggle between fullscreen and a normal maximized
+window at any time, so it never actually traps you without an escape
+hatch. Use the **Servers** panel to scan your network or add a HYDRA-UMC
+STUDIO server by address.
+
+---
+
+## 🛠️ Technology Stack
+
+- **UI framework:** PySide6 (Qt6) - native dockable panels, no custom
+  docking framework reinvented
+- **3D rendering:** PyOpenGL (core-profile GLSL shaders) + numpy-stl
+- **Networking:** `httpx` (REST) + `websockets` (live sync), integrated
+  with Qt's own event loop via `qasync` - no separate worker thread
+- **Math:** NumPy (4x4 homogeneous transforms for forward kinematics)
+
+---
 
 ## 🔗 Related Projects
 
@@ -13,9 +150,9 @@ This project is part of a larger robotics ecosystem by the same author (JuanenRa
 **HYDRA-UMC platform** — the multi-robot micro-factory cell
 - **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — the motherboard itself: Raspberry Pi CM5 host + dual-core STM32H745 real-time co-processor, orchestrating up to 8 distributed robot arms over CAN-OTA/SPI-OTA. Own hardware + firmware, GPL-3.0/CERN-OHL-S v2/CC BY-SA 4.0.
 - **[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)** — web-based control dashboard for HYDRA-UMC: multi-robot 3D visualization, kinematics/trajectory recording, CAN-OTA flashing and testing for the whole platform. React + Vite + Three.js.
-- **[HYDRA-UMC-ANDROID-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-ANDROID-CONTROL)** — planned Android control app for HYDRA-UMC. Not yet started; scope to be defined.
-- **[HYDRA-UMC-IOS-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-IOS-CONTROL)** — planned iOS control app for HYDRA-UMC. Not yet started; scope to be defined.
-- **HYDRA-UMC-SUITE** *(this repository)* — planned; scope to be defined.
+- **[HYDRA-UMC-ANDROID-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-ANDROID-CONTROL)** — Android control app for HYDRA-UMC (Wi-Fi transport speaks this same REMOTE_API.md contract). Scaffolding stage.
+- **[HYDRA-UMC-IOS-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-IOS-CONTROL)** — iOS control app for HYDRA-UMC, same contract. Scaffolding stage.
+- **HYDRA-UMC-SUITE** *(this repository)* — this project.
 
 **URTC platform** — the tool head controller every HYDRA-UMC robot arm carries
 - **[URTC](https://github.com/JuanenRac/URTC)** — Universal Robot Tool Controller: STM32F303-based CAN bus tool head controller, 25 fully-implemented tool profiles, CAN-OTA firmware update.
@@ -23,12 +160,24 @@ This project is part of a larger robotics ecosystem by the same author (JuanenRa
 - **[URTC Tester](https://github.com/JuanenRac/URTC-TESTER)** — desktop live CAN-bus diagnostic tool for URTC boards, one panel per tool profile (Windows/Linux).
 - **[URTC Web Studio](https://github.com/JuanenRac/URTC-WEB-STUDIO)** — browser-based alternative to the 2 desktop tools above (Web Serial API + SLCAN), no local install needed.
 
+---
+
 ## 👤 Author
 
 **JuanenRac** (Electro Hobby 3D)
 📧 electrohobby3d@gmail.com
 📺 youtube.com/@electrohobby3d
 
-## 📜 License
+---
 
-This repository's `LICENSE` file is set to the **GNU General Public License v3.0 (GPL-3.0)**, matching the convention used elsewhere in this ecosystem for pure-software projects (e.g. [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)). No source code exists in this repository yet - the license applies to whatever gets built here once the project owner defines its actual scope, not to anything currently present.
+## 📜 License and Copyright Notices
+
+HYDRA-UMC SUITE is (c) 2026 JuanenRac (Electro Hobby 3D). This notice must be included in any distributions of this project or derivative works.
+
+The source code of this application is available under the **GNU General Public License v3.0 (GPL-3.0)**. Full text at https://www.gnu.org/licenses/gpl-3.0.html.
+
+**Third-party mesh assets:** `assets/meshes/ur5e/` is copied verbatim from Universal Robots' own official [Universal_Robots_ROS2_Description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description) repository, **BSD-3-Clause** - NOT covered by the GPL-3.0 above. See `assets/meshes/ur5e/ATTRIBUTION.txt` for the exact source/license reference.
+
+This project is the desktop swarm-control counterpart to [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - see that project's own repository for its own separate license, which this repository's own license doesn't extend to, and vice versa. It also ultimately controls [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) hardware/firmware and ([relayed through it](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) [URTC](https://github.com/JuanenRac/URTC) tool heads - both separate projects with their own separate licenses.
+
+If you build on this project, keep the licensing split in mind: code changes should stay GPL-3.0, and the UR5e mesh assets should stay under their own original BSD-3-Clause terms - each with attribution back to this project and its author.

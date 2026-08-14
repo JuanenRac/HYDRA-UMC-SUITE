@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+# =============================================================================
+# HYDRA-UMC SUITE - main.py (entry point)
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0 - see LICENSE
+#
+# Starts fullscreen at a 1920x1080 minimum, per the project owner's own
+# spec ("se ejecutara a pantalla completa con una resolución mínima de
+# 1920x1080"). F11 toggles fullscreen <-> maximized-windowed, so the app
+# never actually traps the user without an escape hatch - true OS-level
+# fullscreen with zero way back out would be a real usability problem on
+# a control application, not a faithful reading of "runs fullscreen".
+#
+# qasync's QEventLoop is what lets every `async def` elsewhere in this
+# app (net/client.py, net/discovery.py, app.py) run on the SAME event
+# loop Qt's own GUI thread uses - no separate worker thread, no manual
+# thread-safe signal bridging needed to get network results back onto
+# the GUI thread safely.
+# =============================================================================
+import asyncio
+import sys
+
+import qasync
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtWidgets import QApplication
+
+from hydra_suite.ui.main_window import MainWindow
+from hydra_suite.ui.theme import apply_theme
+
+
+def main() -> int:
+    app = QApplication(sys.argv)
+    app.setApplicationName("HYDRA-UMC SUITE")
+    app.setOrganizationName("Electro Hobby 3D")
+    apply_theme(app)
+
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
+    window = MainWindow()
+
+    def toggle_fullscreen() -> None:
+        if window.isFullScreen():
+            window.showMaximized()
+        else:
+            window.showFullScreen()
+
+    shortcut = QShortcut(QKeySequence(Qt.Key.Key_F11), window)
+    shortcut.activated.connect(toggle_fullscreen)
+
+    window.showFullScreen()
+
+    with loop:
+        return loop.run_forever()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
