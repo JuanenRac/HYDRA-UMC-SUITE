@@ -86,6 +86,13 @@ class MainWindow(QMainWindow):
         self.splitDockWidget(dock_viewport, dock_robot, Qt.Orientation.Horizontal)
         self.resizeDocks([dock_viewport, dock_robot], [1200, 600], Qt.Orientation.Horizontal)
 
+        # A dock closed via its own [x] button would otherwise be gone for
+        # good until the app restarts - toggleViewAction() gives each one
+        # a real "show again" entry in the View menu, same as a plain Qt
+        # app with dockable panels normally does.
+        for dock in (dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj):
+            self._view_menu.addAction(dock.toggleViewAction())
+
     def _build_menu(self) -> None:
         menu = self.menuBar()
 
