@@ -31,8 +31,11 @@ export.
 convention:** this is a first real, working pass, not a finished product.
 See [`docs/ROADMAP.md`](docs/ROADMAP.md) for exactly what's genuinely
 implemented and verified end-to-end today vs. deliberately scoped out for
-later (most notably: only the UR5e robot model has real 3D geometry wired
-up so far, out of the 9 models this ecosystem now supports).
+later. As of this pass, every real robot model this ecosystem supports has
+real STL geometry and numerically-verified forward kinematics wired into
+the 3D viewport (Parol6, Faze4, AR3, AR4, UR3e/5e/10e/16e/20, xArm6,
+Lite 6, e.DO), plus a primitive-built "Generic" fallback for any model
+without a dedicated mesh set.
 
 ---
 
@@ -50,10 +53,10 @@ up so far, out of the 9 models this ecosystem now supports).
   counterpart to HYDRA-UMC STUDIO's own `RotaryKnob`+`FuturisticSlider`
   jog pair), speed/acceleration sliders, all writing back live.
 - **🧊 Real 3D viewport** - OpenGL 3.3, real STL meshes, real forward
-  kinematics (numerically verified against HYDRA-UMC STUDIO's own
-  TypeScript implementation, bit-for-bit identical results) - not a
-  stylized placeholder. UR5e today, see `docs/ROADMAP.md` for extending
-  to the rest.
+  kinematics for all 12 real robot models (numerically verified against
+  HYDRA-UMC STUDIO's own TypeScript implementation, bit-for-bit identical
+  results) plus a primitive-built "Generic" fallback - not a stylized
+  placeholder for any of them.
 - **📍 Trajectory points** - record the selected robot's live pose, jog
   back to any recorded point on demand.
 - **🪟 Photoshop-style dockable workspace** - every panel is a real
@@ -93,7 +96,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                 # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py
 ├── assets/
 │   ├── qss/industrial_dark.qss   # The futuristic-industrial Qt stylesheet
-│   └── meshes/ur5e/               # Real STL meshes, copied from HYDRA-UMC-STUDIO's own public/models/ur5e/ (BSD-3-Clause, see its own ATTRIBUTION.txt)
+│   └── meshes/                    # Real STL meshes, one folder per robot, copied from HYDRA-UMC-STUDIO's own public/models/<robot>/ (each with its own ATTRIBUTION.txt)
 ├── docs/
 │   └── ROADMAP.md                 # Honest real-vs-not-yet scope statement
 ├── tests/                         # Manual integration smoke tests (require a real running HYDRA-UMC STUDIO server - not a mocked unit suite)
@@ -176,8 +179,19 @@ HYDRA-UMC SUITE is (c) 2026 JuanenRac (Electro Hobby 3D). This notice must be in
 
 The source code of this application is available under the **GNU General Public License v3.0 (GPL-3.0)**. Full text at https://www.gnu.org/licenses/gpl-3.0.html.
 
-**Third-party mesh assets:** `assets/meshes/ur5e/` is copied verbatim from Universal Robots' own official [Universal_Robots_ROS2_Description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description) repository, **BSD-3-Clause** - NOT covered by the GPL-3.0 above. See `assets/meshes/ur5e/ATTRIBUTION.txt` for the exact source/license reference.
+**Third-party mesh assets:** every folder under `assets/meshes/` is copied verbatim from that robot's own official manufacturer repository - NOT covered by the GPL-3.0 above. Each has its own `ATTRIBUTION.txt` with the exact source/license reference; the table below summarizes them.
+
+| Manufacturer | Models | License |
+|---|---|---|
+| Source Robotics | Parol6 | GPL-3.0 |
+| Source Robotics | Faze4 | MIT |
+| Annin Robotics | AR3, AR4 | MIT |
+| Universal Robots | UR3e, UR5e, UR10e, UR16e, UR20 | BSD-3-Clause |
+| UFACTORY | xArm6, Lite 6 | BSD-3-Clause |
+| Comau | e.DO | BSD-3-Clause |
+| Kinova | Gen3 Lite | BSD-3-Clause |
+| FANUC | M-710iC | BSD-3-Clause |
 
 This project is the desktop swarm-control counterpart to [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - see that project's own repository for its own separate license, which this repository's own license doesn't extend to, and vice versa. It also ultimately controls [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) hardware/firmware and ([relayed through it](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) [URTC](https://github.com/JuanenRac/URTC) tool heads - both separate projects with their own separate licenses.
 
-If you build on this project, keep the licensing split in mind: code changes should stay GPL-3.0, and the UR5e mesh assets should stay under their own original BSD-3-Clause terms - each with attribution back to this project and its author.
+If you build on this project, keep the licensing split in mind: code changes should stay GPL-3.0, and every robot's own mesh assets should stay under their own original license terms (see the table above) - each with attribution back to this project and its author.

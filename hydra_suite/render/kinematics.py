@@ -322,6 +322,29 @@ LITE6_LINK_NAMES = ("base", "link1", "link2", "link3", "link4", "link5", "link6"
 LITE6_MESH_FILES = {name: f"{name}.stl" for name in LITE6_LINK_NAMES}
 LITE6_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
 
+# Kinova Gen3 Lite - same "every joint is local Z" structure (chain
+# copied verbatim from ros2_kortex's own gen3_lite.urdf, BSD-3-Clause -
+# see assets/meshes/gen3lite/ATTRIBUTION.txt). The source URDF's own
+# end_effector_link (after joint 6) has no mesh of its own - only 6 real
+# link_names/mesh_files are given here, and ur_world_link_transforms()
+# returns 7 transforms; zip() truncates to the shorter list, so the
+# trailing virtual-frame transform is simply never drawn (unlike the TS
+# side's URArm.tsx, whose fixed-depth-6 recursion needed a 7th mesh
+# entry duplicated instead - each platform's own natural mechanism for
+# the same real gap).
+GEN3LITE_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.12825), (0, 0, 0)),
+    JointStep((0, -0.03, 0.115), (1.5708, 0, 0)),
+    JointStep((0, 0.28, 0), (-3.1416, 0, 0)),
+    JointStep((0, -0.14, 0.02), (1.5708, 0, 0)),
+    JointStep((0.0285, 0, 0.105), (0, 1.5708, 0)),
+    JointStep((-0.105, 0, 0.0285), (0, -1.5708, 0)),
+]
+GEN3LITE_MESH_OFFSETS: list[JointStep] = [_IDENTITY_STEP] * 6
+GEN3LITE_LINK_NAMES = ("base_link", "shoulder_link", "arm_link", "forearm_link", "lower_wrist_link", "upper_wrist_link")
+GEN3LITE_MESH_FILES = {name: f"{name}.STL" for name in GEN3LITE_LINK_NAMES}
+GEN3LITE_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
+
 
 # =============================================================================
 # "Quaternion" family - Parol6, Faze4, AR3, AR4 (each hand-transcribed from
@@ -486,6 +509,36 @@ EDO = QuatRobotConfig(
     home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
 )
 
+# FANUC M-710iC - every joint's own <origin rpy> is (0,0,0) (pure
+# translation between joints) but the per-joint axis varies (not always
+# Z: joint_2 is world Y, joint_4/joint_6 are -X) - chain copied verbatim
+# from robot-descriptions/fanuc_m710ic_description's own urdf/
+# m710ic70.urdf (BSD-3-Clause - see assets/meshes/m710ic/ATTRIBUTION.txt).
+M710IC_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.565), (0, 0, 0), (0, 0, 1)),
+    JointStep((0.150, 0, 0), (0, 0, 0), (0, 1, 0)),
+    JointStep((0, 0, 0.870), (0, 0, 0), (0, -1, 0)),
+    JointStep((0, 0, 0.170), (0, 0, 0), (-1, 0, 0)),
+    JointStep((1.016, 0, 0), (0, 0, 0), (0, -1, 0)),
+    JointStep((0.175, 0, 0), (0, 0, 0), (-1, 0, 0)),
+]
+M710IC = QuatRobotConfig(
+    chain=M710IC_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("base_link", "link_1", "link_2", "link_3", "link_4", "link_5", "link_6"),
+    mesh_files={
+        "base_link": "base_link.stl",
+        "link_1": "link_1.stl",
+        "link_2": "link_2.stl",
+        "link_3": "link_3.stl",
+        "link_4": "link_4.stl",
+        "link_5": "link_5.stl",
+        "link_6": "link_6.stl",
+    },
+    home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
+)
+
 
 # =============================================================================
 # Robot registry - one entry per robot.model string HYDRA-UMC-STUDIO's own
@@ -519,5 +572,7 @@ ROBOT_REGISTRY: dict[str, RobotModelEntry] = {
     "xArm6 (6-DOF)": RobotModelEntry("ur", "xarm6", XARM6_LINK_NAMES, XARM6_MESH_FILES, chain=XARM6_CHAIN, mesh_offsets=XARM6_MESH_OFFSETS, home_pose_deg=XARM6_HOME_POSE_DEG),
     "Lite 6 (6-DOF)": RobotModelEntry("ur", "lite6", LITE6_LINK_NAMES, LITE6_MESH_FILES, chain=LITE6_CHAIN, mesh_offsets=LITE6_MESH_OFFSETS, home_pose_deg=LITE6_HOME_POSE_DEG),
     "e.DO (6-DOF)": RobotModelEntry("quat", "edo", EDO.link_names, EDO.mesh_files, quat_config=EDO, home_pose_deg=EDO.home_pose_deg),
+    "Gen3 Lite (6-DOF)": RobotModelEntry("ur", "gen3lite", GEN3LITE_LINK_NAMES, GEN3LITE_MESH_FILES, chain=GEN3LITE_CHAIN, mesh_offsets=GEN3LITE_MESH_OFFSETS, home_pose_deg=GEN3LITE_HOME_POSE_DEG),
+    "M-710iC (6-DOF)": RobotModelEntry("quat", "m710ic", M710IC.link_names, M710IC.mesh_files, quat_config=M710IC, home_pose_deg=M710IC.home_pose_deg),
     "Generic (6-DOF)": RobotModelEntry("generic", None, None, None, home_pose_deg={"j1": 0.0, "j2": -45.0, "j3": 45.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}),
 }

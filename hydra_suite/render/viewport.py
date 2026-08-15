@@ -194,7 +194,22 @@ class RobotViewport(QOpenGLWidget):
 
     def _load_mesh_set(self, mesh_dir: str, link_names: tuple[str, ...], mesh_files: dict[str, str]) -> None:
         meshes = load_link_set(ASSETS_DIR / mesh_dir, mesh_files)
-        self._mesh_buffers_by_dir[mesh_dir] = {name: GLMeshBuffer(meshes[name]) for name in link_names}
+        # set_robot_model() (this method's only non-initializeGL caller)
+        # runs from a plain Qt slot - Qt only guarantees THIS widget's own
+        # GL context is current inside initializeGL/paintGL/resizeGL, not
+        # here, so glGenVertexArrays/glGenBuffers below could otherwise
+        # execute against whatever context happened to be bound at that
+        # moment (or none) - looked fine with only 3 models (one preloaded
+        # in initializeGL, the rest never switched-to fast enough to
+        # expose it) but broke with real GLError(1282) on
+        # glBindVertexArray once more on-demand loads made the timing-
+        # dependent luck run out. makeCurrent()/doneCurrent() make this
+        # correct regardless of call timing.
+        self.makeCurrent()
+        try:
+            self._mesh_buffers_by_dir[mesh_dir] = {name: GLMeshBuffer(meshes[name]) for name in link_names}
+        finally:
+            self.doneCurrent()
 
     # --- Qt/OpenGL lifecycle -------------------------------------------------
 

@@ -1,0 +1,27 @@
+Kinova Gen3 Lite mesh files (base_link.STL, shoulder_link.STL,
+arm_link.STL, forearm_link.STL, lower_wrist_link.STL, upper_wrist_link.STL)
+
+Source: https://github.com/Kinovarobotics/ros2_kortex
+Path:   kortex_description/arms/gen3_lite/6dof/meshes/
+License: BSD-3-Clause, per that repository's own LICENSE file. Official
+Kinova Robotics repository.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+Gen3LiteArm.tsx 3D view. The source URDF (gen3_lite.urdf) also includes a
+2-finger gripper (gripper_base_link + 4 finger links, with mimic joints)
+past the 6-DOF arm chain - not modeled here, same scope boundary every
+other robot's own gripper/tool geometry already has in this project (see
+Toolhead.tsx).
+
+Joint kinematic chain (origin xyz/rpy, axis) comes from that repository's
+own kortex_description/robots/gen3_lite.urdf directly - see
+src/examples/gen3LiteKinematics.ts for where those exact numbers were
+transcribed to. Every real arm joint's own <axis> is "0 0 1" (rotates
+about local Z once its own <origin rpy> is applied), the same convention
+the UR family shares, so this reuses urKinematicsShared.ts's engine.
+
+Note: the source URDF's own end_effector_link (the frame right after
+joint_6) has NO mesh of its own - it's a virtual attachment frame for the
+gripper. URArm.tsx's shared rig expects exactly 7 real mesh entries
+though, so the 7th slot re-uses upper_wrist_link.STL (the closest real
+geometry) rather than inventing a fake shape for that frame.

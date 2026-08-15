@@ -19,7 +19,9 @@ each one is a scoped, well-understood next step, not a redesign.
   arbitrary number of simultaneous `HydraConnection`s, one per added
   server, with one "active" for the other panels to show.
 - **3D viewport** (`hydra_suite/render/`) - real forward kinematics for
-  ALL 9 real robot models (`kinematics.py`'s own `ROBOT_REGISTRY`),
+  ALL 12 real robot models (`kinematics.py`'s own `ROBOT_REGISTRY`) -
+  the original 9 (Parol6, Faze4, AR3, AR4, UR3e/5e/10e/16e/20) plus 3
+  added since (xArm6, Lite 6, e.DO),
   numerically verified to match HYDRA-UMC-STUDIO's own TypeScript FK
   bit-for-bit: UR5e matches to 849.7401073213356mm for its fully-extended
   horizontal reach, and Parol6/Faze4/AR3/AR4's "quaternion family" engine

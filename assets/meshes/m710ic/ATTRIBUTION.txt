@@ -1,0 +1,23 @@
+FANUC M-710iC mesh files (base_link.stl, link_1.stl, link_2.stl,
+link_3.stl, link_4.stl, link_5.stl, link_6.stl)
+
+Source: https://github.com/robot-descriptions/fanuc_m710ic_description
+Path:   meshes/m710ic50/visual/
+License: BSD-3-Clause, per that repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+M710icArm.tsx 3D view. Note: the source repo's own URDF (urdf/
+m710ic70.urdf) references the m710ic50/ mesh set for the m710ic70 robot
+variant - a real quirk of that upstream repository (shared body geometry
+across payload variants), not a mistake introduced here. These are a
+lower-polygon visual mesh set (a few hundred triangles per link) compared
+to some other robots in this folder - a real, legitimate simplified
+model from the official source, not a corrupted/truncated download.
+
+Joint kinematic chain (origin xyz, axis) comes from that repository's own
+urdf/m710ic70.urdf directly - see src/examples/m710icKinematics.ts for
+where those exact numbers were transcribed to. Every joint's own <origin
+rpy> is (0,0,0) (pure translation between joints) but the per-joint axis
+varies (not always Z) - joint_2 rotates about world Y, joint_4/joint_6
+about -X - so this robot uses the same "quaternion family" FK engine as
+Parol6/Faze4/AR3/AR4/e.DO, not the UR family's shared-Z-axis engine.
