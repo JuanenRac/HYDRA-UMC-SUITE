@@ -151,6 +151,16 @@ if [ -d docs ]; then
     cp -r docs/. dist/docs/
     echo "      Copied docs/ into dist/docs/"
 fi
+# language/ sits NEXT TO the binary (not bundled inside via --add-data)
+# deliberately - hydra_suite/i18n.py's own LANGUAGE_FOLDER resolves via
+# sys.executable's own directory for a frozen build (same reasoning as
+# URTC-FLASHER's own language/ folder), which also means a user or
+# translator can edit/add a .lng file after the fact without a rebuild.
+if [ -d language ]; then
+    mkdir -p dist/language
+    cp -r language/. dist/language/
+    echo "      Copied language/ into dist/language/"
+fi
 echo "      Done."
 echo
 

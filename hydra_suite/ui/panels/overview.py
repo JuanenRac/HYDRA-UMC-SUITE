@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 )
 
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
 from hydra_suite.models import HydraState
 
 
@@ -35,11 +36,11 @@ class OverviewPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        heading = QLabel("OVERVIEW")
+        heading = QLabel(_("HEADING_OVERVIEW"))
         heading.setObjectName("panelHeading")
         layout.addWidget(heading)
 
-        stats_box = QGroupBox("Active Controller")
+        stats_box = QGroupBox(_("GROUP_ACTIVE_CONTROLLER"))
         stats_layout = QGridLayout(stats_box)
         self._name_label = QLabel("-")
         self._ip_label = QLabel("-")
@@ -47,10 +48,10 @@ class OverviewPanel(QWidget):
         self._online_count_label = QLabel("-")
         for row, (caption, value_label) in enumerate(
             [
-                ("Name", self._name_label),
-                ("IP", self._ip_label),
-                ("Robots", self._robot_count_label),
-                ("Online", self._online_count_label),
+                (_("LBL_NAME"), self._name_label),
+                (_("LBL_IP"), self._ip_label),
+                (_("LBL_ROBOTS"), self._robot_count_label),
+                (_("LBL_ONLINE"), self._online_count_label),
             ]
         ):
             cap = QLabel(caption)
@@ -60,7 +61,7 @@ class OverviewPanel(QWidget):
         layout.addWidget(stats_box)
 
         self._table = QTableWidget(0, 5)
-        self._table.setHorizontalHeaderLabels(("Robot", "Model", "Role", "Status", "Speed / Accel"))
+        self._table.setHorizontalHeaderLabels((_("COL_ROBOT"), _("COL_MODEL"), _("COL_ROLE"), _("COL_STATUS"), _("COL_SPEED_ACCEL")))
         self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self._table.verticalHeader().setVisible(False)
@@ -91,6 +92,6 @@ class OverviewPanel(QWidget):
             self._table.setItem(row, 0, QTableWidgetItem(robot.id))
             self._table.setItem(row, 1, QTableWidgetItem(robot.model))
             self._table.setItem(row, 2, QTableWidgetItem(robot.role))
-            status_item = QTableWidgetItem("Online" if robot.online else "Offline")
+            status_item = QTableWidgetItem(_("STATUS_ONLINE") if robot.online else _("STATUS_OFFLINE"))
             self._table.setItem(row, 3, status_item)
             self._table.setItem(row, 4, QTableWidgetItem(f"{robot.speed:.0f}% / {robot.acceleration:.0f}%"))

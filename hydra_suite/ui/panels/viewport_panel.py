@@ -16,6 +16,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QLabel, QStackedWidget, QVBoxLayout, QWidget
 
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
 from hydra_suite.render.kinematics import ROBOT_REGISTRY
 from hydra_suite.render.viewport import RobotViewport
@@ -34,7 +35,7 @@ class ViewportPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        heading = QLabel("3D VIEWPORT")
+        heading = QLabel(_("HEADING_VIEWPORT"))
         heading.setObjectName("panelHeading")
         layout.addWidget(heading)
 
@@ -50,7 +51,7 @@ class ViewportPanel(QWidget):
 
         layout.addWidget(self._stack, 1)
 
-        hint = QLabel("Left-drag: orbit   •   Right/middle-drag: pan   •   Wheel: zoom")
+        hint = QLabel(_("HINT_CONTROLS"))
         hint.setStyleSheet("color: #4a5563; font-size: 11px;")
         layout.addWidget(hint)
 
@@ -69,15 +70,12 @@ class ViewportPanel(QWidget):
 
     def _apply(self, robot: RobotView | None) -> None:
         if robot is None:
-            self._unsupported_label.setText("No robot selected.")
+            self._unsupported_label.setText(_("LBL_NO_ROBOT_SELECTED"))
             self._stack.setCurrentWidget(self._unsupported_label)
             return
         if robot.model not in SUPPORTED_MODELS:
             self._unsupported_label.setText(
-                f"'{robot.model}' has no real 3D mesh/kinematics in HYDRA-UMC SUITE yet.\n\n"
-                f"Only {', '.join(sorted(SUPPORTED_MODELS))} is wired up in this version "
-                "(same real STL + forward-kinematics data HYDRA-UMC-STUDIO's own web UI "
-                "uses for it) - see docs/ROADMAP.md for extending this to the other models."
+                _("MSG_UNSUPPORTED_MODEL", model=robot.model, models=", ".join(sorted(SUPPORTED_MODELS)))
             )
             self._stack.setCurrentWidget(self._unsupported_label)
             return

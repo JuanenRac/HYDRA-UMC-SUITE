@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, JOINT_NAMES, RobotView
 from hydra_suite.ui.widgets.rotary_knob import RotaryKnob
 
@@ -96,7 +97,7 @@ class RobotControlPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        heading = QLabel("ROBOT CONTROL")
+        heading = QLabel(_("HEADING_ROBOT_CONTROL"))
         heading.setObjectName("panelHeading")
         layout.addWidget(heading)
 
@@ -104,7 +105,7 @@ class RobotControlPanel(QWidget):
         self._robot_combo.currentIndexChanged.connect(self._on_robot_combo_changed)
         layout.addWidget(self._robot_combo)
 
-        joints_box = QGroupBox("Joints")
+        joints_box = QGroupBox(_("GROUP_JOINTS"))
         joints_layout = QVBoxLayout(joints_box)
         self._joint_rows: dict[str, JointRow] = {}
         for name in JOINT_NAMES:
@@ -114,9 +115,9 @@ class RobotControlPanel(QWidget):
             self._joint_rows[name] = row
         layout.addWidget(joints_box)
 
-        speed_box = QGroupBox("Playback")
+        speed_box = QGroupBox(_("GROUP_PLAYBACK"))
         speed_layout = QGridLayout(speed_box)
-        speed_layout.addWidget(QLabel("Speed"), 0, 0)
+        speed_layout.addWidget(QLabel(_("LBL_SPEED")), 0, 0)
         self._speed_slider = QSlider(Qt.Orientation.Horizontal)
         self._speed_slider.setRange(1, 200)
         self._speed_slider.valueChanged.connect(self._on_speed_changed)
@@ -124,7 +125,7 @@ class RobotControlPanel(QWidget):
         self._speed_label = QLabel("100%")
         speed_layout.addWidget(self._speed_label, 0, 2)
 
-        speed_layout.addWidget(QLabel("Acceleration"), 1, 0)
+        speed_layout.addWidget(QLabel(_("LBL_ACCELERATION")), 1, 0)
         self._accel_slider = QSlider(Qt.Orientation.Horizontal)
         self._accel_slider.setRange(1, 200)
         self._accel_slider.valueChanged.connect(self._on_accel_changed)

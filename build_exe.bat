@@ -148,6 +148,16 @@ if exist docs (
     xcopy /E /I /Y docs dist\docs >nul
     echo       Copied docs\ into dist\docs\
 )
+REM language\ sits NEXT TO the .exe (not bundled inside via --add-data)
+REM deliberately - hydra_suite\i18n.py's own LANGUAGE_FOLDER resolves via
+REM sys.executable's own directory for a frozen build (same reasoning as
+REM URTC-FLASHER's own language\ folder), which also means a user or
+REM translator can edit/add a .lng file after the fact without needing a
+REM rebuild.
+if exist language (
+    xcopy /E /I /Y language dist\language >nul
+    echo       Copied language\ into dist\language\
+)
 echo       Done.
 echo.
 

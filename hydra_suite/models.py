@@ -91,6 +91,59 @@ class RobotView:
         return f"RobotView(id={self.id!r}, model={self.model!r}, online={self.online})"
 
 
+# The 4 camera type strings HYDRA-UMC-STUDIO's own store.tsx CameraType
+# union allows - see that file's own CameraState interface.
+CAMERA_TYPES = ("USB Vision Camera", "Thermal (MLX90640)", "Thermal (MLX90641)", "Thermal (MLX90642)")
+
+
+class CameraView:
+    """Thin, mutation-friendly view over one entry of
+    controllers[].cameras[] - same reasoning as RobotView. Matches
+    HYDRA-UMC-STUDIO's own CameraState interface (src/store.tsx) field
+    for field: id/connected/type/yoloEnabled/detections. The "video"
+    itself is a UI placeholder on BOTH sides of this ecosystem (see
+    CamerasView.tsx's own header) - no real camera hardware/stream
+    exists anywhere in this ecosystem yet, so this view only carries the
+    real, server-synced METADATA (which cameras exist, their type,
+    connected state), not pixels."""
+
+    def __init__(self, raw: dict[str, Any]):
+        self.raw = raw
+
+    @property
+    def id(self) -> int:
+        return int(self.raw.get("id", 0))
+
+    @property
+    def connected(self) -> bool:
+        return bool(self.raw.get("connected", False))
+
+    def set_connected(self, value: bool) -> None:
+        self.raw["connected"] = value
+        if not value:
+            # Mirrors HYDRA-UMC-STUDIO's own toggleConnection() - YOLO
+            # inference can't meaningfully stay "on" for a camera with
+            # no connection.
+            self.raw["yoloEnabled"] = False
+
+    @property
+    def camera_type(self) -> str:
+        return str(self.raw.get("type", CAMERA_TYPES[0]))
+
+    def set_camera_type(self, value: str) -> None:
+        self.raw["type"] = value
+
+    @property
+    def yolo_enabled(self) -> bool:
+        return bool(self.raw.get("yoloEnabled", False))
+
+    def set_yolo_enabled(self, value: bool) -> None:
+        self.raw["yoloEnabled"] = value
+
+    def __repr__(self) -> str:
+        return f"CameraView(id={self.id!r}, connected={self.connected}, type={self.camera_type!r})"
+
+
 class ControllerView:
     """Thin view over one entry of the top-level controllers[] array."""
 
@@ -118,6 +171,10 @@ class ControllerView:
             if r.id == robot_id:
                 return r
         return None
+
+    @property
+    def cameras(self) -> list[CameraView]:
+        return [CameraView(c) for c in (self.raw.get("cameras") or [])]
 
     def __repr__(self) -> str:
         return f"ControllerView(id={self.id!r}, name={self.name!r}, robots={len(self.robots)})"

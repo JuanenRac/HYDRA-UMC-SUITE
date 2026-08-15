@@ -53,7 +53,7 @@ without a dedicated mesh set.
   counterpart to HYDRA-UMC STUDIO's own `RotaryKnob`+`FuturisticSlider`
   jog pair), speed/acceleration sliders, all writing back live.
 - **🧊 Real 3D viewport** - OpenGL 3.3, real STL meshes, real forward
-  kinematics for all 12 real robot models (numerically verified against
+  kinematics for all 24 real robot models (numerically verified against
   HYDRA-UMC STUDIO's own TypeScript implementation, bit-for-bit identical
   results) plus a primitive-built "Generic" fallback - not a stylized
   placeholder for any of them.
@@ -62,6 +62,15 @@ without a dedicated mesh set.
 - **🪟 Photoshop-style dockable workspace** - every panel is a real
   `QDockWidget`: drag to float free, drag back to dock or merge into a
   tab group, split the workspace, close, and re-show from the View menu.
+- **🌐 5 languages** - English, Español, Italiano, Français, Deutsch
+  (same `language/*.lng` convention as URTC-FLASHER/URTC-TESTER), switch
+  from the Language menu (takes effect after a restart).
+- **📷 Cameras** - real per-controller camera roster (which cameras
+  exist, their type, connected state) synced with the real server the
+  same way every other panel here is - the video feed itself is a
+  clearly-labeled placeholder, matching HYDRA-UMC-STUDIO's own
+  CamerasView.tsx honesty boundary (no real camera hardware/stream
+  exists anywhere in this ecosystem yet).
 
 ---
 
@@ -196,6 +205,8 @@ The source code of this application is available under the **GNU General Public 
 | AgileX | PiPER | Apache-2.0 |
 | Unitree | Z1 | BSD-3-Clause |
 | Trossen Robotics | ViperX 300, WidowX 250 | BSD-3-Clause |
+| Koch / Low-Cost Robot Arm | Koch v1.1 | Apache-2.0 |
+| Universal Robots (classic) | UR3, UR5, UR10 | BSD-3-Clause |
 
 This project is the desktop swarm-control counterpart to [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - see that project's own repository for its own separate license, which this repository's own license doesn't extend to, and vice versa. It also ultimately controls [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) hardware/firmware and ([relayed through it](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) [URTC](https://github.com/JuanenRac/URTC) tool heads - both separate projects with their own separate licenses.
 

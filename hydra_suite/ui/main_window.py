@@ -17,9 +17,12 @@ import asyncio
 from pathlib import Path
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QActionGroup
 from PySide6.QtWidgets import QDockWidget, QMainWindow, QMessageBox
 
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
+from hydra_suite.ui.panels.cameras_panel import CamerasPanel
 from hydra_suite.ui.panels.overview import OverviewPanel
 from hydra_suite.ui.panels.robot_control import RobotControlPanel
 from hydra_suite.ui.panels.server_browser import ServerBrowserPanel
@@ -68,15 +71,17 @@ class MainWindow(QMainWindow):
         self.robot_control = RobotControlPanel(self.controller)
         self.viewport_panel = ViewportPanel(self.controller)
         self.trajectory_panel = TrajectoryPanel(self.controller)
+        self.cameras_panel = CamerasPanel(self.controller)
 
         self.robot_control.robot_selected.connect(self.viewport_panel.set_selected_robot)
         self.robot_control.robot_selected.connect(self.trajectory_panel.set_selected_robot)
 
-        dock_servers = self._make_dock("Servers", self.server_browser, Qt.DockWidgetArea.LeftDockWidgetArea)
-        dock_overview = self._make_dock("Overview", self.overview, Qt.DockWidgetArea.LeftDockWidgetArea)
-        dock_viewport = self._make_dock("3D Viewport", self.viewport_panel, Qt.DockWidgetArea.RightDockWidgetArea)
-        dock_robot = self._make_dock("Robot Control", self.robot_control, Qt.DockWidgetArea.RightDockWidgetArea)
-        dock_traj = self._make_dock("Trajectory", self.trajectory_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_servers = self._make_dock(_("DOCK_SERVERS"), self.server_browser, Qt.DockWidgetArea.LeftDockWidgetArea)
+        dock_overview = self._make_dock(_("DOCK_OVERVIEW"), self.overview, Qt.DockWidgetArea.LeftDockWidgetArea)
+        dock_viewport = self._make_dock(_("DOCK_VIEWPORT"), self.viewport_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        dock_robot = self._make_dock(_("DOCK_ROBOT_CONTROL"), self.robot_control, Qt.DockWidgetArea.RightDockWidgetArea)
+        dock_traj = self._make_dock(_("DOCK_TRAJECTORY"), self.trajectory_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_cameras = self._make_dock(_("TAB_CAMERAS"), self.cameras_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
         # Sensible default arrangement - the user is free to drag any of
         # these into any other configuration afterward (float/merge/
@@ -85,43 +90,56 @@ class MainWindow(QMainWindow):
         dock_servers.raise_()
         self.splitDockWidget(dock_viewport, dock_robot, Qt.Orientation.Horizontal)
         self.resizeDocks([dock_viewport, dock_robot], [1200, 600], Qt.Orientation.Horizontal)
+        self.tabifyDockWidget(dock_traj, dock_cameras)
+        dock_traj.raise_()
 
         # A dock closed via its own [x] button would otherwise be gone for
         # good until the app restarts - toggleViewAction() gives each one
         # a real "show again" entry in the View menu, same as a plain Qt
         # app with dockable panels normally does.
-        for dock in (dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj):
+        for dock in (dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras):
             self._view_menu.addAction(dock.toggleViewAction())
 
     def _build_menu(self) -> None:
         menu = self.menuBar()
 
-        file_menu = menu.addMenu("&File")
-        quit_action = file_menu.addAction("Quit")
+        file_menu = menu.addMenu(_("MENU_FILE"))
+        quit_action = file_menu.addAction(_("MENU_QUIT"))
         quit_action.triggered.connect(self.close)
 
-        view_menu = menu.addMenu("&View")
+        view_menu = menu.addMenu(_("MENU_VIEW"))
         self._view_menu = view_menu  # populated in _build_panels via dock.toggleViewAction()
 
-        help_menu = menu.addMenu("&Help")
-        about_action = help_menu.addAction("About HYDRA-UMC SUITE")
+        language_menu = menu.addMenu(_("MENU_LANGUAGE"))
+        language_group = QActionGroup(self)
+        language_group.setExclusive(True)
+        active_lang = current_language()
+        for code, display in AVAILABLE_LANGUAGES:
+            action = language_menu.addAction(display)
+            action.setCheckable(True)
+            action.setChecked(code == active_lang)
+            action.triggered.connect(lambda checked=False, c=code: self._on_language_change(c))
+            language_group.addAction(action)
+
+        help_menu = menu.addMenu(_("MENU_HELP"))
+        about_action = help_menu.addAction(_("MENU_ABOUT"))
         about_action.triggered.connect(self._show_about)
 
     def _build_status_bar(self) -> None:
         self._status = self.statusBar()
-        self._status.showMessage("Ready - scan the network or add a HYDRA-UMC server to begin.")
+        self._status.showMessage(_("STATUS_READY"))
         self.controller.active_status_changed.connect(
-            lambda status: self._status.showMessage(f"Active connection status: {status}")
+            lambda status: self._status.showMessage(_("STATUS_ACTIVE_CONNECTION", status=status))
         )
 
     def _show_about(self) -> None:
-        QMessageBox.information(
-            self,
-            "About HYDRA-UMC SUITE",
-            "HYDRA-UMC SUITE\n\n"
-            "Multi-controller swarm command center for the HYDRA-UMC platform.\n"
-            "(c) 2026 JuanenRac (Electro Hobby 3D) - GPL-3.0",
-        )
+        QMessageBox.information(self, _("TITLE_ABOUT"), _("MSG_ABOUT_BODY"))
+
+    def _on_language_change(self, code: str) -> None:
+        if save_config({"language": code}):
+            QMessageBox.information(self, _("TITLE_RESTART_NEEDED"), _("MSG_RESTART_NEEDED"))
+        else:
+            QMessageBox.critical(self, _("TITLE_COULDNT_SAVE"), _("MSG_LANGUAGE_NOT_SAVED", path=str(CONFIG_FILE_PATH)))
 
     def closeEvent(self, event) -> None:
         asyncio.ensure_future(self.controller.shutdown())

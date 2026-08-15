@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 )
 
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
 from hydra_suite.models import ServerInfo
 from hydra_suite.net.discovery import DEFAULT_PORT, scan_subnets
 
@@ -41,7 +42,12 @@ STATUS_OBJECT_NAMES = {
     "error": "statusOffline",
 }
 
-COLUMNS = ("Server", "Host", "Robots", "Status")
+STATUS_DISPLAY_KEYS = {
+    "connected": "STATUS_CONNECTED",
+    "connecting": "STATUS_CONNECTING",
+    "disconnected": "STATUS_DISCONNECTED",
+    "error": "STATUS_ERROR",
+}
 
 
 class ServerBrowserPanel(QWidget):
@@ -55,12 +61,12 @@ class ServerBrowserPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        heading = QLabel("HYDRA-UMC SERVERS")
+        heading = QLabel(_("HEADING_SERVERS"))
         heading.setObjectName("panelHeading")
         layout.addWidget(heading)
 
         scan_row = QHBoxLayout()
-        self._scan_button = QPushButton("Scan network")
+        self._scan_button = QPushButton(_("BTN_SCAN_NETWORK"))
         self._scan_button.setObjectName("primaryAction")
         self._scan_button.clicked.connect(self._on_scan_clicked)
         scan_row.addWidget(self._scan_button)
@@ -71,19 +77,20 @@ class ServerBrowserPanel(QWidget):
 
         manual_row = QHBoxLayout()
         self._host_edit = QLineEdit()
-        self._host_edit.setPlaceholderText("IP or hostname (also works through a VPN tunnel)")
+        self._host_edit.setPlaceholderText(_("PLACEHOLDER_HOST"))
         manual_row.addWidget(self._host_edit, 1)
         self._port_spin = QSpinBox()
         self._port_spin.setRange(1, 65535)
         self._port_spin.setValue(DEFAULT_PORT)
         manual_row.addWidget(self._port_spin)
-        add_button = QPushButton("Add")
+        add_button = QPushButton(_("BTN_ADD"))
         add_button.clicked.connect(self._on_add_manual)
         manual_row.addWidget(add_button)
         layout.addLayout(manual_row)
 
-        self._table = QTableWidget(0, len(COLUMNS))
-        self._table.setHorizontalHeaderLabels(COLUMNS)
+        columns = (_("COL_SERVER"), _("COL_HOST"), _("COL_ROBOTS"), _("COL_STATUS"))
+        self._table = QTableWidget(0, len(columns))
+        self._table.setHorizontalHeaderLabels(columns)
         self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self._table.verticalHeader().setVisible(False)
@@ -95,11 +102,11 @@ class ServerBrowserPanel(QWidget):
 
         remove_row = QHBoxLayout()
         remove_row.addStretch(1)
-        self._remove_button = QPushButton("Remove selected")
+        self._remove_button = QPushButton(_("BTN_REMOVE_SELECTED"))
         self._remove_button.setObjectName("dangerAction")
         self._remove_button.clicked.connect(self._on_remove_selected)
         remove_row.addWidget(self._remove_button)
-        activate_button = QPushButton("Set active")
+        activate_button = QPushButton(_("BTN_SET_ACTIVE"))
         activate_button.setObjectName("primaryAction")
         activate_button.clicked.connect(self._on_activate_selected)
         remove_row.addWidget(activate_button)
@@ -116,7 +123,7 @@ class ServerBrowserPanel(QWidget):
             return
         self._scanning = True
         self._scan_button.setEnabled(False)
-        self._scan_status.setText("Scanning local subnet(s)...")
+        self._scan_status.setText(_("STATUS_SCANNING"))
         asyncio.ensure_future(self._run_scan())
 
     async def _run_scan(self) -> None:
@@ -125,11 +132,11 @@ class ServerBrowserPanel(QWidget):
             async for info in scan_subnets():
                 found += 1
                 self._controller.add_server(info)
-                self._scan_status.setText(f"Scanning... {found} server(s) found so far")
+                self._scan_status.setText(_("STATUS_SCANNING_PROGRESS", found=found))
         finally:
             self._scanning = False
             self._scan_button.setEnabled(True)
-            self._scan_status.setText(f"Scan complete - {found} server(s) found" if found else "Scan complete - none found. Try 'Add' with a known IP.")
+            self._scan_status.setText(_("STATUS_SCAN_COMPLETE", found=found) if found else _("STATUS_SCAN_COMPLETE_NONE"))
 
     def _on_add_manual(self) -> None:
         host = self._host_edit.text().strip()
@@ -161,7 +168,7 @@ class ServerBrowserPanel(QWidget):
             robot_count = len(conn.state.active_controller.robots) if conn.state.active_controller else conn.info.robot_count
             self._table.setItem(row, 2, QTableWidgetItem(str(robot_count)))
             status = self._statuses.get(conn_id, "connecting")
-            self._table.setItem(row, 3, QTableWidgetItem(status))
+            self._table.setItem(row, 3, QTableWidgetItem(_(STATUS_DISPLAY_KEYS.get(status, "STATUS_CONNECTING"))))
             self._table.item(row, 0).setData(Qt.ItemDataRole.UserRole, conn_id)
 
     def _on_active_status(self, status: str) -> None:

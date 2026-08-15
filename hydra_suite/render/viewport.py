@@ -7,7 +7,7 @@
 # (core profile, not legacy immediate-mode glBegin/glEnd, since Qt's own
 # default-created context on most drivers is a core-profile one that
 # doesn't support the legacy path at all). Renders the real STL meshes
-# (render/mesh.py) for all 9 real robot models plus a primitive-built
+# (render/mesh.py) for all 24 real robot models plus a primitive-built
 # "Generic" fallback (render/generic_rig.py), posed every frame from the
 # real forward kinematics (render/kinematics.py) driven by live joint
 # angles from a connected HydraConnection's own RobotView - not a
@@ -144,7 +144,7 @@ class GLMeshBuffer:
 
 class RobotViewport(QOpenGLWidget):
     """Orbit camera (left-drag rotate, wheel zoom, right/middle-drag pan)
-    over a live-posed robot - any of the 9 real STL-backed models
+    over a live-posed robot - any of the 24 real STL-backed models
     (ROBOT_REGISTRY in kinematics.py) plus a primitive-built "Generic"
     fallback (generic_rig.py), switched at runtime via set_robot_model()."""
 

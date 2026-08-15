@@ -637,6 +637,91 @@ SOARM100 = QuatRobotConfig(
     home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
 )
 
+# Koch v1.1 / "Low-Cost Robot Arm" (same real open-hardware design, see
+# assets/meshes/koch/ATTRIBUTION.txt for why this ports it once instead
+# of as two near-duplicate robots) - chain copied verbatim from
+# mujoco_menagerie's own low_cost_robot_arm/low_cost_robot_arm.xml MJCF
+# (Apache-2.0). Only 5 real arm joints (not 6 - the source MJCF's own
+# 6th joint is the gripper jaw), same situation as SO-ARM100.
+KOCH_CHAIN: list[JointStep] = [
+    JointStep((0.012, 0, 0.0409), (0, 0, 0), (0, 0, -1)),
+    JointStep((0, -0.0209, 0.0154), (0, 0, 0), (0, 1, 0)),
+    JointStep((-0.0148, 0.0065, 0.1083), (0, 0, 0), (0, -1, 0)),
+    JointStep((-0.10048, 5e-05, 0.0026999), (0, 0, 0), (0, 1, 0)),
+    JointStep((-0.045, 0.013097, 0), (0, 0, 0), (1, 0, 0)),
+]
+KOCH = QuatRobotConfig(
+    chain=KOCH_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("base_link", "shoulder_rotation", "shoulder_to_elbow", "elbow_to_wrist_extension", "elbow_to_wrist", "gripper_static_finger"),
+    mesh_files={
+        "base_link": "base_link.stl",
+        "shoulder_rotation": "shoulder_rotation.stl",
+        "shoulder_to_elbow": "shoulder_to_elbow.stl",
+        "elbow_to_wrist_extension": "elbow_to_wrist_extension.stl",
+        "elbow_to_wrist": "elbow_to_wrist.stl",
+        "gripper_static_finger": "gripper_static_finger.stl",
+    },
+    home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
+)
+
+# Universal Robots UR3/UR5/UR10 (classic, pre-e-Series) - chains built
+# from ros-industrial/universal_robot's own real DH parameters
+# (BSD-3-Clause - see assets/meshes/ur{3,5,10}classic/ATTRIBUTION.txt).
+# UNLIKE the e-Series (UR3E_CHAIN etc. above, all local-Z), this classic
+# generation's own DH-based URDF mixes axes per joint (shoulder_pan/
+# wrist_2 = Z, shoulder_lift/elbow/wrist_1/wrist_3 = Y) - so despite
+# being a Universal Robots product, these use the "quaternion family"
+# engine, not ur_world_link_transforms(). Mesh files reuse the exact
+# same names as the e-Series (base/shoulder/upperarm/forearm/wrist1/2/3
+# .stl) since UR kept that naming convention across both generations.
+_UR_CLASSIC_LINK_NAMES = ("base_link", "shoulder_link", "upper_arm_link", "forearm_link", "wrist_1_link", "wrist_2_link", "wrist_3_link")
+_UR_CLASSIC_MESH_FILES = {
+    "base_link": "base.stl", "shoulder_link": "shoulder.stl", "upper_arm_link": "upperarm.stl",
+    "forearm_link": "forearm.stl", "wrist_1_link": "wrist1.stl", "wrist_2_link": "wrist2.stl", "wrist_3_link": "wrist3.stl",
+}
+_UR_CLASSIC_HOME_POSE_DEG = {"j1": 0.0, "j2": -90.0, "j3": 0.0, "j4": -90.0, "j5": 0.0, "j6": 0.0}
+
+UR3CLASSIC_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.1519), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0.1198, 0), (0, np.pi / 2, 0), (0, 1, 0)),
+    JointStep((0, -0.0925, 0.24365), (0, 0, 0), (0, 1, 0)),
+    JointStep((0, 0, 0.21325), (0, np.pi / 2, 0), (0, 1, 0)),
+    JointStep((0, 0.08505, 0), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0, 0.08535), (0, 0, 0), (0, 1, 0)),
+]
+UR3CLASSIC = QuatRobotConfig(
+    chain=UR3CLASSIC_CHAIN, root_axis_target=(0.0, 1.0, 0.0), base_offset=(0.0, 0.0, 0.0),
+    link_names=_UR_CLASSIC_LINK_NAMES, mesh_files=_UR_CLASSIC_MESH_FILES, home_pose_deg=_UR_CLASSIC_HOME_POSE_DEG,
+)
+
+UR5CLASSIC_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.089159), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0.13585, 0), (0, np.pi / 2, 0), (0, 1, 0)),
+    JointStep((0, -0.1197, 0.425), (0, 0, 0), (0, 1, 0)),
+    JointStep((0, 0, 0.39225), (0, np.pi / 2, 0), (0, 1, 0)),
+    JointStep((0, 0.093, 0), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0, 0.09465), (0, 0, 0), (0, 1, 0)),
+]
+UR5CLASSIC = QuatRobotConfig(
+    chain=UR5CLASSIC_CHAIN, root_axis_target=(0.0, 1.0, 0.0), base_offset=(0.0, 0.0, 0.0),
+    link_names=_UR_CLASSIC_LINK_NAMES, mesh_files=_UR_CLASSIC_MESH_FILES, home_pose_deg=_UR_CLASSIC_HOME_POSE_DEG,
+)
+
+UR10CLASSIC_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.1273), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0.220941, 0), (0, np.pi / 2, 0), (0, 1, 0)),
+    JointStep((0, -0.1719, 0.612), (0, 0, 0), (0, 1, 0)),
+    JointStep((0, 0, 0.5723), (0, np.pi / 2, 0), (0, 1, 0)),
+    JointStep((0, 0.1149, 0), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0, 0.1157), (0, 0, 0), (0, 1, 0)),
+]
+UR10CLASSIC = QuatRobotConfig(
+    chain=UR10CLASSIC_CHAIN, root_axis_target=(0.0, 1.0, 0.0), base_offset=(0.0, 0.0, 0.0),
+    link_names=_UR_CLASSIC_LINK_NAMES, mesh_files=_UR_CLASSIC_MESH_FILES, home_pose_deg=_UR_CLASSIC_HOME_POSE_DEG,
+)
+
 # Unitree Z1 - every joint's own rpy is (0,0,0) (pure translation) but
 # the axis varies per joint (not always Z) - chain copied verbatim from
 # mujoco_menagerie's own unitree_z1/z1.xml MJCF (BSD-3-Clause, Unitree
@@ -782,5 +867,9 @@ ROBOT_REGISTRY: dict[str, RobotModelEntry] = {
     "Z1 (6-DOF)": RobotModelEntry("quat", "z1", Z1.link_names, Z1.mesh_files, quat_config=Z1, home_pose_deg=Z1.home_pose_deg),
     "ViperX 300 (6-DOF)": RobotModelEntry("quat", "vx300s", VX300S.link_names, VX300S.mesh_files, quat_config=VX300S, home_pose_deg=VX300S.home_pose_deg),
     "WidowX 250 (6-DOF)": RobotModelEntry("quat", "wx250s", WX250S.link_names, WX250S.mesh_files, quat_config=WX250S, home_pose_deg=WX250S.home_pose_deg),
+    "Koch v1.1 (5-DOF)": RobotModelEntry("quat", "koch", KOCH.link_names, KOCH.mesh_files, quat_config=KOCH, home_pose_deg=KOCH.home_pose_deg),
+    "UR3 (6-DOF)": RobotModelEntry("quat", "ur3classic", UR3CLASSIC.link_names, UR3CLASSIC.mesh_files, quat_config=UR3CLASSIC, home_pose_deg=UR3CLASSIC.home_pose_deg),
+    "UR5 (6-DOF)": RobotModelEntry("quat", "ur5classic", UR5CLASSIC.link_names, UR5CLASSIC.mesh_files, quat_config=UR5CLASSIC, home_pose_deg=UR5CLASSIC.home_pose_deg),
+    "UR10 (6-DOF)": RobotModelEntry("quat", "ur10classic", UR10CLASSIC.link_names, UR10CLASSIC.mesh_files, quat_config=UR10CLASSIC, home_pose_deg=UR10CLASSIC.home_pose_deg),
     "Generic (6-DOF)": RobotModelEntry("generic", None, None, None, home_pose_deg={"j1": 0.0, "j2": -45.0, "j3": 45.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}),
 }

@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
 from hydra_suite.models import JOINT_NAMES, RobotView
 
 
@@ -42,32 +43,32 @@ class TrajectoryPanel(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
 
-        heading = QLabel("TRAJECTORY POINTS")
+        heading = QLabel(_("HEADING_TRAJECTORY"))
         heading.setObjectName("panelHeading")
         layout.addWidget(heading)
 
-        self._robot_label = QLabel("No robot selected")
+        self._robot_label = QLabel(_("LBL_NO_ROBOT_SELECTED"))
         self._robot_label.setStyleSheet("color: #7f8ea1;")
         layout.addWidget(self._robot_label)
 
         self._table = QTableWidget(0, len(JOINT_NAMES) + 1)
-        self._table.setHorizontalHeaderLabels(("Time", *[n.upper() for n in JOINT_NAMES]))
+        self._table.setHorizontalHeaderLabels((_("COL_TIME"), *[n.upper() for n in JOINT_NAMES]))
         self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self._table.verticalHeader().setVisible(False)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self._table, 1)
 
         button_row = QHBoxLayout()
-        self._record_button = QPushButton("Record current pose")
+        self._record_button = QPushButton(_("BTN_RECORD_POSE"))
         self._record_button.setObjectName("primaryAction")
         self._record_button.clicked.connect(self._on_record)
         button_row.addWidget(self._record_button)
 
-        apply_button = QPushButton("Jog robot to selected point")
+        apply_button = QPushButton(_("BTN_JOG_TO_POINT"))
         apply_button.clicked.connect(self._on_apply)
         button_row.addWidget(apply_button)
 
-        delete_button = QPushButton("Delete point")
+        delete_button = QPushButton(_("BTN_DELETE_POINT"))
         delete_button.setObjectName("dangerAction")
         delete_button.clicked.connect(self._on_delete)
         button_row.addWidget(delete_button)
@@ -80,7 +81,7 @@ class TrajectoryPanel(QWidget):
         self._points = []
         self._refresh_table()
         self.setEnabled(robot is not None)
-        self._robot_label.setText(f"Robot: {robot.id} ({robot.model})" if robot else "No robot selected")
+        self._robot_label.setText(_("LBL_ROBOT_SELECTED", id=robot.id, model=robot.model) if robot else _("LBL_NO_ROBOT_SELECTED"))
 
     def _refresh_table(self) -> None:
         self._table.setRowCount(len(self._points))
