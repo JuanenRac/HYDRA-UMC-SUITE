@@ -71,8 +71,8 @@ echo.
 echo [4/5] Compiling HYDRA-UMC_SUITE.exe with PyInstaller...
 REM --add-data uses ";" as the source/destination separator on Windows -
 REM Linux/Mac PyInstaller uses ":" instead (see build_exe.sh). Bundles
-REM assets\ (the industrial_dark.qss theme + the real UR5e STL mesh set +
-REM its own ATTRIBUTION.txt) directly into the .exe - hydra_suite/ui/
+REM assets\ (the industrial_dark.qss theme + the real STL mesh sets +
+REM their own ATTRIBUTION.txt files) directly into the .exe - hydra_suite/ui/
 REM theme.py and hydra_suite/render/viewport.py both locate it via
 REM Path(__file__).resolve().parent.parent.parent, which still resolves
 REM correctly once frozen (PyInstaller preserves the hydra_suite/ package
@@ -81,67 +81,45 @@ REM --add-data's own "assets;assets" destination lands exactly where
 REM that relative walk expects it) - no source change needed for this to
 REM work frozen vs. running from source.
 REM
-REM --collect-all PySide6: without this, a frozen PySide6 app very
-REM commonly fails at runtime with "could not find or load the Qt
-REM platform plugin windows" - PyInstaller's own static import analysis
-REM finds the Python modules fine, but PySide6's own platform/image-
-REM format/OpenGL plugins are native Qt plugins loaded dynamically at
-REM runtime, not importable Python modules its analyzer can trace.
-REM Collecting all of PySide6 explicitly is the documented fix.
-REM
-REM --exclude-module (a long list below): --collect-all above grabs the
-REM ENTIRE PySide6 package - QtWebEngine, QtQml/Quick, QtMultimedia,
-REM Qt3D, QtCharts, QtBluetooth, translations for 40+ languages, etc. -
-REM none of which this app imports (only QtCore/QtGui/QtWidgets/
-REM QtOpenGL/QtOpenGLWidgets are actually used, see hydra_suite/ui/ and
-REM render/viewport.py's own imports). Excluding the known-unused ones
-REM is what actually shrinks the .exe - collect-all alone is what made
-REM the first build ~270MB. The platform/style/OpenGL plugins collect-all
-REM exists for stay untouched since none of them are excluded here.
+REM PySide6 packaging - NOT --collect-all: an earlier build used
+REM --collect-all PySide6 (needed so the frozen .exe can find its own Qt
+REM platform plugin at runtime - PyInstaller's own import analysis finds
+REM the Python modules fine, but PySide6's platform/style/image-format
+REM plugins are native Qt plugins loaded dynamically, not importable
+REM Python modules it can trace), which produced a ~270MB .exe - it
+REM copies the ENTIRE PySide6 package (Qt6WebEngineCore.dll ALONE is
+REM ~196MB, plus qml/, translations/, opengl32sw.dll, none of which this
+REM app imports - only QtCore/QtGui/QtWidgets/QtOpenGL/QtOpenGLWidgets
+REM are actually used). --exclude-module does NOT fix this - it only
+REM prunes PyInstaller's own Python IMPORT graph, not collect-all's own
+REM raw data-file copy, which still runs regardless (confirmed by
+REM testing: a build with --collect-all PySide6 plus a full list of
+REM --exclude-module flags came out the SAME ~280MB size). The real fix:
+REM drop collect-all entirely and manually stage only the 4 plugin
+REM subfolders this app's own runtime hook actually needs
+REM (platforms/styles/imageformats/iconengines, ~4.5MB total) via
+REM --add-data, letting PyInstaller's normal binary-dependency scan find
+REM the real Qt6Core/Gui/Widgets/OpenGL DLLs on its own (it can, since
+REM those ARE real imported Python extension modules) - verified this
+REM produces a working .exe (launches, GL viewport renders) at ~89MB,
+REM roughly a two-thirds reduction.
+if not defined PYSIDE_DIR (
+    for /f "delims=" %%P in ('python -c "import PySide6, os; print(os.path.dirname(PySide6.__file__))"') do set PYSIDE_DIR=%%P
+)
 python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" ^
     --add-data "assets;assets" ^
-    --collect-all PySide6 ^
-    --exclude-module PySide6.QtWebEngineCore ^
-    --exclude-module PySide6.QtWebEngineWidgets ^
-    --exclude-module PySide6.QtWebEngineQuick ^
-    --exclude-module PySide6.QtQml ^
-    --exclude-module PySide6.QtQuick ^
-    --exclude-module PySide6.QtQuickWidgets ^
-    --exclude-module PySide6.QtQuick3D ^
-    --exclude-module PySide6.QtMultimedia ^
-    --exclude-module PySide6.QtMultimediaWidgets ^
-    --exclude-module PySide6.QtPdf ^
-    --exclude-module PySide6.QtPdfWidgets ^
-    --exclude-module PySide6.QtSql ^
-    --exclude-module PySide6.QtTest ^
-    --exclude-module PySide6.QtDesigner ^
-    --exclude-module PySide6.QtHelp ^
-    --exclude-module PySide6.QtBluetooth ^
-    --exclude-module PySide6.QtNfc ^
-    --exclude-module PySide6.QtSerialPort ^
-    --exclude-module PySide6.QtSensors ^
-    --exclude-module PySide6.QtPositioning ^
-    --exclude-module PySide6.QtLocation ^
-    --exclude-module PySide6.QtCharts ^
-    --exclude-module PySide6.QtDataVisualization ^
-    --exclude-module PySide6.QtRemoteObjects ^
-    --exclude-module PySide6.QtWebChannel ^
-    --exclude-module PySide6.QtWebSockets ^
-    --exclude-module PySide6.QtNetwork ^
-    --exclude-module PySide6.QtPrintSupport ^
-    --exclude-module PySide6.QtXml ^
-    --exclude-module PySide6.Qt3DCore ^
-    --exclude-module PySide6.Qt3DRender ^
-    --exclude-module PySide6.Qt3DInput ^
-    --exclude-module PySide6.Qt3DLogic ^
-    --exclude-module PySide6.Qt3DAnimation ^
-    --exclude-module PySide6.Qt3DExtras ^
+    --add-data "%PYSIDE_DIR%\plugins\platforms;PySide6\plugins\platforms" ^
+    --add-data "%PYSIDE_DIR%\plugins\styles;PySide6\plugins\styles" ^
+    --add-data "%PYSIDE_DIR%\plugins\imageformats;PySide6\plugins\imageformats" ^
+    --add-data "%PYSIDE_DIR%\plugins\iconengines;PySide6\plugins\iconengines" ^
     --hidden-import qasync ^
     --hidden-import websockets ^
+    --hidden-import PySide6.QtOpenGL ^
+    --hidden-import PySide6.QtOpenGLWidgets ^
     --hidden-import OpenGL.platform.win32 ^
     main.py
-REM UPX (https://upx.github.io/) shrinks the final .exe further (30-50%
-REM typical) at zero functional cost - PyInstaller auto-detects and uses
+REM UPX (https://upx.github.io/) shrinks the final .exe further (30-50
+REM percent typical) at zero functional cost - PyInstaller auto-detects and uses
 REM it automatically if upx.exe is anywhere on PATH, no flag needed here.
 REM Not bundled/installed by this script (a separate native tool, not a
 REM pip package) - install it once and re-run this script to pick it up.

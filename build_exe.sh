@@ -74,16 +74,8 @@ echo "      Done."
 echo
 
 echo "[5/6] Compiling HYDRA-UMC_SUITE with PyInstaller..."
-# --collect-all PySide6: without this, a frozen PySide6 app very commonly
-# fails at runtime with "could not find or load the Qt platform plugin" -
-# PyInstaller's own static import analysis finds the Python modules fine,
-# but PySide6's own platform/image-format/OpenGL plugins are native Qt
-# plugins loaded dynamically at runtime, not importable Python modules
-# its analyzer can trace. Collecting all of PySide6 explicitly is the
-# documented fix.
-#
-# assets/ (theme QSS + real UR5e STL mesh set) bundled the same way as
-# the Windows build - hydra_suite/ui/theme.py and
+# assets/ (theme QSS + real STL mesh sets) bundled the same way as the
+# Windows build - hydra_suite/ui/theme.py and
 # hydra_suite/render/viewport.py both locate it via
 # Path(__file__).resolve().parent.parent.parent, which still resolves
 # correctly once frozen since PyInstaller preserves the hydra_suite/
@@ -93,60 +85,46 @@ echo "[5/6] Compiling HYDRA-UMC_SUITE with PyInstaller..."
 # flag only means something on Windows/macOS bundlers - a Linux binary
 # launched from a terminal doesn't have a separate "console window"
 # concept to suppress the same way).
-# --exclude-module (long list below): --collect-all grabs the ENTIRE
-# PySide6 package - QtWebEngine, QtQml/Quick, QtMultimedia, Qt3D,
-# QtCharts, QtBluetooth, 40+ languages of translations, etc. - none of
-# which this app imports (only QtCore/QtGui/QtWidgets/QtOpenGL/
-# QtOpenGLWidgets are actually used). Excluding the known-unused ones is
-# what actually shrinks the binary - collect-all alone made the first
-# Windows build ~270MB; same fix applied here for the Linux build.
+#
+# PySide6 packaging - NOT --collect-all: an earlier version of this
+# script used --collect-all PySide6 (needed so the frozen binary can
+# find its own Qt platform plugin at runtime), which produced a ~270MB
+# binary - it copies the ENTIRE PySide6 package (Qt6WebEngineCore alone
+# is ~196MB, plus qml/, translations/, none of which this app imports -
+# only QtCore/QtGui/QtWidgets/QtOpenGL/QtOpenGLWidgets are actually
+# used). A follow-up attempt added --exclude-module for every unused Qt
+# submodule on TOP of --collect-all, which does NOT fix this -
+# --exclude-module only prunes PyInstaller's own Python IMPORT graph,
+# not collect-all's own raw data-file copy, which still runs regardless
+# (confirmed on the Windows build: --collect-all plus a full
+# --exclude-module list came out the SAME ~280MB size). The real fix:
+# drop collect-all entirely and manually stage only the plugin
+# subfolders this app's own runtime hook actually needs
+# (platforms/styles/imageformats/iconengines under Qt/plugins/ on Linux
+# - note the extra "Qt/" level PySide6's own Linux layout has, unlike
+# Windows' flat PySide6/plugins/) via --add-data, letting PyInstaller's
+# normal binary-dependency scan find the real Qt6Core/Gui/Widgets/OpenGL
+# .so files on its own (it can, since those ARE real imported Python
+# extension modules) - verified on Windows this produces a working,
+# ~89MB binary (roughly a two-thirds reduction); the same approach here.
+PYSIDE_DIR=$(python3 -c "import PySide6, os; print(os.path.dirname(PySide6.__file__))")
 python3 -m PyInstaller --onefile --noconfirm --name "HYDRA-UMC_SUITE" \
     --add-data "assets:assets" \
-    --collect-all PySide6 \
-    --exclude-module PySide6.QtWebEngineCore \
-    --exclude-module PySide6.QtWebEngineWidgets \
-    --exclude-module PySide6.QtWebEngineQuick \
-    --exclude-module PySide6.QtQml \
-    --exclude-module PySide6.QtQuick \
-    --exclude-module PySide6.QtQuickWidgets \
-    --exclude-module PySide6.QtQuick3D \
-    --exclude-module PySide6.QtMultimedia \
-    --exclude-module PySide6.QtMultimediaWidgets \
-    --exclude-module PySide6.QtPdf \
-    --exclude-module PySide6.QtPdfWidgets \
-    --exclude-module PySide6.QtSql \
-    --exclude-module PySide6.QtTest \
-    --exclude-module PySide6.QtDesigner \
-    --exclude-module PySide6.QtHelp \
-    --exclude-module PySide6.QtBluetooth \
-    --exclude-module PySide6.QtNfc \
-    --exclude-module PySide6.QtSerialPort \
-    --exclude-module PySide6.QtSensors \
-    --exclude-module PySide6.QtPositioning \
-    --exclude-module PySide6.QtLocation \
-    --exclude-module PySide6.QtCharts \
-    --exclude-module PySide6.QtDataVisualization \
-    --exclude-module PySide6.QtRemoteObjects \
-    --exclude-module PySide6.QtWebChannel \
-    --exclude-module PySide6.QtWebSockets \
-    --exclude-module PySide6.QtNetwork \
-    --exclude-module PySide6.QtPrintSupport \
-    --exclude-module PySide6.QtXml \
-    --exclude-module PySide6.Qt3DCore \
-    --exclude-module PySide6.Qt3DRender \
-    --exclude-module PySide6.Qt3DInput \
-    --exclude-module PySide6.Qt3DLogic \
-    --exclude-module PySide6.Qt3DAnimation \
-    --exclude-module PySide6.Qt3DExtras \
+    --add-data "$PYSIDE_DIR/Qt/plugins/platforms:PySide6/Qt/plugins/platforms" \
+    --add-data "$PYSIDE_DIR/Qt/plugins/styles:PySide6/Qt/plugins/styles" \
+    --add-data "$PYSIDE_DIR/Qt/plugins/imageformats:PySide6/Qt/plugins/imageformats" \
+    --add-data "$PYSIDE_DIR/Qt/plugins/iconengines:PySide6/Qt/plugins/iconengines" \
     --hidden-import qasync \
     --hidden-import websockets \
+    --hidden-import PySide6.QtOpenGL \
+    --hidden-import PySide6.QtOpenGLWidgets \
     main.py
-# UPX (https://upx.github.io/) shrinks the final binary further (30-50%
-# typical) at zero functional cost - PyInstaller auto-detects and uses it
-# automatically if the upx binary is anywhere on PATH, no flag needed
-# here. Not installed by this script (a separate native tool, not a pip
-# package) - install it (e.g. `sudo apt install upx-ucl`) and re-run this
-# script to pick it up.
+# UPX (https://upx.github.io/) shrinks the final binary further (30-50
+# percent typical) at zero functional cost - PyInstaller auto-detects
+# and uses it automatically if the upx binary is anywhere on PATH, no
+# flag needed here. Not installed by this script (a separate native
+# tool, not a pip package) - install it (e.g. `sudo apt install
+# upx-ucl`) and re-run this script to pick it up.
 if [ ! -f dist/HYDRA-UMC_SUITE ]; then
     echo "      ERROR: PyInstaller did not produce dist/HYDRA-UMC_SUITE - see the output above."
     exit 1
