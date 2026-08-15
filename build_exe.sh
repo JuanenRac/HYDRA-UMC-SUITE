@@ -93,12 +93,60 @@ echo "[5/6] Compiling HYDRA-UMC_SUITE with PyInstaller..."
 # flag only means something on Windows/macOS bundlers - a Linux binary
 # launched from a terminal doesn't have a separate "console window"
 # concept to suppress the same way).
+# --exclude-module (long list below): --collect-all grabs the ENTIRE
+# PySide6 package - QtWebEngine, QtQml/Quick, QtMultimedia, Qt3D,
+# QtCharts, QtBluetooth, 40+ languages of translations, etc. - none of
+# which this app imports (only QtCore/QtGui/QtWidgets/QtOpenGL/
+# QtOpenGLWidgets are actually used). Excluding the known-unused ones is
+# what actually shrinks the binary - collect-all alone made the first
+# Windows build ~270MB; same fix applied here for the Linux build.
 python3 -m PyInstaller --onefile --noconfirm --name "HYDRA-UMC_SUITE" \
     --add-data "assets:assets" \
     --collect-all PySide6 \
+    --exclude-module PySide6.QtWebEngineCore \
+    --exclude-module PySide6.QtWebEngineWidgets \
+    --exclude-module PySide6.QtWebEngineQuick \
+    --exclude-module PySide6.QtQml \
+    --exclude-module PySide6.QtQuick \
+    --exclude-module PySide6.QtQuickWidgets \
+    --exclude-module PySide6.QtQuick3D \
+    --exclude-module PySide6.QtMultimedia \
+    --exclude-module PySide6.QtMultimediaWidgets \
+    --exclude-module PySide6.QtPdf \
+    --exclude-module PySide6.QtPdfWidgets \
+    --exclude-module PySide6.QtSql \
+    --exclude-module PySide6.QtTest \
+    --exclude-module PySide6.QtDesigner \
+    --exclude-module PySide6.QtHelp \
+    --exclude-module PySide6.QtBluetooth \
+    --exclude-module PySide6.QtNfc \
+    --exclude-module PySide6.QtSerialPort \
+    --exclude-module PySide6.QtSensors \
+    --exclude-module PySide6.QtPositioning \
+    --exclude-module PySide6.QtLocation \
+    --exclude-module PySide6.QtCharts \
+    --exclude-module PySide6.QtDataVisualization \
+    --exclude-module PySide6.QtRemoteObjects \
+    --exclude-module PySide6.QtWebChannel \
+    --exclude-module PySide6.QtWebSockets \
+    --exclude-module PySide6.QtNetwork \
+    --exclude-module PySide6.QtPrintSupport \
+    --exclude-module PySide6.QtXml \
+    --exclude-module PySide6.Qt3DCore \
+    --exclude-module PySide6.Qt3DRender \
+    --exclude-module PySide6.Qt3DInput \
+    --exclude-module PySide6.Qt3DLogic \
+    --exclude-module PySide6.Qt3DAnimation \
+    --exclude-module PySide6.Qt3DExtras \
     --hidden-import qasync \
     --hidden-import websockets \
     main.py
+# UPX (https://upx.github.io/) shrinks the final binary further (30-50%
+# typical) at zero functional cost - PyInstaller auto-detects and uses it
+# automatically if the upx binary is anywhere on PATH, no flag needed
+# here. Not installed by this script (a separate native tool, not a pip
+# package) - install it (e.g. `sudo apt install upx-ucl`) and re-run this
+# script to pick it up.
 if [ ! -f dist/HYDRA-UMC_SUITE ]; then
     echo "      ERROR: PyInstaller did not produce dist/HYDRA-UMC_SUITE - see the output above."
     exit 1
