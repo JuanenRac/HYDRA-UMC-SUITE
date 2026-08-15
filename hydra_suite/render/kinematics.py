@@ -286,6 +286,42 @@ UR_MESH_FILES = {
     "wrist_3": "wrist3.stl",
 }
 
+# xArm6/Lite6 (UFACTORY) - same "every joint is local Z" structure as the
+# UR family (chain/limits copied verbatim from xarm_ros2's own
+# xarm6.urdf.xacro/lite6.urdf.xacro, BSD-3-Clause - see
+# assets/meshes/xarm6/ATTRIBUTION.txt), so they reuse ur_world_link_transforms/
+# ur_mesh_world_transforms directly. Unlike UR's own official meshes,
+# xArm6/Lite6's own <visual><origin> is (0,0,0)/(0,0,0) for every link (the
+# STLs are already authored aligned to their own joint-chain frame), so
+# their MESH_OFFSETS are all-identity - no per-link recentering needed.
+_IDENTITY_STEP = JointStep((0, 0, 0), (0, 0, 0))
+
+XARM6_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.267), (0, 0, 0)),
+    JointStep((0, 0, 0), (-1.5708, 0, 0)),
+    JointStep((0.0535, -0.2845, 0), (0, 0, 0)),
+    JointStep((0.0775, 0.3425, 0), (-1.5708, 0, 0)),
+    JointStep((0, 0, 0), (1.5708, 0, 0)),
+    JointStep((0.076, 0.097, 0), (-1.5708, 0, 0)),
+]
+XARM6_MESH_OFFSETS: list[JointStep] = [_IDENTITY_STEP] * 7
+XARM6_LINK_NAMES = ("base", "link1", "link2", "link3", "link4", "link5", "link6")
+XARM6_MESH_FILES = {name: f"{name}.stl" for name in XARM6_LINK_NAMES}
+XARM6_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
+
+LITE6_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.2435), (0, 0, 0)),
+    JointStep((0, 0, 0), (1.5708, -1.5708, 3.1416)),
+    JointStep((0.2002, 0, 0), (-3.1416, 0, 1.5708)),
+    JointStep((0.087, -0.22761, 0), (1.5708, 0, 0)),
+    JointStep((0, 0, 0), (1.5708, 0, 0)),
+    JointStep((0, 0.0625, 0), (-1.5708, 0, 0)),
+]
+LITE6_MESH_OFFSETS: list[JointStep] = [_IDENTITY_STEP] * 7
+LITE6_LINK_NAMES = ("base", "link1", "link2", "link3", "link4", "link5", "link6")
+LITE6_MESH_FILES = {name: f"{name}.stl" for name in LITE6_LINK_NAMES}
+LITE6_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
+
 
 # =============================================================================
 # "Quaternion" family - Parol6, Faze4, AR3, AR4 (each hand-transcribed from
@@ -417,6 +453,39 @@ AR4 = QuatRobotConfig(
     home_pose_deg={"j1": 0.0, "j2": 40.0, "j3": -30.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
 )
 
+# e.DO (Comau) - unlike xArm6/Lite6, every joint's own <axis> here is
+# genuinely arbitrary (joint_2's own axis is (-0.88847,0.2908,0.35504),
+# not a cardinal direction) - chain copied verbatim from
+# eDO_description's own robots/edo_sim.urdf (BSD-3-Clause, Comau S.p.A -
+# see assets/meshes/edo/ATTRIBUTION.txt), so this uses the same
+# quaternion-family engine as Parol6/Faze4/AR3/AR4. base_link's own STL
+# origin is (0,0,0) in the source URDF, so base_offset is (0,0,0) - no
+# hand-tuned recentering needed (unlike Parol6/Faze4's own off-center meshes).
+EDO_CHAIN: list[JointStep] = [
+    JointStep((0.057188, 0.0059831, 0.13343), (1.5708, 6.9389e-16, -3.1416), (0, 1, 0)),
+    JointStep((0, 0.18967, 0), (0.94237, -0.4634, -0.11653), (-0.88847, 0.2908, 0.35504)),
+    JointStep((-0.024558, 0.12737, -0.16578), (0.97336, -0.36296, 2.8253), (1, 0, 0)),
+    JointStep((0.0088, -0.1588, 0), (-1.5708, 0, 0), (0, 0, -1)),
+    JointStep((0, 0, -0.1053), (3.1416, 1.1102e-14, 3.1416), (-1, 0, 0)),
+    JointStep((-0.0039, 0, 0.1636), (-1.5708, 1.249e-14, 0), (0, -1, 0)),
+]
+EDO = QuatRobotConfig(
+    chain=EDO_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("base_link", "link_1", "link_2", "link_3", "link_4", "link_5", "link_6"),
+    mesh_files={
+        "base_link": "base_link.STL",
+        "link_1": "link_1.STL",
+        "link_2": "link_2.STL",
+        "link_3": "link_3.STL",
+        "link_4": "link_4.STL",
+        "link_5": "link_5.STL",
+        "link_6": "link_6.STL",
+    },
+    home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
+)
+
 
 # =============================================================================
 # Robot registry - one entry per robot.model string HYDRA-UMC-STUDIO's own
@@ -447,5 +516,8 @@ ROBOT_REGISTRY: dict[str, RobotModelEntry] = {
     "Faze4 (6-DOF)": RobotModelEntry("quat", "faze4", FAZE4.link_names, FAZE4.mesh_files, quat_config=FAZE4, home_pose_deg=FAZE4.home_pose_deg),
     "AR3 (6-DOF)": RobotModelEntry("quat", "ar3", AR3.link_names, AR3.mesh_files, quat_config=AR3, home_pose_deg=AR3.home_pose_deg),
     "AR4 (6-DOF)": RobotModelEntry("quat", "ar4", AR4.link_names, AR4.mesh_files, quat_config=AR4, home_pose_deg=AR4.home_pose_deg),
+    "xArm6 (6-DOF)": RobotModelEntry("ur", "xarm6", XARM6_LINK_NAMES, XARM6_MESH_FILES, chain=XARM6_CHAIN, mesh_offsets=XARM6_MESH_OFFSETS, home_pose_deg=XARM6_HOME_POSE_DEG),
+    "Lite 6 (6-DOF)": RobotModelEntry("ur", "lite6", LITE6_LINK_NAMES, LITE6_MESH_FILES, chain=LITE6_CHAIN, mesh_offsets=LITE6_MESH_OFFSETS, home_pose_deg=LITE6_HOME_POSE_DEG),
+    "e.DO (6-DOF)": RobotModelEntry("quat", "edo", EDO.link_names, EDO.mesh_files, quat_config=EDO, home_pose_deg=EDO.home_pose_deg),
     "Generic (6-DOF)": RobotModelEntry("generic", None, None, None, home_pose_deg={"j1": 0.0, "j2": -45.0, "j3": 45.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}),
 }
