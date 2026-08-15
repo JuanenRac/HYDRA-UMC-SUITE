@@ -45,7 +45,7 @@ def main():
             {"j1": -30, "j2": -30, "j3": 60, "j4": 0, "j5": -20, "j6": 0},
         ]
 
-        for model_name in ("UR5e (6-DOF)", "AR3 (6-DOF)", "Generic (6-DOF)", "xArm6 (6-DOF)", "Lite 6 (6-DOF)", "e.DO (6-DOF)", "Gen3 Lite (6-DOF)", "M-710iC (6-DOF)"):
+        for model_name in ("UR5e (6-DOF)", "AR3 (6-DOF)", "Generic (6-DOF)", "xArm6 (6-DOF)", "Lite 6 (6-DOF)", "e.DO (6-DOF)", "Gen3 Lite (6-DOF)", "M-710iC (6-DOF)", "SO-ARM100 (5-DOF)"):
             robot.raw["model"] = model_name
             window.controller.push_active_state()
             await asyncio.sleep(0.3)

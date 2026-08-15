@@ -322,6 +322,45 @@ LITE6_LINK_NAMES = ("base", "link1", "link2", "link3", "link4", "link5", "link6"
 LITE6_MESH_FILES = {name: f"{name}.stl" for name in LITE6_LINK_NAMES}
 LITE6_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
 
+# Kinova Gen2 (j2s6s200) - same "every joint is local Z" structure (chain
+# copied verbatim from Kinovarobotics/kinova-ros's own
+# kinova_description/urdf/j2s6s200_standalone.xacro, BSD-3-Clause - see
+# assets/meshes/gen2/ATTRIBUTION.txt). Every <visual> mesh sits at its
+# own link's default origin (no explicit <origin> tag = identity), so
+# GEN2_MESH_OFFSETS is all-identity like xArm6/Lite6's own.
+GEN2_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.15675), (0, 3.14159265359, 0)),
+    JointStep((0, 0.0016, -0.11875), (-1.57079632679, 0, 3.14159265359)),
+    JointStep((0, -0.410, 0), (0, 3.14159265359, 0)),
+    JointStep((0, 0.2073, -0.0114), (-1.57079632679, 0, 3.14159265359)),
+    JointStep((0, 0, -0.10375), (1.57079632679, 0, 3.14159265359)),
+    JointStep((0, 0.10375, 0), (-1.57079632679, 0, 3.14159265359)),
+]
+GEN2_MESH_OFFSETS: list[JointStep] = [_IDENTITY_STEP] * 7
+GEN2_LINK_NAMES = ("base", "shoulder", "arm", "forearm", "wrist_spherical_1", "wrist_spherical_2", "hand_2finger")
+GEN2_MESH_FILES = {name: f"{name}.STL" for name in GEN2_LINK_NAMES}
+GEN2_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
+
+# AgileX PiPER - same "every joint is local Z" structure (chain copied
+# verbatim from renesas-rdk/agilex_piper_arm_description's own
+# urdf/reference/agilex_piper_arm_ref.urdf, Apache-2.0 per that repo's
+# own package.xml license tag - see assets/meshes/piper/ATTRIBUTION.txt;
+# that repo is itself explicitly derived from AgileX's own official
+# agilexrobotics/piper_ros, MIT). Identity mesh offsets, same reasoning
+# as Gen2/xArm6/Lite6.
+PIPER_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.123), (0, 0, 0)),
+    JointStep((0, 0, 0), (1.5708, -0.1359, -3.1416)),
+    JointStep((0.28503, 0, 0), (0, 0, -1.7939)),
+    JointStep((-0.021984, -0.25075, 0), (1.5708, 0, 0)),
+    JointStep((0, 0, 0), (-1.5708, 0, 0)),
+    JointStep((8.8259e-05, -0.091, 0), (1.5708, 0, 0)),
+]
+PIPER_MESH_OFFSETS: list[JointStep] = [_IDENTITY_STEP] * 7
+PIPER_LINK_NAMES = ("base_link", "link1", "link2", "link3", "link4", "link5", "link6")
+PIPER_MESH_FILES = {name: f"{name}.STL" for name in PIPER_LINK_NAMES}
+PIPER_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
+
 # Kinova Gen3 Lite - same "every joint is local Z" structure (chain
 # copied verbatim from ros2_kortex's own gen3_lite.urdf, BSD-3-Clause -
 # see assets/meshes/gen3lite/ATTRIBUTION.txt). The source URDF's own
@@ -374,6 +413,27 @@ def quat_family_link_transforms(
     return transforms
 
 
+def quat_family_mesh_world_transforms(
+    chain: list[JointStep],
+    mesh_offsets: list[JointStep] | None,
+    root_axis_target: tuple[float, float, float],
+    base_offset: tuple[float, float, float],
+    joints_deg: dict[str, float],
+) -> list[np.ndarray]:
+    """Same as quat_family_link_transforms(), plus a per-link mesh_offset
+    on top (mirrors ur_mesh_world_transforms()'s own two-layer split) -
+    needed for robots like ViperX 300/WidowX 250, whose own official URDF
+    gives each mesh a real <visual><origin> distinct from the joint
+    chain's own origin (unlike Parol6/Faze4/AR3/AR4/e.DO/M-710iC, whose
+    meshes sit directly at their own joint's frame with no separate
+    offset). mesh_offsets=None (every robot before ViperX 300) is
+    equivalent to passing all-identity offsets - the caller doesn't need
+    to know or care which case its own robot is."""
+    links = quat_family_link_transforms(chain, root_axis_target, base_offset, joints_deg)
+    offsets = mesh_offsets if mesh_offsets is not None else [_IDENTITY_STEP] * len(links)
+    return [link_t @ translation(off.pos) @ rpy_matrix(off.rpy) for link_t, off in zip(links, offsets)]
+
+
 @dataclass(frozen=True)
 class QuatRobotConfig:
     chain: list[JointStep]
@@ -382,6 +442,11 @@ class QuatRobotConfig:
     link_names: tuple[str, ...]
     mesh_files: dict[str, str]
     home_pose_deg: dict[str, float]
+    # None (the default, every robot before ViperX 300/WidowX 250) means
+    # "each mesh sits directly at its own joint's frame" - see
+    # quat_family_mesh_world_transforms()'s own header for why some
+    # robots need a real, non-identity value here instead.
+    mesh_offsets: list[JointStep] | None = None
 
 
 PAROL6_CHAIN: list[JointStep] = [
@@ -539,6 +604,143 @@ M710IC = QuatRobotConfig(
     home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
 )
 
+# SO-ARM100 (The Robot Studio) - chain copied verbatim from that
+# repository's own Simulation/SO100/so100.urdf (Apache-2.0 - see
+# assets/meshes/so100/ATTRIBUTION.txt). ONLY 5 real arm joints (not 6 -
+# the source URDF's own 6th joint is the gripper jaw, not a wrist
+# orientation axis) - see that ATTRIBUTION.txt for why j6 is left unused
+# rather than repurposed. quat_family_link_transforms()'s own `order`
+# tuple is j1..j6, but zip(chain, order) truncates to the chain's actual
+# length (5 here), so this "just works" with a 5-entry chain - same
+# zip-truncation mechanism GEN3LITE_CHAIN's own comment already
+# documents, no engine change needed.
+SOARM100_CHAIN: list[JointStep] = [
+    JointStep((0, -0.0452, 0.0165), (1.57079, 0, 0), (0, 1, 0)),
+    JointStep((0, 0.1025, 0.0306), (-1.8, 0, 0), (1, 0, 0)),
+    JointStep((0, 0.11257, 0.028), (1.57079, 0, 0), (1, 0, 0)),
+    JointStep((0, 0.0052, 0.1349), (-1, 0, 0), (1, 0, 0)),
+    JointStep((0, -0.0601, 0), (0, 1.57079, 0), (0, 1, 0)),
+]
+SOARM100 = QuatRobotConfig(
+    chain=SOARM100_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("base", "shoulder", "upper_arm", "lower_arm", "wrist", "gripper"),
+    mesh_files={
+        "base": "Base.stl",
+        "shoulder": "Rotation_Pitch.stl",
+        "upper_arm": "Upper_Arm.stl",
+        "lower_arm": "Lower_Arm.stl",
+        "wrist": "Wrist_Pitch_Roll.stl",
+        "gripper": "Fixed_Jaw.stl",
+    },
+    home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
+)
+
+# Unitree Z1 - every joint's own rpy is (0,0,0) (pure translation) but
+# the axis varies per joint (not always Z) - chain copied verbatim from
+# mujoco_menagerie's own unitree_z1/z1.xml MJCF (BSD-3-Clause, Unitree
+# Robotics - see assets/meshes/z1/ATTRIBUTION.txt). MJCF bodies have no
+# separate visual-mesh offset from their own joint frame here (no <geom
+# quat/pos> override beyond the body's own placement), so identity mesh
+# offsets, same as the other quat-family robots without one.
+Z1_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.0585), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0, 0.045), (0, 0, 0), (0, 1, 0)),
+    JointStep((-0.35, 0, 0), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.218, 0, 0.057), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.07, 0, 0), (0, 0, 0), (0, 0, 1)),
+    JointStep((0.0492, 0, 0), (0, 0, 0), (1, 0, 0)),
+]
+Z1 = QuatRobotConfig(
+    chain=Z1_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("link00", "link01", "link02", "link03", "link04", "link05", "link06"),
+    mesh_files={
+        "link00": "z1_Link00.stl",
+        "link01": "z1_Link01.stl",
+        "link02": "z1_Link02.stl",
+        "link03": "z1_Link03.stl",
+        "link04": "z1_Link04.stl",
+        "link05": "z1_Link05.stl",
+        "link06": "z1_Link06.stl",
+    },
+    # From the source MJCF's own <keyframe> "home" qpos (0, 0.785, -0.261, -0.523, 0, 0) rad.
+    home_pose_deg={"j1": 0.0, "j2": 44.98, "j3": -14.96, "j4": -29.97, "j5": 0.0, "j6": 0.0},
+)
+
+# ViperX 300 / WidowX 250 (Trossen Robotics) - chains copied verbatim
+# from Interbotix's own official interbotix_ros_manipulators repo
+# (BSD-3-Clause - see assets/meshes/vx300s|wx250s/ATTRIBUTION.txt).
+# Unlike every other quat-family robot so far, these DO have a real,
+# non-identity <visual><origin> per link, distinct from the joint
+# chain's own origin - hence VX300S_MESH_OFFSETS/WX250S_MESH_OFFSETS
+# below (see quat_family_mesh_world_transforms()'s own header for why
+# that function exists). Both robots share the exact same rig design
+# (same mesh-offset pattern, just different link lengths) - Trossen's
+# smaller sibling product in the same arm family.
+VX300S_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.079), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0, 0.04805), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.05955, 0, 0.3), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.2, 0, 0), (0, 0, 0), (1, 0, 0)),
+    JointStep((0.1, 0, 0), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.069744, 0, 0), (0, 0, 0), (1, 0, 0)),
+]
+_TROSSEN_MESH_OFFSETS: list[JointStep] = [
+    JointStep((0, 0, 0), (0, 0, 1.5708)),
+    JointStep((0, 0, -0.003), (0, 0, 1.5708)),
+    JointStep((0, 0, 0), (0, 0, 1.5708)),
+    JointStep((0, 0, 0), (0, 0, 0)),
+    JointStep((0, 0, 0), (3.1416, 0, 0)),
+    JointStep((0, 0, 0), (0, 0, 1.5708)),
+    JointStep((-0.02, 0, 0), (0, 0, 1.5708)),
+]
+VX300S = QuatRobotConfig(
+    chain=VX300S_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("base_link", "shoulder_link", "upper_arm_link", "upper_forearm_link", "lower_forearm_link", "wrist_link", "gripper_link"),
+    mesh_files={
+        "base_link": "vx300s_1_base.stl",
+        "shoulder_link": "vx300s_2_shoulder.stl",
+        "upper_arm_link": "vx300s_3_upper_arm.stl",
+        "upper_forearm_link": "vx300s_4_upper_forearm.stl",
+        "lower_forearm_link": "vx300s_5_lower_forearm.stl",
+        "wrist_link": "vx300s_6_wrist.stl",
+        "gripper_link": "vx300s_7_gripper.stl",
+    },
+    home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
+    mesh_offsets=_TROSSEN_MESH_OFFSETS,
+)
+
+WX250S_CHAIN: list[JointStep] = [
+    JointStep((0, 0, 0.072), (0, 0, 0), (0, 0, 1)),
+    JointStep((0, 0, 0.03865), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.04975, 0, 0.25), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.175, 0, 0), (0, 0, 0), (1, 0, 0)),
+    JointStep((0.075, 0, 0), (0, 0, 0), (0, 1, 0)),
+    JointStep((0.065, 0, 0), (0, 0, 0), (1, 0, 0)),
+]
+WX250S = QuatRobotConfig(
+    chain=WX250S_CHAIN,
+    root_axis_target=(0.0, 1.0, 0.0),
+    base_offset=(0.0, 0.0, 0.0),
+    link_names=("base_link", "shoulder_link", "upper_arm_link", "upper_forearm_link", "lower_forearm_link", "wrist_link", "gripper_link"),
+    mesh_files={
+        "base_link": "wx250s_1_base.stl",
+        "shoulder_link": "wx250s_2_shoulder.stl",
+        "upper_arm_link": "wx250s_3_upper_arm.stl",
+        "upper_forearm_link": "wx250s_4_upper_forearm.stl",
+        "lower_forearm_link": "wx250s_5_lower_forearm.stl",
+        "wrist_link": "wx250s_6_wrist.stl",
+        "gripper_link": "wx250s_7_gripper.stl",
+    },
+    home_pose_deg={"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0},
+    mesh_offsets=_TROSSEN_MESH_OFFSETS,
+)
+
 
 # =============================================================================
 # Robot registry - one entry per robot.model string HYDRA-UMC-STUDIO's own
@@ -574,5 +776,11 @@ ROBOT_REGISTRY: dict[str, RobotModelEntry] = {
     "e.DO (6-DOF)": RobotModelEntry("quat", "edo", EDO.link_names, EDO.mesh_files, quat_config=EDO, home_pose_deg=EDO.home_pose_deg),
     "Gen3 Lite (6-DOF)": RobotModelEntry("ur", "gen3lite", GEN3LITE_LINK_NAMES, GEN3LITE_MESH_FILES, chain=GEN3LITE_CHAIN, mesh_offsets=GEN3LITE_MESH_OFFSETS, home_pose_deg=GEN3LITE_HOME_POSE_DEG),
     "M-710iC (6-DOF)": RobotModelEntry("quat", "m710ic", M710IC.link_names, M710IC.mesh_files, quat_config=M710IC, home_pose_deg=M710IC.home_pose_deg),
+    "SO-ARM100 (5-DOF)": RobotModelEntry("quat", "so100", SOARM100.link_names, SOARM100.mesh_files, quat_config=SOARM100, home_pose_deg=SOARM100.home_pose_deg),
+    "Gen2 (6-DOF)": RobotModelEntry("ur", "gen2", GEN2_LINK_NAMES, GEN2_MESH_FILES, chain=GEN2_CHAIN, mesh_offsets=GEN2_MESH_OFFSETS, home_pose_deg=GEN2_HOME_POSE_DEG),
+    "PiPER (6-DOF)": RobotModelEntry("ur", "piper", PIPER_LINK_NAMES, PIPER_MESH_FILES, chain=PIPER_CHAIN, mesh_offsets=PIPER_MESH_OFFSETS, home_pose_deg=PIPER_HOME_POSE_DEG),
+    "Z1 (6-DOF)": RobotModelEntry("quat", "z1", Z1.link_names, Z1.mesh_files, quat_config=Z1, home_pose_deg=Z1.home_pose_deg),
+    "ViperX 300 (6-DOF)": RobotModelEntry("quat", "vx300s", VX300S.link_names, VX300S.mesh_files, quat_config=VX300S, home_pose_deg=VX300S.home_pose_deg),
+    "WidowX 250 (6-DOF)": RobotModelEntry("quat", "wx250s", WX250S.link_names, WX250S.mesh_files, quat_config=WX250S, home_pose_deg=WX250S.home_pose_deg),
     "Generic (6-DOF)": RobotModelEntry("generic", None, None, None, home_pose_deg={"j1": 0.0, "j2": -45.0, "j3": 45.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}),
 }

@@ -191,6 +191,7 @@ The source code of this application is available under the **GNU General Public 
 | Comau | e.DO | BSD-3-Clause |
 | Kinova | Gen3 Lite | BSD-3-Clause |
 | FANUC | M-710iC | BSD-3-Clause |
+| The Robot Studio | SO-ARM100 | Apache-2.0 |
 
 This project is the desktop swarm-control counterpart to [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - see that project's own repository for its own separate license, which this repository's own license doesn't extend to, and vice versa. It also ultimately controls [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) hardware/firmware and ([relayed through it](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) [URTC](https://github.com/JuanenRac/URTC) tool heads - both separate projects with their own separate licenses.
 

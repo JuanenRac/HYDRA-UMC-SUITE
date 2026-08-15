@@ -28,7 +28,7 @@ from PySide6.QtGui import QMouseEvent, QWheelEvent
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
-from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_link_transforms, ur_mesh_world_transforms
+from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "meshes"
@@ -266,7 +266,7 @@ class RobotViewport(QOpenGLWidget):
             transforms = ur_mesh_world_transforms(entry.chain, entry.mesh_offsets, self._joints_deg)
         else:  # "quat"
             cfg = entry.quat_config
-            transforms = quat_family_link_transforms(cfg.chain, cfg.root_axis_target, cfg.base_offset, self._joints_deg)
+            transforms = quat_family_mesh_world_transforms(cfg.chain, cfg.mesh_offsets, cfg.root_axis_target, cfg.base_offset, self._joints_deg)
 
         for name, model in zip(entry.link_names, transforms):
             self._draw_model(model, buffers[name])
