@@ -33,6 +33,10 @@ from hydra_suite.models import HydraState, ServerInfo
 logger = logging.getLogger(__name__)
 
 RECONNECT_DELAY_S = 3.0
+# Same cadence HYDRA-UMC-STUDIO's own new footer (Dashboard.tsx SystemMetricsBar)
+# and the Android app's own System Health panel already poll at - deliberately
+# kept in sync across the ecosystem's 3 clients rather than picked independently.
+METRICS_POLL_S = 5.0
 
 
 class HydraConnection(QObject):
@@ -41,6 +45,7 @@ class HydraConnection(QObject):
 
     state_changed = Signal(object)          # HydraState - emitted whenever fresh data arrives (initial load or a live push)
     status_changed = Signal(str)             # "connecting" | "connected" | "disconnected" | "error"
+    metrics_changed = Signal(dict)           # GET /api/system/metrics response - cpu_load/memory_usage/temp/uptime/network
     error = Signal(str)
 
     def __init__(self, info: ServerInfo, parent: QObject | None = None):
@@ -49,6 +54,7 @@ class HydraConnection(QObject):
         self.state = HydraState()
         self._ws: websockets.WebSocketClientProtocol | None = None
         self._recv_task: asyncio.Task | None = None
+        self._metrics_task: asyncio.Task | None = None
         self._closing = False
         # Mirrors HYDRA-UMC STUDIO's own src/store.tsx lastPayloadJsonRef
         # guard (see REMOTE_API.md section 3) - the server echoes every
@@ -135,6 +141,25 @@ class HydraConnection(QObject):
                     return
                 resp.raise_for_status()
 
+    async def fetch_system_metrics(self) -> dict | None:
+        """GET /api/system/metrics - no auth required server-side. Returns
+        None on any network error rather than raising, since this is a
+        best-effort background poll, not a critical read."""
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(f"{self.info.base_url}/api/system/metrics", timeout=5.0)
+                resp.raise_for_status()
+                return resp.json()
+        except (httpx.HTTPError, ValueError):
+            return None
+
+    async def _metrics_loop(self) -> None:
+        while not self._closing:
+            data = await self.fetch_system_metrics()
+            if data is not None:
+                self.metrics_changed.emit(data)
+            await asyncio.sleep(METRICS_POLL_S)
+
     async def connect(self) -> None:
         """Logs in, opens the WebSocket, and starts the receive loop.
         Reconnects automatically with a fixed delay on an unexpected drop (a
@@ -154,6 +179,7 @@ class HydraConnection(QObject):
             # REST fetch raced a restart shouldn't be given up on immediately.
 
         self._recv_task = asyncio.ensure_future(self._run())
+        self._metrics_task = asyncio.ensure_future(self._metrics_loop())
 
     async def _run(self) -> None:
         while not self._closing:
@@ -233,4 +259,6 @@ class HydraConnection(QObject):
             await self._ws.close()
         if self._recv_task is not None:
             self._recv_task.cancel()
+        if self._metrics_task is not None:
+            self._metrics_task.cancel()
         self.status_changed.emit("disconnected")

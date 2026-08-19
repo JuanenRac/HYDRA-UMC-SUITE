@@ -5,6 +5,24 @@ ecosystem's own established documentation convention of not overstating
 what's implemented. Every item below is a genuine gap, not a hidden bug -
 each one is a scoped, well-understood next step, not a redesign.
 
+**19 August 2026 update:** the "Live connection" claim below was true on
+15 August but had silently regressed - HYDRA-UMC-STUDIO's server added a
+mandatory JWT requirement on every write and on the `/ws` upgrade
+sometime after this doc was written, and this app never called
+`POST /api/login` anywhere, so against a current server it could only
+ever *read* state - every write 401'd, and the WebSocket was rejected
+outright (code 1008). A second, independent bug was found live while
+fixing that: once login/token were added, the very first WebSocket
+message (the server's full initial state push) turned out to exceed the
+`websockets` library's own default 1 MiB message-size limit on a
+populated swarm, closing the connection with code 1009 before a single
+byte of real state ever got through. Both fixed the same day (see
+`net/client.py`'s own comments) and re-verified end-to-end against a
+real running server (`tests/smoke_test_app.py`) - "SMOKE TEST PASSED",
+8 real robots, `Connection status live: True`. No underlying regression
+should be assumed fixed elsewhere in this ecosystem just because this
+one instance was found and corrected here.
+
 ## ✅ Real and verified end-to-end (15 August 2026)
 
 - **Network discovery** (`hydra_suite/net/discovery.py`) - concurrent
@@ -60,10 +78,13 @@ each one is a scoped, well-understood next step, not a redesign.
   files (accessible remotely once a `/api/works` style endpoint exists -
   today's REMOTE_API.md doesn't cover file-level access, only the full
   settings blob).
-- **mDNS/Bonjour auto-discovery** - blocked on the same server-side gap
-  `REMOTE_API.md`'s own "Future work" section already documents (no
-  `_hydra-umc._tcp` service advertised yet). The subnet scan is the real,
-  working option until that exists.
+- **mDNS/Bonjour auto-discovery** - `REMOTE_API.md`'s own "Future work"
+  section still claims this is blocked server-side, but that's stale:
+  `server.ts` has published a real `_hydra._tcp` Bonjour service (via
+  `bonjour-service`) for a while now - confirmed 19 August 2026, not
+  blocked anymore. Genuinely not implemented on this side yet
+  (`discovery.py` only does subnet scanning) - a real, scoped follow-up
+  (e.g. the `zeroconf` package), not a server-side dependency anymore.
 - **VPN-tunnel-specific UI** - deliberately NOT built as a separate
   feature. A VPN tunnel just makes a remote host reachable as if it were
   local - the existing "Add server by address" manual entry in the
@@ -80,3 +101,21 @@ each one is a scoped, well-understood next step, not a redesign.
 - **Real BLE/Bluetooth transport** - not applicable to SUITE (a desktop
   app reaching a HYDRA-UMC over the network) - see the 2 mobile control
   apps' own `docs/ARCHITECTURE.md` for that transport's own status.
+- **Atomic per-command sync** (`POST /api/robot/:id/command`) - the
+  Android app switched every mutation (jog, valve, pump, tool, speed,
+  play/pause/stop/enable/disable) to this endpoint on 19 August 2026
+  instead of always pushing the full settings tree; this app's own
+  `push_state()` still always does a full read-modify-write over
+  WebSocket/REST for every change. `_handle_message()` already
+  understands an incoming `"delta"` broadcast from another client using
+  that endpoint (fixed the same day), it just doesn't originate its own
+  writes that way yet - real gap, not urgent (the message-size fix above
+  means a full-tree push at least doesn't crash the connection anymore).
+- **`combinedWith` (combined-robot mode), firmware/bootloader per board,
+  the Kinematic Brain Stage (gantry/heated bed/ATC/conveyor/endstops/
+  fans/pumps/valves), and the accessory panels** (XY Table, ATC Tools,
+  Rack Manager, Pick&Place, CNC, Laser, Vacuum Table, Heated Bed) - none
+  of these exist in this app's UI yet, despite being real, shipping
+  parts of HYDRA-UMC-STUDIO's own data model and README. Confirmed real
+  gaps by a dedicated audit (19 August 2026) - `RobotView`/`ControllerView`
+  in `models.py` don't expose any of these fields at all yet.

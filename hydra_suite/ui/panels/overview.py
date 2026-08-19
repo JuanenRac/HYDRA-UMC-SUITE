@@ -60,6 +60,30 @@ class OverviewPanel(QWidget):
             stats_layout.addWidget(value_label, row, 1)
         layout.addWidget(stats_box)
 
+        # GET /api/system/metrics, polled every 5s by HydraConnection - same
+        # host CPU/memory/temperature readout HYDRA-UMC-STUDIO's own footer
+        # (Dashboard.tsx SystemMetricsBar) and the Android app's Dashboard
+        # already show, added here 2026-08-19 for parity across all 3 clients.
+        metrics_box = QGroupBox(_("GROUP_SYSTEM_METRICS"))
+        metrics_layout = QGridLayout(metrics_box)
+        self._cpu_label = QLabel("-")
+        self._mem_label = QLabel("-")
+        self._temp_label = QLabel("-")
+        self._uptime_label = QLabel("-")
+        for row, (caption, value_label) in enumerate(
+            [
+                (_("LBL_CPU_LOAD"), self._cpu_label),
+                (_("LBL_MEMORY"), self._mem_label),
+                (_("LBL_TEMP"), self._temp_label),
+                (_("LBL_UPTIME"), self._uptime_label),
+            ]
+        ):
+            cap = QLabel(caption)
+            cap.setStyleSheet("color: #7f8ea1;")
+            metrics_layout.addWidget(cap, row, 0)
+            metrics_layout.addWidget(value_label, row, 1)
+        layout.addWidget(metrics_box)
+
         self._table = QTableWidget(0, 5)
         self._table.setHorizontalHeaderLabels((_("COL_ROBOT"), _("COL_MODEL"), _("COL_ROLE"), _("COL_STATUS"), _("COL_SPEED_ACCEL")))
         self._table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -69,6 +93,22 @@ class OverviewPanel(QWidget):
         layout.addWidget(self._table, 1)
 
         controller.active_state_changed.connect(self._on_state_changed)
+        controller.active_metrics_changed.connect(self._on_metrics_changed)
+
+    def _on_metrics_changed(self, metrics: dict) -> None:
+        cpu = metrics.get("cpu_load")
+        mem = metrics.get("memory_usage")
+        temp = metrics.get("temp")
+        uptime = metrics.get("uptime")
+        self._cpu_label.setText(f"{cpu}%" if cpu is not None else "-")
+        self._mem_label.setText(f"{mem}%" if mem is not None else "-")
+        self._temp_label.setText(f"{temp:.0f}°C" if isinstance(temp, (int, float)) else "-")
+        if isinstance(uptime, (int, float)):
+            hours, rem = divmod(int(uptime), 3600)
+            minutes = rem // 60
+            self._uptime_label.setText(f"{hours}h {minutes}m")
+        else:
+            self._uptime_label.setText("-")
 
     def _on_state_changed(self, state: HydraState) -> None:
         active = state.active_controller

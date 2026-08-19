@@ -25,6 +25,7 @@ class SuiteController(QObject):
     active_connection_changed = Signal(str)          # active connection id changed (may be "")
     active_state_changed = Signal(object)            # HydraState - the active connection's own state changed
     active_status_changed = Signal(str)              # the active connection's own status changed
+    active_metrics_changed = Signal(dict)            # the active connection's own GET /api/system/metrics, polled every 5s
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -40,6 +41,7 @@ class SuiteController(QObject):
         conn = HydraConnection(info, parent=self)
         conn.state_changed.connect(lambda state, cid=conn_id: self._on_state_changed(cid, state))
         conn.status_changed.connect(lambda status, cid=conn_id: self._on_status_changed(cid, status))
+        conn.metrics_changed.connect(lambda metrics, cid=conn_id: self._on_metrics_changed(cid, metrics))
         self.connections[conn_id] = conn
         asyncio.ensure_future(conn.connect())
         self.connections_changed.emit()
@@ -83,6 +85,10 @@ class SuiteController(QObject):
     def _on_status_changed(self, conn_id: str, status: str) -> None:
         if conn_id == self._active_id:
             self.active_status_changed.emit(status)
+
+    def _on_metrics_changed(self, conn_id: str, metrics: dict) -> None:
+        if conn_id == self._active_id:
+            self.active_metrics_changed.emit(metrics)
 
     def push_active_state(self) -> None:
         """Call after mutating the active connection's own HydraState in
