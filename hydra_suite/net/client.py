@@ -55,17 +55,57 @@ class HydraConnection(QObject):
         # write back to the sender too, so without this a local edit
         # would re-trigger itself as if it were a fresh external change.
         self._last_payload_json: str | None = None
+        # 2026-08-19: server.ts's `authenticate` middleware has unconditionally
+        # required a bearer token on POST /api/settings and the /ws upgrade
+        # for a while now (no "security enabled" toggle despite what
+        # REMOTE_API.md implies) - this class never logged in anywhere, so
+        # against a real server it could only ever READ state (GET has no
+        # auth), every write 401'd silently (push_state()'s response was never
+        # checked), and the WebSocket connection was rejected outright
+        # (code 1008) - so no live sync ever worked either. Same root cause,
+        # found and fixed the same day in HYDRA-UMC-STUDIO's own browser UI
+        # and the Android app - see those projects' own SONNET/ tracking.
+        self._token: str | None = None
 
     @property
     def is_connected(self) -> bool:
         return self._ws is not None and not self._closing
 
+    async def login(self) -> bool:
+        """POSTs /api/login using self.info.username/password, stores the
+        resulting token for every subsequent request. Returns False (and
+        emits `error`) rather than raising, so a bad server/credentials
+        doesn't take down connect()'s own caller."""
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{self.info.base_url}/api/login",
+                    json={"username": self.info.username, "password": self.info.password},
+                    timeout=5.0,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+        except (httpx.HTTPError, ValueError) as e:
+            self.error.emit(f"Login failed: {e}")
+            return False
+        token = data.get("token")
+        if not token:
+            self.error.emit("Login failed: no token in response")
+            return False
+        self._token = token
+        return True
+
+    def _auth_headers(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self._token}"} if self._token else {}
+
     async def fetch_state(self) -> HydraState:
         """One-shot REST read - used for the initial load before the
         WebSocket connects, and as a manual "force refresh" the UI can
-        offer independent of live sync."""
+        offer independent of live sync. GET has no auth requirement
+        server-side, so this works even if login() hasn't succeeded yet -
+        only writes and the WebSocket actually need the token."""
         async with httpx.AsyncClient() as client:
-            resp = await client.get(f"{self.info.base_url}/api/settings", timeout=5.0)
+            resp = await client.get(f"{self.info.base_url}/api/settings", headers=self._auth_headers(), timeout=5.0)
             resp.raise_for_status()
             data = resp.json()
         self.state = HydraState(data)
@@ -87,17 +127,24 @@ class HydraConnection(QObject):
             await self._ws.send(json.dumps({"type": "settings", "payload": payload}))
         else:
             async with httpx.AsyncClient() as client:
-                resp = await client.post(f"{self.info.base_url}/api/settings", json=payload, timeout=5.0)
+                resp = await client.post(
+                    f"{self.info.base_url}/api/settings", json=payload, headers=self._auth_headers(), timeout=5.0
+                )
+                if resp.status_code in (401, 403):
+                    self.error.emit("Write rejected: not authenticated (token missing/expired)")
+                    return
                 resp.raise_for_status()
 
     async def connect(self) -> None:
-        """Opens the WebSocket and starts the receive loop. Reconnects
-        automatically with a fixed delay on an unexpected drop (a HYDRA-UMC
-        on a flaky Wi-Fi link or a machine that goes to sleep shouldn't
-        require the user to manually re-add the server) - stops
+        """Logs in, opens the WebSocket, and starts the receive loop.
+        Reconnects automatically with a fixed delay on an unexpected drop (a
+        HYDRA-UMC on a flaky Wi-Fi link or a machine that goes to sleep
+        shouldn't require the user to manually re-add the server) - stops
         reconnecting only once disconnect() has been called explicitly."""
         self._closing = False
         self.status_changed.emit("connecting")
+        await self.login()  # best-effort - fetch_state() below still works without it, just no writes/WS
+
         try:
             await self.fetch_state()
         except (httpx.HTTPError, ValueError) as e:
@@ -110,14 +157,39 @@ class HydraConnection(QObject):
 
     async def _run(self) -> None:
         while not self._closing:
+            if self._token is None and not await self.login():
+                # No point opening a WS the server will reject with code 1008 -
+                # wait and retry the login itself instead of spinning a
+                # connect/reject loop against a server that's simply not up yet.
+                self.status_changed.emit("disconnected")
+                await asyncio.sleep(RECONNECT_DELAY_S)
+                continue
             try:
-                async with websockets.connect(self.info.ws_url, open_timeout=5.0) as ws:
+                # max_size=None: found live against the owner's own real server
+                # 2026-08-19 - server.ts sends the FULL settings.json (1.6MB+ on
+                # a populated swarm, and only grows with more robots/trajectory
+                # points) as the very first WS message on every connect. The
+                # websockets library's own default max_size (1 MiB) rejected
+                # that with a 1009 "message too big" close before this app ever
+                # saw a single byte of real state over the socket - the initial
+                # REST fetch_state() above has no such limit, so this was easy
+                # to miss without watching the WS itself carefully. No cap here
+                # mirrors what a browser WebSocket client does (no hard message
+                # size limit of its own) - the real fix for the underlying
+                # payload size is a smaller wire format server-side, not a
+                # client-side ceiling that just moves where it breaks.
+                async with websockets.connect(self.info.ws_url(self._token), open_timeout=5.0, max_size=None) as ws:
                     self._ws = ws
                     self.status_changed.emit("connected")
                     async for raw in ws:
                         self._handle_message(raw)
             except (websockets.WebSocketException, OSError) as e:
                 logger.info("HydraConnection %s: WebSocket dropped (%s)", self.info.host, e)
+                # A rejected/expired token surfaces as a closed connection here,
+                # not an exception with a status code - force a fresh login on
+                # the next loop iteration rather than retrying the same
+                # (possibly now-invalid) token forever.
+                self._token = None
             finally:
                 self._ws = None
             if self._closing:
@@ -131,7 +203,19 @@ class HydraConnection(QObject):
         except ValueError:
             logger.warning("HydraConnection %s: malformed WS message", self.info.host)
             return
-        if not isinstance(msg, dict) or msg.get("type") != "settings":
+        if not isinstance(msg, dict):
+            return
+        if msg.get("error"):
+            logger.warning("HydraConnection %s: %s", self.info.host, msg["error"])
+            return
+        # "delta" (a write via the atomic POST /api/robot/:id/command) and
+        # "settings" (a full POST /api/settings write) carry the SAME full-tree
+        # payload shape - only the label differs, see server.ts's own
+        # broadcastSettings() - so both apply identically here. Only "settings"
+        # was handled before 2026-08-19, so a command sent via that atomic
+        # endpoint by another client (the Android app, since that same day)
+        # was silently ignored here.
+        if msg.get("type") not in ("settings", "delta"):
             return
         payload = msg.get("payload")
         if not isinstance(payload, dict):

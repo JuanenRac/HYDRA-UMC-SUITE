@@ -227,14 +227,23 @@ class ServerInfo:
     robot_count: int = 0
     uptime_seconds: int = 0
     nickname: str = ""  # user-assigned label, not from the server
+    # Credentials for POST /api/login - every real HYDRA-UMC STUDIO server in
+    # this ecosystem ships with the same hardcoded demo/demo account (see that
+    # project's own server.ts), so these default to it rather than forcing an
+    # interactive prompt per server for what's already public knowledge in the
+    # server's own source - a swarm tool connecting to many servers at once
+    # would otherwise mean a login dialog per server. Editable per-ServerInfo
+    # in case a real deployment ever changes them.
+    username: str = "demo"
+    password: str = "demo"
 
     @property
     def base_url(self) -> str:
         return f"http://{self.host}:{self.port}"
 
-    @property
-    def ws_url(self) -> str:
-        return f"ws://{self.host}:{self.port}/ws"
+    def ws_url(self, token: str | None = None) -> str:
+        base = f"ws://{self.host}:{self.port}/ws"
+        return f"{base}?token={token}" if token else base
 
     @property
     def display_name(self) -> str:
