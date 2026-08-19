@@ -42,18 +42,28 @@ def local_ipv4_addresses() -> list[str]:
                 addrs.append(ip)
     except OSError:
         pass
-    if not addrs:
-        # Fallback: open a dummy UDP "connection" (no packet actually
-        # sent) to force the OS to pick a real outbound-routable local
-        # address, same trick used when getaddrinfo's own hostname
-        # lookup doesn't return anything useful (common on some
-        # corporate-DNS-configured Windows machines).
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-                s.connect(("8.8.8.8", 80))
-                addrs.append(s.getsockname()[0])
-        except OSError:
-            pass
+    # Always also try the UDP "connection" trick (no packet actually sent,
+    # just forces the OS routing table to pick a real outbound-facing
+    # address) and merge its result in - not only as a last-resort fallback
+    # when getaddrinfo returned nothing. Windows's hostname-based lookup
+    # above only returns the address(es) already registered against the
+    # local computer name, and on a machine with more than one adapter
+    # (a Wi-Fi card plus a VPN client, Docker Desktop's internal NAT
+    # adapter, Hyper-V/VMware virtual switches, etc.) that registration can
+    # easily point at an inactive/virtual adapter instead of - or as well
+    # as - the one actually holding the default route to the LAN a
+    # HYDRA-UMC server lives on. getaddrinfo() returning SOMETHING is not
+    # the same as it returning the RIGHT thing, so the routing-table trick
+    # needs to run and be merged in every time, not just when the hostname
+    # lookup came back completely empty.
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            routed_ip = s.getsockname()[0]
+        if routed_ip not in addrs:
+            addrs.append(routed_ip)
+    except OSError:
+        pass
     return addrs
 
 
@@ -73,6 +83,27 @@ def candidate_hosts_for(local_ip: str) -> list[str]:
     return [str(h) for h in network.hosts() if str(h) != local_ip]
 
 
+# Every field a real HYDRA-UMC STUDIO server's GET /api/hydra-info always
+# includes together (see server.ts's own /api/hydra-info route) - this is
+# what actually identifies the payload as coming from a real server, NOT
+# the "product" field. "product" is `realSettings(lastKnownSettings)?.serverName
+# || "HYDRA-UMC STUDIO"` server-side - the server's own user-editable
+# display name (Config > Identity in the browser UI), which literally
+# defaults to "HYDRA-UMC STUDIO" only until the owner renames it, something
+# that project's own UI actively invites. A prior version of this function
+# rejected any server whose "product" wasn't the exact literal string
+# "HYDRA-UMC STUDIO" - which meant a scan could only ever find a server
+# still sitting at its factory-default name, and silently stopped finding
+# any server the owner had ever renamed (reproduced live against a real
+# running server named "HYDRA-UMC TEST": /api/hydra-info answered 200 with
+# a fully valid payload, and the old check discarded it anyway). Manual
+# "Add server by address" never had this problem since it talks to
+# /api/settings instead, which carries no such field at all - that's why a
+# renamed server could always be reached by typing its IP in by hand but
+# never showed up from the scan.
+_HYDRA_INFO_REQUIRED_KEYS = ("remoteApiVersion", "appVersion", "hostname", "controllerCount", "robotCount")
+
+
 async def probe_host(client: httpx.AsyncClient, host: str, port: int = DEFAULT_PORT) -> ServerInfo | None:
     """One GET /api/hydra-info - returns None for anything that doesn't
     answer or doesn't answer with a recognizable HYDRA-UMC STUDIO payload
@@ -84,7 +115,9 @@ async def probe_host(client: httpx.AsyncClient, host: str, port: int = DEFAULT_P
         if resp.status_code != 200:
             return None
         data = resp.json()
-        if not isinstance(data, dict) or data.get("product") != "HYDRA-UMC STUDIO":
+        if not isinstance(data, dict) or not all(key in data for key in _HYDRA_INFO_REQUIRED_KEYS):
+            return None
+        if not isinstance(data.get("remoteApiVersion"), int):
             return None
         return ServerInfo.from_hydra_info(host, port, data)
     except (httpx.HTTPError, ValueError):

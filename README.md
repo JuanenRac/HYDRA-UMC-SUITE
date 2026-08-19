@@ -76,9 +76,8 @@ without a dedicated mesh set.
 
 ## 📸 Photos
 
-No screenshots yet - this is a freshly-built application as of 15 August
-2026, not yet captured for documentation. Launch it (see below) to see
-the real thing rather than trust a stale image here later.
+No screenshots yet - not yet captured for documentation. Launch it (see
+below) to see the real thing rather than trust a stale image here later.
 
 ---
 
@@ -86,30 +85,36 @@ the real thing rather than trust a stale image here later.
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                      # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed
+├── main.py                        # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed
 ├── requirements.txt
+├── HYDRA-UMC_SUITE.spec           # PyInstaller spec (see build_exe.bat/.sh below)
+├── build_exe.bat                  # One-shot Windows build -> dist/HYDRA-UMC_SUITE.exe
+├── build_exe.sh                   # One-shot Linux build -> dist/HYDRA-UMC_SUITE
 ├── hydra_suite/
-│   ├── models.py                 # HydraState/ControllerView/RobotView - thin, mutation-friendly views over the real settings.json shape
-│   ├── app.py                    # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
+│   ├── models.py                   # HydraState/ControllerView/RobotView - thin, mutation-friendly views over the real settings.json shape
+│   ├── app.py                      # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
+│   ├── i18n.py                     # 5-language KEY=Value loader (language/*.lng)
 │   ├── net/
-│   │   ├── discovery.py           # Concurrent subnet scan against GET /api/hydra-info
-│   │   └── client.py              # Per-server REST + WebSocket connection, live bidirectional sync
+│   │   ├── discovery.py             # Concurrent subnet scan against GET /api/hydra-info
+│   │   └── client.py                # Per-server REST + WebSocket connection, live bidirectional sync, login
 │   ├── render/
-│   │   ├── kinematics.py          # Forward kinematics (ported from HYDRA-UMC-STUDIO's own urKinematicsShared.ts)
-│   │   ├── mesh.py                # STL loading (numpy-stl)
-│   │   └── viewport.py            # QOpenGLWidget - real GLSL shader pipeline, orbit camera
+│   │   ├── kinematics.py            # Forward kinematics (ported from HYDRA-UMC-STUDIO's own urKinematicsShared.ts)
+│   │   ├── generic_rig.py           # Primitive-built fallback rig for any model with no dedicated mesh set
+│   │   ├── mesh.py                  # STL loading (numpy-stl)
+│   │   └── viewport.py              # QOpenGLWidget - real GLSL shader pipeline, orbit camera
 │   └── ui/
-│       ├── main_window.py         # QMainWindow + QDockWidget workspace
-│       ├── theme.py                # Loads assets/qss/industrial_dark.qss
-│       ├── widgets/rotary_knob.py  # Custom-painted rotary knob (desktop counterpart to RotaryKnob.tsx)
-│       └── panels/                 # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py
+│       ├── main_window.py           # QMainWindow + QDockWidget workspace
+│       ├── theme.py                  # Loads assets/qss/industrial_dark.qss
+│       ├── widgets/rotary_knob.py    # Custom-painted rotary knob (desktop counterpart to RotaryKnob.tsx)
+│       └── panels/                   # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py, cameras_panel.py
 ├── assets/
-│   ├── qss/industrial_dark.qss   # The futuristic-industrial Qt stylesheet
-│   └── meshes/                    # Real STL meshes, one folder per robot, copied from HYDRA-UMC-STUDIO's own public/models/<robot>/ (each with its own ATTRIBUTION.txt)
+│   ├── qss/industrial_dark.qss     # The futuristic-industrial Qt stylesheet
+│   └── meshes/                      # Real STL meshes, one folder per robot (24 models), copied from HYDRA-UMC-STUDIO's own public/models/<robot>/ (each with its own ATTRIBUTION.txt)
+├── language/                        # english/spanish/italian/french/german .lng files
 ├── docs/
-│   └── ROADMAP.md                 # Honest real-vs-not-yet scope statement
-├── tests/                         # Manual integration smoke tests (require a real running HYDRA-UMC STUDIO server - not a mocked unit suite)
-└── .vscode/                       # Python interpreter path, launch configs, recommended extensions
+│   └── ROADMAP.md                   # Honest real-vs-not-yet scope statement
+├── tests/                           # Manual integration smoke tests (require a real running HYDRA-UMC STUDIO server - not a mocked unit suite) + kinematics verification scripts
+└── .vscode/                         # Python interpreter path, launch configs, recommended extensions
 ```
 
 ---

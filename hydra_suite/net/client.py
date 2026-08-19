@@ -39,11 +39,11 @@ RECONNECT_DELAY_S = 3.0
 METRICS_POLL_S = 5.0
 
 # Self-identifies this client to server.ts's own per-client remote-access
-# toggles (Config > Remote Access in the browser UI, added 2026-08-19) -
-# lets the project owner disable SUITE's own access without also blocking
-# the Android/iOS apps, or vice versa. A request with no such header (a
-# plain browser tab) is never gated by that check - see server.ts's own
-# remoteAccessAllowed() for the full reasoning.
+# toggles (Config > Remote Access in the browser UI) - lets the project
+# owner disable SUITE's own access without also blocking the Android/iOS
+# apps, or vice versa. A request with no such header (a plain browser tab)
+# is never gated by that check - see server.ts's own remoteAccessAllowed()
+# for the full reasoning.
 HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": "suite"}
 
 
@@ -55,6 +55,14 @@ class HydraConnection(QObject):
     status_changed = Signal(str)             # "connecting" | "connected" | "disconnected" | "error"
     metrics_changed = Signal(dict)           # GET /api/system/metrics response - cpu_load/memory_usage/temp/uptime/network
     error = Signal(str)
+    # Separate from status_changed on purpose: "connected"/"disconnected" describe
+    # the WebSocket link, but a server that's reachable and up can still refuse a
+    # login outright (wrong username/password on that particular ServerInfo) -
+    # without its own signal, the only place that ever saw why was this class's
+    # own `error` text, which nothing in the UI subscribed to, so a bad password
+    # looked identical to "still connecting" forever with no way to tell the two
+    # apart from the server list. Emitted once per login() attempt, success or not.
+    login_changed = Signal(bool, str)        # (ok, detail) - detail is "" on success
 
     def __init__(self, info: ServerInfo, parent: QObject | None = None):
         super().__init__(parent)
@@ -69,17 +77,19 @@ class HydraConnection(QObject):
         # write back to the sender too, so without this a local edit
         # would re-trigger itself as if it were a fresh external change.
         self._last_payload_json: str | None = None
-        # 2026-08-19: server.ts's `authenticate` middleware has unconditionally
-        # required a bearer token on POST /api/settings and the /ws upgrade
-        # for a while now (no "security enabled" toggle despite what
-        # REMOTE_API.md implies) - this class never logged in anywhere, so
-        # against a real server it could only ever READ state (GET has no
-        # auth), every write 401'd silently (push_state()'s response was never
-        # checked), and the WebSocket connection was rejected outright
-        # (code 1008) - so no live sync ever worked either. Same root cause,
-        # found and fixed the same day in HYDRA-UMC-STUDIO's own browser UI
-        # and the Android app - see those projects' own SONNET/ tracking.
+        # server.ts's `authenticate` middleware unconditionally requires a
+        # bearer token on POST /api/settings and the /ws upgrade (no
+        # "security enabled" toggle despite what REMOTE_API.md's older wording
+        # implies) - GET has no such requirement, so a connection with no
+        # token can still read state, but every write 401s and the WebSocket
+        # upgrade is rejected outright (code 1008) until login() succeeds.
         self._token: str | None = None
+        # None = never attempted yet, then True/False after every login()
+        # call - lets the server list show a real per-server "login failed"
+        # state instead of every non-active server just sitting at whatever
+        # the row said when it was first added (see
+        # ui/panels/server_browser.py's own use of this).
+        self.login_ok: bool | None = None
 
     @property
     def is_connected(self) -> bool:
@@ -100,13 +110,21 @@ class HydraConnection(QObject):
                 resp.raise_for_status()
                 data = resp.json()
         except (httpx.HTTPError, ValueError) as e:
-            self.error.emit(f"Login failed: {e}")
+            detail = f"Login failed: {e}"
+            self.login_ok = False
+            self.error.emit(detail)
+            self.login_changed.emit(False, detail)
             return False
         token = data.get("token")
         if not token:
-            self.error.emit("Login failed: no token in response")
+            detail = "Login failed: no token in response"
+            self.login_ok = False
+            self.error.emit(detail)
+            self.login_changed.emit(False, detail)
             return False
         self._token = token
+        self.login_ok = True
+        self.login_changed.emit(True, "")
         return True
 
     def _auth_headers(self) -> dict[str, str]:
@@ -199,19 +217,19 @@ class HydraConnection(QObject):
                 await asyncio.sleep(RECONNECT_DELAY_S)
                 continue
             try:
-                # max_size=None: found live against the owner's own real server
-                # 2026-08-19 - server.ts sends the FULL settings.json (1.6MB+ on
-                # a populated swarm, and only grows with more robots/trajectory
-                # points) as the very first WS message on every connect. The
-                # websockets library's own default max_size (1 MiB) rejected
-                # that with a 1009 "message too big" close before this app ever
-                # saw a single byte of real state over the socket - the initial
-                # REST fetch_state() above has no such limit, so this was easy
-                # to miss without watching the WS itself carefully. No cap here
-                # mirrors what a browser WebSocket client does (no hard message
-                # size limit of its own) - the real fix for the underlying
-                # payload size is a smaller wire format server-side, not a
-                # client-side ceiling that just moves where it breaks.
+                # max_size=None: server.ts sends the FULL settings.json (1.6MB+
+                # on a populated swarm, and only grows with more robots/
+                # trajectory points) as the very first WS message on every
+                # connect. The websockets library's own default max_size
+                # (1 MiB) rejects that with a 1009 "message too big" close
+                # before this app ever sees a single byte of real state over
+                # the socket - the initial REST fetch_state() above has no such
+                # limit, so a cap here would be easy to miss without watching
+                # the WS itself carefully. No cap here mirrors what a browser
+                # WebSocket client does (no hard message size limit of its
+                # own) - the real fix for the underlying payload size is a
+                # smaller wire format server-side, not a client-side ceiling
+                # that just moves where it breaks.
                 async with websockets.connect(self.info.ws_url(self._token), open_timeout=5.0, max_size=None) as ws:
                     self._ws = ws
                     self.status_changed.emit("connected")
@@ -245,10 +263,11 @@ class HydraConnection(QObject):
         # "delta" (a write via the atomic POST /api/robot/:id/command) and
         # "settings" (a full POST /api/settings write) carry the SAME full-tree
         # payload shape - only the label differs, see server.ts's own
-        # broadcastSettings() - so both apply identically here. Only "settings"
-        # was handled before 2026-08-19, so a command sent via that atomic
-        # endpoint by another client (the Android app, since that same day)
-        # was silently ignored here.
+        # broadcastSettings() - so both apply identically here. A command sent
+        # via the atomic endpoint by another client (e.g. the Android app)
+        # needs to update this mirror exactly the same way a full settings
+        # write does, or a robot move made from another client would never
+        # show up here live.
         if msg.get("type") not in ("settings", "delta"):
             return
         payload = msg.get("payload")

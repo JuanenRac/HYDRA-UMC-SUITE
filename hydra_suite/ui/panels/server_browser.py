@@ -18,6 +18,9 @@ import asyncio
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -40,6 +43,7 @@ STATUS_OBJECT_NAMES = {
     "connecting": "statusConnecting",
     "disconnected": "statusOffline",
     "error": "statusOffline",
+    "login_failed": "statusOffline",
 }
 
 STATUS_DISPLAY_KEYS = {
@@ -47,7 +51,38 @@ STATUS_DISPLAY_KEYS = {
     "connecting": "STATUS_CONNECTING",
     "disconnected": "STATUS_DISCONNECTED",
     "error": "STATUS_ERROR",
+    # Distinct from "error" on purpose - a WebSocket link that dropped and a
+    # server that flat-out rejected the configured username/password are
+    # different problems with different fixes (wait/retry vs. edit
+    # credentials), and showing both as the same generic "Error" is exactly
+    # how a bad password used to look identical to "still connecting" with
+    # no way to tell them apart from this table.
+    "login_failed": "STATUS_LOGIN_FAILED",
 }
+
+
+class CredentialsDialog(QDialog):
+    """Small modal to view/edit the username+password ServerInfo already
+    carries per-server (POST /api/login body) - the only place in the UI
+    that lets the user see or change them, since neither the scan nor the
+    manual-add row show what credentials a server will actually try."""
+
+    def __init__(self, username: str, password: str, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setWindowTitle(_("TITLE_EDIT_CREDENTIALS"))
+        layout = QFormLayout(self)
+        self._username_edit = QLineEdit(username)
+        self._password_edit = QLineEdit(password)
+        self._password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        layout.addRow(_("LBL_USERNAME"), self._username_edit)
+        layout.addRow(_("LBL_PASSWORD"), self._password_edit)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def credentials(self) -> tuple[str, str]:
+        return self._username_edit.text(), self._password_edit.text()
 
 
 class ServerBrowserPanel(QWidget):
@@ -55,6 +90,11 @@ class ServerBrowserPanel(QWidget):
         super().__init__(parent)
         self._controller = controller
         self._statuses: dict[str, str] = {}
+        # (ok, detail) from the connection's own last login attempt - None
+        # until at least one attempt has actually happened, so a
+        # brand-new row shows "Connecting..." rather than a stale/wrong
+        # "Login failed" before login() has ever run for it once.
+        self._login_status: dict[str, tuple[bool, str]] = {}
         self._scanning = False
 
         layout = QVBoxLayout(self)
@@ -83,6 +123,21 @@ class ServerBrowserPanel(QWidget):
         self._port_spin.setRange(1, 65535)
         self._port_spin.setValue(DEFAULT_PORT)
         manual_row.addWidget(self._port_spin)
+        # Every real HYDRA-UMC STUDIO server seeds the same default admin/admin
+        # account on its own first-ever start (see models.py's own ServerInfo
+        # docstring) - these two fields default to it too, editable right here
+        # for a server whose admin account was renamed or that uses a
+        # dedicated operator account instead, without a separate dialog step
+        # for the common case.
+        self._username_edit = QLineEdit("admin")
+        self._username_edit.setPlaceholderText(_("LBL_USERNAME"))
+        self._username_edit.setMaximumWidth(90)
+        manual_row.addWidget(self._username_edit)
+        self._password_edit = QLineEdit("admin")
+        self._password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self._password_edit.setPlaceholderText(_("LBL_PASSWORD"))
+        self._password_edit.setMaximumWidth(90)
+        manual_row.addWidget(self._password_edit)
         add_button = QPushButton(_("BTN_ADD"))
         add_button.clicked.connect(self._on_add_manual)
         manual_row.addWidget(add_button)
@@ -106,6 +161,9 @@ class ServerBrowserPanel(QWidget):
         self._remove_button.setObjectName("dangerAction")
         self._remove_button.clicked.connect(self._on_remove_selected)
         remove_row.addWidget(self._remove_button)
+        credentials_button = QPushButton(_("BTN_EDIT_CREDENTIALS"))
+        credentials_button.clicked.connect(self._on_edit_credentials)
+        remove_row.addWidget(credentials_button)
         activate_button = QPushButton(_("BTN_SET_ACTIVE"))
         activate_button.setObjectName("primaryAction")
         activate_button.clicked.connect(self._on_activate_selected)
@@ -114,7 +172,11 @@ class ServerBrowserPanel(QWidget):
 
         controller.connections_changed.connect(self._refresh_table)
         controller.active_connection_changed.connect(lambda _: self._refresh_table())
-        controller.active_status_changed.connect(self._on_active_status)
+        # Per-connection (ALL servers, not just whichever one is active) -
+        # see app.py's own comment on these two signals for why the
+        # active_* ones alone left every non-active row's status frozen.
+        controller.connection_status_changed.connect(self._on_connection_status)
+        controller.connection_login_changed.connect(self._on_connection_login)
 
     # --- scanning -----------------------------------------------------------
 
@@ -143,7 +205,9 @@ class ServerBrowserPanel(QWidget):
         if not host:
             return
         port = self._port_spin.value()
-        info = ServerInfo(host=host, port=port, hostname=host)
+        username = self._username_edit.text().strip() or "admin"
+        password = self._password_edit.text()
+        info = ServerInfo(host=host, port=port, hostname=host, username=username, password=password)
         conn_id = self._controller.add_server(info)
         # A manually-added server's real identity (hostname, robot count,
         # etc.) arrives once its own GET /api/settings / WebSocket connect
@@ -167,16 +231,54 @@ class ServerBrowserPanel(QWidget):
             self._table.setItem(row, 1, QTableWidgetItem(f"{conn.info.host}:{conn.info.port}"))
             robot_count = len(conn.state.active_controller.robots) if conn.state.active_controller else conn.info.robot_count
             self._table.setItem(row, 2, QTableWidgetItem(str(robot_count)))
-            status = self._statuses.get(conn_id, "connecting")
-            self._table.setItem(row, 3, QTableWidgetItem(_(STATUS_DISPLAY_KEYS.get(status, "STATUS_CONNECTING"))))
+            # A failed login overrides whatever the raw WS status says - the
+            # WebSocket itself may simply be "disconnected" (never got far
+            # enough to open, since _run() in client.py refuses to even try
+            # opening it without a token) which reads exactly like "still
+            # connecting" unless the login outcome is checked first here.
+            login = self._login_status.get(conn_id)
+            if login is not None and not login[0]:
+                status = "login_failed"
+            else:
+                status = self._statuses.get(conn_id, "connecting")
+            status_item = QTableWidgetItem(_(STATUS_DISPLAY_KEYS.get(status, "STATUS_CONNECTING")))
+            if login is not None and not login[0] and login[1]:
+                status_item.setToolTip(login[1])
+            self._table.setItem(row, 3, status_item)
             self._table.item(row, 0).setData(Qt.ItemDataRole.UserRole, conn_id)
 
-    def _on_active_status(self, status: str) -> None:
-        conn = self._controller.active_connection
-        if conn is not None:
-            conn_id = f"{conn.info.host}:{conn.info.port}"
-            self._statuses[conn_id] = status
+    def _on_connection_status(self, conn_id: str, status: str) -> None:
+        self._statuses[conn_id] = status
         self._refresh_table()
+
+    def _on_connection_login(self, conn_id: str, ok: bool, detail: str) -> None:
+        self._login_status[conn_id] = (ok, detail)
+        self._refresh_table()
+
+    def _on_edit_credentials(self) -> None:
+        conn_id = self._selected_conn_id()
+        if not conn_id:
+            return
+        conn = self._controller.connections.get(conn_id)
+        if conn is None:
+            return
+        dialog = CredentialsDialog(conn.info.username, conn.info.password, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        username, password = dialog.credentials()
+        conn.info.username = username or "admin"
+        conn.info.password = password
+        # Credentials just changed - the running connection may be sitting
+        # on a stale/rejected token (or none at all, if the old ones never
+        # worked) from BEFORE the edit, so force a clean reconnect rather
+        # than waiting for _run()'s own retry loop to eventually notice on
+        # its own timer.
+        asyncio.ensure_future(self._reconnect(conn))
+
+    @staticmethod
+    async def _reconnect(conn) -> None:
+        await conn.disconnect()
+        await conn.connect()
 
     def _selected_conn_id(self) -> str | None:
         rows = self._table.selectionModel().selectedRows()

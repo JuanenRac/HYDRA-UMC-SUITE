@@ -153,6 +153,14 @@ class RobotViewport(QOpenGLWidget):
         self.setMinimumSize(320, 240)
         self._program: int | None = None
         self._gl_ready = False
+        # Uniform locations resolved once, right after linking (see
+        # initializeGL) - a name->location lookup never changes for the
+        # lifetime of a linked program, so re-resolving it by string every
+        # single draw call (this method used to call glGetUniformLocation
+        # up to 4x per link, every frame) was pure repeated overhead with no
+        # payoff; caching it here means every uniform set below is a plain
+        # dict lookup instead of a driver round-trip.
+        self._uniforms: dict[str, int] = {}
 
         # Real-mesh robots: one GLMeshBuffer set per mesh_dir, loaded lazily
         # and cached (a server might have several robots of the same
@@ -176,6 +184,20 @@ class RobotViewport(QOpenGLWidget):
         self._drag_button: Qt.MouseButton | None = None
 
     def set_joints_deg(self, joints: dict[str, float]) -> None:
+        # ui/panels/viewport_panel.py calls this on EVERY active_state_changed
+        # tick, which fires for ANY change anywhere in the swarm's settings
+        # tree (any robot, any controller, a metrics-unrelated config field) -
+        # not just a change to the one robot this viewport is currently
+        # showing. Against a real multi-robot swarm streaming live telemetry,
+        # that meant this widget scheduled a full GL repaint on every single
+        # WebSocket push from the ENTIRE swarm, whether or not the robot on
+        # screen actually moved - the more robots active, the more this one
+        # viewport repainted for motion that had nothing to do with what it
+        # was displaying. Skipping the repaint when the pose is byte-identical
+        # to what's already on screen fixes that at the source instead of
+        # trying to throttle/debounce updates after the fact.
+        if joints == self._joints_deg:
+            return
         self._joints_deg = dict(joints)
         self.update()
 
@@ -218,6 +240,10 @@ class RobotViewport(QOpenGLWidget):
         gl.glClearColor(1.0, 1.0, 1.0, 1.0)  # white 3D viewport background, per explicit request
 
         self._program = self._compile_program(VERTEX_SHADER, FRAGMENT_SHADER)
+        self._uniforms = {
+            name: gl.glGetUniformLocation(self._program, name)
+            for name in ("uModel", "uView", "uProjection", "uNormalMatrix", "uBaseColor", "uCameraPos")
+        }
 
         self._generic_buffers = [
             GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
@@ -244,9 +270,9 @@ class RobotViewport(QOpenGLWidget):
         aspect = max(self.width(), 1) / max(self.height(), 1)
         proj = perspective(45.0, aspect, 0.01, 50.0)
 
-        gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uView"), 1, gl.GL_TRUE, view)
-        gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uProjection"), 1, gl.GL_TRUE, proj)
-        gl.glUniform3f(gl.glGetUniformLocation(self._program, "uCameraPos"), *eye)
+        gl.glUniformMatrix4fv(self._uniforms["uView"], 1, gl.GL_TRUE, view)
+        gl.glUniformMatrix4fv(self._uniforms["uProjection"], 1, gl.GL_TRUE, proj)
+        gl.glUniform3f(self._uniforms["uCameraPos"], *eye)
 
         entry = ROBOT_REGISTRY.get(self._model_name)
         if entry is None:
@@ -260,7 +286,7 @@ class RobotViewport(QOpenGLWidget):
         if not buffers:
             return  # not loaded yet (only happens for a brand-new model right at startup, before initializeGL's own preload runs)
 
-        gl.glUniform3f(gl.glGetUniformLocation(self._program, "uBaseColor"), 0.72, 0.75, 0.80)
+        gl.glUniform3f(self._uniforms["uBaseColor"], 0.72, 0.75, 0.80)
 
         if entry.family == "ur":
             transforms = ur_mesh_world_transforms(entry.chain, entry.mesh_offsets, self._joints_deg)
@@ -275,14 +301,14 @@ class RobotViewport(QOpenGLWidget):
         frames = generic_frame_transforms(self._joints_deg)
         for seg, buf in zip(SEGMENTS, self._generic_buffers):
             model = segment_world_transform(frames, seg)
-            gl.glUniform3f(gl.glGetUniformLocation(self._program, "uBaseColor"), *seg.color)
+            gl.glUniform3f(self._uniforms["uBaseColor"], *seg.color)
             self._draw_model(model, buf)
 
     def _draw_model(self, model: np.ndarray, buf: GLMeshBuffer) -> None:
         model32 = model.astype(np.float32)
         normal_matrix = np.linalg.inv(model32[:3, :3]).T.astype(np.float32)
-        gl.glUniformMatrix4fv(gl.glGetUniformLocation(self._program, "uModel"), 1, gl.GL_TRUE, model32)
-        gl.glUniformMatrix3fv(gl.glGetUniformLocation(self._program, "uNormalMatrix"), 1, gl.GL_TRUE, normal_matrix)
+        gl.glUniformMatrix4fv(self._uniforms["uModel"], 1, gl.GL_TRUE, model32)
+        gl.glUniformMatrix3fv(self._uniforms["uNormalMatrix"], 1, gl.GL_TRUE, normal_matrix)
         buf.draw()
 
     # --- camera ---------------------------------------------------------------

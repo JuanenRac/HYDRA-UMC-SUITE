@@ -26,6 +26,17 @@ class SuiteController(QObject):
     active_state_changed = Signal(object)            # HydraState - the active connection's own state changed
     active_status_changed = Signal(str)              # the active connection's own status changed
     active_metrics_changed = Signal(dict)            # the active connection's own GET /api/system/metrics, polled every 5s
+    # Unlike the active_* signals above (only ever fire for whichever ONE
+    # connection is currently "active"), these two fire for EVERY connection
+    # in the swarm, active or not - the Server Browser panel shows a status
+    # per ROW, for every server the user has added, so it needs to know the
+    # instant any of them changes, not just the one panel selection happens
+    # to be pointed at. Without these, only the active row's status ever
+    # updated after being added, and every other row just sat on whatever it
+    # said at add-time forever - including silently swallowing a failed
+    # login on a non-active server with no visible indication anywhere.
+    connection_status_changed = Signal(str, str)      # (conn_id, status)
+    connection_login_changed = Signal(str, bool, str)  # (conn_id, ok, detail)
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -42,6 +53,7 @@ class SuiteController(QObject):
         conn.state_changed.connect(lambda state, cid=conn_id: self._on_state_changed(cid, state))
         conn.status_changed.connect(lambda status, cid=conn_id: self._on_status_changed(cid, status))
         conn.metrics_changed.connect(lambda metrics, cid=conn_id: self._on_metrics_changed(cid, metrics))
+        conn.login_changed.connect(lambda ok, detail, cid=conn_id: self.connection_login_changed.emit(cid, ok, detail))
         self.connections[conn_id] = conn
         asyncio.ensure_future(conn.connect())
         self.connections_changed.emit()
@@ -83,6 +95,7 @@ class SuiteController(QObject):
             self.active_state_changed.emit(state)
 
     def _on_status_changed(self, conn_id: str, status: str) -> None:
+        self.connection_status_changed.emit(conn_id, status)
         if conn_id == self._active_id:
             self.active_status_changed.emit(status)
 
