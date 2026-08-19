@@ -20,6 +20,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from hydra_suite.models import ServerInfo
+from hydra_suite.net.client import HYDRA_CLIENT_HEADERS
 
 DEFAULT_PORT = 3000
 SCAN_TIMEOUT_S = 0.6
@@ -125,7 +126,7 @@ async def scan_subnets(hosts: list[str] | None = None, port: int = DEFAULT_PORT)
     async def worker(host: str) -> None:
         nonlocal remaining
         async with semaphore:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 result = await probe_host(client, host, port)
         await queue.put(result)
 

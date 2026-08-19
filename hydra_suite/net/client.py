@@ -38,6 +38,14 @@ RECONNECT_DELAY_S = 3.0
 # kept in sync across the ecosystem's 3 clients rather than picked independently.
 METRICS_POLL_S = 5.0
 
+# Self-identifies this client to server.ts's own per-client remote-access
+# toggles (Config > Remote Access in the browser UI, added 2026-08-19) -
+# lets the project owner disable SUITE's own access without also blocking
+# the Android/iOS apps, or vice versa. A request with no such header (a
+# plain browser tab) is never gated by that check - see server.ts's own
+# remoteAccessAllowed() for the full reasoning.
+HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": "suite"}
+
 
 class HydraConnection(QObject):
     """Manages one server's REST + WebSocket connection and keeps a local
@@ -83,7 +91,7 @@ class HydraConnection(QObject):
         emits `error`) rather than raising, so a bad server/credentials
         doesn't take down connect()'s own caller."""
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 resp = await client.post(
                     f"{self.info.base_url}/api/login",
                     json={"username": self.info.username, "password": self.info.password},
@@ -110,7 +118,7 @@ class HydraConnection(QObject):
         offer independent of live sync. GET has no auth requirement
         server-side, so this works even if login() hasn't succeeded yet -
         only writes and the WebSocket actually need the token."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
             resp = await client.get(f"{self.info.base_url}/api/settings", headers=self._auth_headers(), timeout=5.0)
             resp.raise_for_status()
             data = resp.json()
@@ -132,7 +140,7 @@ class HydraConnection(QObject):
         if self._ws is not None:
             await self._ws.send(json.dumps({"type": "settings", "payload": payload}))
         else:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 resp = await client.post(
                     f"{self.info.base_url}/api/settings", json=payload, headers=self._auth_headers(), timeout=5.0
                 )
@@ -146,7 +154,7 @@ class HydraConnection(QObject):
         None on any network error rather than raising, since this is a
         best-effort background poll, not a critical read."""
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 resp = await client.get(f"{self.info.base_url}/api/system/metrics", timeout=5.0)
                 resp.raise_for_status()
                 return resp.json()
