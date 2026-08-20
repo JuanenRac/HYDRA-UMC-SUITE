@@ -90,6 +90,8 @@ HYDRA-UMC-SUITE/
 ├── HYDRA-UMC_SUITE.spec           # PyInstaller spec (see build_exe.bat/.sh below)
 ├── build_exe.bat                  # One-shot Windows build -> dist/HYDRA-UMC_SUITE.exe
 ├── build_exe.sh                   # One-shot Linux build -> dist/HYDRA-UMC_SUITE
+├── README.md                      # this file
+├── README_spa.md / README_ita.md / README_fra.md / README_deu.md  <- translations
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView - thin, mutation-friendly views over the real settings.json shape
 │   ├── app.py                      # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
@@ -253,6 +255,8 @@ This project is part of a larger robotics ecosystem by the same author (JuanenRa
 HYDRA-UMC SUITE is (c) 2026 JuanenRac (Electro Hobby 3D). This notice must be included in any distributions of this project or derivative works.
 
 The source code of this application is available under the **GNU General Public License v3.0 (GPL-3.0)**. Full text at https://www.gnu.org/licenses/gpl-3.0.html.
+
+**This documentation** (this README and its own translations - `README_spa.md`, `README_ita.md`, `README_fra.md`, `README_deu.md`) is available under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**. Full text at https://creativecommons.org/licenses/by-sa/4.0/.
 
 **Third-party mesh assets:** every folder under `assets/meshes/` is copied verbatim from that robot's own official manufacturer repository - NOT covered by the GPL-3.0 above. Each has its own `ATTRIBUTION.txt` with the exact source/license reference; the table below summarizes them.
 
