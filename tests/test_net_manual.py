@@ -11,7 +11,16 @@ async def main():
         info = await probe_host(client, "127.0.0.1", 3000)
     print("Discovery probe result:", info)
     assert info is not None, "probe_host failed against known-good localhost:3000"
-    assert info.product == "HYDRA-UMC STUDIO"
+    # NOT info.product == "HYDRA-UMC STUDIO" - that field is the server's
+    # own user-editable display name (Config > Identity), which only reads
+    # that literal until someone renames it (see net/discovery.py's own
+    # _HYDRA_INFO_REQUIRED_KEYS comment for the full reasoning/history -
+    # probe_host() itself was fixed to identify a server structurally
+    # instead of by this field for exactly that reason). Asserting the
+    # literal here would make this test fail against the project owner's
+    # own real dev server the moment it's renamed, even though probe_host()
+    # found it correctly - assert it's just non-empty instead.
+    assert info.product, "hydra-info payload should carry a product/display name, whatever it's been renamed to"
     assert info.robot_count > 0
     print("OK: discovery.probe_host")
 

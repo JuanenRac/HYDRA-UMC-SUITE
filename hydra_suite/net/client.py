@@ -150,23 +150,42 @@ class HydraConnection(QObject):
         """Writes the current local HydraState back - read-modify-write,
         same as HYDRA-UMC STUDIO's own browser UI (REMOTE_API.md section
         2). Sends over the WebSocket if it's open (avoids a second HTTP
-        round-trip), falls back to REST POST otherwise."""
+        round-trip), falls back to REST POST otherwise.
+
+        Every call site (SuiteController.push_active_state()) fires this
+        with asyncio.ensure_future() and never awaits or checks the
+        result, so an exception raised in here would otherwise just
+        become an unretrieved-task-exception logged to stderr - a jog
+        slider, camera toggle, or trajectory-point apply that failed to
+        reach the server would look like it worked from the UI's own
+        point of view. Caught and surfaced via `error` instead, matching
+        every other network call in this class. _last_payload_json is
+        only updated AFTER a confirmed successful send - updating it
+        beforehand (as this used to) would mark a write that actually
+        failed on the wire as "already delivered" from the echo-guard's
+        own point of view, silently blocking every future retry of that
+        exact value (including the user just redoing the same jog) until
+        an unrelated change happened to come in from elsewhere first."""
         payload = self.state.to_json_dict()
         payload_json = json.dumps(payload, sort_keys=True)
         if payload_json == self._last_payload_json:
-            return  # unchanged since our own last send/receive - nothing to do
+            return  # unchanged since our own last confirmed send/receive - nothing to do
+        try:
+            if self._ws is not None:
+                await self._ws.send(json.dumps({"type": "settings", "payload": payload}))
+            else:
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                    resp = await client.post(
+                        f"{self.info.base_url}/api/settings", json=payload, headers=self._auth_headers(), timeout=5.0
+                    )
+                    if resp.status_code in (401, 403):
+                        self.error.emit("Write rejected: not authenticated (token missing/expired)")
+                        return
+                    resp.raise_for_status()
+        except (httpx.HTTPError, websockets.WebSocketException, OSError) as e:
+            self.error.emit(f"Write failed: {e}")
+            return
         self._last_payload_json = payload_json
-        if self._ws is not None:
-            await self._ws.send(json.dumps({"type": "settings", "payload": payload}))
-        else:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                resp = await client.post(
-                    f"{self.info.base_url}/api/settings", json=payload, headers=self._auth_headers(), timeout=5.0
-                )
-                if resp.status_code in (401, 403):
-                    self.error.emit("Write rejected: not authenticated (token missing/expired)")
-                    return
-                resp.raise_for_status()
 
     async def fetch_system_metrics(self) -> dict | None:
         """GET /api/system/metrics - no auth required server-side. Returns

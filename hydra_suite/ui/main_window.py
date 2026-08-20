@@ -131,6 +131,17 @@ class MainWindow(QMainWindow):
         self.controller.active_status_changed.connect(
             lambda status: self._status.showMessage(_("STATUS_ACTIVE_CONNECTION", status=status))
         )
+        # HydraConnection.error (net/client.py) - initial-fetch/push_state()
+        # failures - used to have nothing connected to it anywhere in the UI,
+        # so a jog/camera-toggle/trajectory-point write that failed to reach
+        # the server looked identical to a successful one. A temporary status
+        # bar message is a deliberately lightweight surface (no modal to
+        # dismiss on every reconnect blip); the Server Browser panel's own
+        # per-row "Login failed" status already covers the persistent,
+        # per-server case for auth specifically.
+        self.controller.connection_error.connect(
+            lambda conn_id, message: self._status.showMessage(f"[{conn_id}] {message}", 8000)
+        )
 
     def _show_about(self) -> None:
         QMessageBox.information(self, _("TITLE_ABOUT"), _("MSG_ABOUT_BODY"))

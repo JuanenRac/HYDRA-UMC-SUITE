@@ -36,6 +36,15 @@ class SuiteController(QObject):
     # in the UI.
     connection_status_changed = Signal(str, str)      # (conn_id, status)
     connection_login_changed = Signal(str, bool, str)  # (conn_id, ok, detail)
+    # HydraConnection.error covers real network failures (an initial fetch
+    # that raced a server restart, a push_state() that never reached the
+    # server) that previously had nowhere to go once emitted - nothing
+    # anywhere connected to that signal, so a failed write looked
+    # identical to a successful one from the UI's own point of view.
+    # Relayed for every connection like the two signals above, not just
+    # the active one, for the same reason: a background server in the
+    # swarm failing to write is just as real as the active one failing.
+    connection_error = Signal(str, str)                # (conn_id, message)
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
@@ -53,6 +62,7 @@ class SuiteController(QObject):
         conn.status_changed.connect(lambda status, cid=conn_id: self._on_status_changed(cid, status))
         conn.metrics_changed.connect(lambda metrics, cid=conn_id: self._on_metrics_changed(cid, metrics))
         conn.login_changed.connect(lambda ok, detail, cid=conn_id: self.connection_login_changed.emit(cid, ok, detail))
+        conn.error.connect(lambda message, cid=conn_id: self.connection_error.emit(cid, message))
         self.connections[conn_id] = conn
         asyncio.ensure_future(conn.connect())
         self.connections_changed.emit()

@@ -77,9 +77,22 @@ class TrajectoryPanel(QWidget):
         self.setEnabled(False)
 
     def set_selected_robot(self, robot: RobotView | None) -> None:
+        # robot_control.py's own _on_state_changed re-emits robot_selected on
+        # EVERY active_state_changed tick (any robot in the swarm moving, not
+        # just a real selection change) so it always carries a fresh RobotView
+        # bound to the current HydraState's own dict - always adopt it, or a
+        # later push_active_state() from this panel would silently write into
+        # an orphaned dict from a HydraState the connection already replaced.
+        # But only reset the recorded points/table when the SELECTED ROBOT
+        # itself actually changed - wiping self._points unconditionally here
+        # erased every recorded point within moments of recording it against
+        # a live server, since a state tick arrives constantly.
+        new_id = robot.id if robot else None
+        old_id = self._current_robot.id if self._current_robot else None
         self._current_robot = robot
-        self._points = []
-        self._refresh_table()
+        if new_id != old_id:
+            self._points = []
+            self._refresh_table()
         self.setEnabled(robot is not None)
         self._robot_label.setText(_("LBL_ROBOT_SELECTED", id=robot.id, model=robot.model) if robot else _("LBL_NO_ROBOT_SELECTED"))
 
