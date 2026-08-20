@@ -57,11 +57,12 @@ class HydraConnection(QObject):
     error = Signal(str)
     # Separate from status_changed on purpose: "connected"/"disconnected" describe
     # the WebSocket link, but a server that's reachable and up can still refuse a
-    # login outright (wrong username/password on that particular ServerInfo) -
-    # without its own signal, the only place that ever saw why was this class's
-    # own `error` text, which nothing in the UI subscribed to, so a bad password
-    # looked identical to "still connecting" forever with no way to tell the two
-    # apart from the server list. Emitted once per login() attempt, success or not.
+    # login outright (wrong username/password on that particular ServerInfo) - a
+    # distinct signal for that lets the server list show a real "login failed"
+    # state with the actual rejection detail, rather than a bad password reading
+    # identical to "still connecting" because the only place carrying that
+    # detail was `error`'s free-form text. Emitted once per login() attempt,
+    # success or not.
     login_changed = Signal(bool, str)        # (ok, detail) - detail is "" on success
 
     def __init__(self, info: ServerInfo, parent: QObject | None = None):

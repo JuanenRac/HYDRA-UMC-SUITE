@@ -30,11 +30,10 @@ class SuiteController(QObject):
     # connection is currently "active"), these two fire for EVERY connection
     # in the swarm, active or not - the Server Browser panel shows a status
     # per ROW, for every server the user has added, so it needs to know the
-    # instant any of them changes, not just the one panel selection happens
-    # to be pointed at. Without these, only the active row's status ever
-    # updated after being added, and every other row just sat on whatever it
-    # said at add-time forever - including silently swallowing a failed
-    # login on a non-active server with no visible indication anywhere.
+    # instant any of them changes, not just whichever one panel selection
+    # happens to be pointed at - including a failed login on a server that
+    # isn't active, which otherwise has no other visible indicator anywhere
+    # in the UI.
     connection_status_changed = Signal(str, str)      # (conn_id, status)
     connection_login_changed = Signal(str, bool, str)  # (conn_id, ok, detail)
 

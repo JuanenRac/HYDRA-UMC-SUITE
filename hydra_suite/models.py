@@ -229,11 +229,11 @@ class ServerInfo:
     nickname: str = ""  # user-assigned label, not from the server
     # Credentials for POST /api/login - every real HYDRA-UMC STUDIO server in
     # this ecosystem seeds the same default admin/admin account on its own
-    # first-ever start (see that project's own users.ts, renamed from
-    # demo/demo 2026-08-19 alongside the new real multi-user account system -
-    # server.ts now supports creating additional lower-privilege "operator"
-    # accounts too, see Config > Users in the browser UI), so these default
-    # to it rather than forcing an interactive prompt per server for what's
+    # first-ever start (see that project's own users.ts and its real
+    # multi-user account system - server.ts also supports creating
+    # additional lower-privilege "operator" accounts, see Config > Users in
+    # the browser UI), so these default to it rather than forcing an
+    # interactive prompt per server for what's
     # already public knowledge in the server's own source - a swarm tool
     # connecting to many servers at once would otherwise mean a login dialog
     # per server. Editable per-ServerInfo in case a real deployment renamed

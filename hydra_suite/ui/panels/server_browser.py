@@ -54,9 +54,8 @@ STATUS_DISPLAY_KEYS = {
     # Distinct from "error" on purpose - a WebSocket link that dropped and a
     # server that flat-out rejected the configured username/password are
     # different problems with different fixes (wait/retry vs. edit
-    # credentials), and showing both as the same generic "Error" is exactly
-    # how a bad password used to look identical to "still connecting" with
-    # no way to tell them apart from this table.
+    # credentials); collapsing both into the same generic "Error" would make
+    # them indistinguishable from this table alone.
     "login_failed": "STATUS_LOGIN_FAILED",
 }
 
@@ -172,9 +171,9 @@ class ServerBrowserPanel(QWidget):
 
         controller.connections_changed.connect(self._refresh_table)
         controller.active_connection_changed.connect(lambda _: self._refresh_table())
-        # Per-connection (ALL servers, not just whichever one is active) -
-        # see app.py's own comment on these two signals for why the
-        # active_* ones alone left every non-active row's status frozen.
+        # Per-connection (ALL servers, not just whichever one is active) - see
+        # app.py's own comment on these two signals for why this table needs
+        # them rather than the active_* ones every other panel uses.
         controller.connection_status_changed.connect(self._on_connection_status)
         controller.connection_login_changed.connect(self._on_connection_login)
 

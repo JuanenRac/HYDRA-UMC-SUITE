@@ -63,7 +63,7 @@ class OverviewPanel(QWidget):
         # GET /api/system/metrics, polled every 5s by HydraConnection - same
         # host CPU/memory/temperature readout HYDRA-UMC-STUDIO's own footer
         # (Dashboard.tsx SystemMetricsBar) and the Android app's Dashboard
-        # already show, added here 2026-08-19 for parity across all 3 clients.
+        # already show, kept here for parity across all 3 clients.
         metrics_box = QGroupBox(_("GROUP_SYSTEM_METRICS"))
         metrics_layout = QGridLayout(metrics_box)
         self._cpu_label = QLabel("-")

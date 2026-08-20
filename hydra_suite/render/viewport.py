@@ -155,11 +155,9 @@ class RobotViewport(QOpenGLWidget):
         self._gl_ready = False
         # Uniform locations resolved once, right after linking (see
         # initializeGL) - a name->location lookup never changes for the
-        # lifetime of a linked program, so re-resolving it by string every
-        # single draw call (this method used to call glGetUniformLocation
-        # up to 4x per link, every frame) was pure repeated overhead with no
-        # payoff; caching it here means every uniform set below is a plain
-        # dict lookup instead of a driver round-trip.
+        # lifetime of a linked program, so paintGL/_draw_model/_draw_generic
+        # below look one up from this dict instead of re-querying it from
+        # the driver by string on every single draw call, every frame.
         self._uniforms: dict[str, int] = {}
 
         # Real-mesh robots: one GLMeshBuffer set per mesh_dir, loaded lazily
@@ -189,13 +187,14 @@ class RobotViewport(QOpenGLWidget):
         # tree (any robot, any controller, a metrics-unrelated config field) -
         # not just a change to the one robot this viewport is currently
         # showing. Against a real multi-robot swarm streaming live telemetry,
-        # that meant this widget scheduled a full GL repaint on every single
-        # WebSocket push from the ENTIRE swarm, whether or not the robot on
-        # screen actually moved - the more robots active, the more this one
-        # viewport repainted for motion that had nothing to do with what it
-        # was displaying. Skipping the repaint when the pose is byte-identical
-        # to what's already on screen fixes that at the source instead of
-        # trying to throttle/debounce updates after the fact.
+        # every one of those pushes would otherwise schedule a full GL
+        # repaint here regardless of whether the robot on screen actually
+        # moved - the busier the rest of the swarm, the more this one
+        # viewport would repaint for motion that has nothing to do with what
+        # it's displaying. Comparing against the pose already on screen and
+        # skipping the repaint when it's unchanged fixes that at the source
+        # (the actual cost - GL draw calls - never happens) instead of
+        # throttling/debouncing calls that would still eventually fire.
         if joints == self._joints_deg:
             return
         self._joints_deg = dict(joints)

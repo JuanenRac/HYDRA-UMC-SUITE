@@ -160,6 +160,65 @@ STUDIO server by address.
 
 ---
 
+## 📦 Building a standalone executable
+
+Two paths, same result (`dist/HYDRA-UMC_SUITE.exe` on Windows,
+`dist/HYDRA-UMC_SUITE` on Linux) - no Python installation needed to run
+the output either way.
+
+**Automated (recommended):**
+
+```bash
+build_exe.bat    # Windows
+./build_exe.sh   # Linux
+```
+
+Each script creates/reuses `.venv`, installs `requirements.txt` +
+PyInstaller into it, cleans any previous `build/`/`dist/`, compiles with
+PyInstaller (bundling `assets/` and only the 4 Qt plugin subfolders this
+app actually uses - `platforms`/`styles`/`imageformats`/`iconengines`,
+not the whole PySide6 package, which is what keeps the result in the tens
+of MB instead of hundreds), and copies `README.md`/`LICENSE`/`docs/` and
+the editable `language/*.lng` files next to the executable rather than
+freezing them inside it.
+
+**Manual equivalent**, if you want to see/control every step yourself
+(same commands the scripts above run):
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate      # Linux
+
+pip install -r requirements.txt
+pip install pyinstaller
+
+python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" ^
+    --add-data "assets;assets" ^
+    --add-data "<PySide6 install dir>\plugins\platforms;PySide6\plugins\platforms" ^
+    --add-data "<PySide6 install dir>\plugins\styles;PySide6\plugins\styles" ^
+    --add-data "<PySide6 install dir>\plugins\imageformats;PySide6\plugins\imageformats" ^
+    --add-data "<PySide6 install dir>\plugins\iconengines;PySide6\plugins\iconengines" ^
+    --hidden-import qasync --hidden-import websockets ^
+    --hidden-import PySide6.QtOpenGL --hidden-import PySide6.QtOpenGLWidgets ^
+    --hidden-import OpenGL.platform.win32 ^
+    main.py
+
+# then copy README.md, LICENSE, docs/, and language/ next to dist/HYDRA-UMC_SUITE.exe
+```
+
+On Linux (see `build_exe.sh` for the exact, tested command), use `:`
+instead of `;` as the `--add-data` separator, drop the
+`OpenGL.platform.win32` hidden-import (Windows-only), drop `--windowed`,
+and note the plugin path nests one level deeper there
+(`<PySide6 dir>/Qt/plugins/platforms` vs. Windows's flat
+`<PySide6 dir>\plugins\platforms`) - a packaging detail of the wheel
+itself, not something either script chose. `HYDRA-UMC_SUITE.spec` at the
+repo root is PyInstaller's own generated spec file from the last build -
+safe to delete and regenerate, not hand-maintained.
+
+---
+
 ## 🔗 Related Projects
 
 This project is part of a larger robotics ecosystem by the same author (JuanenRac / Electro Hobby 3D). Worth knowing about, since a request might actually be about one of these rather than this repository:
@@ -167,11 +226,11 @@ This project is part of a larger robotics ecosystem by the same author (JuanenRa
 **HYDRA-UMC platform** — the multi-robot micro-factory cell
 - **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — the motherboard itself: Raspberry Pi CM5 host + dual-core STM32H745 real-time co-processor, orchestrating up to 8 distributed robot arms over CAN-OTA/SPI-OTA. Own hardware + firmware, GPL-3.0/CERN-OHL-S v2/CC BY-SA 4.0.
 - **[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)** — web-based control dashboard for HYDRA-UMC: multi-robot 3D visualization, kinematics/trajectory recording, CAN-OTA flashing and testing for the whole platform. React + Vite + Three.js.
-- **[HYDRA-UMC-ANDROID-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-ANDROID-CONTROL)** — Android control app for HYDRA-UMC (Wi-Fi transport speaks this same REMOTE_API.md contract). Real, working app.
-- **[HYDRA-UMC-IOS-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-IOS-CONTROL)** — iOS/iPadOS control app for HYDRA-UMC, same contract, built in Flutter. Real, working app.
-- **HYDRA-UMC-SUITE** *(this repository)* — this project.
-- **[HYDRA-UMC-EDITOR-URDF](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-URDF)** — planned: graphical URDF creator/editor for STUDIO's model catalog, reusing this project's own PySide6/Qt6 + dockable-workspace pattern. Not started yet.
-- **[HYDRA-UMC-DSI](https://github.com/JuanenRac/HYDRA-UMC-DSI)** — planned: native touch UI for HYDRA-UMC's own 7" DSI touchscreen (1280×800) on the Compute Module 5. Not started yet.
+- **[HYDRA-UMC-ANDROID-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-ANDROID-CONTROL)** — Android control app for HYDRA-UMC over Wi-Fi/Bluetooth. Real, working app - full remote-control feature set, JWT auth, encrypted credential storage.
+- **[HYDRA-UMC-IOS-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-IOS-CONTROL)** — iOS/iPadOS control app for HYDRA-UMC over Wi-Fi, built in Flutter (cross-platform, verifiable on Windows without a Mac; final `.ipa` packaging still needs Xcode). Real, working app - same feature set as the Android app.
+- **HYDRA-UMC-SUITE** *(this repository)* — desktop (Python/PySide6) swarm command center: multi-controller network discovery, live bidirectional sync, real 3D robot viewport, Photoshop-style dockable workspace. Real and working, not a placeholder.
+- **[HYDRA-UMC-EDITOR-URDF](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-URDF)** — desktop (Python/PySide6) graphical URDF creator/editor for this project's own model catalog: pulls source files from GitHub or a local folder, validates DOF feasibility, edits color/scale/kinematics with a live 3D preview, and pushes the finished result to a running STUDIO server. Real and working, not a placeholder.
+- **[HYDRA-UMC-DSI](https://github.com/JuanenRac/HYDRA-UMC-DSI)** — planned: a native touch UI for HYDRA-UMC's own 7" DSI touchscreen (1280×800) on the Compute Module 5, controlling this same server directly from the board. Not started yet.
 
 **URTC platform** — the tool head controller every HYDRA-UMC robot arm carries
 - **[URTC](https://github.com/JuanenRac/URTC)** — Universal Robot Tool Controller: STM32F303-based CAN bus tool head controller, 25 fully-implemented tool profiles, CAN-OTA firmware update.

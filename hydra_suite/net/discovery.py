@@ -85,22 +85,19 @@ def candidate_hosts_for(local_ip: str) -> list[str]:
 
 # Every field a real HYDRA-UMC STUDIO server's GET /api/hydra-info always
 # includes together (see server.ts's own /api/hydra-info route) - this is
-# what actually identifies the payload as coming from a real server, NOT
-# the "product" field. "product" is `realSettings(lastKnownSettings)?.serverName
-# || "HYDRA-UMC STUDIO"` server-side - the server's own user-editable
-# display name (Config > Identity in the browser UI), which literally
-# defaults to "HYDRA-UMC STUDIO" only until the owner renames it, something
-# that project's own UI actively invites. A prior version of this function
-# rejected any server whose "product" wasn't the exact literal string
-# "HYDRA-UMC STUDIO" - which meant a scan could only ever find a server
-# still sitting at its factory-default name, and silently stopped finding
-# any server the owner had ever renamed (reproduced live against a real
-# running server named "HYDRA-UMC TEST": /api/hydra-info answered 200 with
-# a fully valid payload, and the old check discarded it anyway). Manual
-# "Add server by address" never had this problem since it talks to
-# /api/settings instead, which carries no such field at all - that's why a
-# renamed server could always be reached by typing its IP in by hand but
-# never showed up from the scan.
+# what actually identifies the payload as coming from a real server. The
+# "product" field is deliberately NOT part of that check: server-side it's
+# `realSettings(lastKnownSettings)?.serverName || "HYDRA-UMC STUDIO"` - the
+# server's own user-editable display name (Config > Identity in the browser
+# UI), which reads "HYDRA-UMC STUDIO" only for a server that has never been
+# renamed. Matching it against that literal string would recognize a
+# factory-named server and silently fail to recognize any server the owner
+# has renamed (a normal, UI-invited customization) even though it answers
+# with a perfectly valid payload - identifying by the payload's stable
+# structural shape instead means a renamed server is found exactly like an
+# un-renamed one. Manual "Add server by address" was never affected by this
+# distinction, since it talks to /api/settings instead, which carries no
+# "product"-like field at all.
 _HYDRA_INFO_REQUIRED_KEYS = ("remoteApiVersion", "appVersion", "hostname", "controllerCount", "robotCount")
 
 
