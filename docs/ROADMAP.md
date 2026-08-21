@@ -29,17 +29,27 @@ just moves where it breaks.
 
 ## ✅ Real and verified end-to-end
 
-- **Network discovery** (`hydra_suite/net/discovery.py`) - concurrent
-  subnet scan hitting `GET /api/hydra-info` on every candidate host,
-  tested against a real running HYDRA-UMC STUDIO server. Identifies a real
-  server by the *shape* of that endpoint's JSON payload (`remoteApiVersion`,
-  `appVersion`, `hostname`, `controllerCount`, `robotCount` all present
-  together), not by matching its `product` field against a fixed string -
-  that field is actually the server's own user-editable display name
-  (Config > Identity in the browser UI, defaults to "HYDRA-UMC STUDIO"
-  only until renamed), so a literal-string check would stop recognizing
-  any server the owner had ever renamed while still finding it fine by
-  typing its IP in manually (which never checks that field at all).
+- **Network discovery** (`hydra_suite/net/discovery.py`) - two independent
+  paths running CONCURRENTLY, deduplicated by (host, port): a brute-force
+  concurrent subnet scan hitting `GET /api/hydra-info` on every candidate
+  host (the guaranteed fallback - works even where multicast doesn't), and
+  real mDNS/Bonjour discovery (`discover_mdns()`, via the `zeroconf`
+  package) against the actual `_hydra._tcp` service `server.ts` publishes
+  (`bonjour-service`, `setupDiscovery()`) - near-instant when multicast
+  delivery works, same service name HYDRA-UMC-IOS-CONTROL's own
+  `discovery.dart` already queries. Every mDNS hit is still verified with
+  the same real `GET /api/hydra-info` probe the subnet scan uses before
+  being trusted - resolving a name is not the same as confirming a real
+  server answers there. Both paths tested against a real running
+  HYDRA-UMC STUDIO server. Identifies a real server by the *shape* of that
+  endpoint's JSON payload (`remoteApiVersion`, `appVersion`, `hostname`,
+  `controllerCount`, `robotCount` all present together), not by matching
+  its `product` field against a fixed string - that field is actually the
+  server's own user-editable display name (Config > Identity in the
+  browser UI, defaults to "HYDRA-UMC STUDIO" only until renamed), so a
+  literal-string check would stop recognizing any server the owner had
+  ever renamed while still finding it fine by typing its IP in manually
+  (which never checks that field at all).
 - **Live connection** (`hydra_suite/net/client.py`) - REST read/write +
   WebSocket live sync, implementing
   [`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
@@ -103,11 +113,6 @@ just moves where it breaks.
   files (accessible remotely once a `/api/works` style endpoint exists -
   today's REMOTE_API.md doesn't cover file-level access, only the full
   settings blob).
-- **mDNS/Bonjour auto-discovery** - `server.ts` publishes a real
-  `_hydra._tcp` Bonjour service (via `bonjour-service`) server-side, so this
-  is genuinely just not implemented on this side yet (`discovery.py` only
-  does subnet scanning) - a real, scoped follow-up (e.g. the `zeroconf`
-  package), not blocked by anything server-side.
 - **VPN-tunnel-specific UI** - deliberately NOT built as a separate
   feature. A VPN tunnel just makes a remote host reachable as if it were
   local - the existing "Add server by address" manual entry in the

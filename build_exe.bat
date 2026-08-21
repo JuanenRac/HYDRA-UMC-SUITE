@@ -10,12 +10,15 @@ REM Output: dist\HYDRA-UMC_SUITE.exe (no Python installation needed to run it)
 
 echo.
 echo  ===============================================================
-echo   H Y D R A - U M C   S U I T E  -  Windows build
+echo   HYDRA-UMC SUITE
 echo  ===============================================================
-echo   Multi-Controller Swarm Command Center
-echo   Author:  JuanenRac (Electro Hobby 3D)
-echo   E-mail:  electrohobby3d@gmail.com
-echo   License: GPL-3.0 (see LICENSE) / BSD-3-Clause for assets\meshes\ur5e\
+echo   This script builds a standalone Windows .exe
+echo   (dist\HYDRA-UMC_SUITE.exe) - Multi-Controller Swarm Command
+echo   Center for the HYDRA-UMC platform. No Python installation is
+echo   needed to run the result.
+echo   Copyright (C) 2026 JuanenRac (Electro Hobby 3D) ^<electrohobby3d@gmail.com^>
+echo   GPL-3.0 - see LICENSE (assets\meshes\ under their own per-robot
+echo   licenses - see each folder's own ATTRIBUTION.txt)
 echo  ===============================================================
 echo.
 
@@ -43,14 +46,30 @@ call .venv\Scripts\activate.bat
 echo       Done.
 echo.
 
-echo [2/5] Installing Python dependencies...
+echo [2/6] Installing Python dependencies...
 python -m pip install --upgrade pip >nul
 python -m pip install -r requirements.txt
 python -m pip install pyinstaller
 echo       Done.
 echo.
 
-echo [3/5] Cleaning previous build...
+echo [3/6] Bumping version number...
+REM Ecosystem-wide versioning policy: the version in hydra_suite/__init__.py
+REM goes up on every REAL build (this script), not on every plain run of
+REM main.py - base-10 "odometer" rule (patch+1; past 9 it resets to 0 and
+REM carries into minor, e.g. 0.1.9 -> 0.2.0). See bump_version.py itself
+REM for the full rule. Runs BEFORE PyInstaller so the compiled .exe always
+REM carries the new, not-yet-shipped version number.
+python bump_version.py
+if errorlevel 1 (
+    echo       ERROR: bump_version.py failed - see the output above.
+    pause
+    exit /b 1
+)
+echo       Done.
+echo.
+
+echo [4/6] Cleaning previous build...
 REM Clean slate before compiling: build\ holds PyInstaller's intermediate
 REM artifacts (its own bytecode/dependency cache), and dist\ holds the
 REM previous output - removing both first means nothing stale from an
@@ -62,13 +81,14 @@ if exist dist (
     if exist dist (
         echo       ERROR: couldn't remove dist\ - is HYDRA-UMC_SUITE.exe currently running?
         echo       Close it first, then run this script again.
+        pause
         exit /b 1
     )
 )
 echo       Done.
 echo.
 
-echo [4/5] Compiling HYDRA-UMC_SUITE.exe with PyInstaller...
+echo [5/6] Compiling HYDRA-UMC_SUITE.exe with PyInstaller...
 REM --add-data uses ";" as the source/destination separator on Windows -
 REM Linux/Mac PyInstaller uses ":" instead (see build_exe.sh). Bundles
 REM assets\ (the industrial_dark.qss theme + the real STL mesh sets +
@@ -114,6 +134,10 @@ python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" 
     --add-data "%PYSIDE_DIR%\plugins\iconengines;PySide6\plugins\iconengines" ^
     --hidden-import qasync ^
     --hidden-import websockets ^
+    --hidden-import zeroconf ^
+    --hidden-import zeroconf.asyncio ^
+    --hidden-import zeroconf._utils.ipaddress ^
+    --hidden-import ifaddr ^
     --hidden-import PySide6.QtOpenGL ^
     --hidden-import PySide6.QtOpenGLWidgets ^
     --hidden-import OpenGL.platform.win32 ^
@@ -125,12 +149,13 @@ REM Not bundled/installed by this script (a separate native tool, not a
 REM pip package) - install it once and re-run this script to pick it up.
 if not exist dist\HYDRA-UMC_SUITE.exe (
     echo       ERROR: PyInstaller did not produce dist\HYDRA-UMC_SUITE.exe - see the output above.
+    pause
     exit /b 1
 )
 echo       Done.
 echo.
 
-echo [5/5] Copying files that must sit next to the .exe, not inside it...
+echo [6/6] Copying files that must sit next to the .exe, not inside it...
 REM README.md, LICENSE, docs\ROADMAP.md: read as reference documentation,
 REM not by the app itself at runtime, but worth shipping alongside the
 REM .exe the same way URTC-FLASHER ships its own README/LICENSE - a

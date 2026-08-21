@@ -236,6 +236,23 @@ sicher zu löschen und neu zu erzeugen, nicht von Hand gepflegt.
 
 ---
 
+## 🔢 Versionierung
+
+`hydra_suite/__version__` (angezeigt unter **Hilfe > Über**) folgt einem
+Kilometerzähler-artigen `MAJOR.MINOR.PATCH`-Schema mit einer
+Übertragsregel zur Basis 10: Patch erhöht sich bei jedem echten Build um
+1; sobald er 9 überschreiten würde, wird er auf 0 zurückgesetzt und Minor
+erhöht sich stattdessen um 1 (z. B. `0.1.9` -> `0.2.0`). „Ein echter
+Build" bedeutet ein Lauf von `build_exe.bat`/`build_exe.sh` - **nicht**
+jeder einfache Aufruf von `python main.py`. Die eigentliche Erhöhung
+übernimmt automatisch `bump_version.py` (von beiden Build-Skripten vor dem
+PyInstaller-Lauf aufgerufen), sodass eine gepackte `.exe`/Binärdatei immer
+eine Versionsnummer trägt, die strikt neuer ist als die zuletzt tatsächlich
+ausgelieferte. Siehe [`CHANGELOG.md`](CHANGELOG.md) für die Details dazu,
+was sich an welcher Stelle geändert hat.
+
+---
+
 ## 🔗 Verwandte Projekte
 
 Dieses Projekt ist Teil eines größeren Robotik-Ökosystems desselben Autors (JuanenRac / Electro Hobby 3D). Gut zu wissen, da eine Anfrage tatsächlich eines dieser Projekte betreffen könnte statt dieses Repository:

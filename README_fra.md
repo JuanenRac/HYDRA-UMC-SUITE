@@ -239,6 +239,23 @@ build - sûr à supprimer et régénérer, non maintenu à la main.
 
 ---
 
+## 🔢 Gestion des versions
+
+`hydra_suite/__version__` (affiché dans **Aide > À propos**) suit un schéma
+`MAJEUR.MINEUR.CORRECTIF` de type compteur kilométrique avec une règle de
+retenue en base 10 : le correctif augmente de 1 à chaque build réel ; dès
+qu'il dépasserait 9, il revient à 0 et le mineur augmente de 1 à sa place
+(ex. `0.1.9` -> `0.2.0`). « Un build réel » signifie une exécution de
+`build_exe.bat`/`build_exe.sh` - **pas** une simple exécution de
+`python main.py`. L'incrémentation elle-même est gérée automatiquement par
+`bump_version.py` (appelé par les deux scripts de build, avant l'exécution
+de PyInstaller), de sorte qu'un `.exe`/binaire empaqueté porte toujours un
+numéro de version strictement plus récent que le dernier réellement
+distribué. Voir [`CHANGELOG.md`](CHANGELOG.md) pour le détail de ce qui a
+changé à chaque étape.
+
+---
+
 ## 🔗 Projets liés
 
 Ce projet fait partie d'un écosystème robotique plus large du même auteur (JuanenRac / Electro Hobby 3D). Utile à connaître, car une demande pourrait en réalité concerner l'un de ceux-ci plutôt que ce dépôt :

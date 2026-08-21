@@ -20,6 +20,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QActionGroup
 from PySide6.QtWidgets import QDockWidget, QMainWindow, QMessageBox
 
+from hydra_suite import __version__
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
 from hydra_suite.ui.panels.cameras_panel import CamerasPanel
@@ -144,7 +145,7 @@ class MainWindow(QMainWindow):
         )
 
     def _show_about(self) -> None:
-        QMessageBox.information(self, _("TITLE_ABOUT"), _("MSG_ABOUT_BODY"))
+        QMessageBox.information(self, _("TITLE_ABOUT"), _("MSG_ABOUT_BODY", version=__version__))
 
     def _on_language_change(self, code: str) -> None:
         if save_config({"language": code}):

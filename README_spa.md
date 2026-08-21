@@ -233,6 +233,22 @@ la última compilación - seguro de borrar y regenerar, no mantenido a mano.
 
 ---
 
+## 🔢 Versionado
+
+`hydra_suite/__version__` (mostrado en **Ayuda > Acerca de**) sigue un
+esquema `MAYOR.MENOR.PARCHE` tipo cuentakilómetros con regla de acarreo en
+base 10: el parche sube 1 en cada compilación real; en cuanto pasaría de 9,
+se resetea a 0 y el menor sube 1 en su lugar (ej. `0.1.9` -> `0.2.0`). "Una
+compilación real" significa una ejecución de `build_exe.bat`/`build_exe.sh`
+- **no** cada simple ejecución de `python main.py`. El propio incremento lo
+gestiona automáticamente `bump_version.py` (invocado por ambos scripts de
+compilación, antes de que corra PyInstaller), de forma que un `.exe`/
+binario empaquetado siempre lleva una versión estrictamente más nueva que
+la última realmente distribuida. Ver [`CHANGELOG.md`](CHANGELOG.md) para
+el detalle de qué cambió en cada punto.
+
+---
+
 ## 🔗 Proyectos Relacionados
 
 Este proyecto forma parte de un ecosistema de robótica más amplio del mismo autor (JuanenRac / Electro Hobby 3D). Vale la pena conocerlos, ya que una petición podría en realidad ser sobre uno de estos en vez de sobre este repositorio:

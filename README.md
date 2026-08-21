@@ -221,6 +221,21 @@ safe to delete and regenerate, not hand-maintained.
 
 ---
 
+## 🔢 Versioning
+
+`hydra_suite/__version__` (shown in **Help > About**) follows an
+odometer-style `MAJOR.MINOR.PATCH` scheme with a base-10 carry rule: patch
+goes up by 1 on every real build; once it would pass 9, it resets to 0 and
+minor goes up by 1 instead (e.g. `0.1.9` -> `0.2.0`). "A real build" means
+a run of `build_exe.bat`/`build_exe.sh` - **not** every plain
+`python main.py` run. The bump itself is handled automatically by
+`bump_version.py` (called by both build scripts, before PyInstaller runs)
+so a packaged `.exe`/binary always carries a version number strictly newer
+than the last one actually shipped. See [`CHANGELOG.md`](CHANGELOG.md) for
+what changed at each point.
+
+---
+
 ## 🔗 Related Projects
 
 This project is part of a larger robotics ecosystem by the same author (JuanenRac / Electro Hobby 3D). Worth knowing about, since a request might actually be about one of these rather than this repository:

@@ -3,12 +3,28 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Subnet scanner - hits GET /api/hydra-info (docs/REMOTE_API.md section 1)
-# on every candidate IP in a /24 range concurrently, keeps whichever ones
-# actually answer with a real HYDRA-UMC STUDIO payload. No mDNS/Bonjour
-# service exists on the server side yet (REMOTE_API.md's own "Future
-# work" note) - a raw concurrent scan is the real, working option today,
-# not a placeholder standing in for it.
+# Two independent discovery paths, merged by discover_servers() at the
+# bottom of this file into the one stream ui/panels/server_browser.py's
+# scan button actually consumes:
+#   - scan_subnets(): brute-force GET /api/hydra-info (docs/REMOTE_API.md
+#     section 1) against every candidate IP in a /24 range concurrently -
+#     slower, but needs no multicast delivery at all, so it stays the
+#     guaranteed fallback (a locked-down network, a VLAN that blocks
+#     multicast, a Windows Firewall profile that drops inbound UDP 5353,
+#     etc. all still work here).
+#   - discover_mdns(): real mDNS/Bonjour, querying the "_hydra._tcp"
+#     service HYDRA-UMC STUDIO's own server.ts actually publishes (see
+#     that project's setupDiscovery(): `bonjour.publish({ name:
+#     serverName, type: 'hydra', port: 3000 })`, via the `bonjour-service`
+#     npm package) - near-instant on a network that delivers the
+#     multicast replies. This is NOT a placeholder standing in for a
+#     server-side feature that doesn't exist yet - server.ts has
+#     published this since before this file was first written; this
+#     client simply never queried for it. Same service name
+#     HYDRA-UMC-IOS-CONTROL's own net/discovery.dart already queries
+#     (`_hydra._tcp.local`, see that file's header comment) - SUITE is
+#     not inventing a new convention here, just adopting the existing
+#     one.
 # =============================================================================
 from __future__ import annotations
 
@@ -18,6 +34,8 @@ import socket
 from collections.abc import AsyncIterator
 
 import httpx
+from zeroconf import IPVersion, ServiceStateChange
+from zeroconf.asyncio import AsyncServiceBrowser, AsyncServiceInfo, AsyncZeroconf
 
 from hydra_suite.models import ServerInfo
 from hydra_suite.net.client import HYDRA_CLIENT_HEADERS
@@ -25,6 +43,15 @@ from hydra_suite.net.client import HYDRA_CLIENT_HEADERS
 DEFAULT_PORT = 3000
 SCAN_TIMEOUT_S = 0.6
 SCAN_CONCURRENCY = 64
+
+# server.ts's `bonjour.publish({ type: 'hydra', ... })` becomes
+# "_hydra._tcp.local." on the wire per standard DNS-SD naming (the
+# library adds the underscores/".local."/protocol suffix around the bare
+# `type` string) - this has to match that exactly or the browser below
+# silently discovers nothing.
+MDNS_SERVICE_TYPE = "_hydra._tcp.local."
+MDNS_TIMEOUT_S = 4.0
+MDNS_RESOLVE_TIMEOUT_MS = 3000
 
 
 def local_ipv4_addresses() -> list[str]:
@@ -177,6 +204,135 @@ async def scan_subnets(hosts: list[str] | None = None, port: int = DEFAULT_PORT)
             result = await queue.get()
             if result is not None:
                 yield result
+    finally:
+        for t in tasks:
+            t.cancel()
+
+
+async def discover_mdns(timeout: float = MDNS_TIMEOUT_S) -> AsyncIterator[ServerInfo]:
+    """Real mDNS/Bonjour discovery against the "_hydra._tcp" service
+    server.ts actually publishes - see this file's header comment for the
+    exact server.ts call this queries for and why MDNS_SERVICE_TYPE has
+    to match it exactly.
+
+    Every service instance the browser reports is still verified with a
+    real GET /api/hydra-info probe (probe_host, the same one scan_subnets
+    uses) before being yielded - a name showing up on mDNS is only ever
+    treated as "worth probing", never assumed to be a live, real HYDRA-UMC
+    STUDIO server just because Bonjour answered (mDNS records can be
+    stale, or - once other quiet devices exist on the LAN - could
+    coincidentally reuse "_hydra._tcp.local." for something unrelated).
+    This mirrors exactly how HYDRA-UMC-IOS-CONTROL's own discoverMdns()
+    resolves-then-verifies with its own GET /api/hydra-info call rather
+    than trusting the mDNS records alone.
+
+    Best-effort like the Dart implementation too: no local multicast
+    socket (locked-down network profile, firewall dropping inbound UDP
+    5353, a VPN-only adapter with no real multicast path), zeroconf
+    raising during setup, or a timeout with zero replies all just end the
+    generator early with whatever (possibly nothing) was already found -
+    discover_servers() below keeps scan_subnets() running independently
+    either way, so a network where mDNS doesn't work still gets found via
+    the brute-force scan.
+    """
+    seen: set[tuple[str, int]] = set()
+    found_names: asyncio.Queue[str] = asyncio.Queue()
+
+    def on_service_state_change(zeroconf, service_type, name, state_change, **_kwargs) -> None:
+        if state_change in (ServiceStateChange.Added, ServiceStateChange.Updated):
+            found_names.put_nowait(name)
+
+    try:
+        aiozc = AsyncZeroconf()
+    except Exception:
+        # No usable multicast socket on this machine/network - see
+        # docstring above, this is an expected outcome, not a bug.
+        return
+
+    try:
+        browser = AsyncServiceBrowser(aiozc.zeroconf, MDNS_SERVICE_TYPE, handlers=[on_service_state_change])
+        try:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                loop = asyncio.get_running_loop()
+                deadline = loop.time() + timeout
+                while True:
+                    remaining = deadline - loop.time()
+                    if remaining <= 0:
+                        break
+                    try:
+                        name = await asyncio.wait_for(found_names.get(), timeout=remaining)
+                    except (asyncio.TimeoutError, TimeoutError):
+                        break
+                    info = AsyncServiceInfo(MDNS_SERVICE_TYPE, name)
+                    try:
+                        resolved = await info.async_request(aiozc.zeroconf, MDNS_RESOLVE_TIMEOUT_MS)
+                    except Exception:
+                        continue
+                    if not resolved or info.port is None:
+                        continue
+                    for host in info.parsed_addresses(IPVersion.V4Only):
+                        key = (host, info.port)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        result = await probe_host(client, host, info.port)
+                        if result is not None:
+                            yield result
+        finally:
+            await browser.async_cancel()
+    finally:
+        await aiozc.async_close()
+
+
+async def discover_servers(
+    hosts: list[str] | None = None, port: int = DEFAULT_PORT, mdns_timeout: float = MDNS_TIMEOUT_S
+) -> AsyncIterator[ServerInfo]:
+    """What ui/panels/server_browser.py's scan button actually calls:
+    scan_subnets() (the guaranteed brute-force fallback) and
+    discover_mdns() (near-instant when multicast delivery works) running
+    CONCURRENTLY - not one after the other, and mDNS is additive here,
+    not a replacement for the scan - see this file's header comment and
+    HYDRA-UMC-IOS-CONTROL's own login_screen.dart, which runs its two
+    equivalent paths the same way for the same reason.
+
+    Deduplicates by (host, port) across BOTH sources - the same server
+    quite plausibly answers to both at once (the most common real case:
+    a same-machine dev server found via 127.0.0.1 through the subnet
+    scan AND via its own LAN mDNS announcement). scan_subnets()'s own
+    internal host-list dedup and discover_mdns()'s own per-instance
+    `seen` set only prevent re-probing the SAME host from within ONE
+    source; this is the one place that also prevents the SAME server
+    from being yielded twice when both sources separately find it.
+    add_server() in app.py additionally dedupes by "host:port" connection
+    id, so even without this a duplicate would never have reached the
+    UI as a second row - but yielding it twice here would still mean
+    probing/verifying it twice for nothing, and would double-count
+    _run_scan()'s own "N found" progress label in server_browser.py.
+    """
+    seen: set[tuple[str, int]] = set()
+    queue: asyncio.Queue[ServerInfo | None] = asyncio.Queue()
+
+    async def pump(gen: AsyncIterator[ServerInfo]) -> None:
+        async for info in gen:
+            await queue.put(info)
+        await queue.put(None)
+
+    tasks = [
+        asyncio.create_task(pump(scan_subnets(hosts, port))),
+        asyncio.create_task(pump(discover_mdns(mdns_timeout))),
+    ]
+    pending = len(tasks)
+    try:
+        while pending:
+            item = await queue.get()
+            if item is None:
+                pending -= 1
+                continue
+            key = (item.host, item.port)
+            if key in seen:
+                continue
+            seen.add(key)
+            yield item
     finally:
         for t in tasks:
             t.cancel()

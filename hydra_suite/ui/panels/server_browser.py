@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import ServerInfo
-from hydra_suite.net.discovery import DEFAULT_PORT, scan_subnets
+from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 
 STATUS_OBJECT_NAMES = {
     "connected": "statusOnline",
@@ -188,9 +188,14 @@ class ServerBrowserPanel(QWidget):
         asyncio.ensure_future(self._run_scan())
 
     async def _run_scan(self) -> None:
+        # discover_servers() runs the brute-force subnet scan and real
+        # mDNS/Bonjour discovery CONCURRENTLY (see net/discovery.py's own
+        # header comment) and dedupes between them - this single loop
+        # already gets results from whichever of the two answers first,
+        # no separate mDNS button/path needed.
         found = 0
         try:
-            async for info in scan_subnets():
+            async for info in discover_servers():
                 found += 1
                 self._controller.add_server(info)
                 self._scan_status.setText(_("STATUS_SCANNING_PROGRESS", found=found))

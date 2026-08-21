@@ -17,14 +17,29 @@
 # somewhere on PATH.
 set -euo pipefail
 
+# The window/terminal this script runs in must NOT close on its own once
+# the script ends - the user needs to be able to read the full result,
+# including any error message, before it goes away. An EXIT trap (rather
+# than only a "read" at the very bottom of the file) is what makes this
+# fire on EVERY way the script can end: a normal successful run falling
+# off the end, an explicit `exit 1` below, AND a command failing under
+# `set -e` above (e.g. a pip/PyInstaller failure that isn't behind one of
+# this script's own explicit checks) - bash always runs the EXIT trap
+# right before the shell actually exits, regardless of which of those 3
+# triggered it.
+trap 'echo; read -r -p "Press Enter to close..." _ || true' EXIT
+
 echo
 echo " ==============================================================="
-echo "  H Y D R A - U M C   S U I T E  -  Linux build"
+echo "  HYDRA-UMC SUITE"
 echo " ==============================================================="
-echo "  Multi-Controller Swarm Command Center"
-echo "  Author:  JuanenRac (Electro Hobby 3D)"
-echo "  E-mail:  electrohobby3d@gmail.com"
-echo "  License: GPL-3.0 (see LICENSE) / BSD-3-Clause for assets/meshes/ur5e/"
+echo "  This script builds a standalone Linux binary"
+echo "  (dist/HYDRA-UMC_SUITE) - Multi-Controller Swarm Command Center"
+echo "  for the HYDRA-UMC platform. No Python installation is needed to"
+echo "  run the result."
+echo "  Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>"
+echo "  GPL-3.0 - see LICENSE (assets/meshes/ under their own per-robot"
+echo "  licenses - see each folder's own ATTRIBUTION.txt)"
 echo " ==============================================================="
 echo
 
@@ -56,14 +71,26 @@ source .venv/bin/activate
 echo "      Done."
 echo
 
-echo "[3/6] Installing Python dependencies..."
+echo "[3/7] Installing Python dependencies..."
 python3 -m pip install --upgrade pip >/dev/null
 python3 -m pip install -r requirements.txt
 python3 -m pip install pyinstaller
 echo "      Done."
 echo
 
-echo "[4/6] Cleaning previous build..."
+echo "[4/7] Bumping version number..."
+# Ecosystem-wide versioning policy: the version in hydra_suite/__init__.py
+# goes up on every REAL build (this script), not on every plain run of
+# main.py - base-10 "odometer" rule (patch+1; past 9 it resets to 0 and
+# carries into minor, e.g. 0.1.9 -> 0.2.0). See bump_version.py itself for
+# the full rule. Runs BEFORE PyInstaller so the compiled binary always
+# carries the new, not-yet-shipped version number. `set -euo pipefail`
+# above already aborts this script if bump_version.py exits non-zero.
+python3 bump_version.py
+echo "      Done."
+echo
+
+echo "[5/7] Cleaning previous build..."
 # Clean slate before compiling: build/ holds PyInstaller's intermediate
 # artifacts (its own bytecode/dependency cache), and dist/ holds the
 # previous output - removing both first means nothing stale from an
@@ -73,7 +100,7 @@ rm -rf build dist
 echo "      Done."
 echo
 
-echo "[5/6] Compiling HYDRA-UMC_SUITE with PyInstaller..."
+echo "[6/7] Compiling HYDRA-UMC_SUITE with PyInstaller..."
 # assets/ (theme QSS + real STL mesh sets) bundled the same way as the
 # Windows build - hydra_suite/ui/theme.py and
 # hydra_suite/render/viewport.py both locate it via
@@ -116,6 +143,10 @@ python3 -m PyInstaller --onefile --noconfirm --name "HYDRA-UMC_SUITE" \
     --add-data "$PYSIDE_DIR/Qt/plugins/iconengines:PySide6/Qt/plugins/iconengines" \
     --hidden-import qasync \
     --hidden-import websockets \
+    --hidden-import zeroconf \
+    --hidden-import zeroconf.asyncio \
+    --hidden-import zeroconf._utils.ipaddress \
+    --hidden-import ifaddr \
     --hidden-import PySide6.QtOpenGL \
     --hidden-import PySide6.QtOpenGLWidgets \
     main.py
@@ -132,7 +163,7 @@ fi
 echo "      Done."
 echo
 
-echo "[6/6] Copying files that must sit next to the binary, not inside it..."
+echo "[7/7] Copying files that must sit next to the binary, not inside it..."
 # README.md, LICENSE, docs/ROADMAP.md: reference documentation, not read
 # by the app itself at runtime, but worth shipping alongside the binary
 # the same way URTC-FLASHER ships its own README/LICENSE - a distributed
