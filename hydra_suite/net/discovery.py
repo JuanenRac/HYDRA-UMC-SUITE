@@ -149,12 +149,22 @@ async def scan_subnets(hosts: list[str] | None = None, port: int = DEFAULT_PORT)
     if not hosts:
         return
 
+    # Two local IPv4 addresses can land in the same /24 (a VPN/virtual
+    # adapter sharing the real LAN's range is a normal case, not exotic -
+    # local_ipv4_addresses() above deliberately returns every adapter's
+    # address, not just one), which made candidate_hosts_for() get called
+    # once per local IP and append practically the same host range twice -
+    # every host in the overlap got scanned in parallel by two separate
+    # worker tasks for no benefit (add_server() in app.py already dedupes
+    # by host:port so no duplicate rows ever reached the UI, but the
+    # wasted connections were real). dict.fromkeys() dedupes while
+    # preserving scan order (127.0.0.1 first, as intended above).
+    hosts = list(dict.fromkeys(hosts))
+
     semaphore = asyncio.Semaphore(SCAN_CONCURRENCY)
     queue: asyncio.Queue[ServerInfo | None] = asyncio.Queue()
-    remaining = len(hosts)
 
     async def worker(host: str) -> None:
-        nonlocal remaining
         async with semaphore:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 result = await probe_host(client, host, port)

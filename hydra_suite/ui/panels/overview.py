@@ -127,11 +127,26 @@ class OverviewPanel(QWidget):
         self._robot_count_label.setText(str(len(robots)))
         self._online_count_label.setText(f"{online} / {len(robots)}")
 
-        self._table.setRowCount(len(robots))
+        if self._table.rowCount() != len(robots):
+            self._table.setRowCount(len(robots))
         for row, robot in enumerate(robots):
-            self._table.setItem(row, 0, QTableWidgetItem(robot.id))
-            self._table.setItem(row, 1, QTableWidgetItem(robot.model))
-            self._table.setItem(row, 2, QTableWidgetItem(robot.role))
-            status_item = QTableWidgetItem(_("STATUS_ONLINE") if robot.online else _("STATUS_OFFLINE"))
-            self._table.setItem(row, 3, status_item)
-            self._table.setItem(row, 4, QTableWidgetItem(f"{robot.speed:.0f}% / {robot.acceleration:.0f}%"))
+            self._set_cell(row, 0, robot.id)
+            self._set_cell(row, 1, robot.model)
+            self._set_cell(row, 2, robot.role)
+            self._set_cell(row, 3, _("STATUS_ONLINE") if robot.online else _("STATUS_OFFLINE"))
+            self._set_cell(row, 4, f"{robot.speed:.0f}% / {robot.acceleration:.0f}%")
+
+    def _set_cell(self, row: int, col: int, text: str) -> None:
+        # active_state_changed fires on every swarm state tick (any robot,
+        # any controller, any unrelated field), not only when this specific
+        # cell's value changed - same pattern that caused the 3D viewport
+        # repaint bug fixed in a previous session. Reusing the existing
+        # QTableWidgetItem and only touching it when the text actually
+        # differs avoids rebuilding all N*5 cells (Qt model resets/layout
+        # work included) on every message from a live swarm, without
+        # changing what ends up on screen.
+        item = self._table.item(row, col)
+        if item is None:
+            self._table.setItem(row, col, QTableWidgetItem(text))
+        elif item.text() != text:
+            item.setText(text)
