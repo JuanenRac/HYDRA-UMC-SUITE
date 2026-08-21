@@ -41,7 +41,18 @@ from hydra_suite.models import ServerInfo
 from hydra_suite.net.client import HYDRA_CLIENT_HEADERS
 
 DEFAULT_PORT = 3000
-SCAN_TIMEOUT_S = 0.6
+# Per-host GET /api/hydra-info timeout during a subnet scan. 0.6s is enough
+# on wired Ethernet but too tight on real Wi-Fi - a HYDRA-UMC on a busy 2.4GHz
+# link or behind an extra AP hop can take noticeably longer to answer a cold
+# TCP connect + HTTP round-trip than that, silently dropping it from the scan
+# results even though "Add server by address" against the exact same host
+# succeeds immediately after (a longer per-connection timeout, not a slower
+# server). 1.5s matches HYDRA-UMC-ANDROID-CONTROL's own network scan timeout
+# (see that project's discovery code) rather than inventing a new number -
+# SCAN_CONCURRENCY already bounds how many probes run at once, so a slower
+# per-host timeout costs at most one extra semaphore cycle in the worst case
+# of an unresponsive host, not a proportionally slower whole-subnet scan.
+SCAN_TIMEOUT_S = 1.5
 SCAN_CONCURRENCY = 64
 
 # server.ts's `bonjour.publish({ type: 'hydra', ... })` becomes

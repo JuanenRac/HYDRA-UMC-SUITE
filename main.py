@@ -31,6 +31,19 @@ from hydra_suite.ui.theme import apply_theme
 
 
 def main() -> int:
+    # Qt6 auto-scales by physical DPI by default (no AA_EnableHighDpiScaling
+    # flag needed anymore, unlike Qt5), but its DEFAULT rounding policy snaps
+    # a fractional OS scale factor (125%/150%/175% - Windows's own recommended
+    # setting for most 27"-32" 4K monitors, not just 100%/200%) to the nearest
+    # whole integer before applying it. That mismatch between the requested
+    # and applied factor is exactly what makes fixed-pixel controls (the jog
+    # knobs/sliders in ui/panels/robot_control.py, sized in logical px) read
+    # as too-small-or-too-large and slightly blurry on a real 4K display set
+    # to one of those in-between scales, which is the common case, not the
+    # exception. PassThrough applies the OS's exact factor instead of
+    # rounding it - must be set before QApplication() exists, Qt reads it
+    # once at construction time.
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
     app = QApplication(sys.argv)
     app.setApplicationName("HYDRA-UMC SUITE")
     app.setOrganizationName("Electro Hobby 3D")

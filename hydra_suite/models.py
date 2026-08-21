@@ -18,8 +18,12 @@
 # =============================================================================
 from __future__ import annotations
 
+import logging
+import math
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 # The 6-axis joint names every robot model in this ecosystem uses -
@@ -56,12 +60,47 @@ class RobotView:
 
     @property
     def joints(self) -> dict[str, float]:
+        # A NaN/Infinity value can reach this dict two ways this app doesn't
+        # control: a server payload authored by something other than SUITE
+        # itself (json.loads() happily parses the literal tokens "NaN"/
+        # "Infinity"/"-Infinity" into float('nan')/inf by default - that's
+        # valid Python-flavored JSON, not a parse error), or a value already
+        # sitting in a swarm this app connected to mid-corruption. Silently
+        # forwarding it further downstream is the real bug this guards
+        # against: RotaryKnob.setValue() happens to clamp NaN/Inf away via
+        # Python's own min()/max() NaN semantics, but JointRow.set_value()'s
+        # own `int(value * SLIDER_SCALE)` does NOT - int() raises ValueError
+        # on NaN and OverflowError on +/-Infinity, which crashes the whole
+        # _refresh_controls() call (and, on the "Jog to point" path, would
+        # also make trajectory_panel.py's own _on_record() capture the
+        # invalid value and hand it right back to set_joint() below).
+        # Substituting 0.0 here keeps the UI alive and stops a bad value
+        # already in the tree from being echoed straight back to the server
+        # on the very next push_active_state() with a clean bill of health.
         j = self.raw.get("joints") or {}
-        return {name: float(j.get(name, 0.0)) for name in JOINT_NAMES}
+        result: dict[str, float] = {}
+        for name in JOINT_NAMES:
+            value = float(j.get(name, 0.0))
+            if not math.isfinite(value):
+                logger.warning("RobotView %s: non-finite joint %s=%r from server, substituting 0.0", self.id, name, value)
+                value = 0.0
+            result[name] = value
+        return result
 
     def set_joint(self, name: str, value: float) -> None:
         if name not in JOINT_NAMES:
             raise ValueError(f"Unknown joint {name!r} - expected one of {JOINT_NAMES}")
+        if not math.isfinite(value):
+            # Every real caller today (robot_control.py's own RotaryKnob/
+            # QSlider jog, trajectory_panel.py's own recorded-point replay)
+            # is bounded and can never actually produce this - this is a
+            # defense-in-depth guard against a future/third-party caller of
+            # this public API, not a UI input path that's been observed to
+            # trigger it. A NaN/Infinity joint value pushed to the server
+            # over POST /api/settings or the WebSocket is exactly the class
+            # of malformed input that can hang the server's own kinematic
+            # engine, so this app must never be the one to author one.
+            raise ValueError(f"Refusing to set joint {name!r} to non-finite value {value!r}")
         joints = self.raw.setdefault("joints", {})
         joints[name] = value
 
