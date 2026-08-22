@@ -14,6 +14,12 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Unreleased" below for the change that introduced this.
 
+## [0.1.2]
+
+Builds `0.1.1` and `0.1.2` were bumped automatically by `bump_version.py`
+on routine packaged builds; no additional behavior change is on record for
+either beyond what's already listed under [0.1.0] below.
+
 ## Unreleased
 
 - Added `bump_version.py` and wired it into `build_exe.bat` (step 3/6) and
