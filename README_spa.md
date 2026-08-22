@@ -4,6 +4,15 @@
 
 # 🧰 HYDRA-UMC SUITE
 
+<p align="center">
+  <a href="README.md">🇺🇸 English</a> |
+  🇪🇸 <b>Español</b> |
+  <a href="README_fra.md">🇫🇷 Français</a> |
+  <a href="README_ita.md">🇮🇹 Italiano</a> |
+  <a href="README_deu.md">🇩🇪 Deutsch</a>
+</p>
+
+
 ### 🖥️ Centro de Mando de Enjambre Multi-Controladora para la Plataforma HYDRA-UMC
 
 <p align="left">
