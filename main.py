@@ -54,10 +54,24 @@ def main() -> int:
 
     window = MainWindow()
 
+    # Remembers whether the window was maximized (vs. a plain resized/
+    # moved "normal" geometry) the moment F11 was pressed to ENTER
+    # fullscreen, so leaving fullscreen restores that exact prior state
+    # instead of always snapping back to showMaximized() - which used to
+    # silently discard any manual resize/move the user had done before
+    # their first F11 press (window.showNormal() restores Qt's own
+    # tracked normalGeometry() correctly, but only if it's actually
+    # called instead of being skipped in favor of always-maximize).
+    fullscreen_state = {"was_maximized": True}
+
     def toggle_fullscreen() -> None:
         if window.isFullScreen():
-            window.showMaximized()
+            if fullscreen_state["was_maximized"]:
+                window.showMaximized()
+            else:
+                window.showNormal()
         else:
+            fullscreen_state["was_maximized"] = window.isMaximized()
             window.showFullScreen()
 
     shortcut = QShortcut(QKeySequence(Qt.Key.Key_F11), window)

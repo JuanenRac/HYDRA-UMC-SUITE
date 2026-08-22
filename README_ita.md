@@ -19,10 +19,12 @@ su una rete fisica diversa), connettiti a quante ne trovi, e
 comanda/monitora/riconfigura in tempo reale ognuna di esse, fianco a
 fianco, da un'unica dashboard industriale a schermo intero.
 
-Parla esattamente lo stesso protocollo di comunicazione usato dalla
-stessa interfaccia browser di
-[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - vedi
-[`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
+Parla esattamente lo stesso protocollo di comunicazione esposto da
+[HYDRA-UMC SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER) - lo
+stesso backend headless a cui parla anche l'interfaccia browser di
+[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO), come un
+client qualsiasi - vedi
+[`HYDRA-UMC-SERVER/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-SERVER/blob/main/docs/REMOTE_API.md)
 per il contratto completo, aggiunto specificamente per supportare questo
 progetto. Una modifica fatta da SUITE compare in tempo reale in una scheda
 del browser aperta, e viceversa - sincronizzazione bidirezionale reale via

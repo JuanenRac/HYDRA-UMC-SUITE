@@ -19,10 +19,12 @@ einem anderen physischen Netzwerk), verbinde dich mit so vielen wie
 gefunden werden, und steuere/überwache/konfiguriere jeden von ihnen live,
 nebeneinander, von einem einzigen industriellen Vollbild-Dashboard aus.
 
-Es spricht genau dasselbe Übertragungsprotokoll wie die eigene
-Browser-Oberfläche von
-[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - siehe
-[`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
+Es spricht genau dasselbe Übertragungsprotokoll, das
+[HYDRA-UMC SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER) bereitstellt
+- dasselbe Headless-Backend, mit dem auch die eigene Browser-Oberfläche von
+[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) als
+einer von mehreren Clients spricht - siehe
+[`HYDRA-UMC-SERVER/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-SERVER/blob/main/docs/REMOTE_API.md)
 für den vollständigen Vertrag, der eigens hinzugefügt wurde, um dieses
 Projekt zu unterstützen. Eine von SUITE aus vorgenommene Änderung erscheint
 live in einem geöffneten Browser-Tab, und umgekehrt - echte bidirektionale

@@ -20,10 +20,12 @@ connectez-vous à autant que trouvés, et pilotez/surveillez/reconfigurez
 n'importe lequel d'entre eux en direct, côte à côte, depuis un unique
 tableau de bord industriel plein écran.
 
-Il parle exactement le même protocole de communication que la propre
-interface navigateur de
-[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - voir
-[`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
+Il parle exactement le même protocole de communication qu'expose
+[HYDRA-UMC SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER) - le
+même backend headless auquel parle aussi la propre interface navigateur de
+[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO), comme un
+client parmi d'autres - voir
+[`HYDRA-UMC-SERVER/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-SERVER/blob/main/docs/REMOTE_API.md)
 pour le contrat complet, ajouté spécifiquement pour prendre en charge ce
 projet. Un changement effectué depuis SUITE apparaît en direct dans un
 onglet de navigateur ouvert, et vice versa - synchronisation bidirectionnelle

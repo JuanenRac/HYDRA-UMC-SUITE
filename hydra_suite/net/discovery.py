@@ -6,15 +6,17 @@
 # Two independent discovery paths, merged by discover_servers() at the
 # bottom of this file into the one stream ui/panels/server_browser.py's
 # scan button actually consumes:
-#   - scan_subnets(): brute-force GET /api/hydra-info (docs/REMOTE_API.md
-#     section 1) against every candidate IP in a /24 range concurrently -
+#   - scan_subnets(): brute-force GET /api/hydra-info
+#     (HYDRA-UMC-SERVER/docs/REMOTE_API.md section 1) against every
+#     candidate IP in a /24 range concurrently -
 #     slower, but needs no multicast delivery at all, so it stays the
 #     guaranteed fallback (a locked-down network, a VLAN that blocks
 #     multicast, a Windows Firewall profile that drops inbound UDP 5353,
 #     etc. all still work here).
 #   - discover_mdns(): real mDNS/Bonjour, querying the "_hydra._tcp"
-#     service HYDRA-UMC STUDIO's own server.ts actually publishes (see
-#     that project's setupDiscovery(): `bonjour.publish({ name:
+#     service HYDRA-UMC SERVER's own server.ts actually publishes (moved
+#     there from HYDRA-UMC-STUDIO's own source tree in that backend's
+#     repo split - see that project's setupDiscovery(): `bonjour.publish({ name:
 #     serverName, type: 'hydra', port: 3000 })`, via the `bonjour-service`
 #     npm package) - near-instant on a network that delivers the
 #     multicast replies. This is NOT a placeholder standing in for a

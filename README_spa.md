@@ -19,10 +19,12 @@ conecta con tantas como se encuentren, y controla/monitoriza/reconfigura
 cualquiera de ellas en vivo, una junto a otra, desde un único panel
 industrial a pantalla completa.
 
-Habla exactamente el mismo protocolo de cable que usa la propia interfaz
-web de [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) -
-ver
-[`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
+Habla exactamente el mismo protocolo de cable que expone
+[HYDRA-UMC SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER) - el
+mismo backend headless al que la propia interfaz web de
+[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) habla
+como un cliente más - ver
+[`HYDRA-UMC-SERVER/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-SERVER/blob/main/docs/REMOTE_API.md)
 para el contrato completo, añadido específicamente para dar soporte a este
 proyecto. Un cambio hecho desde SUITE aparece en vivo en una pestaña de
 navegador abierta, y viceversa - sincronización bidireccional real por

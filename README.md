@@ -19,9 +19,10 @@ network), connect to as many as are found, and jog/monitor/reconfigure
 any of them live, side by side, from one fullscreen industrial dashboard.
 
 It speaks the exact same wire protocol
-[HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)'s own
-browser UI does - see
-[`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
+[HYDRA-UMC SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER) exposes -
+the same headless backend [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)'s
+own browser UI talks to as just another client of it - see
+[`HYDRA-UMC-SERVER/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-SERVER/blob/main/docs/REMOTE_API.md)
 for the full contract, added specifically to support this project. A
 change made from SUITE shows up live in an open browser tab, and vice
 versa - real bidirectional sync over a WebSocket, not a one-shot import/

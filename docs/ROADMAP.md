@@ -52,8 +52,10 @@ just moves where it breaks.
   (which never checks that field at all).
 - **Live connection** (`hydra_suite/net/client.py`) - REST read/write +
   WebSocket live sync, implementing
-  [`HYDRA-UMC-STUDIO/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-STUDIO/blob/main/docs/REMOTE_API.md)
-  exactly. Verified: connects, receives real state (8 robots), pushes a
+  [`HYDRA-UMC-SERVER/docs/REMOTE_API.md`](https://github.com/JuanenRac/HYDRA-UMC-SERVER/blob/main/docs/REMOTE_API.md)
+  exactly (moved there from HYDRA-UMC-STUDIO's own docs/ when the headless
+  backend was split out into its own repository - the contract itself
+  didn't change, only which repo documents/hosts it). Verified: connects, receives real state (8 robots), pushes a
   joint change, receives the broadcast echo correctly suppressed. Per-server
   login success/failure is surfaced in the Server Browser panel (a distinct
   "Login failed" row status with the server's own rejection detail as a

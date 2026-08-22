@@ -222,7 +222,9 @@ class ControllerView:
 class HydraState:
     """Wraps one server's full {settings, controllers, activeControllerId}
     payload - exactly the shape GET /api/settings returns and POST
-    /api/settings expects back, per docs/REMOTE_API.md section 2."""
+    /api/settings expects back, per HYDRA-UMC-SERVER/docs/REMOTE_API.md
+    section 2 (moved there from HYDRA-UMC-STUDIO's own docs/ when the
+    headless backend was split into its own repo)."""
 
     def __init__(self, raw: dict[str, Any] | None = None):
         self.raw: dict[str, Any] = raw if raw is not None else {"settings": {}, "controllers": [], "activeControllerId": ""}
@@ -253,8 +255,9 @@ class HydraState:
 
 @dataclass
 class ServerInfo:
-    """One entry in the discovery/connection list - see docs/REMOTE_API.md
-    section 1 (GET /api/hydra-info) for the wire shape this is built from."""
+    """One entry in the discovery/connection list - see
+    HYDRA-UMC-SERVER/docs/REMOTE_API.md section 1 (GET /api/hydra-info)
+    for the wire shape this is built from."""
 
     host: str
     port: int = 3000

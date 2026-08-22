@@ -6,12 +6,15 @@
 # One HydraConnection per connected HYDRA-UMC server - this IS the "swarm"
 # support: the UI holds a dict of these, one per server the user has
 # added, each independently connected/live-synced. Implements exactly the
-# contract in HYDRA-UMC-STUDIO/docs/REMOTE_API.md: GET/POST /api/settings
-# for the full read-modify-write cycle, and a WebSocket /ws connection for
-# live push - the server broadcasts every change (from ANY client,
-# including this one) to every connected client, so a job/parameter
-# changed from HYDRA-UMC STUDIO's own browser UI shows up here live, and
-# a change made here shows up there live too.
+# contract in HYDRA-UMC-SERVER/docs/REMOTE_API.md (that headless backend's
+# own repo since it was split out of HYDRA-UMC-STUDIO - the contract
+# itself is unchanged, only which repo hosts server.ts/this doc):
+# GET/POST /api/settings for the full read-modify-write cycle, and a
+# WebSocket /ws connection for live push - the server broadcasts every
+# change (from ANY client, including this one) to every connected client,
+# so a job/parameter changed from HYDRA-UMC STUDIO's own browser UI (now a
+# pure client of HYDRA-UMC-SERVER, same as this app) shows up here live,
+# and a change made here shows up there live too.
 #
 # Runs on Qt's own event loop via qasync (see main.py) - async methods
 # here are plain coroutines, no separate thread or thread-safe queue
