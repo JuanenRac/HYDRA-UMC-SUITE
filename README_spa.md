@@ -6,6 +6,13 @@
 
 ### 🖥️ Centro de Mando de Enjambre Multi-Controladora para la Plataforma HYDRA-UMC
 
+<p align="left">
+  <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/Lenguaje-Python%203.12-3776AB.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="PySide6">
+</p>
+
+
 ---
 
 ## 🎯 Resumen

@@ -6,6 +6,14 @@
 
 ### 🖥️ Multi-Controller Swarm Command Center for the HYDRA-UMC Platform
 
+<p align="left">
+  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="PySide6">
+  <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="OpenGL">
+</p>
+
+
 ---
 
 ## 🎯 Overview
