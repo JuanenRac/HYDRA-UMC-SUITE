@@ -1,8 +1,7 @@
 """Numerical verification of batch 1's new robots (xArm6, Lite6 - "ur"
 family; e.DO - "quaternion" family) against real reference values computed
 directly from HYDRA-UMC-STUDIO's own TypeScript kinematics files (run via
-`npx tsx` against a scratch script, output captured below, script moved to
-SONNET/_papelera/ per project convention afterward).
+`npx tsx` against a scratch script, with output captured below).
 
 Unlike verify_all_kinematics.py's robots (which pre-existed in STUDIO and
 so had independent ground truth to check the Python port against), these

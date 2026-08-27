@@ -1,8 +1,7 @@
 """Numerical self-consistency verification of batch 4's new robots
 (Gen2, PiPER - "ur" family; Z1, ViperX 300, WidowX 250 - "quaternion"
 family) against real reference values from HYDRA-UMC-STUDIO's own
-TypeScript kinematics (run via `npx tsx`, output captured below, script
-moved to SONNET/_papelera/ afterward). Same reasoning as
+TypeScript kinematics (run via `npx tsx`, output captured below). Same reasoning as
 verify_batch1/2/3's own headers.
 
 ViperX 300 / WidowX 250 are also the first "quat family" robots with a

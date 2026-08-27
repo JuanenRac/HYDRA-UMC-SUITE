@@ -2,8 +2,7 @@
 (Gen3 Lite - "ur" family; M-710iC - "quaternion" family) against real
 reference values computed directly from HYDRA-UMC-STUDIO's own
 TypeScript kinematics files (run via `npx tsx` against a scratch
-script, output captured below, script moved to SONNET/_papelera/ per
-project convention afterward). Same reasoning as
+script, output captured below). Same reasoning as
 verify_batch1_kinematics.py's own header - both sides authored in the
 same session, no independent third source, so this checks TS<->Python
 agreement rather than against pre-existing ground truth.

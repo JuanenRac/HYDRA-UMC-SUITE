@@ -5,8 +5,7 @@
 #
 # Bridges Python's own stdlib `logging` (every module here already does
 # `logging.getLogger(__name__)` - models.py, net/client.py, ...) into a Qt
-# signal the Logs panel can display live (audit idea: "visor de logs en
-# tiempo real con filtros" - SONNET/AUDITORIA_COMPLETA_44_PROYECTOS.txt).
+# signal the Logs panel can display live ("visor de logs en tiempo real con filtros").
 #
 # `logging.Handler` isn't a QObject, so it can't emit a Qt signal itself -
 # QtLogHandler wraps a plain Handler that forwards each record to a

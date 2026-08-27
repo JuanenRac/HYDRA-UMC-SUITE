@@ -1,8 +1,7 @@
 """Numerical self-consistency verification of batch 5's new robot
 (Koch v1.1 / Low-Cost Robot Arm - "quaternion" family, 5 real joints not
 6) against real reference values from HYDRA-UMC-STUDIO's own TypeScript
-kinematics (run via `npx tsx`, output captured below, script moved to
-SONNET/_papelera/ afterward). Same reasoning as verify_batch1-4's own
+kinematics (run via `npx tsx`, output captured below). Same reasoning as verify_batch1-4's own
 headers.
 
 FR3 (Franka) was dropped from this batch - a real 7-DOF robot doesn't

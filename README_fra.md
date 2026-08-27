@@ -359,3 +359,14 @@ Le code source de cette application est disponible sous la **GNU General Public 
 Ce projet est la contrepartie bureau de contrôle d'essaim de [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - voir le propre dépôt de ce projet pour sa propre licence distincte, à laquelle la propre licence de ce dépôt ne s'étend pas, et vice versa. Il contrôle également en dernier ressort le matériel/firmware de [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) et (relayées à travers celui-ci, [voir ici](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) les têtes d'outil [URTC](https://github.com/JuanenRac/URTC) - deux projets distincts avec leurs propres licences séparées.
 
 Si vous construisez sur ce projet, gardez à l'esprit la séparation des licences : les modifications de code devraient rester GPL-3.0, et les propres ressources de maillage de chaque robot devraient rester sous leurs propres conditions de licence d'origine (voir le tableau ci-dessus) - chacune avec une attribution renvoyant à ce projet et à son auteur.
+
+## 🛠️ BUILD & RUN
+
+Utilisez la vérification de compilation sans versionnement avant une compilation de publication :
+
+| Action | Windows | Linux / macOS |
+|---|---|---|
+| Vérification de compilation (sans modifier la version ni le CHANGELOG) | `build-test.bat` | `./build-test.sh` |
+| Exécution / développement (si disponible) | `run*.bat` ou `dev*.bat` | `./run*.sh` ou `./dev*.sh` |
+
+`build-test.bat` et `build-test.sh` compilent ou valident la pile du projet sans incrémenter `hydra-umc.project.json` ni modifier `CHANGELOG.md`. Ils peuvent uniquement créer les sorties normales du compilateur. Les scripts existants `build*.bat`, `build*.sh`, `run*` et `dev*` conservent leur comportement spécifique de versionnement ou d'exécution ; utilisez-les lorsque ce comportement est requis.

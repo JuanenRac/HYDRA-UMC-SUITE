@@ -3,8 +3,7 @@
 ; Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 ; GPL-3.0 - see ../LICENSE
 ;
-; Inno Setup script (audit idea: "instalador .msi/.deb profesional" -
-; SONNET/AUDITORIA_COMPLETA_44_PROYECTOS.txt). Inno Setup, not the WiX
+; Inno Setup script for a professional installer. Inno Setup, not the WiX
 ; Toolset, for the same reason this whole ecosystem stays away from
 ; heavier tooling elsewhere: it's a single free installer (no Visual
 ; Studio/WiX SDK needed), produces a real Windows installer with Start
@@ -15,9 +14,8 @@
 ; the same real result. Ships a real .exe installer, not literally a
 ; .msi - Inno Setup's own installers ARE the standard, Windows-native
 ; alternative to an .msi for exactly this kind of single-app installer;
-; MSI itself would need the WiX Toolset, not installed in this session's
-; environment (see this idea's own SONNET/11.PLAN_IDEAS_MEJORA_
-; AUDITORIA.txt entry for why this wasn't switched to mid-implementation).
+; MSI itself would need the WiX Toolset, which is not available in this
+; build environment.
 ;
 ; NOT RUN in this session - Inno Setup (iscc.exe) isn't installed here,
 ; and installing new system-wide tooling wasn't done without asking

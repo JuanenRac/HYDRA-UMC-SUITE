@@ -1,6 +1,6 @@
 # Installers 📦
 
-Audit idea: "Crear un instalador `.msi`/`.deb` profesional" (`SONNET/AUDITORIA_COMPLETA_44_PROYECTOS.txt`).
+Goal: create a professional `.msi`/`.deb` installer.
 
 Both scripts here delegate the actual build to this project's own `../build_exe.bat`/`.sh` (the real PyInstaller step already lives there - see `HYDRA-UMC-UPDATER/install.py`'s own header comment for why this ecosystem never reimplements a project's own build logic in a second place) and only add packaging on top of that real output.
 

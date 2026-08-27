@@ -3,8 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Real-time log viewer with filters (audit idea:
-# SONNET/AUDITORIA_COMPLETA_44_PROYECTOS.txt, HYDRA-UMC-SUITE section).
+# Real-time log viewer with filters.
 # Every record ever received is kept in `_all_entries` (unbounded within
 # one session - this window doesn't run for weeks unattended the way
 # HYDRA-UMC-SERVER does, so no rotation/cap is needed here); the level/

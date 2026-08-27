@@ -1,15 +1,13 @@
 """Numerical self-consistency verification of batch 3's new robot
 (SO-ARM100 - "quaternion" family, 5 real joints not 6) against real
 reference values from HYDRA-UMC-STUDIO's own TypeScript kinematics
-(run via `npx tsx`, output captured below, script moved to
-SONNET/_papelera/ afterward). Same reasoning as verify_batch1/2's own
+(run via `npx tsx`, output captured below). Same reasoning as verify_batch1/2's own
 headers - both sides authored in the same session, so this checks
 TS<->Python agreement.
 
 PiPER and Poppy Ergo Jr were dropped from this batch (mesh format
 mismatch - .obj multi-part and .dae respectively, this project's mesh
-pipeline only supports .stl) - see SONNET audit log for the full
-decision.
+pipeline only supports .stl).
 """
 import sys
 sys.path.insert(0, ".")

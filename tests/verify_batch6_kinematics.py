@@ -3,7 +3,7 @@
 Universal Robots products, since this generation mixes Y/Z joint axes
 unlike the e-Series' own shared-Z engine) against real reference values
 from HYDRA-UMC-STUDIO's own TypeScript kinematics (run via `npx tsx`,
-output captured below, script moved to SONNET/_papelera/ afterward).
+output captured below).
 Same reasoning as verify_batch1-5's own headers.
 """
 import sys
