@@ -1,0 +1,31 @@
+Koch v1.1 mesh files (base_link.stl, shoulder_rotation.stl,
+shoulder_to_elbow.stl, elbow_to_wrist_extension.stl, elbow_to_wrist.stl,
+gripper_static_finger.stl)
+
+Source: https://github.com/google-deepmind/mujoco_menagerie
+Path:   low_cost_robot_arm/assets/
+License: Apache-2.0, per that folder's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+KochArm.tsx 3D view. Covers BOTH awesome-robot-descriptions list entries
+"Koch v1.1" and "Low-Cost Robot Arm" - both names refer to the same real
+open-hardware design (Alexander Koch's low-cost arm), just listed via
+different repos; this project ports it once rather than as two
+near-duplicate robots.
+
+IMPORTANT - this robot is 5-DOF for positioning, not 6: the source MJCF
+(low_cost_robot_arm.xml) has 5 real arm joints (base_rotation, pitch,
+elbow, wrist_pitch, wrist_roll) plus a 6th joint that is the GRIPPER JAW
+(gripper_moving_finger, open/close), not a wrist orientation axis - same
+situation as SO-ARM100 (see public/models/so100/ATTRIBUTION.txt for the
+full reasoning). j6 is left unused here for the same reason. Each real
+link's own <geom> also has a separate "_motor" decorative mesh not
+included here (same scope boundary as SO-ARM100's own Base/Base_Motor
+split).
+
+Joint kinematic chain (origin xyz, axis - every joint's own rotation is
+(0,0,0), pure translation, axis varies per joint) comes from that
+folder's own low_cost_robot_arm.xml MJCF directly - see
+src/examples/kochKinematics.ts. Uses the same "quaternion family" FK
+engine as Parol6/Faze4/AR3/AR4/e.DO/M-710iC/Z1, truncated to 5 real
+joints (same zip-truncation approach as SO-ARM100/Gen3 Lite).

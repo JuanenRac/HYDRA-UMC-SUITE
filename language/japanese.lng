@@ -1,0 +1,97 @@
+# HYDRA-UMC SUITE - 日本語言語ファイル
+# KEY=Value 形式、1行につき1エントリ。# で始まる行と空行は無視されます。
+# 値の中の \n はリテラルとして実際の改行に変換されます。
+
+MENU_FILE=ファイル(&F)
+MENU_QUIT=終了
+MENU_VIEW=表示(&V)
+MENU_HELP=ヘルプ(&H)
+MENU_ABOUT=HYDRA-UMC SUITE について
+MENU_LANGUAGE=言語(&L)
+TITLE_ABOUT=HYDRA-UMC SUITE について
+MSG_ABOUT_BODY=HYDRA-UMC SUITE\nバージョン {version}\n\nHYDRA-UMC プラットフォーム向けマルチコントローラー群制御コマンドセンター。\n(c) 2026 JuanenRac (Electro Hobby 3D) - GPL-3.0
+TITLE_RESTART_NEEDED=再起動が必要です
+MSG_RESTART_NEEDED=言語が変更されました——反映するには HYDRA-UMC SUITE を再起動してください。
+TITLE_COULDNT_SAVE=保存できませんでした
+MSG_LANGUAGE_NOT_SAVED=言語設定を {path} に保存できませんでした。
+STATUS_READY=準備完了——ネットワークをスキャンするか、HYDRA-UMC サーバーを追加して開始してください。
+STATUS_ACTIVE_CONNECTION=現在のアクティブな接続状態：{status}
+
+DOCK_SERVERS=サーバー
+DOCK_OVERVIEW=概要
+DOCK_VIEWPORT=3D ビューポート
+DOCK_ROBOT_CONTROL=ロボット制御
+DOCK_TRAJECTORY=軌道
+DOCK_LOGS=ログ
+HEADING_LOGS=ログ
+LBL_LOG_LEVEL=レベル
+LOG_LEVEL_ALL=すべて
+LOG_SEARCH_PLACEHOLDER=検索…
+BTN_CLEAR_LOGS=クリア
+
+HEADING_SERVERS=HYDRA-UMC サーバー
+BTN_SCAN_NETWORK=ネットワークをスキャン
+PLACEHOLDER_HOST=IP またはホスト名（VPN トンネル経由でも動作します）
+BTN_ADD=追加
+COL_SERVER=サーバー
+COL_HOST=ホスト
+COL_ROBOTS=ロボット
+COL_STATUS=状態
+BTN_REMOVE_SELECTED=選択項目を削除
+BTN_EDIT_CREDENTIALS=資格情報を編集
+BTN_SET_ACTIVE=アクティブに設定
+STATUS_SCANNING=ローカルサブネットをスキャン中…
+STATUS_SCANNING_PROGRESS=スキャン中… これまでに {found} 台のサーバーが見つかりました
+STATUS_SCAN_COMPLETE=スキャン完了—— {found} 台のサーバーが見つかりました
+STATUS_SCAN_COMPLETE_NONE=スキャン完了——見つかりませんでした。既知の IP を使って「追加」を試してください。
+TITLE_EDIT_CREDENTIALS=サーバーの資格情報を編集
+LBL_USERNAME=ユーザー名
+LBL_PASSWORD=パスワード
+
+HEADING_OVERVIEW=概要
+GROUP_ACTIVE_CONTROLLER=アクティブなコントローラー
+LBL_NAME=名前
+LBL_IP=IP
+LBL_ROBOTS=ロボット
+LBL_ONLINE=オンライン
+GROUP_SYSTEM_METRICS=システム指標
+LBL_CPU_LOAD=CPU 負荷
+LBL_MEMORY=メモリ
+LBL_TEMP=温度
+LBL_UPTIME=稼働時間
+COL_ROBOT=ロボット
+COL_MODEL=型式
+COL_ROLE=役割
+COL_SPEED_ACCEL=速度／加速度
+STATUS_ONLINE=オンライン
+STATUS_OFFLINE=オフライン
+
+HEADING_ROBOT_CONTROL=ロボット制御
+GROUP_JOINTS=関節
+GROUP_PLAYBACK=再生
+LBL_SPEED=速度
+LBL_ACCELERATION=加速度
+
+HEADING_TRAJECTORY=軌道ポイント
+LBL_NO_ROBOT_SELECTED=ロボットが選択されていません
+LBL_ROBOT_SELECTED=ロボット：{id}（{model}）
+COL_TIME=時刻
+BTN_RECORD_POSE=現在の姿勢を記録
+BTN_JOG_TO_POINT=選択したポイントへロボットをジョグ
+BTN_DELETE_POINT=ポイントを削除
+
+HEADING_VIEWPORT=3D ビューポート
+MSG_UNSUPPORTED_MODEL=「{model}」には HYDRA-UMC SUITE 内でまだ実際の 3D メッシュ/運動学データがありません。\n\nこのバージョンで接続されているのは {models} のみです（HYDRA-UMC-STUDIO 自身の Web UI がそのために使用しているのと同じ実際の STL + 正運動学データ）——他のモデルへ拡張する方法については docs/ROADMAP.md を参照してください。
+HINT_CONTROLS=左ドラッグ：軌道回転　•　右/中ドラッグ：パン　•　ホイール：ズーム
+
+TAB_CAMERAS=カメラ
+LBL_CAM=カメラ
+STATUS_LIVE=ライブ
+STATUS_NO_SIGNAL=信号なし
+STATUS_CONNECTING=接続中…
+BTN_TOGGLE_CONNECTION=接続を切り替え
+
+STATUS_CONNECTED=接続済み
+STATUS_DISCONNECTED=切断済み
+STATUS_ERROR=エラー
+STATUS_LOGIN_FAILED=ログイン失敗

@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "ecosystem": "HYDRA-UMC",
+  "name": "HYDRA-UMC-SUITE",
+  "version": "0.1.3",
+  "role": "ui",
+  "stack": "python",
+  "technologies": [
+    "Python 3.12",
+    "PySide6"
+  ],
+  "deployment_target": "user-pc",
+  "maturity": "established",
+  "family": "Core Backend & Clients",
+  "parent": "HYDRA-UMC-SERVER",
+  "build": "No pyproject.toml. __init__.py's __version__ is the real source. Packaged as standalone .exe using build_exe.bat/.sh.",
+  "notes": "Desktop swarm command center, packaged as a standalone executable.",
+  "native_version": {
+    "file": "hydra_suite/__init__.py",
+    "pattern": "__version__\\s*=\\s*\"(\\d+)\\.(\\d+)\\.(\\d+)\""
+  }
+}

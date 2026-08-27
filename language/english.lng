@@ -1,0 +1,97 @@
+# HYDRA-UMC SUITE - English language file
+# KEY=Value, one per line. Lines starting with # and blank lines are
+# ignored. A literal \n inside a value becomes a real line break.
+
+MENU_FILE=&File
+MENU_QUIT=Quit
+MENU_VIEW=&View
+MENU_HELP=&Help
+MENU_ABOUT=About HYDRA-UMC SUITE
+MENU_LANGUAGE=&Language
+TITLE_ABOUT=About HYDRA-UMC SUITE
+MSG_ABOUT_BODY=HYDRA-UMC SUITE\nVersion {version}\n\nMulti-controller swarm command center for the HYDRA-UMC platform.\n(c) 2026 JuanenRac (Electro Hobby 3D) - GPL-3.0
+TITLE_RESTART_NEEDED=Restart needed
+MSG_RESTART_NEEDED=Language changed - restart HYDRA-UMC SUITE for it to take effect.
+TITLE_COULDNT_SAVE=Couldn't save
+MSG_LANGUAGE_NOT_SAVED=Couldn't save the language preference to {path}.
+STATUS_READY=Ready - scan the network or add a HYDRA-UMC server to begin.
+STATUS_ACTIVE_CONNECTION=Active connection status: {status}
+
+DOCK_SERVERS=Servers
+DOCK_OVERVIEW=Overview
+DOCK_VIEWPORT=3D Viewport
+DOCK_ROBOT_CONTROL=Robot Control
+DOCK_TRAJECTORY=Trajectory
+DOCK_LOGS=Logs
+HEADING_LOGS=Logs
+LBL_LOG_LEVEL=Level
+LOG_LEVEL_ALL=All
+LOG_SEARCH_PLACEHOLDER=Search...
+BTN_CLEAR_LOGS=Clear
+
+HEADING_SERVERS=HYDRA-UMC SERVERS
+BTN_SCAN_NETWORK=Scan network
+PLACEHOLDER_HOST=IP or hostname (also works through a VPN tunnel)
+BTN_ADD=Add
+COL_SERVER=Server
+COL_HOST=Host
+COL_ROBOTS=Robots
+COL_STATUS=Status
+BTN_REMOVE_SELECTED=Remove selected
+BTN_EDIT_CREDENTIALS=Edit credentials
+BTN_SET_ACTIVE=Set active
+STATUS_SCANNING=Scanning local subnet(s)...
+STATUS_SCANNING_PROGRESS=Scanning... {found} server(s) found so far
+STATUS_SCAN_COMPLETE=Scan complete - {found} server(s) found
+STATUS_SCAN_COMPLETE_NONE=Scan complete - none found. Try 'Add' with a known IP.
+TITLE_EDIT_CREDENTIALS=Edit server credentials
+LBL_USERNAME=Username
+LBL_PASSWORD=Password
+
+HEADING_OVERVIEW=OVERVIEW
+GROUP_ACTIVE_CONTROLLER=Active Controller
+LBL_NAME=Name
+LBL_IP=IP
+LBL_ROBOTS=Robots
+LBL_ONLINE=Online
+GROUP_SYSTEM_METRICS=System Metrics
+LBL_CPU_LOAD=CPU Load
+LBL_MEMORY=Memory
+LBL_TEMP=Temperature
+LBL_UPTIME=Uptime
+COL_ROBOT=Robot
+COL_MODEL=Model
+COL_ROLE=Role
+COL_SPEED_ACCEL=Speed / Accel
+STATUS_ONLINE=Online
+STATUS_OFFLINE=Offline
+
+HEADING_ROBOT_CONTROL=ROBOT CONTROL
+GROUP_JOINTS=Joints
+GROUP_PLAYBACK=Playback
+LBL_SPEED=Speed
+LBL_ACCELERATION=Acceleration
+
+HEADING_TRAJECTORY=TRAJECTORY POINTS
+LBL_NO_ROBOT_SELECTED=No robot selected
+LBL_ROBOT_SELECTED=Robot: {id} ({model})
+COL_TIME=Time
+BTN_RECORD_POSE=Record current pose
+BTN_JOG_TO_POINT=Jog robot to selected point
+BTN_DELETE_POINT=Delete point
+
+HEADING_VIEWPORT=3D VIEWPORT
+MSG_UNSUPPORTED_MODEL='{model}' has no real 3D mesh/kinematics in HYDRA-UMC SUITE yet.\n\nOnly {models} is wired up in this version (same real STL + forward-kinematics data HYDRA-UMC-STUDIO's own web UI uses for it) - see docs/ROADMAP.md for extending this to the other models.
+HINT_CONTROLS=Left-drag: orbit   •   Right/middle-drag: pan   •   Wheel: zoom
+
+TAB_CAMERAS=Cameras
+LBL_CAM=Cam
+STATUS_LIVE=LIVE
+STATUS_NO_SIGNAL=NO SIGNAL
+STATUS_CONNECTING=CONNECTING...
+BTN_TOGGLE_CONNECTION=Toggle connection
+
+STATUS_CONNECTED=Connected
+STATUS_DISCONNECTED=Disconnected
+STATUS_ERROR=Error
+STATUS_LOGIN_FAILED=Login failed

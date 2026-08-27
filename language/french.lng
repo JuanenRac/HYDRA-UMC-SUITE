@@ -1,0 +1,98 @@
+# HYDRA-UMC SUITE - fichier de langue français
+# CLÉ=Valeur, une par ligne. Les lignes commençant par # et les lignes
+# vides sont ignorées. Un \n littéral dans une valeur devient un vrai
+# retour à la ligne.
+
+MENU_FILE=&Fichier
+MENU_QUIT=Quitter
+MENU_VIEW=&Affichage
+MENU_HELP=Aid&e
+MENU_ABOUT=À propos de HYDRA-UMC SUITE
+MENU_LANGUAGE=&Langue
+TITLE_ABOUT=À propos de HYDRA-UMC SUITE
+MSG_ABOUT_BODY=HYDRA-UMC SUITE\nVersion {version}\n\nCentre de commande multi-contrôleurs pour la plateforme HYDRA-UMC.\n(c) 2026 JuanenRac (Electro Hobby 3D) - GPL-3.0
+TITLE_RESTART_NEEDED=Redémarrage nécessaire
+MSG_RESTART_NEEDED=Langue modifiée - redémarrez HYDRA-UMC SUITE pour appliquer le changement.
+TITLE_COULDNT_SAVE=Échec de l'enregistrement
+MSG_LANGUAGE_NOT_SAVED=Impossible d'enregistrer la préférence de langue dans {path}.
+STATUS_READY=Prêt - scannez le réseau ou ajoutez un serveur HYDRA-UMC pour commencer.
+STATUS_ACTIVE_CONNECTION=État de la connexion active : {status}
+
+DOCK_SERVERS=Serveurs
+DOCK_OVERVIEW=Aperçu
+DOCK_VIEWPORT=Vue 3D
+DOCK_ROBOT_CONTROL=Contrôle du robot
+DOCK_TRAJECTORY=Trajectoire
+DOCK_LOGS=Journaux
+HEADING_LOGS=Journaux
+LBL_LOG_LEVEL=Niveau
+LOG_LEVEL_ALL=Tous
+LOG_SEARCH_PLACEHOLDER=Rechercher...
+BTN_CLEAR_LOGS=Effacer
+
+HEADING_SERVERS=SERVEURS HYDRA-UMC
+BTN_SCAN_NETWORK=Scanner le réseau
+PLACEHOLDER_HOST=IP ou nom d'hôte (fonctionne aussi via un tunnel VPN)
+BTN_ADD=Ajouter
+COL_SERVER=Serveur
+COL_HOST=Hôte
+COL_ROBOTS=Robots
+COL_STATUS=État
+BTN_REMOVE_SELECTED=Supprimer la sélection
+BTN_EDIT_CREDENTIALS=Modifier les identifiants
+BTN_SET_ACTIVE=Définir comme actif
+STATUS_SCANNING=Analyse du/des sous-réseau(x) local/locaux...
+STATUS_SCANNING_PROGRESS=Analyse en cours... {found} serveur(s) trouvé(s) jusqu'à présent
+STATUS_SCAN_COMPLETE=Analyse terminée - {found} serveur(s) trouvé(s)
+STATUS_SCAN_COMPLETE_NONE=Analyse terminée - aucun trouvé. Essayez 'Ajouter' avec une IP connue.
+TITLE_EDIT_CREDENTIALS=Modifier les identifiants du serveur
+LBL_USERNAME=Nom d'utilisateur
+LBL_PASSWORD=Mot de passe
+
+HEADING_OVERVIEW=APERÇU
+GROUP_ACTIVE_CONTROLLER=Contrôleur actif
+LBL_NAME=Nom
+LBL_IP=IP
+LBL_ROBOTS=Robots
+LBL_ONLINE=En ligne
+GROUP_SYSTEM_METRICS=Métriques Système
+LBL_CPU_LOAD=Charge CPU
+LBL_MEMORY=Mémoire
+LBL_TEMP=Température
+LBL_UPTIME=Temps de Fonctionnement
+COL_ROBOT=Robot
+COL_MODEL=Modèle
+COL_ROLE=Rôle
+COL_SPEED_ACCEL=Vitesse / Accélération
+STATUS_ONLINE=En ligne
+STATUS_OFFLINE=Hors ligne
+
+HEADING_ROBOT_CONTROL=CONTRÔLE DU ROBOT
+GROUP_JOINTS=Articulations
+GROUP_PLAYBACK=Lecture
+LBL_SPEED=Vitesse
+LBL_ACCELERATION=Accélération
+
+HEADING_TRAJECTORY=POINTS DE TRAJECTOIRE
+LBL_NO_ROBOT_SELECTED=Aucun robot sélectionné
+LBL_ROBOT_SELECTED=Robot : {id} ({model})
+COL_TIME=Heure
+BTN_RECORD_POSE=Enregistrer la pose actuelle
+BTN_JOG_TO_POINT=Déplacer le robot au point sélectionné
+BTN_DELETE_POINT=Supprimer le point
+
+HEADING_VIEWPORT=VUE 3D
+MSG_UNSUPPORTED_MODEL='{model}' n'a pas encore de maillage 3D/cinématique réelle dans HYDRA-UMC SUITE.\n\nSeul {models} est intégré dans cette version (les mêmes données STL réelles et de cinématique directe que l'interface web de HYDRA-UMC-STUDIO) - voir docs/ROADMAP.md pour l'étendre aux autres modèles.
+HINT_CONTROLS=Glisser bouton gauche : orbiter   •   Glisser bouton droit/central : déplacer   •   Molette : zoom
+
+TAB_CAMERAS=Caméras
+LBL_CAM=Cam
+STATUS_LIVE=EN DIRECT
+STATUS_NO_SIGNAL=AUCUN SIGNAL
+STATUS_CONNECTING=CONNEXION...
+BTN_TOGGLE_CONNECTION=Basculer la connexion
+
+STATUS_CONNECTED=Connecté
+STATUS_DISCONNECTED=Déconnecté
+STATUS_ERROR=Erreur
+STATUS_LOGIN_FAILED=Échec de connexion

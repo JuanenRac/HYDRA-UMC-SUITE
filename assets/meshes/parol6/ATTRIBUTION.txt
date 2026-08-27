@@ -1,0 +1,17 @@
+PAROL6 mesh files (base_link.STL, L1.STL - L6.STL)
+
+Source: https://github.com/Source-Robotics/PAROL6-Desktop-robot-arm
+Path:   PAROL6_URDF/PAROL6/meshes/
+License: GNU General Public License v3.0 (GPLv3), per that repository's
+own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's Parol6Arm.tsx
+3D view. Redistributed here under the same GPLv3 terms as the upstream
+project - compatible with this project's own GPL-3.0-licensed firmware/
+software (see the root LICENSE file).
+
+Not from https://github.com/jakubgrzebien1234-creator/PAROL6_GUI (a
+community GUI tool that references the same numeric joint offsets, but
+ships no LICENSE file of its own) - the meshes here are pulled from the
+official Source-Robotics/PAROL6-Desktop-robot-arm design repository instead,
+which does carry a clear, compatible license.
