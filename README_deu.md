@@ -356,16 +356,3 @@ Der Quellcode dieser Anwendung ist verfügbar unter der **GNU General Public Lic
 Dieses Projekt ist das Desktop-Schwarmsteuerungs-Gegenstück zu [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - siehe das eigene Repository dieses Projekts für dessen eigene separate Lizenz, auf die sich die eigene Lizenz dieses Repositorys nicht erstreckt, und umgekehrt. Es steuert letztlich auch die Hardware/Firmware von [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) und (weitergeleitet über diese, [siehe hier](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) die [URTC](https://github.com/JuanenRac/URTC)-Werkzeugköpfe - beides separate Projekte mit ihren eigenen separaten Lizenzen.
 
 Wenn du auf diesem Projekt aufbaust, behalte die Lizenzaufteilung im Hinterkopf: Codeänderungen sollten GPL-3.0 bleiben, und die eigenen Mesh-Assets jedes Roboters sollten unter ihren eigenen ursprünglichen Lizenzbedingungen bleiben (siehe Tabelle oben) - jeweils mit Namensnennung zurück zu diesem Projekt und seinem Autor.
-
-## Verwandte Projekte
-
-> Canonical public ecosystem relationship map.
-
-**Direct integrations:**
-[HYDRA-UMC-OS](https://github.com/JuanenRac/HYDRA-UMC-OS) · [HYDRA-UMC-SDK](https://github.com/JuanenRac/HYDRA-UMC-SDK) · [HYDRA-UMC-SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER) · [URTC](https://github.com/JuanenRac/URTC) · [HYDRA-UMC-STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) · [HYDRA-UMC-DSI](https://github.com/JuanenRac/HYDRA-UMC-DSI)
-
-**Platform and contracts:**
-[HYDRA-UMC-OS](https://github.com/JuanenRac/HYDRA-UMC-OS) · [HYDRA-UMC-SDK](https://github.com/JuanenRac/HYDRA-UMC-SDK)
-
-**Rest of the ecosystem:**
-All remaining public repositories are grouped by the seven ecosystem layers in the [JuanenRac ecosystem dashboard](https://juanenrac.github.io/JuanenRac/).
