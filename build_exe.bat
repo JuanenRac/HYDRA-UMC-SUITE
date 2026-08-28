@@ -1,44 +1,32 @@
 @echo off
+REM HYDRA_UMC_SCRIPT_STANDARD_HEADER_BEGIN
+REM *****************************************************************************
+REM Project   : HYDRA-UMC-SUITE
+REM Script    : build_exe.bat
+REM Purpose   : Incremental standalone executable build and packaging workflow.
+REM Author    : JuanenRac (Electro Hobby 3D)
+REM Email     : electrohobby3d@gmail.com
+REM Copyright : (C) 2026 JuanenRac
+REM License   : GPL-3.0 - see LICENSE
+REM *****************************************************************************
+REM HYDRA_UMC_SCRIPT_STANDARD_HEADER_END
+REM HYDRA_UMC_SCRIPT_STANDARD_BANNER_BEGIN
+echo.
+echo *****************************************************************************
+echo * HYDRA-UMC-SUITE - build_exe.bat
+echo * Mode      : INCREMENTAL BUILD
+echo * Author    : JuanenRac (Electro Hobby 3D)
+echo * Email     : electrohobby3d@gmail.com
+echo * Copyright : (C) 2026 JuanenRac
+echo * License   : GPL-3.0 - see LICENSE
+echo * ------------------------------------------------------------------------- *
+echo * 1. Increment the project version and synchronise its manifest.
+echo * 2. Run this project's declared build, verification and packaging commands.
+echo * 3. Report the result and keep an interactive terminal open.
+echo *****************************************************************************
+echo.
+REM HYDRA_UMC_SCRIPT_STANDARD_BANNER_END
 setlocal EnableDelayedExpansion
-REM Builds a standalone Windows .exe for HYDRA-UMC SUITE.
-REM Run this on a Windows machine with Python installed.
-REM
-REM Usage:
-REM   build_exe.bat
-REM
-REM Output: dist\HYDRA-UMC_SUITE.exe (no Python installation needed to run it)
-
-echo.
-echo  ===============================================================
-echo   HYDRA-UMC SUITE
-echo  ===============================================================
-echo   This script builds a standalone Windows .exe
-echo   (dist\HYDRA-UMC_SUITE.exe) - Multi-Controller Swarm Command
-echo   Center for the HYDRA-UMC platform. No Python installation is
-echo   needed to run the result.
-echo   Copyright (C) 2026 JuanenRac (Electro Hobby 3D) ^<electrohobby3d@gmail.com^>
-echo   GPL-3.0 - see LICENSE (assets\meshes\ under their own per-robot
-echo   licenses - see each folder's own ATTRIBUTION.txt)
-echo  ===============================================================
-echo.
-
-REM NOTE: every step below runs through "python -m" rather than calling
-REM pip/pyinstaller directly - same reasoning as URTC-FLASHER's own
-REM build_exe.bat (this project's sibling): pip.exe/pyinstaller.exe both
-REM land in Python's Scripts\ folder, which isn't always on PATH (common
-REM if Python was installed without checking "Add Python to PATH").
-REM "python -m" finds the installed module directly instead of needing
-REM its wrapper .exe to be on PATH.
-
-echo [1/5] Creating/activating virtual environment...
-REM A dedicated venv here (not "pip install --user" or a global install)
-REM keeps this build reproducible against exactly requirements.txt's own
-REM pinned versions, and matches how this project was actually developed
-REM (see README.md's own "Getting Started" section) - PyInstaller freezes
-REM whatever's importable in the active environment, so a venv with only
-REM this project's real dependencies (not whatever else happens to be
-REM globally installed) is what keeps dist\HYDRA-UMC_SUITE.exe's own
-REM size and behavior predictable.
 if not exist .venv (
     python -m venv .venv
 )
@@ -60,8 +48,12 @@ REM main.py - base-10 "odometer" rule (patch+1; past 9 it resets to 0 and
 REM carries into minor, e.g. 0.1.9 -> 0.2.0). See bump_version.py itself
 REM for the full rule. Runs BEFORE PyInstaller so the compiled .exe always
 REM carries the new, not-yet-shipped version number.
+REM HYDRA_UMC_SCRIPT_STANDARD_VERSION_STEP
+echo [1/6] Incrementing project version and synchronising its manifest...
 python bump_version.py
 if errorlevel 1 ( echo NATIVE VERSION BUMP FAILED. & pause & exit /b 1 )
+REM HYDRA_UMC_SCRIPT_STANDARD_VERSION_CAPTURE_BEFORE
+for /f "usebackq delims=" %%V in (`python -c "import json; print(json.load(open(r'%~dp0hydra-umc.project.json', encoding='utf-8'))['version'])"`) do set "HYDRA_UMC_VERSION_BEFORE=%%V"
 python "%~dp0bump_manifest_version.py" --sync
 if errorlevel 1 ( echo VERSION SYNCHRONIZATION FAILED. & pause & exit /b 1 )
 if errorlevel 1 (
@@ -69,6 +61,18 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+REM HYDRA_UMC_SCRIPT_STANDARD_VERSION_CAPTURE_AFTER
+for /f "usebackq delims=" %%V in (`python -c "import json; print(json.load(open(r'%~dp0hydra-umc.project.json', encoding='utf-8'))['version'])"`) do set "HYDRA_UMC_VERSION_AFTER=%%V"
+if not defined HYDRA_UMC_VERSION_BEFORE set "HYDRA_UMC_VERSION_BEFORE=unknown"
+if not defined HYDRA_UMC_VERSION_AFTER set "HYDRA_UMC_VERSION_AFTER=unknown"
+echo.
+echo *****************************************************************************
+echo * VERSION INCREMENT COMPLETED
+echo * v%HYDRA_UMC_VERSION_BEFORE% ^> v%HYDRA_UMC_VERSION_AFTER%
+echo * Project manifest has been synchronised by the project build flow.
+echo *****************************************************************************
+echo.
+echo.
 echo       Done.
 echo.
 
