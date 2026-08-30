@@ -50,6 +50,42 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   caveat - treat both as written and reasoned through, not yet proven,
   until someone with the right tooling runs one for real.
 
+## [0.1.5] - HYDRA-UMC menu becomes a real ecosystem control/visibility surface (STUDIO parity)
+
+- 5 new dockable panels, desktop counterparts to the same-named panels
+  added to HYDRA-UMC STUDIO's own web UI this same session:
+  `EcosystemServicesPanel` (`GET /api/ecosystem/status` - real manifest
+  scan + live TCP/HTTP probe of every sibling HYDRA-UMC-* checkout that
+  declares a port; view + manual refresh only, no start/stop - no
+  process supervisor exists anywhere in the ecosystem today),
+  `EcosystemTelemetryPanel` (raw points or bucketed aggregates against
+  HYDRA-UMC-DATALAKE through Server's new `/api/telemetry/*` proxy), and
+  3 admin-only panels - `AdminClientsPanel`, `AdminLogsPanel`,
+  `AdminServerPanel` - against Server's existing `/api/admin/*` routes,
+  the same ones its own `admin-ui/` reference app and STUDIO's new
+  `AdminClients.tsx`/`AdminLogs.tsx`/`AdminServer.tsx` already use.
+- **`net/client.py`** - `HydraConnection` gained a shared `_request_json()`
+  helper and 8 new methods on top of it (`fetch_ecosystem_status`,
+  `fetch_telemetry_query`/`fetch_telemetry_aggregate`,
+  `fetch_admin_clients`/`fetch_admin_logs`/`fetch_admin_server_config`/
+  `save_admin_server_port`/`restart_server`). `login()` now also captures
+  `role` from `/api/login`'s own response (`is_admin` property) - same
+  field STUDIO's `store.tsx` now reads too - so the 3 admin-only panels
+  above only show real data for a genuinely admin session, matching
+  Server's own `requireAdmin` gate on those routes rather than just
+  surfacing whatever 403 comes back.
+- i18n: 70 new keys across all 7 `language/*.lng` files (was 85 keys,
+  now 155), every key cross-checked 1:1 against actual `_()` call sites
+  in the 5 new panels.
+- Verified for real, not just compiled: a real offscreen Qt session
+  (`QT_QPA_PLATFORM=offscreen`) constructing the actual `MainWindow` -
+  all 5 new panels build with zero exceptions alongside every existing
+  one - plus a real HTTP round-trip against a throwaway `http.server`
+  stub proving `HydraConnection`'s 2 new fetch methods parse a real
+  200 and a real 403 response correctly. `python -m py_compile` on every
+  changed file, and every `language/*.lng` file re-parsed to confirm
+  identical key sets across all 7 languages.
+
 ## [0.1.4] - Removed the hardcoded admin/admin login default
 
 - **`models.py`/`server_browser.py`** - `ServerInfo` and the manual/edit

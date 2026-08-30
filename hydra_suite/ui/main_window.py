@@ -23,7 +23,12 @@ from PySide6.QtWidgets import QDockWidget, QMainWindow, QMessageBox
 from hydra_suite import __version__
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
+from hydra_suite.ui.panels.admin_clients_panel import AdminClientsPanel
+from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
+from hydra_suite.ui.panels.admin_server_panel import AdminServerPanel
 from hydra_suite.ui.panels.cameras_panel import CamerasPanel
+from hydra_suite.ui.panels.ecosystem_services_panel import EcosystemServicesPanel
+from hydra_suite.ui.panels.ecosystem_telemetry_panel import EcosystemTelemetryPanel
 from hydra_suite.ui.panels.logs_panel import LogsPanel
 from hydra_suite.ui.panels.overview import OverviewPanel
 from hydra_suite.ui.panels.robot_control import RobotControlPanel
@@ -75,6 +80,15 @@ class MainWindow(QMainWindow):
         self.trajectory_panel = TrajectoryPanel(self.controller)
         self.cameras_panel = CamerasPanel(self.controller)
         self.logs_panel = LogsPanel()
+        # Ecosystem-wide panels - visual surface for the whole HYDRA-UMC-*
+        # ecosystem the active connection's own Server can see, not just
+        # this controller's own robots. See each panel's own header
+        # comment for exactly which real Server route it talks to.
+        self.ecosystem_services_panel = EcosystemServicesPanel(self.controller)
+        self.ecosystem_telemetry_panel = EcosystemTelemetryPanel(self.controller)
+        self.admin_clients_panel = AdminClientsPanel(self.controller)
+        self.admin_logs_panel = AdminLogsPanel(self.controller)
+        self.admin_server_panel = AdminServerPanel(self.controller)
 
         self.robot_control.robot_selected.connect(self.viewport_panel.set_selected_robot)
         self.robot_control.robot_selected.connect(self.trajectory_panel.set_selected_robot)
@@ -86,6 +100,11 @@ class MainWindow(QMainWindow):
         dock_traj = self._make_dock(_("DOCK_TRAJECTORY"), self.trajectory_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_cameras = self._make_dock(_("TAB_CAMERAS"), self.cameras_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_logs = self._make_dock(_("DOCK_LOGS"), self.logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_es_services = self._make_dock(_("DOCK_ECOSYSTEM_SERVICES"), self.ecosystem_services_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_es_telemetry = self._make_dock(_("DOCK_ECOSYSTEM_TELEMETRY"), self.ecosystem_telemetry_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_admin_clients = self._make_dock(_("DOCK_ADMIN_CLIENTS"), self.admin_clients_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_admin_logs = self._make_dock(_("DOCK_ADMIN_LOGS"), self.admin_logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_admin_server = self._make_dock(_("DOCK_ADMIN_SERVER"), self.admin_server_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
         # Sensible default arrangement - the user is free to drag any of
         # these into any other configuration afterward (float/merge/
@@ -96,13 +115,25 @@ class MainWindow(QMainWindow):
         self.resizeDocks([dock_viewport, dock_robot], [1200, 600], Qt.Orientation.Horizontal)
         self.tabifyDockWidget(dock_traj, dock_cameras)
         self.tabifyDockWidget(dock_cameras, dock_logs)
+        # The 5 new ecosystem/admin panels start tabbed together, behind
+        # the existing bottom-area tab group - visible via the View menu
+        # or a click, not competing for screen space with the per-robot
+        # panels above by default.
+        self.tabifyDockWidget(dock_logs, dock_es_services)
+        self.tabifyDockWidget(dock_es_services, dock_es_telemetry)
+        self.tabifyDockWidget(dock_es_telemetry, dock_admin_clients)
+        self.tabifyDockWidget(dock_admin_clients, dock_admin_logs)
+        self.tabifyDockWidget(dock_admin_logs, dock_admin_server)
         dock_traj.raise_()
 
         # A dock closed via its own [x] button would otherwise be gone for
         # good until the app restarts - toggleViewAction() gives each one
         # a real "show again" entry in the View menu, same as a plain Qt
         # app with dockable panels normally does.
-        for dock in (dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs):
+        for dock in (
+            dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
+            dock_es_services, dock_es_telemetry, dock_admin_clients, dock_admin_logs, dock_admin_server,
+        ):
             self._view_menu.addAction(dock.toggleViewAction())
 
     def _build_menu(self) -> None:

@@ -95,6 +95,12 @@ class HydraConnection(QObject):
         # the row said when it was first added (see
         # ui/panels/server_browser.py's own use of this).
         self.login_ok: bool | None = None
+        # This session's role ('admin' | 'operator'), from /api/login's own
+        # response - same field HYDRA-UMC STUDIO's store.tsx now reads too
+        # (decodeJwtRole()). Gates the Ecosystem > Connected Apps / Server
+        # Logs / Server Admin panels the same way server.ts's own
+        # requireAdmin already gates their backing routes.
+        self.role: str | None = None
         # Per-robot generation counter guarding send_command()'s own
         # rollback-on-failure - see that method's own comment and its
         # HYDRA-UMC-IOS-CONTROL/ANDROID-CONTROL/DSI/STUDIO equivalents for
@@ -136,12 +142,95 @@ class HydraConnection(QObject):
             self.login_changed.emit(False, detail)
             return False
         self._token = token
+        self.role = data.get("role") if isinstance(data.get("role"), str) else None
         self.login_ok = True
         self.login_changed.emit(True, "")
         return True
 
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
+
     def _auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self._token}"} if self._token else {}
+
+    async def _request_json(
+        self, method: str, path: str, *, auth: bool = False, params: dict | None = None, json_body: dict | None = None
+    ) -> tuple[int, object] | None:
+        """Shared plumbing for the Ecosystem/Admin panels' own on-demand
+        fetches below (GET /api/ecosystem/status, /api/telemetry/*,
+        /api/admin/*) - these are one-shot reads/writes a panel's own
+        Refresh/Run button triggers, not part of the continuously-synced
+        HydraState this class exists to maintain, so they stay separate
+        rather than folded into fetch_state()/push_state().
+
+        Returns (status_code, parsed_body) on any real HTTP response (even
+        a 4xx/5xx one - the caller decides what a given status means, same
+        as login()'s own httpx.HTTPError handling does NOT apply here:
+        raise_for_status() is deliberately never called), or None only on a
+        genuine network failure (unreachable host, timeout, malformed
+        JSON) - the same "None = best-effort read failed" convention
+        fetch_system_metrics() already uses.
+        """
+        try:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                resp = await client.request(
+                    method,
+                    f"{self.info.base_url}{path}",
+                    params=params,
+                    json=json_body,
+                    headers=self._auth_headers() if auth else None,
+                    timeout=5.0,
+                )
+                body = resp.json()
+        except (httpx.HTTPError, ValueError):
+            return None
+        return resp.status_code, body
+
+    async def fetch_ecosystem_status(self) -> tuple[int, object] | None:
+        """GET /api/ecosystem/status - no auth required server-side (same
+        trust tier as fetch_system_metrics() above)."""
+        return await self._request_json("GET", "/api/ecosystem/status")
+
+    async def fetch_telemetry_query(self, params: dict) -> tuple[int, object] | None:
+        """GET /api/telemetry/query - authenticated proxy to
+        HYDRA-UMC-DATALAKE through Server (see server.ts's own
+        DATALAKE_URL/proxyToDatalake()). A 503 with {"available": false}
+        means Server has no HYDRA_UMC_DATALAKE_URL configured, not a
+        transient failure - the caller distinguishes that from a genuine
+        network error (None) or any other status."""
+        return await self._request_json("GET", "/api/telemetry/query", auth=True, params=params)
+
+    async def fetch_telemetry_aggregate(self, params: dict) -> tuple[int, object] | None:
+        """Same contract as fetch_telemetry_query() above, against
+        /api/telemetry/aggregate."""
+        return await self._request_json("GET", "/api/telemetry/aggregate", auth=True, params=params)
+
+    async def fetch_admin_clients(self) -> tuple[int, object] | None:
+        """GET /api/admin/clients (admin-only server-side - a non-admin
+        session gets a real 403 here, not a partial/empty list)."""
+        return await self._request_json("GET", "/api/admin/clients", auth=True)
+
+    async def fetch_admin_logs(self, lines: int = 300) -> tuple[int, object] | None:
+        """GET /api/admin/logs (admin-only)."""
+        return await self._request_json("GET", "/api/admin/logs", auth=True, params={"lines": lines})
+
+    async def fetch_admin_server_config(self) -> tuple[int, object] | None:
+        """GET /api/admin/server-config (admin-only)."""
+        return await self._request_json("GET", "/api/admin/server-config", auth=True)
+
+    async def save_admin_server_port(self, port: int) -> tuple[int, object] | None:
+        """PUT /api/admin/server-config (admin-only) - see server.ts's own
+        resolvePort() comment for why this needs a restart to take
+        effect; it never rebinds the running listener."""
+        return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body={"port": port})
+
+    async def restart_server(self) -> tuple[int, object] | None:
+        """POST /api/admin/restart (admin-only) - graceful self-restart,
+        only meaningful behind a process supervisor configured to
+        auto-restart on exit (systemd/pm2/Docker) - see server.ts's own
+        comment on that route."""
+        return await self._request_json("POST", "/api/admin/restart", auth=True)
 
     async def fetch_state(self) -> HydraState:
         """One-shot REST read - used for the initial load before the
