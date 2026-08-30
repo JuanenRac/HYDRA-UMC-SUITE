@@ -26,6 +26,7 @@ from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_conf
 from hydra_suite.ui.panels.admin_clients_panel import AdminClientsPanel
 from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
 from hydra_suite.ui.panels.admin_server_panel import AdminServerPanel
+from hydra_suite.ui.panels.ai_family_status_panel import AiFamilyStatusPanel
 from hydra_suite.ui.panels.cameras_panel import CamerasPanel
 from hydra_suite.ui.panels.ecosystem_services_panel import EcosystemServicesPanel
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import EcosystemTelemetryPanel
@@ -86,6 +87,7 @@ class MainWindow(QMainWindow):
         # comment for exactly which real Server route it talks to.
         self.ecosystem_services_panel = EcosystemServicesPanel(self.controller)
         self.ecosystem_telemetry_panel = EcosystemTelemetryPanel(self.controller)
+        self.ai_family_status_panel = AiFamilyStatusPanel(self.controller)
         self.admin_clients_panel = AdminClientsPanel(self.controller)
         self.admin_logs_panel = AdminLogsPanel(self.controller)
         self.admin_server_panel = AdminServerPanel(self.controller)
@@ -102,6 +104,7 @@ class MainWindow(QMainWindow):
         dock_logs = self._make_dock(_("DOCK_LOGS"), self.logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_es_services = self._make_dock(_("DOCK_ECOSYSTEM_SERVICES"), self.ecosystem_services_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_es_telemetry = self._make_dock(_("DOCK_ECOSYSTEM_TELEMETRY"), self.ecosystem_telemetry_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_ai_family = self._make_dock(_("DOCK_AI_FAMILY"), self.ai_family_status_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_clients = self._make_dock(_("DOCK_ADMIN_CLIENTS"), self.admin_clients_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_logs = self._make_dock(_("DOCK_ADMIN_LOGS"), self.admin_logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_server = self._make_dock(_("DOCK_ADMIN_SERVER"), self.admin_server_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
@@ -121,7 +124,8 @@ class MainWindow(QMainWindow):
         # panels above by default.
         self.tabifyDockWidget(dock_logs, dock_es_services)
         self.tabifyDockWidget(dock_es_services, dock_es_telemetry)
-        self.tabifyDockWidget(dock_es_telemetry, dock_admin_clients)
+        self.tabifyDockWidget(dock_es_telemetry, dock_ai_family)
+        self.tabifyDockWidget(dock_ai_family, dock_admin_clients)
         self.tabifyDockWidget(dock_admin_clients, dock_admin_logs)
         self.tabifyDockWidget(dock_admin_logs, dock_admin_server)
         dock_traj.raise_()
@@ -132,7 +136,7 @@ class MainWindow(QMainWindow):
         # app with dockable panels normally does.
         for dock in (
             dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
-            dock_es_services, dock_es_telemetry, dock_admin_clients, dock_admin_logs, dock_admin_server,
+            dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
 

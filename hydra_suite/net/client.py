@@ -225,6 +225,15 @@ class HydraConnection(QObject):
         effect; it never rebinds the running listener."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body={"port": port})
 
+    async def fetch_hydra_info(self) -> tuple[int, object] | None:
+        """GET /api/hydra-info - no auth required (same discovery/identity
+        route ServerInfo.from_hydra_info() already parses at scan time,
+        see server_browser.py). Used here for a live re-fetch - product,
+        appVersion, uptime, controller/robot counts - so AdminServerPanel
+        can show a real snapshot alongside the port-config form, matching
+        STUDIO's own 0.2.9 redesign."""
+        return await self._request_json("GET", "/api/hydra-info")
+
     async def restart_server(self) -> tuple[int, object] | None:
         """POST /api/admin/restart (admin-only) - graceful self-restart,
         only meaningful behind a process supervisor configured to

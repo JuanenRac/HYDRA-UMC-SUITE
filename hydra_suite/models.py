@@ -246,6 +246,23 @@ class HydraState:
         controllers = self.controllers
         return controllers[0] if controllers else None
 
+    @property
+    def ai_hailo(self) -> dict[str, str]:
+        """The same `settings.aiHailo` field HYDRA-UMC STUDIO's own
+        Config > AI/Hailo tab reads/writes (store.tsx) - this is the
+        SAME server-persisted settings tree both apps share (GET/POST
+        /api/settings), not a separate SUITE-only concept, so a change
+        made in STUDIO's Config shows up here live too. Defaults match
+        STUDIO's own client-side defaults exactly (visionDevice=hailo8,
+        cognitiveDevice=none) so a settings.json that predates this
+        field (nobody has opened Config > AI/Hailo yet) reads the same
+        real-world default both apps already assume."""
+        raw_ai = (self.raw.get("settings") or {}).get("aiHailo") or {}
+        return {
+            "visionDevice": raw_ai.get("visionDevice") or "hailo8",
+            "cognitiveDevice": raw_ai.get("cognitiveDevice") or "none",
+        }
+
     def to_json_dict(self) -> dict[str, Any]:
         """The exact dict to POST back / send over the settings WebSocket
         message - just the raw payload, since every accessor above

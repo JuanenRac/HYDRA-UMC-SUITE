@@ -50,6 +50,50 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   caveat - treat both as written and reasoned through, not yet proven,
   until someone with the right tooling runs one for real.
 
+## [0.1.6] - Ecosystem panels: real charts, card layouts, cross-referenced data (STUDIO 0.2.9 parity)
+
+Direct user feedback after `0.1.5`: the 5 Ecosystem panels were
+functionally real but visually and functionally thin - flat tables, no
+charts, no way to filter, panels that didn't talk to each other. Same
+real data sources throughout, raised to match HYDRA-UMC STUDIO's own
+`0.2.9` redesign:
+
+- **`EcosystemTelemetryPanel`** - real charts via `PySide6.QtCharts`
+  (already part of the PySide6 dependency this app ships, unused
+  anywhere in this app until now): a `QLineSeries` for raw points, a
+  `QBarSeries` for aggregated buckets, both dark-themed to match this
+  app's own palette. Added a real min/max/avg/count stat row and quick
+  time-range preset buttons (5m/1h/6h/24h).
+- **`EcosystemServicesPanel`** - grouped by family into a real card grid
+  (the same grouping the manifests themselves already carry), with a
+  search box, per-family filter buttons, and a total/live/families stat
+  row.
+- **`AiFamilyStatusPanel`** (new panel, closing a real parity gap - `0.1.5`
+  shipped 5 panels, STUDIO's own `0.2.6` shipped 6) - filters the same
+  ecosystem-status scan to "Vision AI Node"/"Cognitive AI Node", and
+  cross-references `HydraState.ai_hailo` (new property, `models.py`) -
+  the SAME server-persisted `settings.aiHailo` field STUDIO's own
+  Config > AI/Hailo tab writes, not a SUITE-only concept - so a family
+  with real live nodes but its configured Hailo device set to "None"
+  surfaces a real, actionable warning banner here too.
+- **`AdminClientsPanel`** - admin-first sort, a live "Xm ago" connection
+  duration (ticking every second via its own `QTimer`, independent of
+  the 5s data poll), role-colored badges, connected/admin-count stats.
+- **`AdminLogsPanel`** - a real search box plus tag filter buttons
+  extracted client-side from each line's own `[TAG]` prefix (the same
+  real convention `AdminLogs.tsx`'s redesign uses).
+- **`AdminServerPanel`** - now also shows a real live snapshot from the
+  new `HydraConnection.fetch_hydra_info()` (product, uptime,
+  controller/robot counts, hostname) above the port-config form.
+- i18n: 29 new keys across all 7 `language/*.lng` files.
+- Verified for real: a real offscreen Qt session constructing the actual
+  `MainWindow` (zero exceptions across all 6 Ecosystem panels), the real
+  chart-rendering methods (`_render_line_chart`/`_render_bar_chart`) and
+  the card-rebuild methods exercised directly with real sample data (not
+  just construction), a real HTTP round-trip proving
+  `fetch_hydra_info()` parses a real response, and `HydraState.ai_hailo`
+  checked against both a populated and an empty settings tree.
+
 ## [0.1.5] - HYDRA-UMC menu becomes a real ecosystem control/visibility surface (STUDIO parity)
 
 - 5 new dockable panels, desktop counterparts to the same-named panels

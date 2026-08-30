@@ -9,6 +9,11 @@
 # own Server. Server name stays out of scope here too - same reasoning as
 # the STUDIO version (that field belongs to the ordinary settings
 # read-modify-write cycle, not this admin-only surface).
+#
+# Also shows a real, live snapshot from GET /api/hydra-info (product,
+# uptime, controller/robot counts, hostname) above the port form -
+# HydraConnection.fetch_hydra_info(), added alongside this redesign -
+# matching STUDIO's own 0.2.9 AdminServer.tsx.
 # =============================================================================
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ import asyncio
 
 from PySide6.QtWidgets import (
     QGridLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -26,6 +32,27 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
+
+
+def _info_stat(label_text: str) -> tuple[QWidget, QLabel]:
+    box = QWidget()
+    layout = QVBoxLayout(box)
+    layout.setContentsMargins(0, 0, 0, 0)
+    caption = QLabel(label_text)
+    caption.setStyleSheet("color: #7f8ea1; font-size: 9px; font-weight: 700; text-transform: uppercase;")
+    layout.addWidget(caption)
+    value = QLabel("-")
+    value.setStyleSheet("color: #e6e6e6; font-size: 12px; font-weight: 800; font-family: Consolas, monospace;")
+    layout.addWidget(value)
+    return box, value
+
+
+def _format_uptime(seconds: int | None) -> str:
+    if seconds is None:
+        return "-"
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    return f"{hours}h {minutes}m"
 
 
 class AdminServerPanel(QWidget):
@@ -45,6 +72,30 @@ class AdminServerPanel(QWidget):
         self._status_label = QLabel(_("MSG_ADMIN_ONLY"))
         self._status_label.setStyleSheet("color: #7f8ea1;")
         layout.addWidget(self._status_label)
+
+        self._info_frame = QWidget()
+        self._info_frame.setStyleSheet("background: #12161c; border: 1px solid #262b33; border-radius: 8px;")
+        info_layout = QVBoxLayout(self._info_frame)
+        info_layout.setContentsMargins(12, 10, 12, 10)
+        product_row = QHBoxLayout()
+        self._product_label = QLabel("-")
+        self._product_label.setStyleSheet("color: #e6e6e6; font-size: 11px; font-weight: 700;")
+        product_row.addWidget(self._product_label)
+        product_row.addStretch(1)
+        self._version_label = QLabel("-")
+        self._version_label.setStyleSheet("color: #556070; font-size: 9px; font-family: Consolas, monospace;")
+        product_row.addWidget(self._version_label)
+        info_layout.addLayout(product_row)
+        stats_row = QHBoxLayout()
+        uptime_box, self._uptime_value = _info_stat(_("LBL_ADMIN_SERVER_STAT_UPTIME"))
+        controllers_box, self._controllers_value = _info_stat(_("LBL_ADMIN_SERVER_STAT_CONTROLLERS"))
+        robots_box, self._robots_value = _info_stat(_("LBL_ADMIN_SERVER_STAT_ROBOTS"))
+        host_box, self._host_value = _info_stat(_("LBL_ADMIN_SERVER_STAT_HOST"))
+        for box in (uptime_box, controllers_box, robots_box, host_box):
+            stats_row.addWidget(box)
+        info_layout.addLayout(stats_row)
+        self._info_frame.setVisible(False)
+        layout.addWidget(self._info_frame)
 
         form = QGridLayout()
         self._port_label = QLabel(_("LBL_ADMIN_SERVER_PORT"))
@@ -92,6 +143,18 @@ class AdminServerPanel(QWidget):
         pending = body.get("pendingPort")
         self._port_label.setText(_("LBL_ADMIN_SERVER_PORT_CURRENT", port=self._current_port if self._current_port is not None else "..."))
         self._port_edit.setText(str(pending if pending is not None else self._current_port or ""))
+
+        info_result = await conn.fetch_hydra_info()
+        if info_result is not None:
+            info_status, info_body = info_result
+            if info_status == 200 and isinstance(info_body, dict):
+                self._info_frame.setVisible(True)
+                self._product_label.setText(str(info_body.get("product") or "-"))
+                self._version_label.setText(f"v{info_body.get('appVersion')}" if info_body.get("appVersion") else "-")
+                self._uptime_value.setText(_format_uptime(info_body.get("uptimeSeconds")))
+                self._controllers_value.setText(str(info_body.get("controllerCount", "-")))
+                self._robots_value.setText(str(info_body.get("robotCount", "-")))
+                self._host_value.setText(str(info_body.get("hostname") or "-"))
 
     async def _save_port(self) -> None:
         conn = self._controller.active_connection
