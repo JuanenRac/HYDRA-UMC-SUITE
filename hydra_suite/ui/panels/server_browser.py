@@ -122,17 +122,13 @@ class ServerBrowserPanel(QWidget):
         self._port_spin.setRange(1, 65535)
         self._port_spin.setValue(DEFAULT_PORT)
         manual_row.addWidget(self._port_spin)
-        # Every real HYDRA-UMC STUDIO server seeds the same default admin/admin
-        # account on its own first-ever start (see models.py's own ServerInfo
-        # docstring) - these two fields default to it too, editable right here
-        # for a server whose admin account was renamed or that uses a
-        # dedicated operator account instead, without a separate dialog step
-        # for the common case.
-        self._username_edit = QLineEdit("admin")
+        # A discovered server is never an authorization grant. Operators enter
+        # credentials explicitly; production bootstrap has no known default.
+        self._username_edit = QLineEdit()
         self._username_edit.setPlaceholderText(_("LBL_USERNAME"))
         self._username_edit.setMaximumWidth(90)
         manual_row.addWidget(self._username_edit)
-        self._password_edit = QLineEdit("admin")
+        self._password_edit = QLineEdit()
         self._password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self._password_edit.setPlaceholderText(_("LBL_PASSWORD"))
         self._password_edit.setMaximumWidth(90)
@@ -209,8 +205,10 @@ class ServerBrowserPanel(QWidget):
         if not host:
             return
         port = self._port_spin.value()
-        username = self._username_edit.text().strip() or "admin"
+        username = self._username_edit.text().strip()
         password = self._password_edit.text()
+        if not username or not password:
+            return
         info = ServerInfo(host=host, port=port, hostname=host, username=username, password=password)
         conn_id = self._controller.add_server(info)
         # A manually-added server's real identity (hostname, robot count,
@@ -270,7 +268,9 @@ class ServerBrowserPanel(QWidget):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
         username, password = dialog.credentials()
-        conn.info.username = username or "admin"
+        if not username or not password:
+            return
+        conn.info.username = username
         conn.info.password = password
         # Credentials just changed - the running connection may be sitting
         # on a stale/rejected token (or none at all, if the old ones never

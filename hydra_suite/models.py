@@ -269,19 +269,10 @@ class ServerInfo:
     robot_count: int = 0
     uptime_seconds: int = 0
     nickname: str = ""  # user-assigned label, not from the server
-    # Credentials for POST /api/login - every real HYDRA-UMC STUDIO server in
-    # this ecosystem seeds the same default admin/admin account on its own
-    # first-ever start (see that project's own users.ts and its real
-    # multi-user account system - server.ts also supports creating
-    # additional lower-privilege "operator" accounts, see Config > Users in
-    # the browser UI), so these default to it rather than forcing an
-    # interactive prompt per server for what's
-    # already public knowledge in the server's own source - a swarm tool
-    # connecting to many servers at once would otherwise mean a login dialog
-    # per server. Editable per-ServerInfo in case a real deployment renamed
-    # the admin account or uses a dedicated operator account instead.
-    username: str = "admin"
-    password: str = "admin"
+    # Credentials are always entered by the operator. Production bootstrap no
+    # longer provides a source-known administrator account to discovered peers.
+    username: str = ""
+    password: str = ""
 
     @property
     def base_url(self) -> str:

@@ -50,6 +50,20 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   caveat - treat both as written and reasoned through, not yet proven,
   until someone with the right tooling runs one for real.
 
+## [0.1.4] - Removed the hardcoded admin/admin login default
+
+- **`models.py`/`server_browser.py`** - `ServerInfo` and the manual/edit
+  connection dialogs no longer pre-fill `admin`/`admin`. Production
+  HYDRA-UMC-SERVER instances refuse to seed that source-known account
+  now (see that repo's own fail-closed bootstrap changelog entry), so a
+  discovered server is never treated as an implicit authorization grant.
+  Both dialogs now refuse to add or update a connection with an empty
+  username or password.
+- `SECURITY.md` documents the real expectation.
+- `tools/ci_validate.py` gained `validate_local_markdown_links()`,
+  rejecting a relative Markdown link whose target file doesn't exist.
+- `CI_VALIDATION=PASS`, `PYTHON_COMPILE=PASS`.
+
 ## [0.1.3] - Real-time log viewer with filters
 
 - New `logging_handler.py` bridges Python's own stdlib `logging` (every
