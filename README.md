@@ -61,9 +61,12 @@ without a dedicated mesh set.
 
 ## 🏭 Features
 
-- **🔍 Network discovery** - concurrent subnet scan for real HYDRA-UMC
-  STUDIO servers (`GET /api/hydra-info`), plus manual add-by-address for
-  anything a scan can't reach (a different subnet, a VPN tunnel).
+- **🔍 Network discovery** - a concurrent subnet scan (`GET /api/hydra-info`)
+  and real mDNS/Bonjour (`_hydra._tcp`, the same service `server.ts`
+  publishes and HYDRA-UMC-IOS-CONTROL already queries) run together for
+  real HYDRA-UMC STUDIO servers, deduplicated by host:port, plus manual
+  add-by-address for anything neither can reach (a different subnet, a
+  VPN tunnel, multicast blocked by the network).
 - **🐝 Swarm connections** - connect to as many HYDRA-UMC servers
   simultaneously as you want, each with its own live WebSocket sync; pick
   which one is "active" for the other panels.
@@ -121,7 +124,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
 │   ├── i18n.py                     # 5-language KEY=Value loader (language/*.lng)
 │   ├── net/
-│   │   ├── discovery.py             # Concurrent subnet scan against GET /api/hydra-info
+│   │   ├── discovery.py             # Concurrent subnet scan + real mDNS (_hydra._tcp) against GET /api/hydra-info, deduplicated
 │   │   └── client.py                # Per-server REST + WebSocket connection, live bidirectional sync, login
 │   ├── render/
 │   │   ├── kinematics.py            # Forward kinematics (ported from HYDRA-UMC-STUDIO's own urKinematicsShared.ts)

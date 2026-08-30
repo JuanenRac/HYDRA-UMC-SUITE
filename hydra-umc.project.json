@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "ecosystem": "HYDRA-UMC",
   "name": "HYDRA-UMC-SUITE",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "role": "ui",
   "stack": "python",
   "technologies": [
@@ -14,7 +14,7 @@
   "family": "Core Backend & Clients",
   "parent": "HYDRA-UMC-SERVER",
   "build": "No pyproject.toml. __init__.py's __version__ is the real source. Packaged as standalone .exe using build_exe.bat/.sh.",
-  "notes": "Desktop swarm command center, packaged as a standalone executable.",
+  "notes": "Desktop swarm command center, packaged as a standalone executable. Real server discovery (net/discovery.py): concurrent subnet /24 scan plus real mDNS (_hydra._tcp, matching what server.ts publishes and HYDRA-UMC-IOS-CONTROL already queries), deduplicated by (host, port). tests/verify_discovery.py gives the pure candidate-host enumeration and cross-source dedup logic real, deterministic, no-network coverage (this repo has no pytest suite - verify_*.py scripts are its own real testing convention).",
   "native_version": {
     "file": "hydra_suite/__init__.py",
     "pattern": "__version__\\s*=\\s*\"(\\d+)\\.(\\d+)\\.(\\d+)\""

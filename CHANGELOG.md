@@ -14,6 +14,25 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Unreleased" below for the change that introduced this.
 
+## [0.1.7] - Real, deterministic coverage for net/discovery.py's pure logic
+
+- **Added `tests/verify_discovery.py`** (new) - net/discovery.py's
+  subnet-scan and real mDNS discovery (`_hydra._tcp`, matching the
+  service `server.ts`/`HYDRA-UMC-IOS-CONTROL` already use) were already
+  real and complete, but had zero automated coverage: `test_net_manual.py`
+  only exercises `probe_host()` against an already-running real server,
+  by hand, and can't run in CI. This new script needs no network, no
+  real server, and no zeroconf multicast socket - it verifies
+  `candidate_hosts_for()`'s pure `/24` enumeration directly, and
+  `discover_servers()`'s own `(host, port)` dedup logic across its two
+  concurrent sources by monkeypatching `scan_subnets`/`discover_mdns` to
+  fake async generators (confirming an entry both fake sources yield is
+  reported exactly once). Same real/no-hardware-needed verification
+  boundary this ecosystem already applies everywhere else, following
+  this repo's own existing `verify_*.py` convention (a plain script with
+  a `failures` counter and `sys.exit(1)`, not a pytest suite - this repo
+  has none).
+
 ## [Unreleased] - Chinese and Japanese added to the language menu
 
 - New `language/chinese.lng` (简体中文) and `language/japanese.lng` (日本語) -
@@ -49,6 +68,10 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   See `installer/README.md`'s own "Verification status" for the honest
   caveat - treat both as written and reasoned through, not yet proven,
   until someone with the right tooling runs one for real.
+
+## [0.1.7]
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.1.6] - Ecosystem panels: real charts, card layouts, cross-referenced data (STUDIO 0.2.9 parity)
 
