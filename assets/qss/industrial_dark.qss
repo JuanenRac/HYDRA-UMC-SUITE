@@ -73,8 +73,8 @@ QToolBar#commandDeck::separator {
 QWidget#suiteBrand {
     background: #0e3045;
     border: 1px solid #2d7695;
-    border-radius: 9px;
-    padding: 5px;
+    border-radius: 12px;
+    padding: 7px;
 }
 QLabel#commandDeckTitle {
     color: #edf7ff;
@@ -86,7 +86,7 @@ QLabel#commandDeckTitle {
 QToolButton#commandDeckNav, QToolButton#commandDeckAbout {
     background: #10243a;
     border: 1px solid #294965;
-    border-radius: 8px;
+    border-radius: 10px;
     color: #c8e5f5;
     font-weight: 600;
     padding: 8px 12px;
@@ -122,11 +122,15 @@ QDockWidget {
     titlebar-close-icon: none;
     color: #edf7ff;
     border: 1px solid #294965;
+    border-radius: 16px;
+    background: #101d30;
 }
 QDockWidget::title {
     background-color: #101d30;
-    padding: 8px 10px;
+    padding: 10px 13px;
     border-bottom: 1px solid #294965;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600;
@@ -146,9 +150,11 @@ QDockWidget::close-button:hover, QDockWidget::float-button:hover {
 QTabBar::tab {
     background-color: #0b1a2a;
     color: #91a8bd;
-    padding: 8px 15px;
+    padding: 9px 16px;
     border: 1px solid #1d4056;
     border-bottom: none;
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
 }
 QTabBar::tab:selected {
     background-color: #142b43;
@@ -156,22 +162,23 @@ QTabBar::tab:selected {
     border-bottom: 2px solid #38d4e6;
 }
 QTabWidget::pane {
-    border: 1px solid #1c232d;
-    background-color: #0f131a;
+    border: 1px solid #294965;
+    border-radius: 14px;
+    background-color: #101d30;
 }
 
 QGroupBox {
-    border: 1px solid #1c232d;
-    border-radius: 4px;
-    margin-top: 12px;
-    padding-top: 8px;
-    background-color: #0f131a;
+    border: 1px solid #294965;
+    border-radius: 16px;
+    margin-top: 18px;
+    padding: 15px 12px 12px 12px;
+    background-color: #101d30;
 }
 QGroupBox::title {
     subcontrol-origin: margin;
-    left: 8px;
-    padding: 0 4px;
-    color: #7f8ea1;
+    left: 14px;
+    padding: 0 7px;
+    color: #38d4e6;
     text-transform: uppercase;
     font-size: 11px;
     letter-spacing: 1px;
@@ -180,8 +187,8 @@ QGroupBox::title {
 QPushButton {
     background-color: #10243a;
     border: 1px solid #294965;
-    border-radius: 7px;
-    padding: 7px 14px;
+    border-radius: 10px;
+    padding: 9px 15px;
     color: #edf7ff;
 }
 QPushButton:hover {
@@ -216,8 +223,8 @@ QPushButton#dangerAction:hover {
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
     background-color: #081623;
     border: 1px solid #294965;
-    border-radius: 6px;
-    padding: 6px 8px;
+    border-radius: 10px;
+    padding: 8px 10px;
     selection-background-color: #397dff;
 }
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
@@ -229,7 +236,8 @@ QComboBox::drop-down {
 }
 QComboBox QAbstractItemView {
     background-color: #12161d;
-    border: 1px solid #232b36;
+    border: 1px solid #315773;
+    border-radius: 10px;
     selection-background-color: #1e94a8;
     selection-color: #0b0e13;
 }
@@ -237,6 +245,24 @@ QComboBox QAbstractItemView {
 QSlider::groove:horizontal {
     height: 4px;
     background: #1c232d;
+    border-radius: 2px;
+}
+
+/* Updater-equivalent card treatment for the central work surfaces.  Widgets
+   that set their object name to ``deckPanel`` inherit the same 16px shell
+   used by Updater's QML SectionPanel component. */
+QWidget#deckPanel, QFrame#deckPanel {
+    background-color: #101d30;
+    border: 1px solid #294965;
+    border-radius: 16px;
+}
+QFrame#metricCard {
+    background-color: #14253b;
+    border: 1px solid #316077;
+    border-radius: 11px;
+}
+QLabel#metricAccent {
+    background-color: #38d4e6;
     border-radius: 2px;
 }
 QSlider::sub-page:horizontal {
