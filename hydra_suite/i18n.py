@@ -3,7 +3,8 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Same 5-language convention (English/Spanish/Italian/French/German) and
+# Same 7-language convention (English/Spanish/Italian/French/German/Chinese/
+# Japanese) and
 # the same plain KEY=Value language/<name>.lng file mechanism URTC-FLASHER
 # and URTC-TESTER already use (see this project's own memory: "keep
 # language files synced across all ecosystem projects") - deliberately

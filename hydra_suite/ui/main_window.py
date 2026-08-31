@@ -14,11 +14,22 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QActionGroup
-from PySide6.QtWidgets import QDockWidget, QMainWindow, QMessageBox
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QActionGroup, QIcon
+from PySide6.QtSvgWidgets import QSvgWidget
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QSizePolicy,
+    QToolBar,
+    QToolButton,
+    QWidget,
+)
 
 from hydra_suite import __version__
 from hydra_suite.app import SuiteController
@@ -38,6 +49,7 @@ from hydra_suite.ui.panels.trajectory_panel import TrajectoryPanel
 from hydra_suite.ui.panels.viewport_panel import ViewportPanel
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
+IMAGES_DIR = Path(__file__).resolve().parent.parent.parent / "images"
 
 
 class MainWindow(QMainWindow):
@@ -45,6 +57,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("HYDRA-UMC SUITE")
         self.setMinimumSize(1920, 1080)
+        self._apply_window_icon()
 
         self.controller = SuiteController(self)
 
@@ -57,7 +70,22 @@ class MainWindow(QMainWindow):
 
         self._build_menu()
         self._build_panels()
+        self._build_command_deck()
         self._build_status_bar()
+
+    def _apply_window_icon(self) -> None:
+        """Use the same official HYDRA-UMC mark as the Updater taskbar.
+
+        The ICO is preferred for native Windows title/taskbar integration;
+        the SVG remains a portable fallback for a source checkout on Linux.
+        Missing artwork must never prevent the control client from starting.
+        """
+        for candidate in (IMAGES_DIR / "HYDRA_UMC_ICON.ico", IMAGES_DIR / "HYDRA_UMC_ICON.svg"):
+            if candidate.is_file():
+                icon = QIcon(str(candidate))
+                if not icon.isNull():
+                    self.setWindowIcon(icon)
+                    return
 
     # --- panels ---------------------------------------------------------------
 
@@ -109,6 +137,22 @@ class MainWindow(QMainWindow):
         dock_admin_logs = self._make_dock(_("DOCK_ADMIN_LOGS"), self.admin_logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_server = self._make_dock(_("DOCK_ADMIN_SERVER"), self.admin_server_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
+        self._docks = {
+            "servers": dock_servers,
+            "overview": dock_overview,
+            "viewport": dock_viewport,
+            "robot": dock_robot,
+            "trajectory": dock_traj,
+            "cameras": dock_cameras,
+            "logs": dock_logs,
+            "ecosystem_services": dock_es_services,
+            "ecosystem_telemetry": dock_es_telemetry,
+            "ai_family": dock_ai_family,
+            "admin_clients": dock_admin_clients,
+            "admin_logs": dock_admin_logs,
+            "admin_server": dock_admin_server,
+        }
+
         # Sensible default arrangement - the user is free to drag any of
         # these into any other configuration afterward (float/merge/
         # split/close), this is just where they start.
@@ -139,6 +183,116 @@ class MainWindow(QMainWindow):
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
+
+    # --- command deck -------------------------------------------------------
+
+    def _build_command_deck(self) -> None:
+        """Build the visual command deck without inventing a second UI.
+
+        Each navigation control raises one of the application's existing,
+        dockable panels.  That keeps the game-console presentation useful:
+        it is a quick route to real Server, Robot, Camera and Log surfaces,
+        while the operator can still rearrange every dock freely afterwards.
+        """
+        deck = QToolBar(_("TOPBAR_PRODUCT"), self)
+        deck.setObjectName("commandDeck")
+        deck.setMovable(False)
+        deck.setFloatable(False)
+        deck.setIconSize(QSize(34, 34))
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, deck)
+        self._command_deck = deck
+
+        # QIcon is intentionally used for the native title/taskbar icon
+        # above, where Windows expects a static ICO.  In the visible command
+        # deck, QSvgWidget owns the original SVG's QSvgRenderer instead, so
+        # its SMIL animateTransform receives repaint requests and remains
+        # animated at runtime.
+        logo_path = IMAGES_DIR / "HYDRA_UMC_ICON.svg"
+        if logo_path.is_file():
+            brand = QSvgWidget(str(logo_path), deck)
+            brand.renderer().setAnimationEnabled(True)
+        else:
+            brand = QLabel("H", deck)
+        brand.setObjectName("suiteBrand")
+        brand.setToolTip(_("TOPBAR_PRODUCT"))
+        brand.setFixedSize(44, 44)
+        deck.addWidget(brand)
+
+        title = QLabel(_("TOPBAR_PRODUCT"), deck)
+        title.setObjectName("commandDeckTitle")
+        deck.addWidget(title)
+        deck.addSeparator()
+
+        self._add_deck_navigation("DOCK_OVERVIEW", "overview")
+        self._add_deck_navigation("DOCK_ROBOT_CONTROL", "robot")
+        self._add_deck_navigation("TAB_CAMERAS", "cameras")
+        self._add_deck_navigation("DOCK_TRAJECTORY", "trajectory")
+        self._add_deck_navigation("DOCK_LOGS", "logs")
+
+        spacer = QWidget(deck)
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        deck.addWidget(spacer)
+
+        self._state_chip = QLabel(deck)
+        self._state_chip.setObjectName("commandDeckState")
+        deck.addWidget(self._state_chip)
+
+        self._target_chip = QLabel(deck)
+        self._target_chip.setObjectName("commandDeckTarget")
+        deck.addWidget(self._target_chip)
+
+        self._clock_chip = QLabel(deck)
+        self._clock_chip.setObjectName("commandDeckClock")
+        deck.addWidget(self._clock_chip)
+
+        about = QToolButton(deck)
+        about.setObjectName("commandDeckAbout")
+        about.setText(_("MENU_ABOUT"))
+        about.clicked.connect(self._show_about)
+        deck.addWidget(about)
+
+        self.controller.active_status_changed.connect(self._update_command_deck_status)
+        self.controller.active_connection_changed.connect(self._update_command_deck_target)
+        self._update_command_deck_status("disconnected")
+        self._update_command_deck_target("")
+        self._update_command_deck_clock()
+        self._clock_timer = QTimer(self)
+        self._clock_timer.timeout.connect(self._update_command_deck_clock)
+        self._clock_timer.start(1000)
+
+    def _add_deck_navigation(self, label_key: str, dock_key: str) -> None:
+        button = QToolButton(self._command_deck)
+        button.setObjectName("commandDeckNav")
+        button.setText(_(label_key))
+        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        button.clicked.connect(lambda _checked=False, key=dock_key: self._activate_dock(key))
+        self._command_deck.addWidget(button)
+
+    def _activate_dock(self, key: str) -> None:
+        dock = self._docks[key]
+        dock.show()
+        dock.raise_()
+
+    def _update_command_deck_status(self, status: str) -> None:
+        status_key = {
+            "connected": "TOPBAR_STATUS_CONNECTED",
+            "connecting": "TOPBAR_STATUS_CONNECTING",
+            "error": "TOPBAR_STATUS_ERROR",
+        }.get(status, "TOPBAR_STATUS_DISCONNECTED")
+        colour = {
+            "connected": "#43db9b",
+            "connecting": "#f3ba55",
+            "error": "#ee6b80",
+        }.get(status, "#91a8bd")
+        self._state_chip.setText(f"{_('TOPBAR_SYSTEM_STATE')}\n● {_ (status_key)}")
+        self._state_chip.setStyleSheet(f"color: {colour};")
+
+    def _update_command_deck_target(self, connection_id: str) -> None:
+        target = connection_id or _("TOPBAR_NO_TARGET")
+        self._target_chip.setText(f"{_('TOPBAR_ACTIVE_TARGET')}\n{target}")
+
+    def _update_command_deck_clock(self) -> None:
+        self._clock_chip.setText(f"{_('TOPBAR_UTC')}\n{datetime.now(timezone.utc):%H:%M:%S}")
 
     def _build_menu(self) -> None:
         menu = self.menuBar()

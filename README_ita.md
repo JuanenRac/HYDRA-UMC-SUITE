@@ -62,6 +62,10 @@ qualsiasi modello privo di un proprio set di mesh.
 
 ---
 
+## ✨ Console visiva di comando
+
+Il desktop include ora una console di comando persistente, ispirata a un menu di gioco, con l'icona ufficiale HYDRA-UMC e la palette blu notte/ciano di HYDRA-UMC-UPDATER. I controlli Dashboard, Robot, Camere, Traiettoria e Log aprono i pannelli dockabili reali; a destra sono visibili stato della connessione, destinazione server attiva e ora UTC. È una superficie visiva delle funzioni reali di Suite, non una dashboard simulata.
+
 ## 🏭 Funzionalità
 
 - **🔍 Scoperta di rete** - scansione concorrente della sottorete alla
@@ -94,7 +98,8 @@ qualsiasi modello privo di un proprio set di mesh.
   lasciarlo lì funziona già di serie - Qt/il window manager del sistema
   operativo lo posiziona come qualsiasi altra finestra, senza bisogno di
   una "modalità multi-monitor" separata.
-- **🌐 5 lingue** - English, Español, Italiano, Français, Deutsch (stessa
+- **🌐 7 lingue** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語 (stessa
   convenzione `language/*.lng` di URTC-FLASHER/URTC-TESTER), si cambia dal
   menu Lingua (effettivo dopo un riavvio).
 - **📷 Telecamere** - elenco reale delle telecamere per controllore (quali
@@ -129,7 +134,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView - viste snelle e facilmente mutabili sulla forma reale di settings.json
 │   ├── app.py                      # SuiteController - possiede lo sciame di connessioni, la selezione "attiva", ogni pannello parla con questo
-│   ├── i18n.py                     # Caricatore a 5 lingue CHIAVE=Valore (language/*.lng)
+│   ├── i18n.py                     # Caricatore a 7 lingue CHIAVE=Valore (language/*.lng)
 │   ├── net/
 │   │   ├── discovery.py             # Scansione concorrente della sottorete contro GET /api/hydra-info
 │   │   └── client.py                # Connessione REST + WebSocket per server, sincronizzazione bidirezionale in tempo reale, login

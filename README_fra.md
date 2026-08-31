@@ -64,6 +64,10 @@ mailles dédié.
 
 ---
 
+## ✨ Console visuelle de commande
+
+Le bureau inclut maintenant une console de commande persistante, inspirée d'un menu de jeu, avec l'icône officielle HYDRA-UMC et la palette bleu nuit/cyan de HYDRA-UMC-UPDATER. Ses contrôles Tableau de bord, Robot, Caméras, Trajectoire et Logs ouvrent les vrais panneaux dockables ; la droite affiche l'état de connexion, la cible serveur active et l'heure UTC. C'est une couche visuelle sur les fonctions réelles de Suite, pas un tableau de bord simulé.
+
 ## 🏭 Fonctionnalités
 
 - **🔍 Découverte réseau** - balayage concurrent du sous-réseau à la
@@ -98,7 +102,8 @@ mailles dédié.
   d'office - Qt/le gestionnaire de fenêtres du système d'exploitation le
   place comme n'importe quelle autre fenêtre, sans « mode multi-écran »
   supplémentaire.
-- **🌐 5 langues** - English, Español, Italiano, Français, Deutsch (même
+- **🌐 7 langues** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語 (même
   convention `language/*.lng` que URTC-FLASHER/URTC-TESTER), se change
   depuis le menu Langue (effectif après un redémarrage).
 - **📷 Caméras** - liste réelle des caméras par contrôleur (quelles
@@ -133,7 +138,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView - vues legeres et facilement mutables sur la forme reelle de settings.json
 │   ├── app.py                      # SuiteController - possede l'essaim de connexions, la selection "active", chaque panneau communique avec lui
-│   ├── i18n.py                     # Chargeur 5 langues CLE=Valeur (language/*.lng)
+│   ├── i18n.py                     # Chargeur 7 langues CLE=Valeur (language/*.lng)
 │   ├── net/
 │   │   ├── discovery.py             # Balayage concurrent du sous-reseau contre GET /api/hydra-info
 │   │   └── client.py                # Connexion REST + WebSocket par serveur, synchronisation bidirectionnelle en direct, connexion

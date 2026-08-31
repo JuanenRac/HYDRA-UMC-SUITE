@@ -20,14 +20,18 @@
 # =============================================================================
 import asyncio
 import sys
+from pathlib import Path
 
 import qasync
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication
 
 from hydra_suite.ui.main_window import MainWindow
 from hydra_suite.ui.theme import apply_theme
+
+
+IMAGES_DIR = Path(__file__).resolve().parent / "images"
 
 
 def main() -> int:
@@ -47,6 +51,14 @@ def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("HYDRA-UMC SUITE")
     app.setOrganizationName("Electro Hobby 3D")
+    # Apply the official ecosystem mark before the main window exists so
+    # Windows taskbar grouping and any future dialogs inherit it too.
+    for icon_path in (IMAGES_DIR / "HYDRA_UMC_ICON.ico", IMAGES_DIR / "HYDRA_UMC_ICON.svg"):
+        if icon_path.is_file():
+            icon = QIcon(str(icon_path))
+            if not icon.isNull():
+                app.setWindowIcon(icon)
+                break
     apply_theme(app)
 
     loop = qasync.QEventLoop(app)

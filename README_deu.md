@@ -62,6 +62,10 @@ gebauter "Generic"-Fallback für jedes Modell ohne eigenen Mesh-Satz.
 
 ---
 
+## ✨ Visuelles Command Deck
+
+Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Command Deck mit dem offiziellen HYDRA-UMC-Symbol und der dunkelblau/cyanfarbenen Sprache von HYDRA-UMC-UPDATER. Die Steuerelemente für Übersicht, Robotersteuerung, Kameras, Trajektorie und Logs öffnen die jeweiligen echten, andockbaren Panels; rechts stehen Verbindungsstatus, aktives Serverziel und UTC-Uhr. Es ist eine visuelle Ebene über echten Suite-Funktionen, kein simuliertes Dashboard.
+
 ## 🏭 Funktionen
 
 - **🔍 Netzwerkerkennung** - gleichzeitiger Subnetz-Scan nach echten
@@ -95,7 +99,8 @@ gebauter "Generic"-Fallback für jedes Modell ohne eigenen Mesh-Satz.
   lassen, funktioniert daher von Haus aus: Qt/der Fenstermanager des
   Betriebssystems platziert es wie jedes andere Fenster, ganz ohne
   eigenen "Multi-Monitor-Modus".
-- **🌐 5 Sprachen** - English, Español, Italiano, Français, Deutsch
+- **🌐 7 Sprachen** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語
   (dieselbe `language/*.lng`-Konvention wie URTC-FLASHER/URTC-TESTER), wird
   über das Sprachmenü gewechselt (wirksam nach einem Neustart).
 - **📷 Kameras** - echte Kameraliste pro Controller (welche Kameras

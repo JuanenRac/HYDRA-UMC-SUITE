@@ -59,6 +59,10 @@ without a dedicated mesh set.
 
 ---
 
+## ✨ Visual Command Deck
+
+The desktop now has a persistent, game-console-inspired command deck using the official HYDRA-UMC icon and the deep navy/cyan language of HYDRA-UMC-UPDATER. Its Dashboard, Robot Control, Cameras, Trajectory and Logs controls raise the corresponding real dockable panels; its right side shows live connection state, selected server target and UTC time. It is a visual layer over existing Suite functions, not a simulated dashboard.
+
 ## 🏭 Features
 
 - **🔍 Network discovery** - a concurrent subnet scan (`GET /api/hydra-info`)
@@ -89,7 +93,8 @@ without a dedicated mesh set.
   dragging it onto a second (or third) physical monitor and leaving it
   there works out of the box - Qt/the OS window manager places it like
   any other window, no extra "multi-monitor mode" needed.
-- **🌐 5 languages** - English, Español, Italiano, Français, Deutsch
+- **🌐 7 languages** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語
   (same `language/*.lng` convention as URTC-FLASHER/URTC-TESTER), switch
   from the Language menu (takes effect after a restart).
 - **📷 Cameras** - real per-controller camera roster (which cameras
@@ -122,7 +127,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView - thin, mutation-friendly views over the real settings.json shape
 │   ├── app.py                      # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
-│   ├── i18n.py                     # 5-language KEY=Value loader (language/*.lng)
+│   ├── i18n.py                     # 7-language KEY=Value loader (language/*.lng)
 │   ├── net/
 │   │   ├── discovery.py             # Concurrent subnet scan + real mDNS (_hydra._tcp) against GET /api/hydra-info, deduplicated
 │   │   └── client.py                # Per-server REST + WebSocket connection, live bidirectional sync, login

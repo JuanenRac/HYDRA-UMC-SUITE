@@ -62,6 +62,10 @@ propio.
 
 ---
 
+## ✨ Consola visual de mando
+
+El escritorio incorpora una consola de mando persistente, inspirada en un menú de videojuego, con el icono oficial HYDRA-UMC y la paleta azul marino/cian de HYDRA-UMC-UPDATER. Sus controles de Panel, Control de robot, Cámaras, Trayectoria y Logs elevan los paneles acoplables reales; a la derecha muestra estado vivo de conexión, servidor activo y hora UTC. Es una capa visual sobre funciones reales de Suite, no un dashboard simulado.
+
 ## 🏭 Funcionalidades
 
 - **🔍 Descubrimiento de red** - escaneo concurrente de subred en busca de
@@ -94,7 +98,8 @@ propio.
   funciona de fábrica - Qt/el gestor de ventanas del sistema operativo lo
   coloca como cualquier otra ventana, sin necesitar un "modo
   multi-monitor" aparte.
-- **🌐 5 idiomas** - English, Español, Italiano, Français, Deutsch (misma
+- **🌐 7 idiomas** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語 (misma
   convención `language/*.lng` que URTC-FLASHER/URTC-TESTER), se cambia
   desde el menú Idioma (efectivo tras reiniciar).
 - **📷 Cámaras** - listado real de cámaras por controladora (qué cámaras
@@ -129,7 +134,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView - vistas finas, faciles de mutar sobre la forma real de settings.json
 │   ├── app.py                      # SuiteController - posee el enjambre de conexiones, la seleccion "activa", cada panel habla con esto
-│   ├── i18n.py                     # Cargador de 5 idiomas CLAVE=Valor (language/*.lng)
+│   ├── i18n.py                     # Cargador de 7 idiomas CLAVE=Valor (language/*.lng)
 │   ├── net/
 │   │   ├── discovery.py             # Escaneo concurrente de subred contra GET /api/hydra-info
 │   │   └── client.py                # Conexion REST + WebSocket por servidor, sincronizacion bidireccional en vivo, login

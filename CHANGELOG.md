@@ -14,6 +14,26 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Unreleased" below for the change that introduced this.
 
+## [Unreleased]
+
+- **Visual command deck**: added a persistent top-level command surface that
+  raises Suite's real Overview, Robot Control, Cameras, Trajectory and Logs
+  docks. It reports the actual active connection state, selected target and
+  UTC clock rather than showing hard-coded operational data.
+- **Unified ecosystem visual language**: refreshed the industrial Qt style
+  with the deep-navy, cyan and readable technical-control palette established
+  by HYDRA-UMC-UPDATER. Added the official HYDRA-UMC SVG/ICO mark for the
+  window, taskbar and command deck. The command deck renders the SVG through
+  `QSvgWidget`/`QSvgRenderer`, so its supported six-second transform animation
+  plays in-window; the taskbar/window ICO remains intentionally static. The
+  source SVG and reproducible ICO remain first-class project assets.
+- Added the command-deck labels to all seven Suite language files and
+  synchronized the public README languages with the real visual behavior.
+
+## [0.1.9]
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
+
 ## [0.1.8] - Joint jog now atomic + debounced; speed/acceleration now debounced
 
 - **`hydra_suite/ui/panels/robot_control.py`** - the joint knob/slider
