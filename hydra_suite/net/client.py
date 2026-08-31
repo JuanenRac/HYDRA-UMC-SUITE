@@ -109,6 +109,15 @@ class HydraConnection(QObject):
         # later one already applied must not roll back over that newer
         # state).
         self._command_generation: dict[int, int] = {}
+        # Per-command-name debounce for send_command()'s own network send -
+        # a dragged RotaryKnob/QSlider (robot_control.py's own JointRow/
+        # speed slider) emits continuously, and until this existed each of
+        # HYDRA-UMC-ANDROID-CONTROL's own equivalent sendAtomicCommand()
+        # already debounces its speed command 300ms for exactly this reason
+        # - this desktop client had the same gap. Keyed by command name so
+        # debouncing 'jog' can never coalesce away or delay an unrelated
+        # command (e.g. 'speed') fired during the same debounce window.
+        self._debounce_tasks: dict[str, asyncio.Task] = {}
 
     @property
     def is_connected(self) -> bool:
@@ -303,13 +312,15 @@ class HydraConnection(QObject):
         command: str,
         params: dict | None = None,
         local_mutate: Callable[[RobotView], None] | None = None,
+        debounce_ms: float = 0,
     ) -> None:
         """POSTs the atomic /api/robot/:id/command instead of push_state()'s
         own full-tree read-modify-write - for the handful of discrete
         actions that already have an exact 1:1 case in server.ts's own
-        switch (today: speed/acceleration from robot_control.py's sliders).
-        See DISEÑO_SYNC_DELTAS.txt CAUSA A and HYDRA-UMC-STUDIO's own
-        store.tsx sendRobotCommand(), the same fix mirrored here.
+        switch (today: jog/speed/acceleration from robot_control.py's
+        knob/sliders). See DISEÑO_SYNC_DELTAS.txt CAUSA A and
+        HYDRA-UMC-STUDIO's own store.tsx sendRobotCommand(), the same fix
+        mirrored here.
 
         `local_mutate`, when given, applies an OPTIMISTIC local update to
         the target robot's own raw dict immediately, before the network
@@ -323,7 +334,19 @@ class HydraConnection(QObject):
         lands (self.state is otherwise never touched directly here).
         Errors are surfaced via `error` rather than raised, matching
         push_state()'s own reasoning (this is always fired via
-        asyncio.ensure_future() and never awaited by its caller)."""
+        asyncio.ensure_future() and never awaited by its caller).
+
+        `debounce_ms`, when positive, delays only the real network POST -
+        `local_mutate` above still applies immediately on every call, so a
+        dragged RotaryKnob/QSlider (robot_control.py's own JointRow/speed
+        controls, both of which emit continuously) still gets instant
+        per-tick visual feedback. Any still-pending send for this exact
+        `command` name is cancelled first (see `_debounce_tasks`'s own
+        comment), so a rapid burst collapses into exactly one real POST
+        once the drag settles - the same real mechanism
+        HYDRA-UMC-ANDROID-CONTROL's own sendAtomicCommand(debounceMs=...)
+        already uses, and HYDRA-UMC-IOS-CONTROL/DSI's own
+        RobotViewModel._sendAtomicCommand(debounce:...) now use too."""
         snapshot_json: str | None = None
         my_generation: int | None = None
         if local_mutate is not None:
@@ -350,22 +373,36 @@ class HydraConnection(QObject):
                 target.raw.update(json.loads(snapshot_json))
                 self.state_changed.emit(self.state)
 
-        try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                resp = await client.post(
-                    f"{self.info.base_url}/api/robot/{robot_id}/command",
-                    json={"command": command, "params": params or {}},
-                    headers=self._auth_headers(),
-                    timeout=5.0,
-                )
-                if resp.status_code in (401, 403):
-                    self.error.emit("Command rejected: not authenticated (token missing/expired)")
-                    rollback_if_current()
-                    return
-                resp.raise_for_status()
-        except (httpx.HTTPError, OSError) as e:
-            self.error.emit(f"Command failed: {e}")
-            rollback_if_current()
+        async def send_now() -> None:
+            try:
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                    resp = await client.post(
+                        f"{self.info.base_url}/api/robot/{robot_id}/command",
+                        json={"command": command, "params": params or {}},
+                        headers=self._auth_headers(),
+                        timeout=5.0,
+                    )
+                    if resp.status_code in (401, 403):
+                        self.error.emit("Command rejected: not authenticated (token missing/expired)")
+                        rollback_if_current()
+                        return
+                    resp.raise_for_status()
+            except (httpx.HTTPError, OSError) as e:
+                self.error.emit(f"Command failed: {e}")
+                rollback_if_current()
+
+        if debounce_ms <= 0:
+            await send_now()
+            return
+
+        if command in self._debounce_tasks:
+            self._debounce_tasks[command].cancel()
+
+        async def debounced() -> None:
+            await asyncio.sleep(debounce_ms / 1000)
+            await send_now()
+
+        self._debounce_tasks[command] = asyncio.ensure_future(debounced())
 
     async def fetch_system_metrics(self) -> dict | None:
         """GET /api/system/metrics - no auth required server-side. Returns
@@ -544,4 +581,7 @@ class HydraConnection(QObject):
             self._recv_task.cancel()
         if self._metrics_task is not None:
             self._metrics_task.cancel()
+        for task in self._debounce_tasks.values():
+            task.cancel()
+        self._debounce_tasks.clear()
         self.status_changed.emit("disconnected")

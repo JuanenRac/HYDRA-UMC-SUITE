@@ -6,9 +6,12 @@
 # Robot selection + jog control - the desktop counterpart to
 # HYDRA-UMC-STUDIO's own RobotDetail.tsx jog panel: a rotary knob + slider
 # per joint (matching that component's own RotaryKnob+FuturisticSlider
-# pairing), speed/acceleration controls, live-pushes every change back to
-# the server the same way HYDRA-UMC-STUDIO's own debounced save-effect
-# does (see net/client.py's own push_state()).
+# pairing), speed/acceleration controls. Every real-time control here
+# (joint jog, speed, acceleration) fires the atomic, debounced
+# /api/robot/:id/command path (net/client.py's own send_command()) -
+# never push_state()'s own full-tree read-modify-write, which a
+# continuously-dragged knob/slider would otherwise call once per mouse
+# event.
 # =============================================================================
 from __future__ import annotations
 
@@ -191,8 +194,38 @@ class RobotControlPanel(QWidget):
     def _on_joint_changed(self, joint_name: str, value: float) -> None:
         if self._current_robot is None:
             return
-        self._current_robot.set_joint(joint_name, value)
-        self._controller.push_active_state()
+        robot = self._current_robot
+        # Atomic 'jog' command instead of mutating state + a full-tree
+        # push_active_state() - same real gap class as the speed/
+        # acceleration sliders below (DISEÑO_SYNC_DELTAS.txt CAUSA A),
+        # just never fixed for the joint knob/slider until now. Sends the
+        # real joints override contract server.ts's own "jog" case
+        # accepts (axis:'x'/amount:0/target:'robot' + an explicit 6-joint
+        # override) - the same mechanism HYDRA-UMC-STUDIO's
+        # handleJ1Jog()/HYDRA-UMC-ANDROID-CONTROL's jogJ1() already use
+        # for a single-joint absolute set. Built from robot.joints (which
+        # already reflects every earlier local mutation in this drag, one
+        # joint at a time) with just this one axis overridden, so a later
+        # call's full snapshot always supersedes an earlier one - safe to
+        # debounce (below) without losing an intermediate joint's value.
+        new_joints = dict(robot.joints)
+        new_joints[joint_name] = value
+
+        def local_mutate(r: RobotView, joints=new_joints) -> None:
+            for name, joint_value in joints.items():
+                r.set_joint(name, joint_value)
+
+        # Debounced (50ms) - RotaryKnob.mouseMoveEvent()/QSlider.valueChanged
+        # both emit continuously during a drag, unlike a discrete jog
+        # button click; short enough to feel immediate, long enough to
+        # collapse a fast drag's burst into a handful of real POSTs
+        # instead of one per pixel of mouse movement.
+        self._controller.send_robot_command(
+            robot.id, "jog",
+            {"axis": "x", "amount": 0, "target": "robot", "joints": new_joints},
+            local_mutate,
+            debounce_ms=50,
+        )
 
     def _on_speed_changed(self, value: int) -> None:
         self._speed_label.setText(f"{value}%")
@@ -203,11 +236,17 @@ class RobotControlPanel(QWidget):
         # comment / DISEÑO_SYNC_DELTAS.txt CAUSA A. local_mutate gives
         # instant optimistic feedback (rolled back if the request fails);
         # every other client's state updates via the WS delta round-trip,
-        # same as before.
-        self._controller.send_robot_command(self._current_robot.id, "speed", {"speed": value}, lambda r: r.set_speed(value))
+        # same as before. Debounced (300ms, matching
+        # HYDRA-UMC-ANDROID-CONTROL's own setSpeed()) - QSlider.valueChanged
+        # fires on every step during a drag, not just on release.
+        self._controller.send_robot_command(
+            self._current_robot.id, "speed", {"speed": value}, lambda r: r.set_speed(value), debounce_ms=300
+        )
 
     def _on_accel_changed(self, value: int) -> None:
         self._accel_label.setText(f"{value}%")
         if self._current_robot is None:
             return
-        self._controller.send_robot_command(self._current_robot.id, "speed", {"acceleration": value}, lambda r: r.set_acceleration(value))
+        self._controller.send_robot_command(
+            self._current_robot.id, "speed", {"acceleration": value}, lambda r: r.set_acceleration(value), debounce_ms=300
+        )

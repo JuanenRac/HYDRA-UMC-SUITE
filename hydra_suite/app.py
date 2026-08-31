@@ -127,16 +127,20 @@ class SuiteController(QObject):
         command: str,
         params: dict | None = None,
         local_mutate: Callable[[RobotView], None] | None = None,
+        debounce_ms: float = 0,
     ) -> None:
         """Call for a discrete action that already has an atomic
         /api/robot/:id/command case server-side (see HydraConnection.send_command()'s
         own comment) - use instead of mutating state + push_active_state()
         for those, not in addition to it. `local_mutate` is passed straight
         through to send_command() for an optimistic update with
-        rollback-on-failure - see that method's own comment."""
+        rollback-on-failure - see that method's own comment. `debounce_ms`
+        is passed straight through too - see send_command()'s own comment
+        for exactly what it delays (only the network send, never the
+        optimistic local mutation)."""
         conn = self.active_connection
         if conn is not None:
-            asyncio.ensure_future(conn.send_command(robot_id, command, params, local_mutate))
+            asyncio.ensure_future(conn.send_command(robot_id, command, params, local_mutate, debounce_ms))
 
     async def shutdown(self) -> None:
         for conn in list(self.connections.values()):

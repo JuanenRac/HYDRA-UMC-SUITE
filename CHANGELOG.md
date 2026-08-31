@@ -14,6 +14,41 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Unreleased" below for the change that introduced this.
 
+## [0.1.8] - Joint jog now atomic + debounced; speed/acceleration now debounced
+
+- **`hydra_suite/ui/panels/robot_control.py`** - the joint knob/slider
+  (`JointRow`) now fires the real atomic `jog` command instead of
+  mutating state and calling `push_active_state()`'s own full-tree
+  read-modify-write - the same real gap class (DISEÑO_SYNC_DELTAS.txt
+  CAUSA A) already fixed for this panel's own speed/acceleration
+  sliders, just never fixed for the joint knob itself until now. Sends
+  the real `joints` override contract `server.ts`'s own `"jog"` case
+  accepts (`axis:'x'`/`amount:0`/`target:'robot'` + an explicit 6-joint
+  override) - the same mechanism `HYDRA-UMC-STUDIO`'s `handleJ1Jog()`/
+  `HYDRA-UMC-ANDROID-CONTROL`'s `jogJ1()` already use for a single-joint
+  absolute set.
+- **`hydra_suite/net/client.py`** - `HydraConnection.send_command()`
+  gained a real `debounce_ms` parameter: the optimistic `local_mutate`
+  still applies instantly on every call (so a dragged
+  `RotaryKnob`/`QSlider` still gets per-tick visual feedback), but the
+  real network POST is now coalesced - any still-pending send for the
+  same command name is cancelled before scheduling a new one, so a fast
+  drag collapses into a handful of real requests instead of one per
+  mouse-move tick. Same real mechanism `HYDRA-UMC-ANDROID-CONTROL`'s own
+  `sendAtomicCommand(debounceMs=...)` already uses, and
+  `HYDRA-UMC-IOS-CONTROL`/`HYDRA-UMC-DSI`'s own
+  `RobotViewModel._sendAtomicCommand(debounce:...)` now use too (fixed
+  this same session). The joint knob uses a 50ms debounce; the speed/
+  acceleration sliders (previously undebounced despite already using the
+  atomic path) now use 300ms, matching Android's own `setSpeed()`.
+- **Added `tests/verify_send_command_debounce.py`** (new) - exercises
+  the real `HydraConnection.send_command()` debounce state machine
+  directly (only `httpx.AsyncClient.post` is monkeypatched, not the
+  debounce logic itself): a rapid burst for the same command collapses
+  into exactly one real POST carrying the last value; two different
+  command names never coalesce into each other; `debounce_ms=0` still
+  sends immediately with zero behavior change for every existing caller.
+
 ## [0.1.7] - Real, deterministic coverage for net/discovery.py's pure logic
 
 - **Added `tests/verify_discovery.py`** (new) - net/discovery.py's
