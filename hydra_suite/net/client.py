@@ -95,6 +95,14 @@ class HydraConnection(QObject):
         # the row said when it was first added (see
         # ui/panels/server_browser.py's own use of this).
         self.login_ok: bool | None = None
+        # Set only when the server's own login rate limiter (server.ts's
+        # loginRateLimiter, default 5 attempts/15min/IP) rejects a login
+        # with 429 - see login()'s own comment for the real bug this fixes:
+        # _run()'s reconnect loop used to retry login() every
+        # RECONNECT_DELAY_S regardless of WHY it failed, exhausting that
+        # budget in ~15s and then looking "broken" for the full lockout
+        # window on every server this app connected to.
+        self._login_retry_after_s: float | None = None
         # This session's role ('admin' | 'operator'), from /api/login's own
         # response - same field HYDRA-UMC STUDIO's store.tsx now reads too
         # (decodeJwtRole()). Gates the Ecosystem > Connected Apps / Server
@@ -135,6 +143,32 @@ class HydraConnection(QObject):
                     json={"username": self.info.username, "password": self.info.password},
                     timeout=5.0,
                 )
+                if resp.status_code == 429:
+                    # Real bug found live: server.ts's own loginRateLimiter
+                    # (default 5 attempts/15min/IP) tripped, and this
+                    # class's own _run() reconnect loop was retrying
+                    # login() every RECONNECT_DELAY_S with no backoff -
+                    # wrong credentials (or a server that was briefly down
+                    # mid reconnect burst) exhausted that budget in ~15s,
+                    # then looked "broken" for the full 15-minute lockout,
+                    # on every server this app connected to. The 429 body
+                    # already carries retryAfterMs specifically for a
+                    # well-behaved client to honor (see that handler's own
+                    # comment) - _run() now sleeps that long instead of
+                    # blindly retrying into the same lockout.
+                    try:
+                        body = resp.json()
+                    except ValueError:
+                        body = None
+                    retry_after_ms = body.get("retryAfterMs") if isinstance(body, dict) else None
+                    self._login_retry_after_s = (
+                        float(retry_after_ms) / 1000 if isinstance(retry_after_ms, (int, float)) else RECONNECT_DELAY_S
+                    )
+                    detail = (body.get("error") if isinstance(body, dict) else None) or "Too many login attempts"
+                    self.login_ok = False
+                    self.error.emit(detail)
+                    self.login_changed.emit(False, detail)
+                    return False
                 resp.raise_for_status()
                 data = resp.json()
         except (httpx.HTTPError, ValueError) as e:
@@ -143,6 +177,7 @@ class HydraConnection(QObject):
             self.error.emit(detail)
             self.login_changed.emit(False, detail)
             return False
+        self._login_retry_after_s = None
         token = data.get("token")
         if not token:
             detail = "Login failed: no token in response"
@@ -450,8 +485,13 @@ class HydraConnection(QObject):
                 # No point opening a WS the server will reject with code 1008 -
                 # wait and retry the login itself instead of spinning a
                 # connect/reject loop against a server that's simply not up yet.
+                # Honors the server's own rate-limit retryAfterMs when THAT
+                # was the reason login failed (see login()'s own comment) -
+                # otherwise a wrong password or brief server restart would
+                # keep retrying every RECONNECT_DELAY_S straight into a real
+                # 15-minute lockout instead of just backing off once.
                 self.status_changed.emit("disconnected")
-                await asyncio.sleep(RECONNECT_DELAY_S)
+                await asyncio.sleep(self._login_retry_after_s or RECONNECT_DELAY_S)
                 continue
             try:
                 # max_size=None: server.ts sends the FULL settings.json (1.6MB+
