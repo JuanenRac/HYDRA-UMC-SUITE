@@ -26,7 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Callable
+from typing import Awaitable, Callable
 
 import httpx
 import websockets
@@ -117,15 +117,20 @@ class HydraConnection(QObject):
         # later one already applied must not roll back over that newer
         # state).
         self._command_generation: dict[int, int] = {}
-        # Per-command-name debounce for send_command()'s own network send -
-        # a dragged RotaryKnob/QSlider (robot_control.py's own JointRow/
-        # speed slider) emits continuously, and until this existed each of
-        # HYDRA-UMC-ANDROID-CONTROL's own equivalent sendAtomicCommand()
-        # already debounces its speed command 300ms for exactly this reason
-        # - this desktop client had the same gap. Keyed by command name so
-        # debouncing 'jog' can never coalesce away or delay an unrelated
-        # command (e.g. 'speed') fired during the same debounce window.
-        self._debounce_tasks: dict[str, asyncio.Task] = {}
+        # Per-command-name THROTTLE (see send_command()'s own comment on
+        # why this is a throttle and not a debounce) for send_command()'s
+        # own network send - a dragged RotaryKnob/QSlider (robot_control.py's
+        # own JointRow/speed slider) emits continuously, and until this
+        # existed each of HYDRA-UMC-ANDROID-CONTROL's own equivalent
+        # sendAtomicCommand() already debounces its speed command 300ms for
+        # exactly this reason - this desktop client had the same gap. Keyed
+        # by command name so throttling 'jog' can never coalesce away or
+        # delay an unrelated command (e.g. 'speed') fired during the same
+        # window. _throttle_tasks holds the pending timer (if any);
+        # _throttle_latest_send holds the most recent send_now() closure
+        # that timer will call once it fires.
+        self._throttle_tasks: dict[str, asyncio.Task] = {}
+        self._throttle_latest_send: dict[str, Callable[[], Awaitable[None]]] = {}
 
     @property
     def is_connected(self) -> bool:
@@ -371,17 +376,25 @@ class HydraConnection(QObject):
         push_state()'s own reasoning (this is always fired via
         asyncio.ensure_future() and never awaited by its caller).
 
-        `debounce_ms`, when positive, delays only the real network POST -
+        `debounce_ms`, when positive, throttles only the real network POST -
         `local_mutate` above still applies immediately on every call, so a
         dragged RotaryKnob/QSlider (robot_control.py's own JointRow/speed
         controls, both of which emit continuously) still gets instant
-        per-tick visual feedback. Any still-pending send for this exact
-        `command` name is cancelled first (see `_debounce_tasks`'s own
-        comment), so a rapid burst collapses into exactly one real POST
-        once the drag settles - the same real mechanism
-        HYDRA-UMC-ANDROID-CONTROL's own sendAtomicCommand(debounceMs=...)
-        already uses, and HYDRA-UMC-IOS-CONTROL/DSI's own
-        RobotViewModel._sendAtomicCommand(debounce:...) now use too."""
+        per-tick visual feedback. This is a real THROTTLE, not a debounce
+        (see the implementation's own comment for the real bug that fixed):
+        a rapid burst still collapses down to roughly one real POST per
+        `debounce_ms`, but a send for this exact `command` name keeps
+        firing at that steady cadence for as long as the burst continues,
+        rather than only once it settles - so every other connected client
+        sees the robot move smoothly WHILE it's being dragged, not just
+        jump to the final value once the drag stops. Named `debounce_ms`
+        for continuity with HYDRA-UMC-ANDROID-CONTROL's own
+        sendAtomicCommand(debounceMs=...) and HYDRA-UMC-IOS-CONTROL/DSI's
+        own RobotViewModel._sendAtomicCommand(debounce:...) - those still
+        cancel-and-restart their own pending job on every call (a real
+        debounce, not this throttle), which likely has the same
+        continuous-drag gap for whichever of their own controls emits
+        continuously; not fixed here, out of this repo's scope."""
         snapshot_json: str | None = None
         my_generation: int | None = None
         if local_mutate is not None:
@@ -430,14 +443,41 @@ class HydraConnection(QObject):
             await send_now()
             return
 
-        if command in self._debounce_tasks:
-            self._debounce_tasks[command].cancel()
+        # Real bug found live: this used to be a genuine DEBOUNCE (cancel
+        # the pending timer and restart it on every call) rather than a
+        # THROTTLE - during a CONTINUOUS drag (RotaryKnob.mouseMoveEvent()/
+        # QSlider.valueChanged firing faster than debounce_ms apart, which
+        # a smooth mouse drag routinely does), every new tick cancelled the
+        # previous timer before it ever fired, so essentially nothing
+        # reached the network until the drag paused or ended. SUITE's own
+        # viewport still looked perfectly smooth (local_mutate applies
+        # instantly, no network round-trip needed for that), but every
+        # OTHER connected client (HYDRA-UMC STUDIO's browser UI, watching
+        # the same robot live) received almost nothing during the drag and
+        # then jumped straight to the final value - reported live as "en
+        # Studio va a trompicones" while SUITE's own view moved smoothly.
+        #
+        # Now a real throttle: the first call in a burst schedules exactly
+        # one send `debounce_ms` out; every later call during that same
+        # window only updates which `send_now` will run when it fires
+        # (always the latest one - the exact command this call would have
+        # sent), it does NOT reset the timer. A steady stream of drag
+        # events now reaches every other client at a steady ~debounce_ms
+        # cadence for as long as the drag continues, instead of only once
+        # it stops.
+        self._throttle_latest_send[command] = send_now
+        pending = self._throttle_tasks.get(command)
+        if pending is not None and not pending.done():
+            return  # a timer for this command is already ticking - it will pick up the latest send_now above when it fires
 
-        async def debounced() -> None:
+        async def fire_throttled() -> None:
             await asyncio.sleep(debounce_ms / 1000)
-            await send_now()
+            latest = self._throttle_latest_send.pop(command, None)
+            self._throttle_tasks.pop(command, None)
+            if latest is not None:
+                await latest()
 
-        self._debounce_tasks[command] = asyncio.ensure_future(debounced())
+        self._throttle_tasks[command] = asyncio.ensure_future(fire_throttled())
 
     async def fetch_system_metrics(self) -> dict | None:
         """GET /api/system/metrics - no auth required server-side. Returns
@@ -621,7 +661,8 @@ class HydraConnection(QObject):
             self._recv_task.cancel()
         if self._metrics_task is not None:
             self._metrics_task.cancel()
-        for task in self._debounce_tasks.values():
+        for task in self._throttle_tasks.values():
             task.cancel()
-        self._debounce_tasks.clear()
+        self._throttle_tasks.clear()
+        self._throttle_latest_send.clear()
         self.status_changed.emit("disconnected")
