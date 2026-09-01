@@ -147,6 +147,9 @@ python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" 
     --hidden-import ifaddr ^
     --hidden-import PySide6.QtOpenGL ^
     --hidden-import PySide6.QtOpenGLWidgets ^
+    --hidden-import PySide6.QtQml ^
+    --hidden-import PySide6.QtQuick ^
+    --hidden-import PySide6.QtQuickWidgets ^
     --hidden-import OpenGL.platform.win32 ^
     main.py
 REM UPX (https://upx.github.io/) shrinks the final .exe further (30-50

@@ -166,6 +166,9 @@ python3 -m PyInstaller --onefile --noconfirm --name "HYDRA-UMC_SUITE" \
     --hidden-import ifaddr \
     --hidden-import PySide6.QtOpenGL \
     --hidden-import PySide6.QtOpenGLWidgets \
+    --hidden-import PySide6.QtQml \
+    --hidden-import PySide6.QtQuick \
+    --hidden-import PySide6.QtQuickWidgets \
     main.py
 # UPX (https://upx.github.io/) shrinks the final binary further (30-50
 # percent typical) at zero functional cost - PyInstaller auto-detects

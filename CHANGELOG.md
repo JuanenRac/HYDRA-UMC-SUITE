@@ -19,13 +19,16 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - **Visual command deck**: added a persistent top-level command surface that
   raises Suite's real Overview, Robot Control, Cameras, Trajectory and Logs
   docks. It reports the actual active connection state, selected target and
-  UTC clock rather than showing hard-coded operational data.
+  UTC clock rather than showing hard-coded operational data. It now runs in a
+  `QQuickWidget` over the same Qt Quick/QML renderer as HYDRA-UMC-UPDATER;
+  `SuiteDeckBridge` only forwards navigation to existing Suite docks and does
+  not duplicate any robot, camera or network control path.
 - **Unified ecosystem visual language**: refreshed the industrial Qt style
   with the deep-navy, cyan and readable technical-control palette established
   by HYDRA-UMC-UPDATER. Added the official HYDRA-UMC SVG/ICO mark for the
   window, taskbar and command deck. The command deck renders the SVG through
-  `QSvgWidget`/`QSvgRenderer`, so its supported six-second transform animation
-  plays in-window; the taskbar/window ICO remains intentionally static. The
+  Qt Quick's `VectorImage` component; the taskbar/window ICO remains
+  intentionally static. The
   source SVG and reproducible ICO remain first-class project assets. The QSS
   now uses the same 16px section shells, 11px metric cards and 10px interactive
   controls as the Updater command deck.
