@@ -346,14 +346,3 @@ The source code of this application is available under the **GNU General Public 
 This project is the desktop swarm-control counterpart to [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - see that project's own repository for its own separate license, which this repository's own license doesn't extend to, and vice versa. It also ultimately controls [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) hardware/firmware and ([relayed through it](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) [URTC](https://github.com/JuanenRac/URTC) tool heads - both separate projects with their own separate licenses.
 
 If you build on this project, keep the licensing split in mind: code changes should stay GPL-3.0, and every robot's own mesh assets should stay under their own original license terms (see the table above) - each with attribution back to this project and its author.
-
-## 🛠️ BUILD & RUN
-
-Use the non-versioning build check before a release build:
-
-| Action | Windows | Linux / macOS |
-|---|---|---|
-| Build check (no version or CHANGELOG change) | `build-test.bat` | `./build-test.sh` |
-| Run / development (when provided) | `run*.bat` or `dev*.bat` | `./run*.sh` or `./dev*.sh` |
-
-`build-test.bat` and `build-test.sh` compile or validate the project stack without incrementing `hydra-umc.project.json` or modifying `CHANGELOG.md`. They may create normal compiler output only. Existing `build*.bat`, `build*.sh`, `run*` and `dev*` scripts retain their project-specific, versioned or runtime behavior; use them when that behavior is required.
