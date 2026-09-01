@@ -26,7 +26,9 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   window, taskbar and command deck. The command deck renders the SVG through
   `QSvgWidget`/`QSvgRenderer`, so its supported six-second transform animation
   plays in-window; the taskbar/window ICO remains intentionally static. The
-  source SVG and reproducible ICO remain first-class project assets.
+  source SVG and reproducible ICO remain first-class project assets. The QSS
+  now uses the same 16px section shells, 11px metric cards and 10px interactive
+  controls as the Updater command deck.
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
