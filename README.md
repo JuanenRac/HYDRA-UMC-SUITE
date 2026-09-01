@@ -307,15 +307,12 @@ Beyond the HYDRA-UMC and URTC platforms above, the same author maintains many fu
 
 ---
 
-## 👤 Author
-
+## 👤 AUTHOR
 **JuanenRac** (Electro Hobby 3D)
 📧 electrohobby3d@gmail.com
-📺 youtube.com/@electrohobby3d
+📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
 
----
-
-## 📜 License and Copyright Notices
+## 📜 LICENSE
 
 HYDRA-UMC SUITE is (c) 2026 JuanenRac (Electro Hobby 3D). This notice must be included in any distributions of this project or derivative works.
 
