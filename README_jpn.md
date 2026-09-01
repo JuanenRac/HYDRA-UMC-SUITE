@@ -264,14 +264,3 @@ HYDRA-UMC SUITE の著作権は (c) 2026 JuanenRac（Electro Hobby 3D）に帰�
 本プロジェクトは [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) のデスクトップ版群制御対応物です——その自身の独立したライセンスは同プロジェクト自身のリポジトリを参照してください。本リポジトリ自身のライセンスはそちらには及ばず、その逆も同様です。また、最終的には [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) のハードウェア/ファームウェア、および（[それを経由して中継される](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)）[URTC](https://github.com/JuanenRac/URTC) ツールヘッドを制御します——いずれもそれぞれ独立したライセンスを持つ独立したプロジェクトです。
 
 本プロジェクトを基に開発を行う際は、このライセンス区分を念頭に置いてください：コードの変更は GPL-3.0 を維持し、各ロボット自身のメッシュアセットはそれぞれの原本ライセンス条件のもとに維持してください（上表参照）——いずれも本プロジェクトおよびその作者への帰属表示を伴う必要があります。
-
-## 🛠️ BUILD & RUN
-
-リリースビルドの前に、バージョンを変更しないビルドチェックを使用してください。
-
-| 操作 | Windows | Linux / macOS |
-|---|---|---|
-| ビルドチェック（バージョンと CHANGELOG を変更しない） | `build-test.bat` | `./build-test.sh` |
-| 実行 / 開発（提供されている場合） | `run*.bat` または `dev*.bat` | `./run*.sh` または `./dev*.sh` |
-
-`build-test.bat` と `build-test.sh` は、`hydra-umc.project.json` をインクリメントせず、`CHANGELOG.md` も変更せずにプロジェクトのスタックをコンパイルまたは検証します。通常のコンパイラ出力だけが作成される場合があります。既存の `build*.bat`、`build*.sh`、`run*`、`dev*` は、各プロジェクト固有のバージョン化または実行時の動作を維持します。その動作が必要な場合はそれらを使用してください。
