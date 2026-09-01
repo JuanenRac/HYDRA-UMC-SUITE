@@ -16,19 +16,37 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
+- **Fixed: command deck rendered as a blank black bar.** A later revision
+  moved the command deck into a `QQuickWidget`/QML island (matching
+  HYDRA-UMC-UPDATER's own renderer) - real per-project screenshots showed
+  it painting solid black in this QMainWindow, every time, with no console
+  error: a `QQuickWidget` embedded inside a `QToolBar` inside a real
+  `QDockWidget`-based main window never got a correctly composited native
+  surface, even though the identical QML renders perfectly in UPDATER -
+  because UPDATER is a pure `QQmlApplicationEngine` window with no
+  competing widget tree around it, not a `QMainWindow` with dockable
+  panels. Reverted the deck to plain `QToolBar`/`QLabel`/`QToolButton`
+  widgets (the original, working implementation) - real per-project
+  screenshots now confirm the logo, title, navigation buttons and status
+  chips all render correctly. The orphaned QML/bridge files were moved
+  out of the repo rather than deleted.
+- **Fixed: Robot Control's own Joints clipped under the default dock
+  split.** The top row (Servers/Overview/3D Viewport/Robot Control) and
+  the bottom tab group shared height roughly 50/50 by default, which cut
+  off Robot Control's own J5/J6 sliders and the Playback/Acceleration
+  controls below them - real screenshots confirmed it. The top row now
+  gets a real, explicit majority of the vertical space via
+  `resizeDocks(..., Qt.Orientation.Vertical)`, same mechanism already
+  used for the Viewport/Robot Control horizontal split.
 - **Visual command deck**: added a persistent top-level command surface that
   raises Suite's real Overview, Robot Control, Cameras, Trajectory and Logs
   docks. It reports the actual active connection state, selected target and
-  UTC clock rather than showing hard-coded operational data. It now runs in a
-  `QQuickWidget` over the same Qt Quick/QML renderer as HYDRA-UMC-UPDATER;
-  `SuiteDeckBridge` only forwards navigation to existing Suite docks and does
-  not duplicate any robot, camera or network control path.
+  UTC clock rather than showing hard-coded operational data.
 - **Unified ecosystem visual language**: refreshed the industrial Qt style
   with the deep-navy, cyan and readable technical-control palette established
   by HYDRA-UMC-UPDATER. Added the official HYDRA-UMC SVG/ICO mark for the
-  window, taskbar and command deck. The command deck renders the SVG through
-  Qt Quick's `VectorImage` component; the taskbar/window ICO remains
-  intentionally static. The
+  window, taskbar and command deck (the deck's own logo is a real, animated
+  `QSvgWidget` over the source SVG, not a static bitmap). The
   source SVG and reproducible ICO remain first-class project assets. The QSS
   now uses the same 16px section shells, 11px metric cards and 10px interactive
   controls as the Updater command deck.
