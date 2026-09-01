@@ -16,6 +16,14 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
+- **Real About dialog**, matching HYDRA-UMC-STUDIO's own `About.tsx`: the
+  single-line `QMessageBox` is now a proper `AboutDialog` with the animated
+  logo, a colored HYDRA-UM-C wordmark, a tagline, a one-paragraph
+  description, and real Version/Author/Email/License rows (email is a
+  clickable `mailto:` link). New `ABOUT_TAGLINE`/`ABOUT_DESCRIPTION`/
+  `ABOUT_VERSION`/`ABOUT_AUTHOR`/`ABOUT_EMAIL`/`ABOUT_LICENSE`/`BTN_CLOSE`
+  keys across all 7 languages, replacing the old single `MSG_ABOUT_BODY`
+  string - full key parity verified across every language file.
 - **Fixed: command deck rendered as a blank black bar.** A later revision
   moved the command deck into a `QQuickWidget`/QML island (matching
   HYDRA-UMC-UPDATER's own renderer) - real per-project screenshots showed

@@ -362,3 +362,57 @@ QLabel#statusConnecting {
 QSplitter::handle {
     background-color: #1c232d;
 }
+
+/* About dialog - see ui/about_dialog.py */
+QDialog#aboutDialog {
+    background-color: #0b1a2a;
+    border: 1px solid #294965;
+    border-radius: 12px;
+}
+QLabel#aboutTitle {
+    color: #edf7ff;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+QLabel#aboutTagline {
+    color: #c8e5f5;
+    font-size: 13px;
+}
+QLabel#aboutDescription {
+    color: #91a8bd;
+    font-size: 11px;
+    padding: 0 8px;
+}
+QWidget#aboutInfoRow {
+    background-color: #07111e;
+    border: 1px solid #1d4056;
+    border-radius: 8px;
+}
+QLabel#aboutInfoLabel {
+    color: #91a8bd;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+QLabel#aboutInfoValue {
+    color: #edf7ff;
+    font-size: 11px;
+}
+QLabel#aboutInfoValue a {
+    color: #38d4e6;
+}
+QPushButton#aboutCloseButton {
+    background-color: #38d4e6;
+    color: #07111e;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    padding: 8px 28px;
+    border: 1px solid #2d9aad;
+}
+QPushButton#aboutCloseButton:hover {
+    background-color: #55e0f0;
+}

@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite import __version__
 from hydra_suite.app import SuiteController
+from hydra_suite.ui.about_dialog import AboutDialog
 from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
 from hydra_suite.ui.panels.admin_clients_panel import AdminClientsPanel
 from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
@@ -357,7 +358,8 @@ class MainWindow(QMainWindow):
         )
 
     def _show_about(self) -> None:
-        QMessageBox.information(self, _("TITLE_ABOUT"), _("MSG_ABOUT_BODY", version=__version__))
+        logo_path = IMAGES_DIR / "HYDRA_UMC_ICON.svg"
+        AboutDialog(__version__, logo_path, self).exec()
 
     def _on_language_change(self, code: str) -> None:
         if save_config({"language": code}):
