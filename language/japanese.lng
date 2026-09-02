@@ -236,3 +236,15 @@ TOPBAR_STATUS_CONNECTED=接続済み
 TOPBAR_STATUS_CONNECTING=接続中
 TOPBAR_STATUS_DISCONNECTED=切断済み
 TOPBAR_STATUS_ERROR=エラー
+
+# Tool-attachment config panels (CNC/Laser and future module panels)
+HEADING_CNC=CNC
+HEADING_LASER=レーザー
+GROUP_MODULE_SETTINGS=モジュール設定
+BTN_RESET_MODULE=リセット
+BTN_ENABLE_MODULE={machine} を有効化
+BTN_REMOVE_MODULE=モジュールを削除
+LBL_NO_MODULE_ASSIGNED={machine} が未割り当てです
+LBL_NO_MODULE_DESC=このロボットには現在このモジュールが設定されていません。機能を有効にするには追加してください。
+LBL_WIDTH_X=幅（X mm）
+LBL_LENGTH_Y=奥行き（Y mm）

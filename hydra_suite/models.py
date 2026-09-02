@@ -126,6 +126,24 @@ class RobotView:
     def tool(self) -> str:
         return str(self.raw.get("tool", "None"))
 
+    def module(self, key: str) -> dict[str, Any]:
+        """Generic accessor for a tool-attachment's own config block (e.g.
+        `juanenCNC`/`juanenLaser`/`heatedBed`) - mirrors
+        HYDRA-UMC-STUDIO's own `selectedRobot[machineType] as any` generic
+        indexing (CNC.tsx/Laser.tsx/HeatedBedConfig.tsx/...) rather than a
+        hardcoded property per module, so a caller can read/write any of
+        these blocks the same way. Never None - callers already treat a
+        missing/disabled module as `{}`/falsy `enabled`, same as the
+        TypeScript side's own `moduleData?.enabled || false` pattern."""
+        value = self.raw.get(key)
+        return value if isinstance(value, dict) else {}
+
+    def module_enabled(self, key: str) -> bool:
+        return bool(self.module(key).get("enabled", False))
+
+    def set_module(self, key: str, data: dict[str, Any]) -> None:
+        self.raw[key] = data
+
     def __repr__(self) -> str:
         return f"RobotView(id={self.id!r}, model={self.model!r}, online={self.online})"
 

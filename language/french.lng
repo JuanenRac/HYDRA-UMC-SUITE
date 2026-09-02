@@ -237,3 +237,15 @@ TOPBAR_STATUS_CONNECTED=CONNECTE
 TOPBAR_STATUS_CONNECTING=CONNEXION
 TOPBAR_STATUS_DISCONNECTED=DECONNECTE
 TOPBAR_STATUS_ERROR=ERREUR
+
+# Tool-attachment config panels (CNC/Laser and future module panels)
+HEADING_CNC=CNC
+HEADING_LASER=Laser
+GROUP_MODULE_SETTINGS=Réglages du module
+BTN_RESET_MODULE=Réinitialiser
+BTN_ENABLE_MODULE=Activer {machine}
+BTN_REMOVE_MODULE=Retirer le module
+LBL_NO_MODULE_ASSIGNED=Aucun {machine} assigné
+LBL_NO_MODULE_DESC=Ce robot n'a pas encore ce module configuré. Ajoutez-en un pour activer ses fonctionnalités.
+LBL_WIDTH_X=Largeur (X mm)
+LBL_LENGTH_Y=Longueur (Y mm)

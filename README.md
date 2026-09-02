@@ -103,6 +103,11 @@ The desktop now has a persistent, game-console-inspired command deck using the o
   clearly-labeled placeholder, matching HYDRA-UMC-STUDIO's own
   CamerasView.tsx honesty boundary (no real camera hardware/stream
   exists anywhere in this ecosystem yet).
+- **🛠️ CNC / Laser tool-attachment config** - enable/disable, width/length
+  (mm) size, reset, one shared panel implementation ported from HYDRA-UMC
+  STUDIO's own `CNC.tsx`/`Laser.tsx` (identical components apart from the
+  module key). First 2 of 11 tool-specific config panels STUDIO already
+  has; the rest are a real, standing, still-open gap.
 
 ---
 

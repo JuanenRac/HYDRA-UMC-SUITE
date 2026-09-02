@@ -40,8 +40,10 @@ from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
 from hydra_suite.ui.panels.admin_server_panel import AdminServerPanel
 from hydra_suite.ui.panels.ai_family_status_panel import AiFamilyStatusPanel
 from hydra_suite.ui.panels.cameras_panel import CamerasPanel
+from hydra_suite.ui.panels.cnc_panel import CncPanel
 from hydra_suite.ui.panels.ecosystem_services_panel import EcosystemServicesPanel
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import EcosystemTelemetryPanel
+from hydra_suite.ui.panels.laser_panel import LaserPanel
 from hydra_suite.ui.panels.logs_panel import LogsPanel
 from hydra_suite.ui.panels.overview import OverviewPanel
 from hydra_suite.ui.panels.robot_control import RobotControlPanel
@@ -120,6 +122,13 @@ class MainWindow(QMainWindow):
         self.admin_clients_panel = AdminClientsPanel(self.controller)
         self.admin_logs_panel = AdminLogsPanel(self.controller)
         self.admin_server_panel = AdminServerPanel(self.controller)
+        # Tool-attachment config panels - ports of HYDRA-UMC-STUDIO's own
+        # CNC.tsx/Laser.tsx (see module_config_panel.py's own header for
+        # the shared implementation and what's deliberately not ported
+        # yet - the live 3D preview). First 2 of 11 still-pending panels
+        # from [[project_suite_studio_parity_gap]].
+        self.cnc_panel = CncPanel(self.controller)
+        self.laser_panel = LaserPanel(self.controller)
 
         self.robot_control.robot_selected.connect(self.viewport_panel.set_selected_robot)
         self.robot_control.robot_selected.connect(self.trajectory_panel.set_selected_robot)
@@ -137,6 +146,8 @@ class MainWindow(QMainWindow):
         dock_admin_clients = self._make_dock(_("DOCK_ADMIN_CLIENTS"), self.admin_clients_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_logs = self._make_dock(_("DOCK_ADMIN_LOGS"), self.admin_logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_server = self._make_dock(_("DOCK_ADMIN_SERVER"), self.admin_server_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_cnc = self._make_dock(_("HEADING_CNC"), self.cnc_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_laser = self._make_dock(_("HEADING_LASER"), self.laser_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
         self._docks = {
             "servers": dock_servers,
@@ -152,6 +163,8 @@ class MainWindow(QMainWindow):
             "admin_clients": dock_admin_clients,
             "admin_logs": dock_admin_logs,
             "admin_server": dock_admin_server,
+            "cnc": dock_cnc,
+            "laser": dock_laser,
         }
 
         # Sensible default arrangement - the user is free to drag any of
@@ -180,6 +193,8 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(dock_ai_family, dock_admin_clients)
         self.tabifyDockWidget(dock_admin_clients, dock_admin_logs)
         self.tabifyDockWidget(dock_admin_logs, dock_admin_server)
+        self.tabifyDockWidget(dock_admin_server, dock_cnc)
+        self.tabifyDockWidget(dock_cnc, dock_laser)
         dock_traj.raise_()
 
         # A dock closed via its own [x] button would otherwise be gone for
@@ -189,6 +204,7 @@ class MainWindow(QMainWindow):
         for dock in (
             dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
+            dock_cnc, dock_laser,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
 

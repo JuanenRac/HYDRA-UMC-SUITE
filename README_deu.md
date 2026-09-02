@@ -107,6 +107,12 @@ Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Comman
   Ehrlichkeitsgrenze wie das eigene CamerasView.tsx von HYDRA-UMC-STUDIO
   (es existiert noch keine echte Kamera-Hardware/kein echter Stream
   irgendwo in diesem Ökosystem).
+- **🛠️ CNC-/Laser-Werkzeugkonfiguration** - Aktivieren/Deaktivieren,
+  Breite/Länge (mm), Zurücksetzen, eine gemeinsam genutzte Panel-
+  Implementierung, portiert aus HYDRA-UMC STUDIOs eigenem `CNC.tsx`/
+  `Laser.tsx` (identische Komponenten bis auf den Modul-Schlüssel). Die
+  ersten 2 von 11 werkzeugspezifischen Konfigurationspanels, die STUDIO
+  bereits hat; der Rest bleibt eine reale, weiterhin offene Lücke.
 
 ---
 

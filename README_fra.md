@@ -110,6 +110,12 @@ Le bureau inclut maintenant une console de commande persistante, inspirée d'un 
   même limite d'honnêteté que le propre CamerasView.tsx de
   HYDRA-UMC-STUDIO (aucun matériel/flux de caméra réel n'existe encore
   nulle part dans cet écosystème).
+- **🛠️ Configuration des accessoires CNC / Laser** - activer/désactiver,
+  taille largeur/longueur (mm), réinitialisation, une seule implémentation
+  de panneau partagée, portée depuis `CNC.tsx`/`Laser.tsx` de HYDRA-UMC
+  STUDIO (composants identiques à l'exception de la clé du module). Les 2
+  premiers des 11 panneaux de configuration par outil que STUDIO possède
+  déjà ; le reste demeure un écart réel et encore ouvert.
 
 ---
 

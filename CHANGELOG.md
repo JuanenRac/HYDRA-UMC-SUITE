@@ -61,6 +61,13 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
+## [0.2.1]
+
+- **CNC and Laser tool-attachment config panels** (new `hydra_suite/ui/panels/cnc_panel.py`/`laser_panel.py`, docked next to the existing Ecosystem/Admin panels) - the first 2 of 11 still-pending panels from the real, standing gap between SUITE and HYDRA-UMC-STUDIO's own per-tool config screens. STUDIO's own `CNC.tsx`/`Laser.tsx` are byte-for-byte identical components aside from the module key/heading/icon, so both are backed by one shared implementation, `ui/panels/module_config_panel.py`'s `ModuleConfigPanel`: a robot selector, a real empty state when no module is configured yet, enable/disable, width/length (mm) size fields, and a reset action - all writing through `SuiteController.push_active_state()`, matching STUDIO's own `updateRobot()` full-tree write.
+- **`RobotView.module()`/`module_enabled()`/`set_module()`** (new, `hydra_suite/models.py`) - a generic accessor for any tool-attachment's own config block (`juanenCNC`, `juanenLaser`, and future ones), mirroring STUDIO's own generic `selectedRobot[machineType]` indexing instead of a hardcoded property per module.
+- Deliberately does **not** port `CNC.tsx`/`Laser.tsx`'s own right-hand live 3D preview (a react-three-fiber `<Canvas>`) - SUITE's own 3D viewport (`render/viewport.py`) is a from-scratch renderer with no existing support for an attached tool module's own geometry, and building that is real, separate work. The functional config surface (enable/disable, size, reset) is unaffected.
+- Real headless test coverage: `tests/verify_module_config_panel.py` (constructs real Qt widgets, feeds a real `HydraState` through `SuiteController.active_state_changed`, asserts on the enable/size-change/disable/reset round-trip and that `CncPanel`/`LaserPanel` each read their own module key independently). `python tools/ci_validate.py`: PASS.
+
 ## [0.2.0] - Ecosystem Services panel reaches parity with STUDIO's own 0.3.7
 
 - **`EcosystemServicesPanel` brought up to STUDIO's `EcosystemServices.tsx`
