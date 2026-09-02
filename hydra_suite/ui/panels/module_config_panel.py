@@ -15,6 +15,12 @@
 # design, and STUDIO's own two source files already ARE that baseline
 # duplicated once; this does not need to happen again on the Qt side.
 #
+# A module with MORE than size (e.g. heated_bed_panel.py's own heating
+# controls) subclasses this and overrides the 4 extension points below
+# (_build_extra_settings/_refresh_extra_controls/_extra_default_fields/
+# _extra_reset_fields) rather than re-implementing the shared robot
+# selector/enable-disable/size/reset shape a second time.
+#
 # Deliberately does NOT port CNC.tsx/Laser.tsx's own right-hand "3D Live
 # View" (a react-three-fiber <Canvas> rendering Shared3DEnvironment +
 # SharedModule3DView) - HYDRA-UMC-SUITE's own 3D viewport
@@ -139,6 +145,7 @@ class ModuleConfigPanel(QWidget):
         settings_box_layout.addLayout(size_row)
 
         settings_layout.addWidget(settings_box)
+        self._build_extra_settings(settings_layout)
         settings_layout.addStretch(1)
         self._stack.addWidget(settings_page)
 
@@ -194,6 +201,28 @@ class ModuleConfigPanel(QWidget):
         self._width_spin.setValue(int(size.get("width", DEFAULT_SIZE_MM)))
         self._length_spin.setValue(int(size.get("length", DEFAULT_SIZE_MM)))
         self._updating = False
+        self._refresh_extra_controls(module)
+
+    # --- extension points for a module with more than size (e.g.
+    # heated_bed_panel.py's own heating controls) - no-op by default so
+    # CNC/Laser, which have nothing extra, are unaffected. ------------
+
+    def _build_extra_settings(self, settings_layout: QVBoxLayout) -> None:
+        """Add module-specific widgets below the shared size group box."""
+        return
+
+    def _refresh_extra_controls(self, module: dict[str, Any]) -> None:
+        """Sync any extra widgets added by _build_extra_settings()."""
+        return
+
+    def _extra_default_fields(self) -> dict[str, Any]:
+        """Extra fields (beyond size) set via setdefault on first enable."""
+        return {}
+
+    def _extra_reset_fields(self) -> dict[str, Any]:
+        """Extra fields (beyond size/worldPos/worldRot/renderScale) included
+        in the reset payload."""
+        return {}
 
     # --- writes ----------------------------------------------------------
 
@@ -206,6 +235,8 @@ class ModuleConfigPanel(QWidget):
         module = dict(self._current_robot.module(self._module_key))
         module["enabled"] = True
         module.setdefault("size", {"width": DEFAULT_SIZE_MM, "length": DEFAULT_SIZE_MM})
+        for key, default in self._extra_default_fields().items():
+            module.setdefault(key, default)
         self._current_robot.set_module(self._module_key, module)
         self._refresh_controls()
         self._push()
@@ -222,16 +253,15 @@ class ModuleConfigPanel(QWidget):
     def _on_reset(self) -> None:
         if self._current_robot is None:
             return
-        self._current_robot.set_module(
-            self._module_key,
-            {
-                "enabled": True,
-                "size": {"width": DEFAULT_SIZE_MM, "length": DEFAULT_SIZE_MM},
-                "worldPos": {"x": 0, "y": 0},
-                "worldRot": 0,
-                "renderScale": 1,
-            },
-        )
+        payload: dict[str, Any] = {
+            "enabled": True,
+            "size": {"width": DEFAULT_SIZE_MM, "length": DEFAULT_SIZE_MM},
+            "worldPos": {"x": 0, "y": 0},
+            "worldRot": 0,
+            "renderScale": 1,
+        }
+        payload.update(self._extra_reset_fields())
+        self._current_robot.set_module(self._module_key, payload)
         self._refresh_controls()
         self._push()
 

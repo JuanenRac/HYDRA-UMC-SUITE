@@ -241,6 +241,7 @@ TOPBAR_STATUS_ERROR=ERROR
 # Tool-attachment config panels (CNC/Laser and future module panels)
 HEADING_CNC=CNC
 HEADING_LASER=Láser
+HEADING_HEATED_BED=Cama caliente
 GROUP_MODULE_SETTINGS=Ajustes del módulo
 BTN_RESET_MODULE=Restablecer
 BTN_ENABLE_MODULE=Habilitar {machine}
@@ -249,3 +250,12 @@ LBL_NO_MODULE_ASSIGNED=Sin {machine} asignado
 LBL_NO_MODULE_DESC=Este robot no tiene este módulo configurado actualmente. Añade uno para habilitar sus funciones.
 LBL_WIDTH_X=Ancho (X mm)
 LBL_LENGTH_Y=Largo (Y mm)
+
+# Panel de cama caliente - controles de calefacción (objetivo real ajustable
+# por el usuario + telemetría de termistores de solo lectura, no son campos editables)
+GROUP_HEATING_CONTROLS=Controles de calefacción
+LBL_TARGET_TEMP=Temp. objetivo (°C)
+LBL_THERMISTOR_1=Termistor 1
+LBL_THERMISTOR_2=Termistor 2
+BTN_SSR_ON=SSR ON
+BTN_SSR_OFF=SSR OFF

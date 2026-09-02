@@ -241,6 +241,7 @@ TOPBAR_STATUS_ERROR=ERRORE
 # Tool-attachment config panels (CNC/Laser and future module panels)
 HEADING_CNC=CNC
 HEADING_LASER=Laser
+HEADING_HEATED_BED=Piano riscaldato
 GROUP_MODULE_SETTINGS=Impostazioni del modulo
 BTN_RESET_MODULE=Ripristina
 BTN_ENABLE_MODULE=Abilita {machine}
@@ -249,3 +250,12 @@ LBL_NO_MODULE_ASSIGNED=Nessun {machine} assegnato
 LBL_NO_MODULE_DESC=Questo robot non ha attualmente questo modulo configurato. Aggiungine uno per abilitarne le funzionalità.
 LBL_WIDTH_X=Larghezza (X mm)
 LBL_LENGTH_Y=Lunghezza (Y mm)
+
+# Pannello Piano riscaldato - controlli di riscaldamento (target reale
+# impostabile dall'utente + telemetria termistori in sola lettura, non campi editabili)
+GROUP_HEATING_CONTROLS=Controlli di riscaldamento
+LBL_TARGET_TEMP=Temp. obiettivo (°C)
+LBL_THERMISTOR_1=Termistore 1
+LBL_THERMISTOR_2=Termistore 2
+BTN_SSR_ON=SSR ON
+BTN_SSR_OFF=SSR OFF

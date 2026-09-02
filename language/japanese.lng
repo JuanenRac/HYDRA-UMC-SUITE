@@ -240,6 +240,7 @@ TOPBAR_STATUS_ERROR=エラー
 # Tool-attachment config panels (CNC/Laser and future module panels)
 HEADING_CNC=CNC
 HEADING_LASER=レーザー
+HEADING_HEATED_BED=ヒートベッド
 GROUP_MODULE_SETTINGS=モジュール設定
 BTN_RESET_MODULE=リセット
 BTN_ENABLE_MODULE={machine} を有効化
@@ -248,3 +249,12 @@ LBL_NO_MODULE_ASSIGNED={machine} が未割り当てです
 LBL_NO_MODULE_DESC=このロボットには現在このモジュールが設定されていません。機能を有効にするには追加してください。
 LBL_WIDTH_X=幅（X mm）
 LBL_LENGTH_Y=奥行き（Y mm）
+
+# ヒートベッドパネル - 加熱制御（ユーザーが設定する実際の目標温度 +
+# 読み取り専用のサーミスタ計測値、編集可能な入力欄ではない）
+GROUP_HEATING_CONTROLS=加熱制御
+LBL_TARGET_TEMP=目標温度（°C）
+LBL_THERMISTOR_1=サーミスタ 1
+LBL_THERMISTOR_2=サーミスタ 2
+BTN_SSR_ON=SSR オン
+BTN_SSR_OFF=SSR オフ

@@ -241,6 +241,7 @@ TOPBAR_STATUS_ERROR=FEHLER
 # Tool-attachment config panels (CNC/Laser and future module panels)
 HEADING_CNC=CNC
 HEADING_LASER=Laser
+HEADING_HEATED_BED=Heizbett
 GROUP_MODULE_SETTINGS=Moduleinstellungen
 BTN_RESET_MODULE=Zurücksetzen
 BTN_ENABLE_MODULE={machine} aktivieren
@@ -249,3 +250,12 @@ LBL_NO_MODULE_ASSIGNED=Kein {machine} zugewiesen
 LBL_NO_MODULE_DESC=Diesem Roboter ist dieses Modul derzeit nicht konfiguriert. Fügen Sie eines hinzu, um seine Funktionen zu aktivieren.
 LBL_WIDTH_X=Breite (X mm)
 LBL_LENGTH_Y=Länge (Y mm)
+
+# Heizbett-Panel - Heizsteuerung (echtes, vom Nutzer einstellbares Ziel +
+# schreibgeschützte Thermistor-Telemetrie, keine editierbaren Felder)
+GROUP_HEATING_CONTROLS=Heizsteuerung
+LBL_TARGET_TEMP=Zieltemp. (°C)
+LBL_THERMISTOR_1=Thermistor 1
+LBL_THERMISTOR_2=Thermistor 2
+BTN_SSR_ON=SSR EIN
+BTN_SSR_OFF=SSR AUS

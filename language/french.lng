@@ -241,6 +241,7 @@ TOPBAR_STATUS_ERROR=ERREUR
 # Tool-attachment config panels (CNC/Laser and future module panels)
 HEADING_CNC=CNC
 HEADING_LASER=Laser
+HEADING_HEATED_BED=Plateau chauffant
 GROUP_MODULE_SETTINGS=Réglages du module
 BTN_RESET_MODULE=Réinitialiser
 BTN_ENABLE_MODULE=Activer {machine}
@@ -249,3 +250,12 @@ LBL_NO_MODULE_ASSIGNED=Aucun {machine} assigné
 LBL_NO_MODULE_DESC=Ce robot n'a pas encore ce module configuré. Ajoutez-en un pour activer ses fonctionnalités.
 LBL_WIDTH_X=Largeur (X mm)
 LBL_LENGTH_Y=Longueur (Y mm)
+
+# Panneau Plateau chauffant - contrôles de chauffe (consigne réelle réglable
+# par l'utilisateur + télémétrie des thermistances en lecture seule, pas des champs éditables)
+GROUP_HEATING_CONTROLS=Contrôles de chauffe
+LBL_TARGET_TEMP=Temp. consigne (°C)
+LBL_THERMISTOR_1=Thermistance 1
+LBL_THERMISTOR_2=Thermistance 2
+BTN_SSR_ON=SSR ON
+BTN_SSR_OFF=SSR OFF

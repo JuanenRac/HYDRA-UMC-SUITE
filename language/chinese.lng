@@ -240,6 +240,7 @@ TOPBAR_STATUS_ERROR=错误
 # Tool-attachment config panels (CNC/Laser and future module panels)
 HEADING_CNC=CNC
 HEADING_LASER=激光
+HEADING_HEATED_BED=热床
 GROUP_MODULE_SETTINGS=模块设置
 BTN_RESET_MODULE=重置
 BTN_ENABLE_MODULE=启用 {machine}
@@ -248,3 +249,12 @@ LBL_NO_MODULE_ASSIGNED=未分配 {machine}
 LBL_NO_MODULE_DESC=该机器人目前未配置此模块。添加一个以启用其功能。
 LBL_WIDTH_X=宽度（X 毫米）
 LBL_LENGTH_Y=长度（Y 毫米）
+
+# 热床面板——加热控制（用户可设置的真实目标温度 + 只读的
+# 热敏电阻遥测数据，并非可编辑输入框）
+GROUP_HEATING_CONTROLS=加热控制
+LBL_TARGET_TEMP=目标温度（°C）
+LBL_THERMISTOR_1=热敏电阻 1
+LBL_THERMISTOR_2=热敏电阻 2
+BTN_SSR_ON=SSR 开
+BTN_SSR_OFF=SSR 关
