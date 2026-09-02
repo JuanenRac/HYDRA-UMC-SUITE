@@ -241,6 +241,17 @@ class HydraConnection(QObject):
         trust tier as fetch_system_metrics() above)."""
         return await self._request_json("GET", "/api/ecosystem/status")
 
+    async def control_service(self, unit: str, action: str) -> tuple[int, object] | None:
+        """POST /api/ecosystem/service/:unit/:action - admin-only
+        server-side (see server.ts's own route comment for the real
+        security boundary: `unit` is re-validated there against a fresh
+        scan, never trusted from this call, and this Server's own unit is
+        refused unconditionally). `action` is one of start/stop/restart -
+        the caller (EcosystemServicesPanel) is the one place that builds
+        this value from its own fixed 3-button set, never from anything
+        the operator could otherwise type in."""
+        return await self._request_json("POST", f"/api/ecosystem/service/{unit}/{action}", auth=True)
+
     async def fetch_telemetry_query(self, params: dict) -> tuple[int, object] | None:
         """GET /api/telemetry/query - authenticated proxy to
         HYDRA-UMC-DATALAKE through Server (see server.ts's own

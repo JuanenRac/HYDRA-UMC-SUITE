@@ -4,13 +4,17 @@
 # GPL-3.0 - see LICENSE
 #
 # Desktop counterpart to HYDRA-UMC-STUDIO's own EcosystemServices.tsx -
-# same real route (GET /api/ecosystem/status against the ACTIVE
-# connection's own Server). Grouped by family (the same grouping the
-# manifests themselves already carry) into a real card grid, with a
-# search box and family filter chips, matching STUDIO's 0.2.9 redesign -
-# deliberately still no start/stop button: no process supervisor exists
-# anywhere in the ecosystem today (server.ts's only process-control route,
-# POST /api/admin/restart, restarts the Server itself, not a sibling repo).
+# same real routes (GET /api/ecosystem/status, POST /api/ecosystem/
+# service/:unit/:action) against the ACTIVE connection's own Server -
+# see client.py's own control_service()/fetch_ecosystem_status() and
+# server.ts's own route comments for the real security boundary (unit
+# re-validated server-side against a fresh scan, admin-only, real
+# narrowly-scoped polkit rule required on the host). Grouped by family
+# into a real card grid, matching STUDIO's own 0.3.7 - same 5-state
+# health color (green=running, red=stopped, amber=real error, slate=N/A),
+# version shown large inside the badge, real IP:port/PID chips, and
+# admin-only Start/Stop/Restart buttons per card, only for a project that
+# opted into service.systemd_unit.
 # =============================================================================
 from __future__ import annotations
 
@@ -22,6 +26,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -40,6 +45,49 @@ _STACK_COLOR = {
     "flutter": "#38bdf8",
     "firmware-c": "#c060e0",
 }
+
+# Same 4 health colors STUDIO's own healthColor() computes, from the same
+# real signals (a port probe's own `live`, a systemd probe's own
+# `activeState`) - see EcosystemServices.tsx's own header comment for the
+# full reasoning behind each branch, unchanged here.
+_HEALTH_COLOR = {
+    "green": "#4caf50",
+    "red": "#e05050",
+    "amber": "#e0a030",
+    "slate": "#556070",
+}
+
+
+def _health(project: dict) -> str:
+    active_state = project.get("activeState")
+    live = project.get("live")
+    if active_state == "failed":
+        return "amber"
+    if active_state == "active":
+        return "amber" if live is False else "green"
+    if active_state:
+        return "red"  # inactive/deactivating/activating under systemd control, not active
+    if live is True:
+        return "green"
+    if live is False:
+        return "red"
+    return "slate"
+
+
+def _badge_label(project: dict) -> str:
+    active_state = project.get("activeState")
+    live = project.get("live")
+    if active_state == "failed" or (active_state == "active" and live is False):
+        return _("LBL_SERVICES_ERROR")
+    if live is True:
+        return _("LBL_SERVICES_LIVE")
+    if live is False:
+        return _("LBL_SERVICES_DEAD")
+    if active_state == "active":
+        return _("LBL_SERVICES_RUNNING")
+    if active_state:
+        return _("LBL_SERVICES_STOPPED")
+    return _("LBL_SERVICES_NOT_A_SERVICE")
 
 
 def _stat_box(label_text: str) -> tuple[QWidget, QLabel]:
@@ -62,6 +110,11 @@ class EcosystemServicesPanel(QWidget):
         self._controller = controller
         self._projects: list[dict] = []
         self._family_filter: str | None = None
+        # Which single card's own action is in flight, if any - only that
+        # one card's own 3 buttons disable while it resolves, not the
+        # whole panel, same as EcosystemServices.tsx's own actioningUnit.
+        self._actioning_unit: str | None = None
+        self._action_error: tuple[str, str] | None = None  # (unit, message)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
@@ -85,7 +138,15 @@ class EcosystemServicesPanel(QWidget):
         self._stat_total_box, self._stat_total = _stat_box(_("LBL_SERVICES_STAT_TOTAL"))
         self._stat_live_box, self._stat_live = _stat_box(_("LBL_SERVICES_STAT_LIVE"))
         self._stat_families_box, self._stat_families = _stat_box(_("LBL_SERVICES_STAT_FAMILIES"))
-        for box in (self._stat_total_box, self._stat_live_box, self._stat_families_box):
+        self._stat_running_box, self._stat_running = _stat_box(_("LBL_SERVICES_STAT_RUNNING"))
+        self._stat_stopped_box, self._stat_stopped = _stat_box(_("LBL_SERVICES_STAT_STOPPED"))
+        self._stat_error_box, self._stat_error = _stat_box(_("LBL_SERVICES_STAT_ERROR"))
+        self._stat_na_box, self._stat_na = _stat_box(_("LBL_SERVICES_STAT_NA"))
+        self._stat_boxes = (
+            self._stat_total_box, self._stat_live_box, self._stat_families_box,
+            self._stat_running_box, self._stat_stopped_box, self._stat_error_box, self._stat_na_box,
+        )
+        for box in self._stat_boxes:
             stats_row.addWidget(box)
             box.setVisible(False)
         outer.addLayout(stats_row)
@@ -113,6 +174,8 @@ class EcosystemServicesPanel(QWidget):
         self._note_label.setWordWrap(True)
         self._note_label.setStyleSheet("color: #556070; font-size: 10px;")
         outer.addWidget(self._note_label)
+
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: self._rebuild())
 
     async def _refresh(self) -> None:
         conn = self._controller.active_connection
@@ -181,12 +244,22 @@ class EcosystemServicesPanel(QWidget):
         total = len(self._projects)
         live = sum(1 for p in self._projects if p.get("live") is True)
         families = len({p.get("family") for p in self._projects if p.get("family")})
-        for box in (self._stat_total_box, self._stat_live_box, self._stat_families_box):
+        # Same healthColor() the badges use, so this strip and every
+        # card can never disagree about which bucket a project is in.
+        running = sum(1 for p in self._projects if _health(p) == "green")
+        stopped = sum(1 for p in self._projects if _health(p) == "red")
+        errored = sum(1 for p in self._projects if _health(p) == "amber")
+        not_applicable = sum(1 for p in self._projects if _health(p) == "slate")
+        for box in self._stat_boxes:
             box.setVisible(total > 0)
         if total > 0:
             self._stat_total.setText(str(total))
             self._stat_live.setText(str(live))
             self._stat_families.setText(str(families))
+            self._stat_running.setText(str(running))
+            self._stat_stopped.setText(str(stopped))
+            self._stat_error.setText(str(errored))
+            self._stat_na.setText(str(not_applicable))
 
         grouped: dict[str, list[dict]] = {}
         for p in filtered:
@@ -211,10 +284,30 @@ class EcosystemServicesPanel(QWidget):
             empty.setStyleSheet("color: #556070; font-size: 11px;")
             self._content_layout.insertWidget(self._content_layout.count() - 1, empty)
 
+    def _build_badge(self, project: dict) -> QWidget:
+        health = _health(project)
+        color = _HEALTH_COLOR[health]
+        badge = QFrame()
+        badge.setStyleSheet(
+            f"QFrame {{ background: {color}22; border: 1px solid {color}55; border-radius: 6px; }}"
+        )
+        layout = QVBoxLayout(badge)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(0)
+        label = QLabel(f"● {_badge_label(project)}")
+        label.setStyleSheet(f"color: {color}; font-size: 9px; font-weight: 800; text-transform: uppercase;")
+        layout.addWidget(label)
+        version = project.get("version")
+        if version:
+            version_label = QLabel(f"v{version}")
+            version_label.setStyleSheet(f"color: {color}; font-size: 15px; font-weight: 800; font-family: Consolas, monospace;")
+            layout.addWidget(version_label)
+        return badge
+
     def _build_card(self, project: dict) -> QFrame:
         card = QFrame()
         card.setStyleSheet("QFrame { background: #12161c; border: 1px solid #262b33; border-radius: 8px; }")
-        card.setMinimumWidth(200)
+        card.setMinimumWidth(220)
         layout = QVBoxLayout(card)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(4)
@@ -224,11 +317,7 @@ class EcosystemServicesPanel(QWidget):
         name_label.setStyleSheet("color: #e6e6e6; font-size: 11px; font-weight: 700;")
         name_label.setWordWrap(True)
         top_row.addWidget(name_label, 1)
-        live = project.get("live")
-        dot_color = "#4caf50" if live is True else "#e05050" if live is False else "#556070"
-        dot = QLabel("●")
-        dot.setStyleSheet(f"color: {dot_color}; font-size: 12px;")
-        top_row.addWidget(dot)
+        top_row.addWidget(self._build_badge(project))
         layout.addLayout(top_row)
 
         tags_row = QHBoxLayout()
@@ -246,14 +335,95 @@ class EcosystemServicesPanel(QWidget):
         tags_row.addStretch(1)
         layout.addLayout(tags_row)
 
-        bottom_row = QHBoxLayout()
-        version_label = QLabel(f"v{project.get('version')}" if project.get("version") else "-")
-        version_label.setStyleSheet("color: #556070; font-size: 9px; font-family: Consolas, monospace;")
-        bottom_row.addWidget(version_label)
-        bottom_row.addStretch(1)
-        port_label = QLabel(f":{project.get('servicePort')}" if project.get("servicePort") else "-")
-        port_label.setStyleSheet("color: #556070; font-size: 9px; font-family: Consolas, monospace;")
-        bottom_row.addWidget(port_label)
-        layout.addLayout(bottom_row)
+        # Real feedback from live testing, matching EcosystemServices.tsx's
+        # own comment: a TCP/HTTP probe gives serviceHost/servicePort, an
+        # opt-in service.systemd_unit gives pid independently of whether
+        # that same project exposes a port at all. Only rendered when at
+        # least one is real.
+        service_host = project.get("serviceHost")
+        pid = project.get("pid")
+        if service_host or pid is not None:
+            info_row = QHBoxLayout()
+            if service_host:
+                host_label = QLabel(f"{service_host}:{project.get('servicePort')}")
+                host_label.setStyleSheet("color: #556070; font-size: 9px; font-family: Consolas, monospace;")
+                info_row.addWidget(host_label)
+            if pid is not None:
+                pid_label = QLabel(f"{_('LBL_SERVICES_PID')} {pid}")
+                pid_label.setStyleSheet("color: #556070; font-size: 9px; font-family: Consolas, monospace;")
+                info_row.addWidget(pid_label)
+            info_row.addStretch(1)
+            layout.addLayout(info_row)
+
+        # Admin-only, and only for a project that opted into
+        # service.systemd_unit at all - a project with neither can't be
+        # controlled through this route no matter what. Always shows all
+        # 3 rather than trying to predict which makes sense from the
+        # last-known state (systemd itself handles a redundant stop/start
+        # as a harmless no-op) - same reasoning as EcosystemServices.tsx.
+        conn = self._controller.active_connection
+        unit = project.get("systemdUnit")
+        if conn is not None and conn.is_admin and unit:
+            actions_row = QHBoxLayout()
+            if self._actioning_unit == unit:
+                pending = QLabel(_("LBL_SERVICES_ACTION_PENDING"))
+                pending.setStyleSheet("color: #7f8ea1; font-size: 9px; font-weight: 700; text-transform: uppercase;")
+                actions_row.addWidget(pending)
+            else:
+                start_btn = QPushButton(_("BTN_SERVICES_START"))
+                start_btn.setStyleSheet("QPushButton { color: #4caf50; font-size: 9px; padding: 3px 8px; }")
+                start_btn.clicked.connect(lambda _c=False, u=unit: asyncio.ensure_future(self._run_action(u, "start")))
+                actions_row.addWidget(start_btn)
+
+                stop_btn = QPushButton(_("BTN_SERVICES_STOP"))
+                stop_btn.setStyleSheet("QPushButton { color: #e05050; font-size: 9px; padding: 3px 8px; }")
+                stop_btn.clicked.connect(lambda _c=False, u=unit, n=project.get("name"): self._confirm_action(u, "stop", n))
+                actions_row.addWidget(stop_btn)
+
+                restart_btn = QPushButton(_("BTN_SERVICES_RESTART"))
+                restart_btn.setStyleSheet("QPushButton { color: #4fc3f7; font-size: 9px; padding: 3px 8px; }")
+                restart_btn.clicked.connect(lambda _c=False, u=unit, n=project.get("name"): self._confirm_action(u, "restart", n))
+                actions_row.addWidget(restart_btn)
+            actions_row.addStretch(1)
+            layout.addLayout(actions_row)
+
+        if self._action_error is not None and self._action_error[0] == unit:
+            error_label = QLabel(self._action_error[1])
+            error_label.setStyleSheet("color: #e05050; font-size: 9px;")
+            error_label.setWordWrap(True)
+            layout.addWidget(error_label)
 
         return card
+
+    def _confirm_action(self, unit: str, action: str, name: str | None) -> None:
+        title = _("TITLE_SERVICES_CONFIRM_STOP") if action == "stop" else _("TITLE_SERVICES_CONFIRM_RESTART")
+        message_key = "MSG_SERVICES_CONFIRM_STOP" if action == "stop" else "MSG_SERVICES_CONFIRM_RESTART"
+        answer = QMessageBox.question(
+            self, title, _(message_key, name=name or unit),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            asyncio.ensure_future(self._run_action(unit, action))
+
+    async def _run_action(self, unit: str, action: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        self._actioning_unit = unit
+        self._action_error = None
+        self._rebuild()
+        try:
+            result = await conn.control_service(unit, action)
+        finally:
+            self._actioning_unit = None
+        if result is None:
+            self._action_error = (unit, _("MSG_SERVICES_ACTION_ERROR"))
+            self._rebuild()
+            return
+        status, body = result
+        if status != 200:
+            message = body.get("error") if isinstance(body, dict) else None
+            self._action_error = (unit, message or f"HTTP {status}")
+            self._rebuild()
+            return
+        await self._refresh()

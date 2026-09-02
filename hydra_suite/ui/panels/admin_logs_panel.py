@@ -53,6 +53,21 @@ class AdminLogsPanel(QWidget):
         self._live = True
         self._all_lines: list[str] = []
         self._tag_filter: str | None = None
+        # Real feedback from live testing on STUDIO's own copy of this
+        # panel (AdminLogs.tsx): `_all_lines` is always replaced wholesale
+        # from the server's own last-N-lines response on every poll, so
+        # simply emptying it wouldn't stay empty past one poll tick while
+        # live. This remembers the newest line at the moment Clear was
+        # pressed (or that the log was empty) and `_displayed_lines()`
+        # below only ever shows what comes after that same anchor in each
+        # later poll - same "clear the screen, keep tailing" behavior as
+        # a terminal or devtools console. Unlike AdminLogs.tsx, this panel
+        # is a real QWidget instance kept alive for the app's whole
+        # lifetime (see main_window.py - built once, shown/hidden, never
+        # torn down on tab switch), so a plain instance attribute already
+        # survives navigation with no extra lifting needed.
+        self._cleared_anchor: str | None = None
+        self._cleared_at_empty = False
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
@@ -63,6 +78,9 @@ class AdminLogsPanel(QWidget):
         heading.setObjectName("panelHeading")
         header_row.addWidget(heading)
         header_row.addStretch(1)
+        self._clear_btn = QPushButton(_("BTN_CLEAR"))
+        self._clear_btn.clicked.connect(self._clear)
+        header_row.addWidget(self._clear_btn)
         self._pause_btn = QPushButton(_("BTN_PAUSE"))
         self._pause_btn.clicked.connect(self._toggle_live)
         header_row.addWidget(self._pause_btn)
@@ -99,6 +117,29 @@ class AdminLogsPanel(QWidget):
     def _toggle_live(self) -> None:
         self._live = not self._live
         self._pause_btn.setText(_("BTN_RESUME") if not self._live else _("BTN_PAUSE"))
+
+    def _clear(self) -> None:
+        if self._all_lines:
+            self._cleared_anchor = self._all_lines[-1]
+            self._cleared_at_empty = False
+        else:
+            self._cleared_anchor = None
+            self._cleared_at_empty = True
+        self._render()
+
+    def _displayed_lines(self) -> list[str]:
+        if not self._cleared_at_empty and self._cleared_anchor is None:
+            return self._all_lines
+        if self._cleared_at_empty:
+            return self._all_lines
+        try:
+            idx = len(self._all_lines) - 1 - self._all_lines[::-1].index(self._cleared_anchor)
+        except ValueError:
+            # Anchor scrolled off the server's own 300-line window (more
+            # real log lines arrived since Clear than that window holds) -
+            # show everything rather than hide real content.
+            return self._all_lines
+        return self._all_lines[idx + 1:]
 
     async def _refresh(self) -> None:
         if not self._live:
@@ -152,15 +193,16 @@ class AdminLogsPanel(QWidget):
         scrollbar = self._text.verticalScrollBar()
         was_at_bottom = scrollbar.value() >= scrollbar.maximum() - 4
 
+        displayed = self._displayed_lines()
         needle = self._search.text().strip().lower()
         filtered = [
-            line for line in self._all_lines
+            line for line in displayed
             if (self._tag_filter is None or _extract_tag(line) == self._tag_filter)
             and (not needle or needle in line.lower())
         ]
 
         if not filtered:
-            self._text.setPlainText(_("MSG_LOGS_NONE") if not self._all_lines else _("LOGS_NO_MATCH"))
+            self._text.setPlainText(_("MSG_LOGS_NONE") if not displayed else _("LOGS_NO_MATCH"))
         else:
             self._text.setPlainText("\n".join(filtered))
         if was_at_bottom:

@@ -61,6 +61,40 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
+## [0.2.0] - Ecosystem Services panel reaches parity with STUDIO's own 0.3.7
+
+- **`EcosystemServicesPanel` brought up to STUDIO's `EcosystemServices.tsx`
+  0.3.7 feature set** - real request: keep SUITE's own menus/panels
+  functionally similar to STUDIO's, its real difference being that SUITE
+  can hold several `HydraConnection`s at once and switch which one is
+  active (`SuiteController.connections`), where STUDIO only ever talks
+  to the one Server it's loaded from. Added: the same 5-state health
+  color (green=running, red=stopped, amber=a real error - systemd's own
+  `ActiveState: "failed"`, or "active" yet its own declared port probes
+  down - slate=N/A), the version shown large inside the status badge,
+  real host:port/PID chips (`serviceHost`/`servicePort` from a port
+  probe, `pid` from an opt-in `service.systemd_unit` probe,
+  independent signals), 4 new stat tiles (Running/Stopped/Error/N/A)
+  alongside Total/Live/Families, and admin-only Start/Stop/Restart
+  buttons per card (only for a project that declares
+  `service.systemd_unit`) calling HYDRA-UMC-SERVER's own
+  `POST /api/ecosystem/service/:unit/:action` (see that repo's own
+  `[0.3.7]`) - Stop/Restart confirm first via `QMessageBox`, Start
+  fires immediately, only the acting card's own buttons disable while
+  in flight. New `HydraConnection.control_service()` in `client.py`.
+- **`AdminLogsPanel` gets a real Clear button**, same "remember the
+  newest line at the moment Clear was pressed, only show what comes
+  after it in later polls" behavior as STUDIO's own `AdminLogs.tsx` -
+  unlike that React component, this panel is a real `QWidget` kept
+  alive for the app's whole lifetime (built once in `main_window.py`,
+  shown/hidden on tab switch, never torn down), so a plain instance
+  attribute already survives navigation with no extra state-lifting
+  needed.
+- Updated the panel's own stale footer note (still said start/stop was
+  "not built yet").
+- `BTN_CLEAR` and 20 new service-status/action keys added to all 7
+  language files.
+
 ## [0.1.9]
 
 - Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
