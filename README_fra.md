@@ -70,10 +70,7 @@ Le bureau inclut maintenant une console de commande persistante, inspirée d'un 
 
 ## 🏭 Fonctionnalités
 
-- **🔍 Découverte réseau** - balayage concurrent du sous-réseau à la
-  recherche de véritables serveurs HYDRA-UMC STUDIO (`GET /api/hydra-info`),
-  plus ajout manuel par adresse pour tout ce qu'un balayage ne peut
-  atteindre (un sous-réseau différent, un tunnel VPN).
+- **🔍 Découverte réseau** - un balayage concurrent du sous-réseau (`GET /api/hydra-info`) et le vrai mDNS/Bonjour (`_hydra._tcp`, le même service que publie `server.ts` et que HYDRA-UMC-IOS-CONTROL interroge déjà) s'exécutent ensemble à la recherche de véritables serveurs HYDRA-UMC STUDIO, dédupliqués par host:port, plus ajout manuel par adresse pour tout ce qu'aucun des deux ne peut atteindre (un sous-réseau différent, un tunnel VPN).
 - **🐝 Connexions d'essaim** - connectez-vous à autant de serveurs
   HYDRA-UMC simultanément que vous le souhaitez, chacun avec sa propre
   synchronisation WebSocket en direct ; choisissez lequel est "actif" pour
@@ -140,7 +137,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController - possede l'essaim de connexions, la selection "active", chaque panneau communique avec lui
 │   ├── i18n.py                     # Chargeur 7 langues CLE=Valeur (language/*.lng)
 │   ├── net/
-│   │   ├── discovery.py             # Balayage concurrent du sous-reseau contre GET /api/hydra-info
+│   │   ├── discovery.py             # Balayage concurrent du sous-reseau + mDNS reel (_hydra._tcp) contre GET /api/hydra-info, deduplique
 │   │   └── client.py                # Connexion REST + WebSocket par serveur, synchronisation bidirectionnelle en direct, connexion
 │   ├── render/
 │   │   ├── kinematics.py            # Cinematique directe (portee depuis le propre urKinematicsShared.ts de HYDRA-UMC-STUDIO)

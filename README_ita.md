@@ -68,10 +68,7 @@ Il desktop include ora una console di comando persistente, ispirata a un menu di
 
 ## 🏭 Funzionalità
 
-- **🔍 Scoperta di rete** - scansione concorrente della sottorete alla
-  ricerca di server HYDRA-UMC STUDIO reali (`GET /api/hydra-info`), più
-  aggiunta manuale per indirizzo per tutto ciò che una scansione non può
-  raggiungere (una sottorete diversa, un tunnel VPN).
+- **🔍 Scoperta di rete** - una scansione concorrente della sottorete (`GET /api/hydra-info`) e il vero mDNS/Bonjour (`_hydra._tcp`, lo stesso servizio pubblicato da `server.ts` e già interrogato da HYDRA-UMC-IOS-CONTROL) vengono eseguiti insieme alla ricerca di server HYDRA-UMC STUDIO reali, deduplicati per host:porta, più aggiunta manuale per indirizzo per tutto ciò che nessuno dei due può raggiungere (una sottorete diversa, un tunnel VPN).
 - **🐝 Connessioni a sciame** - connettiti a tanti server HYDRA-UMC
   contemporaneamente quanti ne vuoi, ognuno con la propria sincronizzazione
   WebSocket in tempo reale; scegli quale sia "attivo" per gli altri
@@ -136,7 +133,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController - possiede lo sciame di connessioni, la selezione "attiva", ogni pannello parla con questo
 │   ├── i18n.py                     # Caricatore a 7 lingue CHIAVE=Valore (language/*.lng)
 │   ├── net/
-│   │   ├── discovery.py             # Scansione concorrente della sottorete contro GET /api/hydra-info
+│   │   ├── discovery.py             # Scansione concorrente della sottorete + mDNS reale (_hydra._tcp) contro GET /api/hydra-info, deduplicato
 │   │   └── client.py                # Connessione REST + WebSocket per server, sincronizzazione bidirezionale in tempo reale, login
 │   ├── render/
 │   │   ├── kinematics.py            # Cinematica diretta (portata dallo stesso urKinematicsShared.ts di HYDRA-UMC-STUDIO)

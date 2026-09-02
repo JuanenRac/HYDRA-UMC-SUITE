@@ -68,10 +68,7 @@ Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Comman
 
 ## 🏭 Funktionen
 
-- **🔍 Netzwerkerkennung** - gleichzeitiger Subnetz-Scan nach echten
-  HYDRA-UMC-STUDIO-Servern (`GET /api/hydra-info`), plus manuelles
-  Hinzufügen per Adresse für alles, was ein Scan nicht erreichen kann (ein
-  anderes Subnetz, ein VPN-Tunnel).
+- **🔍 Netzwerkerkennung** - ein gleichzeitiger Subnetz-Scan (`GET /api/hydra-info`) und echtes mDNS/Bonjour (`_hydra._tcp`, derselbe Dienst, den `server.ts` veröffentlicht und den HYDRA-UMC-IOS-CONTROL bereits abfragt) laufen gemeinsam auf der Suche nach echten HYDRA-UMC-STUDIO-Servern, dedupliziert nach Host:Port, plus manuelles Hinzufügen per Adresse für alles, was keines von beiden erreichen kann (ein anderes Subnetz, ein VPN-Tunnel).
 - **🐝 Schwarmverbindungen** - verbinde dich mit so vielen HYDRA-UMC-Servern
   gleichzeitig, wie du willst, jeder mit seiner eigenen live
   WebSocket-Synchronisierung; wähle, welcher für die anderen Panels
@@ -137,7 +134,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController - besitzt den Schwarm an Verbindungen, die "aktive" Auswahl, jedes Panel spricht mit diesem
 │   ├── i18n.py                     # 5-Sprachen-Lader SCHLUESSEL=Wert (language/*.lng)
 │   ├── net/
-│   │   ├── discovery.py             # Gleichzeitiger Subnetz-Scan gegen GET /api/hydra-info
+│   │   ├── discovery.py             # Gleichzeitiger Subnetz-Scan + echtes mDNS (_hydra._tcp) gegen GET /api/hydra-info, dedupliziert
 │   │   └── client.py                # REST- + WebSocket-Verbindung pro Server, live bidirektionale Synchronisierung, Login
 │   ├── render/
 │   │   ├── kinematics.py            # Vorwaertskinematik (portiert aus dem eigenen urKinematicsShared.ts von HYDRA-UMC-STUDIO)

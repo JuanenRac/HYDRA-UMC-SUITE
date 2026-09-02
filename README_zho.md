@@ -43,7 +43,7 @@
 
 ## 🏭 功能特性
 
-- **🔍 网络发现** —— 针对真实 HYDRA-UMC STUDIO 服务器的并发子网扫描（`GET /api/hydra-info`），外加针对扫描无法到达的任何目标（不同子网、VPN 隧道）的手动按地址添加。
+- **🔍 网络发现** —— 并发子网扫描(`GET /api/hydra-info`)与真实的 mDNS/Bonjour(`_hydra._tcp`,与 `server.ts` 发布、HYDRA-UMC-IOS-CONTROL 已经查询的服务相同)共同运行,针对真实的 HYDRA-UMC STUDIO 服务器进行发现,并按 host:port 去重;外加针对两者都无法到达的任何目标(不同子网、VPN 隧道)的手动按地址添加。
 - **🐝 集群连接** —— 可同时连接任意数量的 HYDRA-UMC 服务器，每一个都拥有自己独立的实时 WebSocket 同步；可选择哪一个是其他面板的“活动”对象。
 - **📊 概览** —— 逐控制器的机器人名册：型号、角色、在线状态、速度/加速度，一目了然。
 - **🦾 机器人控制** —— 每个关节的旋钮 + 滑块（HYDRA-UMC STUDIO 自身 `RotaryKnob`+`FuturisticSlider` 点动组合的桌面版对应物）、速度/加速度滑块，全部实时写回。
@@ -78,7 +78,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController —— 拥有整个连接集群、“活动”选择，每个面板都与它通信
 │   ├── i18n.py                     # 5 语言 KEY=Value 加载器（language/*.lng）
 │   ├── net/
-│   │   ├── discovery.py             # 针对 GET /api/hydra-info 的并发子网扫描
+│   │   ├── discovery.py             # 针对 GET /api/hydra-info 的并发子网扫描 + 真实 mDNS (_hydra._tcp),已去重
 │   │   └── client.py                # 每服务器 REST + WebSocket 连接、实时双向同步、登录
 │   ├── render/
 │   │   ├── kinematics.py            # 正向运动学（从 HYDRA-UMC-STUDIO 自身的 urKinematicsShared.ts 移植）

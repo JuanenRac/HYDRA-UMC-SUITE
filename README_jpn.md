@@ -43,7 +43,7 @@
 
 ## 🏭 機能
 
-- **🔍 ネットワークディスカバリー** —— 実際の HYDRA-UMC STUDIO サーバーに対する並行サブネットスキャン（`GET /api/hydra-info`）、加えてスキャンが到達できないもの（異なるサブネット、VPN トンネル）向けの手動アドレス追加。
+- **🔍 ネットワークディスカバリー** —— 並行サブネットスキャン(`GET /api/hydra-info`)と実際のmDNS/Bonjour(`_hydra._tcp`。`server.ts` が公開し、HYDRA-UMC-IOS-CONTROL がすでに問い合わせているのと同じサービス)が共に実行され、実際の HYDRA-UMC STUDIO サーバーを host:port で重複排除しながら検出する。加えて、どちらも到達できないもの(異なるサブネット、VPN トンネル)向けの手動アドレス追加。
 - **🐝 群接続** —— 好きなだけ多くの HYDRA-UMC サーバーへ同時に接続でき、それぞれが自身のリアルタイム WebSocket 同期を持ちます。他のパネルにとってどれを「アクティブ」にするか選択できます。
 - **📊 概要** —— コントローラーごとのロボット一覧：型式、役割、オンライン状態、速度/加速度を一目で確認できます。
 - **🦾 ロボット制御** —— 各関節ごとのロータリーノブ＋スライダー（HYDRA-UMC STUDIO 自身の `RotaryKnob`+`FuturisticSlider` ジョグペアのデスクトップ版対応物）、速度/加速度スライダー、すべてリアルタイムで書き戻されます。
@@ -78,7 +78,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController —— 接続の群れ、「アクティブ」選択を保持、すべてのパネルがこれと通信
 │   ├── i18n.py                     # 7 言語 KEY=Value ローダー（language/*.lng）
 │   ├── net/
-│   │   ├── discovery.py             # GET /api/hydra-info に対する並行サブネットスキャン
+│   │   ├── discovery.py             # GET /api/hydra-info に対する並行サブネットスキャン + 実際のmDNS (_hydra._tcp)、重複排除済み
 │   │   └── client.py                # サーバーごとの REST + WebSocket 接続、リアルタイム双方向同期、ログイン
 │   ├── render/
 │   │   ├── kinematics.py            # 正運動学（HYDRA-UMC-STUDIO 自身の urKinematicsShared.ts から移植）

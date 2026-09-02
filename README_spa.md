@@ -68,10 +68,7 @@ El escritorio incorpora una consola de mando persistente, inspirada en un menú 
 
 ## 🏭 Funcionalidades
 
-- **🔍 Descubrimiento de red** - escaneo concurrente de subred en busca de
-  servidores HYDRA-UMC STUDIO reales (`GET /api/hydra-info`), más
-  añadido manual por dirección para cualquier cosa que un escaneo no pueda
-  alcanzar (una subred distinta, un túnel VPN).
+- **🔍 Descubrimiento de red** - un escaneo concurrente de subred (`GET /api/hydra-info`) y el mDNS/Bonjour real (`_hydra._tcp`, el mismo servicio que publica `server.ts` y que HYDRA-UMC-IOS-CONTROL ya consulta) se ejecutan juntos en busca de servidores HYDRA-UMC STUDIO reales, deduplicados por host:puerto, más añadido manual por dirección para cualquier cosa que ninguno de los dos pueda alcanzar (una subred distinta, un túnel VPN).
 - **🐝 Conexiones de enjambre** - conecta con tantos servidores HYDRA-UMC
   simultáneamente como quieras, cada uno con su propia sincronización
   WebSocket en vivo; elige cuál está "activo" para el resto de paneles.
@@ -136,7 +133,7 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                      # SuiteController - posee el enjambre de conexiones, la seleccion "activa", cada panel habla con esto
 │   ├── i18n.py                     # Cargador de 7 idiomas CLAVE=Valor (language/*.lng)
 │   ├── net/
-│   │   ├── discovery.py             # Escaneo concurrente de subred contra GET /api/hydra-info
+│   │   ├── discovery.py             # Escaneo concurrente de subred + mDNS real (_hydra._tcp) contra GET /api/hydra-info, deduplicado
 │   │   └── client.py                # Conexion REST + WebSocket por servidor, sincronizacion bidireccional en vivo, login
 │   ├── render/
 │   │   ├── kinematics.py            # Cinematica directa (portada del propio urKinematicsShared.ts de HYDRA-UMC-STUDIO)
