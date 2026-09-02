@@ -259,3 +259,11 @@ LBL_THERMISTOR_1=Termistore 1
 LBL_THERMISTOR_2=Termistore 2
 BTN_SSR_ON=SSR ON
 BTN_SSR_OFF=SSR OFF
+
+# Pannello Tavolo a vuoto - controlli pompa/valvola
+HEADING_VACUUM_TABLE=Tavolo a vuoto
+GROUP_VACUUM_CONTROLS=Controlli del vuoto
+BTN_PUMP_ON=Pompa ON
+BTN_PUMP_OFF=Pompa OFF
+BTN_VALVE_OPEN=Valvola APERTA
+BTN_VALVE_CLOSED=Valvola CHIUSA

@@ -48,6 +48,7 @@ from hydra_suite.ui.panels.laser_panel import LaserPanel
 from hydra_suite.ui.panels.logs_panel import LogsPanel
 from hydra_suite.ui.panels.overview import OverviewPanel
 from hydra_suite.ui.panels.robot_control import RobotControlPanel
+from hydra_suite.ui.panels.vacuum_table_panel import VacuumTablePanel
 from hydra_suite.ui.panels.server_browser import ServerBrowserPanel
 from hydra_suite.ui.panels.trajectory_panel import TrajectoryPanel
 from hydra_suite.ui.panels.viewport_panel import ViewportPanel
@@ -124,15 +125,17 @@ class MainWindow(QMainWindow):
         self.admin_logs_panel = AdminLogsPanel(self.controller)
         self.admin_server_panel = AdminServerPanel(self.controller)
         # Tool-attachment config panels - ports of HYDRA-UMC-STUDIO's own
-        # CNC.tsx/Laser.tsx/HeatedBedConfig.tsx (see module_config_panel.py's
-        # own header for the shared implementation and what's deliberately
-        # not ported yet - the live 3D preview). 3 of 11 panels from
-        # [[project_suite_studio_parity_gap]] done; HeatedBedPanel extends
-        # ModuleConfigPanel's own extension hooks for its extra heating
-        # controls rather than duplicating the shared shape.
+        # CNC.tsx/Laser.tsx/HeatedBedConfig.tsx/VacuumTableConfig.tsx (see
+        # module_config_panel.py's own header for the shared implementation
+        # and what's deliberately not ported yet - the live 3D preview). 4
+        # of 11 panels from [[project_suite_studio_parity_gap]] done;
+        # HeatedBedPanel/VacuumTablePanel extend ModuleConfigPanel's own
+        # extension hooks for their extra controls rather than duplicating
+        # the shared shape.
         self.cnc_panel = CncPanel(self.controller)
         self.laser_panel = LaserPanel(self.controller)
         self.heated_bed_panel = HeatedBedPanel(self.controller)
+        self.vacuum_table_panel = VacuumTablePanel(self.controller)
 
         self.robot_control.robot_selected.connect(self.viewport_panel.set_selected_robot)
         self.robot_control.robot_selected.connect(self.trajectory_panel.set_selected_robot)
@@ -153,6 +156,7 @@ class MainWindow(QMainWindow):
         dock_cnc = self._make_dock(_("HEADING_CNC"), self.cnc_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_laser = self._make_dock(_("HEADING_LASER"), self.laser_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_heated_bed = self._make_dock(_("HEADING_HEATED_BED"), self.heated_bed_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_vacuum_table = self._make_dock(_("HEADING_VACUUM_TABLE"), self.vacuum_table_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
         self._docks = {
             "servers": dock_servers,
@@ -171,6 +175,7 @@ class MainWindow(QMainWindow):
             "cnc": dock_cnc,
             "laser": dock_laser,
             "heated_bed": dock_heated_bed,
+            "vacuum_table": dock_vacuum_table,
         }
 
         # Sensible default arrangement - the user is free to drag any of
@@ -202,6 +207,7 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(dock_admin_server, dock_cnc)
         self.tabifyDockWidget(dock_cnc, dock_laser)
         self.tabifyDockWidget(dock_laser, dock_heated_bed)
+        self.tabifyDockWidget(dock_heated_bed, dock_vacuum_table)
         dock_traj.raise_()
 
         # A dock closed via its own [x] button would otherwise be gone for
@@ -211,7 +217,7 @@ class MainWindow(QMainWindow):
         for dock in (
             dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
-            dock_cnc, dock_laser, dock_heated_bed,
+            dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
 

@@ -259,3 +259,11 @@ LBL_THERMISTOR_1=Thermistance 1
 LBL_THERMISTOR_2=Thermistance 2
 BTN_SSR_ON=SSR ON
 BTN_SSR_OFF=SSR OFF
+
+# Panneau Table à vide - contrôles pompe/vanne
+HEADING_VACUUM_TABLE=Table à vide
+GROUP_VACUUM_CONTROLS=Contrôles du vide
+BTN_PUMP_ON=Pompe ON
+BTN_PUMP_OFF=Pompe OFF
+BTN_VALVE_OPEN=Vanne OUVERTE
+BTN_VALVE_CLOSED=Vanne FERMÉE

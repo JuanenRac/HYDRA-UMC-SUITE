@@ -259,3 +259,11 @@ LBL_THERMISTOR_1=Termistor 1
 LBL_THERMISTOR_2=Termistor 2
 BTN_SSR_ON=SSR ON
 BTN_SSR_OFF=SSR OFF
+
+# Panel de mesa de vacío - controles de bomba/válvula
+HEADING_VACUUM_TABLE=Mesa de vacío
+GROUP_VACUUM_CONTROLS=Controles de vacío
+BTN_PUMP_ON=Bomba ON
+BTN_PUMP_OFF=Bomba OFF
+BTN_VALVE_OPEN=Válvula ABIERTA
+BTN_VALVE_CLOSED=Válvula CERRADA

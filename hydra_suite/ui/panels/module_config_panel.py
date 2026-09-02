@@ -197,9 +197,10 @@ class ModuleConfigPanel(QWidget):
 
         module = robot.module(self._module_key)
         size = module.get("size") or {}
+        default_width, default_length = self._display_default_size_mm()
         self._updating = True
-        self._width_spin.setValue(int(size.get("width", DEFAULT_SIZE_MM)))
-        self._length_spin.setValue(int(size.get("length", DEFAULT_SIZE_MM)))
+        self._width_spin.setValue(int(size.get("width", default_width)))
+        self._length_spin.setValue(int(size.get("length", default_length)))
         self._updating = False
         self._refresh_extra_controls(module)
 
@@ -214,6 +215,25 @@ class ModuleConfigPanel(QWidget):
     def _refresh_extra_controls(self, module: dict[str, Any]) -> None:
         """Sync any extra widgets added by _build_extra_settings()."""
         return
+
+    def _display_default_size_mm(self) -> tuple[int, int]:
+        """(width, length) mm shown when no "size" has been written yet -
+        mirrors STUDIO's own `moduleData?.size?.width || 500` UI-only
+        fallback, which is 500 for every module including VacuumTable
+        (see _reset_size_mm() for why that one still needs its own
+        override elsewhere)."""
+        return (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM)
+
+    def _reset_size_mm(self) -> tuple[int, int]:
+        """(width, length) mm actually WRITTEN by Reset. STUDIO's own
+        per-module handleReset()s don't all agree with their own
+        enable-time display fallback above: CNC/Laser/HeatedBed reset to
+        500 (same as the display fallback), VacuumTable resets to 100
+        (while still DISPLAYING 500 before that first reset) - a real,
+        if minor, inconsistency in STUDIO itself, reproduced faithfully
+        here via two separate hooks rather than collapsing them into one
+        number."""
+        return self._display_default_size_mm()
 
     def _extra_default_fields(self) -> dict[str, Any]:
         """Extra fields (beyond size) set via setdefault on first enable."""
@@ -234,7 +254,16 @@ class ModuleConfigPanel(QWidget):
             return
         module = dict(self._current_robot.module(self._module_key))
         module["enabled"] = True
-        module.setdefault("size", {"width": DEFAULT_SIZE_MM, "length": DEFAULT_SIZE_MM})
+        # No "size" setdefault here, matching STUDIO's own handleToggle()
+        # exactly: enabling writes only `enabled`, and the width/length
+        # spinboxes fall back to _display_default_size_mm() purely for
+        # DISPLAY (see _refresh_controls()) until something actually
+        # writes a size - a real size change, or Reset (_reset_size_mm()).
+        # This split matters because STUDIO's own per-module
+        # handleReset()s don't all agree with their own enable-time
+        # display fallback (VacuumTable shows 500 on enable but resets to
+        # 100) - persisting a default here would silently pick one of
+        # those two numbers for every module.
         for key, default in self._extra_default_fields().items():
             module.setdefault(key, default)
         self._current_robot.set_module(self._module_key, module)
@@ -253,9 +282,10 @@ class ModuleConfigPanel(QWidget):
     def _on_reset(self) -> None:
         if self._current_robot is None:
             return
+        reset_width, reset_length = self._reset_size_mm()
         payload: dict[str, Any] = {
             "enabled": True,
-            "size": {"width": DEFAULT_SIZE_MM, "length": DEFAULT_SIZE_MM},
+            "size": {"width": reset_width, "length": reset_length},
             "worldPos": {"x": 0, "y": 0},
             "worldRot": 0,
             "renderScale": 1,

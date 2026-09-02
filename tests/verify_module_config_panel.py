@@ -18,6 +18,7 @@ from hydra_suite.models import HydraState, RobotView
 from hydra_suite.ui.panels.cnc_panel import CncPanel
 from hydra_suite.ui.panels.heated_bed_panel import HeatedBedPanel
 from hydra_suite.ui.panels.laser_panel import LaserPanel
+from hydra_suite.ui.panels.vacuum_table_panel import VacuumTablePanel
 
 
 def _state_with_one_robot(cnc: dict | None = None) -> HydraState:
@@ -36,6 +37,18 @@ def _state_with_heated_bed(heated_bed: dict | None = None) -> HydraState:
     robot: dict = {"id": 1, "model": "Generic (6-DOF)", "role": "Idle"}
     if heated_bed is not None:
         robot["heatedBed"] = heated_bed
+    return HydraState(
+        {
+            "activeControllerId": "c1",
+            "controllers": [{"id": "c1", "robots": [robot]}],
+        }
+    )
+
+
+def _state_with_vacuum_table(vacuum_table: dict | None = None) -> HydraState:
+    robot: dict = {"id": 1, "model": "Generic (6-DOF)", "role": "Idle"}
+    if vacuum_table is not None:
+        robot["vacuumTable"] = vacuum_table
     return HydraState(
         {
             "activeControllerId": "c1",
@@ -152,6 +165,40 @@ def _run() -> None:
     assert heated_bed_panel._temp2_label.text() == "67.9 °C"
     assert heated_bed_panel._ssr_btn.isChecked() is True
     print("HeatedBedPanel renders real live telemetry from state: PASS")
+
+    # --- VacuumTablePanel - pump/valve toggles + the real 500-vs-100 size
+    # quirk (STUDIO's own enable-time display fallback disagrees with its
+    # own handleReset() write for this one module) ------------------------
+    vacuum_panel = VacuumTablePanel(controller)
+    controller.active_state_changed.emit(_state_with_vacuum_table(vacuum_table=None))
+    assert vacuum_panel._stack.currentIndex() == 0, "no vacuumTable block yet -> empty-state page"
+
+    # Enable writes no size at all - the spinboxes must still DISPLAY the
+    # shared 500 fallback (matching STUDIO's own `|| 500`), not 100.
+    vacuum_panel._on_enable()
+    assert "size" not in vacuum_panel._current_robot.module("vacuumTable"), "enable must not persist a size default"
+    assert vacuum_panel._width_spin.value() == 500, "display fallback must be 500, same as CNC/Laser/HeatedBed"
+    assert vacuum_panel._pump_btn.isChecked() is False
+    print("VacuumTablePanel enable: no persisted size, 500 display fallback: PASS")
+
+    # Pump/valve toggles write back for real.
+    vacuum_panel._pump_btn.setChecked(True)
+    assert vacuum_panel._current_robot.module("vacuumTable")["pumpActive"] is True
+    assert vacuum_panel._pump_btn.text() == "Pump ON"
+    vacuum_panel._valve_btn.setChecked(True)
+    assert vacuum_panel._current_robot.module("vacuumTable")["valveActive"] is True
+    print("VacuumTablePanel pump/valve write-back: PASS")
+
+    # Reset writes the module's OWN real default (100), not the shared 500
+    # every other module resets to - the real STUDIO-side inconsistency
+    # this panel exists to reproduce faithfully.
+    vacuum_panel._on_reset()
+    module = vacuum_panel._current_robot.module("vacuumTable")
+    assert module["size"] == {"width": 100, "length": 100}, "VacuumTable resets to 100mm, not the shared 500mm default"
+    assert module["pumpActive"] is False
+    assert module["valveActive"] is False
+    assert vacuum_panel._width_spin.value() == 100
+    print("VacuumTablePanel reset writes its own 100mm default, not the shared 500mm one: PASS")
 
     print("ALL VERIFY_MODULE_CONFIG_PANEL CHECKS PASSED")
 
