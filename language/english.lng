@@ -297,3 +297,15 @@ MSG_ATC_INVALID_CONFIG=Invalid ATC config file
 HEADING_XY_TABLE=XY Table
 GROUP_JOG_CONTROL=Manual Jog Control
 LBL_STEP=Step:
+
+# Rack Manager panel
+HEADING_RACK_MANAGER=Rack Manager
+LBL_RACK1=Rack 1 (Default Input)
+LBL_RACK2=Rack 2 (Default Output)
+LBL_RACK_TYPE=Rack Type
+LBL_DISABLED=Disabled
+LBL_INPUT_RACK=Input Rack
+LBL_OUTPUT_RACK=Output Rack
+LBL_CAPACITY=Capacity (Plates)
+LBL_USABLE_SLOTS=Usable Slots Config
+LBL_BASE_PICKUP_POS=Base Pickup Position

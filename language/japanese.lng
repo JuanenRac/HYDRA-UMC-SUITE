@@ -297,3 +297,15 @@ MSG_ATC_INVALID_CONFIG=無効な ATC 設定ファイルです
 HEADING_XY_TABLE=XYテーブル
 GROUP_JOG_CONTROL=手動ジョグ制御
 LBL_STEP=ステップ：
+
+# ラックマネージャーパネル
+HEADING_RACK_MANAGER=ラックマネージャー
+LBL_RACK1=ラック1（デフォルト入力）
+LBL_RACK2=ラック2（デフォルト出力）
+LBL_RACK_TYPE=ラックタイプ
+LBL_DISABLED=無効
+LBL_INPUT_RACK=入力ラック
+LBL_OUTPUT_RACK=出力ラック
+LBL_CAPACITY=容量（プレート）
+LBL_USABLE_SLOTS=使用可能スロット設定
+LBL_BASE_PICKUP_POS=基準ピックアップ位置

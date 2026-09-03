@@ -30,6 +30,29 @@ logger = logging.getLogger(__name__)
 # see HYDRA-UMC-STUDIO's own src/store.tsx RobotState.joints shape.
 JOINT_NAMES = ("j1", "j2", "j3", "j4", "j5", "j6")
 
+RACK_MAX_CAPACITY = 24
+
+
+def default_rack(rack_type: str) -> dict[str, Any]:
+    """Matches HYDRA-UMC-STUDIO's own createDefaultRobots() seed for one
+    rack (rack1/rack2) - real defaults, not invented ones."""
+    return {
+        "type": rack_type,
+        "capacity": RACK_MAX_CAPACITY,
+        "usableSlots": [True] * RACK_MAX_CAPACITY,
+        "basePickupPos": {"j1": 0, "j2": 0, "j3": 0, "j4": 0, "j5": 0, "j6": 0, "tx": 0, "ty": 0},
+    }
+
+
+def default_rack_system() -> dict[str, Any]:
+    """Matches HYDRA-UMC-STUDIO's own createDefaultRobots() seed for
+    `rackSystem` (rack1 defaults to Input, rack2 to Output) - the same
+    real shape RackConfigView.tsx's own handleReset() also writes back
+    (`enabled: true` there, since Reset only exists once already
+    enabled; `enabled: False` here since this is the "never configured
+    at all" fallback, matching the actual seed default)."""
+    return {"enabled": False, "rack1": default_rack("Input"), "rack2": default_rack("Output")}
+
 
 class RobotView:
     """Thin, mutation-friendly view over one entry of controllers[].robots[].
@@ -181,6 +204,25 @@ class RobotView:
             self.raw.pop("atc", None)
         else:
             self.raw["atc"] = config
+
+    @property
+    def rack_system(self) -> dict[str, Any]:
+        """HYDRA-UMC-STUDIO's own `rackSystem` (RackConfigView.tsx):
+        `{enabled, rack1: RackConfig, rack2: RackConfig}` - UNLIKE `atc`
+        above, this is never undefined on the TypeScript side
+        (`createDefaultRobots()` always seeds a real one, `enabled`
+        alone gates whether it's in use) - `RackConfigView.tsx` itself
+        reads `selectedRobot.rackSystem.enabled` with no optional
+        chaining at all, so a real STUDIO robot missing this field would
+        crash there too. Returns the same real default STUDIO's own
+        seed uses (not a value STUDIO doesn't have) if genuinely absent,
+        rather than crashing this side on an edge case STUDIO's own
+        source doesn't defend against either."""
+        value = self.raw.get("rackSystem")
+        return value if isinstance(value, dict) else default_rack_system()
+
+    def set_rack_system(self, config: dict[str, Any]) -> None:
+        self.raw["rackSystem"] = config
 
     def module(self, key: str) -> dict[str, Any]:
         """Generic accessor for a tool-attachment's own config block (e.g.
