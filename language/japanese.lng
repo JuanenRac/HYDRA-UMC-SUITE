@@ -266,3 +266,18 @@ BTN_PUMP_ON=ポンプ オン
 BTN_PUMP_OFF=ポンプ オフ
 BTN_VALVE_OPEN=バルブ 開
 BTN_VALVE_CLOSED=バルブ 閉
+
+# ATC Tools panel - 自動工具交換装置コンフィギュレーター
+HEADING_ATC=ATC ツール設定
+LBL_ATC_EMPTY_DESC=このロボットには現在、自動工具交換装置(ATC)が設定されていません。自動工具交換を有効にするには追加してください。
+LBL_ATC_VERTICAL=垂直
+LBL_ATC_HORIZONTAL=水平
+LBL_ATC_REVOLVER=リボルバー
+LBL_PANEL_GRID_LAYOUT=パネルグリッドレイアウト
+LBL_REVOLVER_CAPACITY=リボルバー容量
+LBL_BASE_PICKUP_POS=基準ピックアップ位置
+BTN_EDIT_POS=位置を編集
+LBL_TOOL_ASSIGNMENTS=ツール割り当て
+BTN_LOAD_CONFIG=設定を読み込み
+BTN_SAVE_CONFIG=設定を保存
+MSG_ATC_INVALID_CONFIG=無効な ATC 設定ファイルです

@@ -267,3 +267,18 @@ BTN_PUMP_ON=Pompa ON
 BTN_PUMP_OFF=Pompa OFF
 BTN_VALVE_OPEN=Valvola APERTA
 BTN_VALVE_CLOSED=Valvola CHIUSA
+
+# ATC Tools panel - configuratore del Cambio Utensile Automatico
+HEADING_ATC=Configurazione Utensili ATC
+LBL_ATC_EMPTY_DESC=Questo robot non ha attualmente un Cambio Utensile Automatico (ATC) configurato. Aggiungine uno per abilitare il cambio utensile automatico.
+LBL_ATC_VERTICAL=Verticale
+LBL_ATC_HORIZONTAL=Orizzontale
+LBL_ATC_REVOLVER=Revolver
+LBL_PANEL_GRID_LAYOUT=Layout Griglia Pannello
+LBL_REVOLVER_CAPACITY=Capacità Revolver
+LBL_BASE_PICKUP_POS=Posizione Base di Prelievo
+BTN_EDIT_POS=Modifica Posizione
+LBL_TOOL_ASSIGNMENTS=Assegnazione Utensili
+BTN_LOAD_CONFIG=Carica Configurazione
+BTN_SAVE_CONFIG=Salva Configurazione
+MSG_ATC_INVALID_CONFIG=File di configurazione ATC non valido

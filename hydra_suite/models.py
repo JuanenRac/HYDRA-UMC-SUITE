@@ -126,6 +126,38 @@ class RobotView:
     def tool(self) -> str:
         return str(self.raw.get("tool", "None"))
 
+    @property
+    def has_xy_table(self) -> bool:
+        """Mirrors STUDIO's own `selectedRobot.hasXYTable` - gates whether
+        a position editor (this one and STUDIO's own XYTableConfig.tsx
+        equivalents) shows the extra table tx/ty fields alongside the 6
+        joint angles."""
+        return bool(self.raw.get("hasXYTable", False))
+
+    @property
+    def atc(self) -> dict[str, Any] | None:
+        """HYDRA-UMC-STUDIO's own ATCConfig (ATCToolsConfig.tsx) - deliberately
+        NOT the module()/module_enabled() {enabled: bool, ...} shape every
+        other tool attachment uses. `selectedRobot.atc` on the TypeScript
+        side is `undefined` when no Automatic Tool Changer is configured and
+        a full ATCConfig object otherwise (type/panelGrid/revolverSlots/
+        tools/revolverPos) - presence of the key IS the enabled state, there
+        is no separate flag. Returns None rather than {} on the disabled
+        path so a caller can tell "no ATC" apart from "an ATC with no real
+        fields yet" without a second signal."""
+        value = self.raw.get("atc")
+        return value if isinstance(value, dict) else None
+
+    def set_atc(self, config: dict[str, Any] | None) -> None:
+        """None removes the key entirely - the real Python equivalent of
+        STUDIO's own `updateRobot(id, { atc: undefined })` (disableATC()),
+        not a value that would round-trip as JSON `null` and be mistaken
+        for "configured with nothing in it" on the next read."""
+        if config is None:
+            self.raw.pop("atc", None)
+        else:
+            self.raw["atc"] = config
+
     def module(self, key: str) -> dict[str, Any]:
         """Generic accessor for a tool-attachment's own config block (e.g.
         `juanenCNC`/`juanenLaser`/`heatedBed`) - mirrors
@@ -157,12 +189,15 @@ class CameraView:
     """Thin, mutation-friendly view over one entry of
     controllers[].cameras[] - same reasoning as RobotView. Matches
     HYDRA-UMC-STUDIO's own CameraState interface (src/store.tsx) field
-    for field: id/connected/type/yoloEnabled/detections. The "video"
-    itself is a UI placeholder on BOTH sides of this ecosystem (see
-    CamerasView.tsx's own header) - no real camera hardware/stream
-    exists anywhere in this ecosystem yet, so this view only carries the
-    real, server-synced METADATA (which cameras exist, their type,
-    connected state), not pixels."""
+    for field: id/connected/type/yoloEnabled/detections. This view only
+    carries the real, server-synced METADATA (which cameras exist,
+    their type, connected state) - the real MJPEG pixels themselves
+    (HYDRA-UMC-VISION-STREAMER's own `stream serve`, proxied live
+    through HYDRA-UMC-SERVER's `GET /api/camera/:id/stream` - real as of
+    2026-09-03, verified end to end against a real USB webcam) are not
+    something this metadata view fetches or renders; a real camera-pips.py
+    live viewport, matching STUDIO's own CameraPIP, is a separate,
+    not-yet-done piece of work here, not a hardware limitation anymore."""
 
     def __init__(self, raw: dict[str, Any]):
         self.raw = raw
