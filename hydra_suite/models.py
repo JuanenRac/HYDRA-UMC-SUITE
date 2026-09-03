@@ -184,6 +184,11 @@ class RobotView:
 # union allows - see that file's own CameraState interface.
 CAMERA_TYPES = ("USB Vision Camera", "Thermal (MLX90640)", "Thermal (MLX90641)", "Thermal (MLX90642)")
 
+# Matches HYDRA-UMC-STUDIO's own store.tsx RTSP_DEFAULT_PORT (real port
+# 554 - the RTSP/RFC 2326 standard) - see CameraView.rtsp_port below for
+# why "unset" reads as this, not 0.
+RTSP_DEFAULT_PORT = 554
+
 
 class CameraView:
     """Thin, mutation-friendly view over one entry of
@@ -231,6 +236,87 @@ class CameraView:
 
     def set_yolo_enabled(self, value: bool) -> None:
         self.raw["yoloEnabled"] = value
+
+    # --- Real IP (RTSP) camera support, mirroring HYDRA-UMC-STUDIO's own
+    # CameraState (src/store.tsx) field for field - same "STUDIO ->
+    # SUITE" parity that already applies to every other field on this
+    # class. `assignedRobotId`/`sourceType`/`hardwareSource`/`ipHost`/
+    # `rtspPort`/`rtspPath`/`ipUsername`/`ipPassword` are the exact same
+    # camelCase JSON keys STUDIO reads/writes, since this raw dict is the
+    # same synced settings blob any browser tab is looking at too - a
+    # camera assigned/configured here shows up there unchanged, and vice
+    # versa. `assignedRobotId` is stored as a real JSON number (not a
+    # string) deliberately: STUDIO's own updateRobot()-on-camera-toggle
+    # path does a strict `r.id === cam.assignedRobotId` comparison
+    # against RobotState.id (itself a number) - a string here would
+    # silently break that match from this app's own writes.
+    @property
+    def assigned_robot_id(self) -> int | None:
+        value = self.raw.get("assignedRobotId")
+        return int(value) if value is not None else None
+
+    def set_assigned_robot_id(self, value: int | None) -> None:
+        if value is None:
+            self.raw.pop("assignedRobotId", None)
+        else:
+            self.raw["assignedRobotId"] = int(value)
+
+    @property
+    def source_type(self) -> str:
+        # Undefined/absent reads as "usb" everywhere this is checked -
+        # same backward-compatible default STUDIO's own store.tsx and
+        # HYDRA-UMC-VISION-STREAMER's own CameraConfig both use, so every
+        # camera entry saved before this field existed keeps working
+        # unchanged.
+        return str(self.raw.get("sourceType") or "usb")
+
+    def set_source_type(self, value: str) -> None:
+        self.raw["sourceType"] = value
+
+    @property
+    def hardware_source(self) -> str:
+        """USB mode: a real V4L2 device path or index, e.g. "/dev/video0"."""
+        return str(self.raw.get("hardwareSource", ""))
+
+    def set_hardware_source(self, value: str) -> None:
+        self.raw["hardwareSource"] = value
+
+    @property
+    def ip_host(self) -> str:
+        """IP mode: the camera's own host/IP address."""
+        return str(self.raw.get("ipHost", ""))
+
+    def set_ip_host(self, value: str) -> None:
+        self.raw["ipHost"] = value
+
+    @property
+    def rtsp_port(self) -> int:
+        value = self.raw.get("rtspPort")
+        return int(value) if value is not None else RTSP_DEFAULT_PORT
+
+    def set_rtsp_port(self, value: int) -> None:
+        self.raw["rtspPort"] = int(value)
+
+    @property
+    def rtsp_path(self) -> str:
+        return str(self.raw.get("rtspPath", ""))
+
+    def set_rtsp_path(self, value: str) -> None:
+        self.raw["rtspPath"] = value
+
+    @property
+    def ip_username(self) -> str:
+        return str(self.raw.get("ipUsername", ""))
+
+    def set_ip_username(self, value: str) -> None:
+        self.raw["ipUsername"] = value
+
+    @property
+    def ip_password(self) -> str:
+        return str(self.raw.get("ipPassword", ""))
+
+    def set_ip_password(self, value: str) -> None:
+        self.raw["ipPassword"] = value
 
     def __repr__(self) -> str:
         return f"CameraView(id={self.id!r}, connected={self.connected}, type={self.camera_type!r})"
