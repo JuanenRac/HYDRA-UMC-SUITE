@@ -134,6 +134,30 @@ class RobotView:
         joint angles."""
         return bool(self.raw.get("hasXYTable", False))
 
+    def set_has_xy_table(self, value: bool) -> None:
+        self.raw["hasXYTable"] = value
+
+    @property
+    def xy_table(self) -> dict[str, Any] | None:
+        """HYDRA-UMC-STUDIO's own XYTable state (XYTableConfig.tsx):
+        `{pos: {x,y}, tableSize: {width,length}, worldPos, worldRot,
+        renderScale}` - UNLIKE `atc` above, this is a genuinely separate
+        field from `hasXYTable` (STUDIO keeps both: the boolean flag AND
+        this object can exist independently, e.g. right after
+        `handleAddTable()` sets `hasXYTable: true` alone with no `xyTable`
+        block yet - the UI's own `xyTable?.tableSize.width || 500`
+        fallbacks exist precisely for that gap). Returns None, not {},
+        when absent so a caller can tell "no config written yet" apart
+        from "a real xyTable with all-zero fields"."""
+        value = self.raw.get("xyTable")
+        return value if isinstance(value, dict) else None
+
+    def set_xy_table(self, config: dict[str, Any] | None) -> None:
+        if config is None:
+            self.raw.pop("xyTable", None)
+        else:
+            self.raw["xyTable"] = config
+
     @property
     def atc(self) -> dict[str, Any] | None:
         """HYDRA-UMC-STUDIO's own ATCConfig (ATCToolsConfig.tsx) - deliberately

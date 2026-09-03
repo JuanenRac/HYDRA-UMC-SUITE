@@ -53,6 +53,7 @@ from hydra_suite.ui.panels.vacuum_table_panel import VacuumTablePanel
 from hydra_suite.ui.panels.server_browser import ServerBrowserPanel
 from hydra_suite.ui.panels.trajectory_panel import TrajectoryPanel
 from hydra_suite.ui.panels.viewport_panel import ViewportPanel
+from hydra_suite.ui.panels.xy_table_panel import XYTablePanel
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
 IMAGES_DIR = Path(__file__).resolve().parent.parent.parent / "images"
@@ -140,6 +141,7 @@ class MainWindow(QMainWindow):
         self.heated_bed_panel = HeatedBedPanel(self.controller)
         self.vacuum_table_panel = VacuumTablePanel(self.controller)
         self.atc_tools_panel = AtcToolsPanel(self.controller)
+        self.xy_table_panel = XYTablePanel(self.controller)
 
         self.robot_control.robot_selected.connect(self.viewport_panel.set_selected_robot)
         self.robot_control.robot_selected.connect(self.trajectory_panel.set_selected_robot)
@@ -162,6 +164,7 @@ class MainWindow(QMainWindow):
         dock_heated_bed = self._make_dock(_("HEADING_HEATED_BED"), self.heated_bed_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_vacuum_table = self._make_dock(_("HEADING_VACUUM_TABLE"), self.vacuum_table_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_atc = self._make_dock(_("HEADING_ATC"), self.atc_tools_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_xy_table = self._make_dock(_("HEADING_XY_TABLE"), self.xy_table_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
         self._docks = {
             "servers": dock_servers,
@@ -182,6 +185,7 @@ class MainWindow(QMainWindow):
             "heated_bed": dock_heated_bed,
             "vacuum_table": dock_vacuum_table,
             "atc": dock_atc,
+            "xy_table": dock_xy_table,
         }
 
         # Sensible default arrangement - the user is free to drag any of
@@ -215,6 +219,7 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(dock_laser, dock_heated_bed)
         self.tabifyDockWidget(dock_heated_bed, dock_vacuum_table)
         self.tabifyDockWidget(dock_vacuum_table, dock_atc)
+        self.tabifyDockWidget(dock_atc, dock_xy_table)
         dock_traj.raise_()
 
         # A dock closed via its own [x] button would otherwise be gone for
@@ -224,7 +229,7 @@ class MainWindow(QMainWindow):
         for dock in (
             dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
-            dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc,
+            dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc, dock_xy_table,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
 

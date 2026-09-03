@@ -292,3 +292,8 @@ LBL_TOOL_ASSIGNMENTS=Tool Assignments
 BTN_LOAD_CONFIG=Load Config
 BTN_SAVE_CONFIG=Save Config
 MSG_ATC_INVALID_CONFIG=Invalid ATC config file
+
+# XY Table panel - jog control
+HEADING_XY_TABLE=XY Table
+GROUP_JOG_CONTROL=Manual Jog Control
+LBL_STEP=Step:

@@ -293,3 +293,8 @@ LBL_TOOL_ASSIGNMENTS=Assegnazione Utensili
 BTN_LOAD_CONFIG=Carica Configurazione
 BTN_SAVE_CONFIG=Salva Configurazione
 MSG_ATC_INVALID_CONFIG=File di configurazione ATC non valido
+
+# Pannello tavola XY - controllo jog manuale
+HEADING_XY_TABLE=Tavola XY
+GROUP_JOG_CONTROL=Controllo jog manuale
+LBL_STEP=Passo:
