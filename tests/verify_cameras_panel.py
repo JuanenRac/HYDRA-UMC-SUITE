@@ -101,6 +101,11 @@ def _run() -> None:
         discover_usb_devices=_fake_discover_usb,
         discover_rtsp_path=_fake_discover_rtsp,
         fetch_camera_status=_fake_camera_status,
+        # Real HydraConnection.info always has this - only needed here
+        # since _on_type_combo_changed's own real stream-switch behavior
+        # (card._get_stream_url() -> conn.info.base_url) is now exercised
+        # directly by this test, not just the network-call methods above.
+        info=types.SimpleNamespace(base_url="http://fake-test-server"),
     )
     controller._active_id = "c1"
     controller.active_state_changed.emit(state)
@@ -240,6 +245,34 @@ def _run() -> None:
     loop.run_until_complete(asyncio.sleep(0))
     cam1 = panel._current_camera(1)
     assert cam1.rtsp_path == "/13", "Sub Stream 2 must map to the real 3rd discovered path"
+
+    # --- real extra path fields (Setup Camera parity with STUDIO's own
+    # Config.tsx - a camera with 2+ real streams must show/edit ALL of
+    # them, not just the primary field) ---
+    assert not card._extra_path_edits[0].isHidden() and not card._extra_path_edits[1].isHidden()
+    assert card._extra_path_edits[2].isHidden(), "only 2 extra fields (indices 1,2 of 3 real paths) may show for a 3-path camera"
+    assert card._extra_path_edits[0].text() == "/12"
+    assert card._extra_path_edits[1].text() == "/13"
+    assert card._extra_path_labels[1].text() == "IP Vision Camera Sub Stream 2"
+
+    # Editing the currently-INACTIVE extra field (index 1 = Sub Stream 1,
+    # "/12") must only update its own stored path, not the live rtsp_path
+    # (still pointed at Sub Stream 2, "/13", from the switch above).
+    card._extra_path_edits[0].setText("/12-edited")
+    card._on_extra_path_edited()
+    loop.run_until_complete(asyncio.sleep(0))
+    cam1 = panel._current_camera(1)
+    assert cam1.discovered_stream_paths[1] == "/12-edited"
+    assert cam1.rtsp_path == "/13", "editing a non-active stream's path must not touch the live rtsp_path"
+
+    # Editing the currently-ACTIVE extra field (index 2 = Sub Stream 2,
+    # the one selected above) must also update the live rtsp_path.
+    card._extra_path_edits[1].setText("/13-edited")
+    card._on_extra_path_edited()
+    loop.run_until_complete(asyncio.sleep(0))
+    cam1 = panel._current_camera(1)
+    assert cam1.discovered_stream_paths[2] == "/13-edited"
+    assert cam1.rtsp_path == "/13-edited", "editing the currently-active stream's path must update the live rtsp_path too"
 
     print("verify_cameras_panel: all real assertions passed")
 

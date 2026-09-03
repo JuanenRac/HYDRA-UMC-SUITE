@@ -265,6 +265,29 @@ class CameraCard(QFrame):
         self._discover_rtsp_btn.clicked.connect(lambda: asyncio.ensure_future(self._discover_rtsp()))
         ip_layout.addWidget(self._discover_rtsp_btn)
 
+        # One extra real, editable path field per additional real stream
+        # this camera's own last discovery found (rtsp_path/the field
+        # above always holds index 0, the Main path) - matches
+        # HYDRA-UMC-STUDIO's own Config.tsx, found missing via real user
+        # feedback: a camera with 2 real streams had nowhere to show/edit
+        # the 2nd one. A small fixed pool (real hardware in this
+        # ecosystem has never shown more than 2) rather than fully
+        # dynamic Qt layout mutation - refresh() shows/hides/labels/fills
+        # exactly as many as discovered_stream_paths actually has.
+        self._extra_path_labels: list[QLabel] = []
+        self._extra_path_edits: list[QLineEdit] = []
+        for _extra_i in range(3):
+            extra_label = QLabel()
+            extra_label.setVisible(False)
+            ip_layout.addWidget(extra_label)
+            extra_edit = QLineEdit()
+            extra_edit.setPlaceholderText("/12")
+            extra_edit.setVisible(False)
+            extra_edit.editingFinished.connect(self._on_extra_path_edited)
+            ip_layout.addWidget(extra_edit)
+            self._extra_path_labels.append(extra_label)
+            self._extra_path_edits.append(extra_edit)
+
         cred_row = QHBoxLayout()
         user_col = QVBoxLayout()
         user_col.addWidget(QLabel(_("LBL_IP_USERNAME")))
@@ -331,6 +354,7 @@ class CameraCard(QFrame):
             self._rtsp_port_spin.setValue(camera.rtsp_port)
         if self._rtsp_path_edit.text() != camera.rtsp_path:
             self._rtsp_path_edit.setText(camera.rtsp_path)
+        self._sync_extra_path_fields(camera)
         if self._ip_username_edit.text() != camera.ip_username:
             self._ip_username_edit.setText(camera.ip_username)
         if self._ip_password_edit.text() != camera.ip_password:
@@ -474,8 +498,19 @@ class CameraCard(QFrame):
             if text in labels:
                 idx = labels.index(text)
                 paths = self._camera.discovered_stream_paths
-                if idx < len(paths):
+                if idx < len(paths) and paths[idx] != self._camera.rtsp_path:
                     self._on_field_changed(self._camera.id, "rtsp_path", paths[idx])
+                    # Real reconnect now, not whenever the next incidental
+                    # state broadcast happens to call refresh() - the
+                    # server's own real respawn (rtsp_path is part of its
+                    # fingerprint) means the OLD MJPEG connection this
+                    # card's own _stream_task holds is about to die
+                    # anyway; restarting it here immediately is what
+                    # actually shows the new stream promptly instead of
+                    # leaving the last frame frozen until something else
+                    # happens to trigger a refresh.
+                    self._stop_stream()
+                    self._start_stream()
         self._on_type_changed(self._camera.id, text)
 
     def _on_robot_combo_changed(self, index: int) -> None:
@@ -507,6 +542,46 @@ class CameraCard(QFrame):
 
     def _on_rtsp_path_edited(self) -> None:
         self._on_field_changed(self._camera.id, "rtsp_path", self._rtsp_path_edit.text())
+
+    def _sync_extra_path_fields(self, camera: CameraView) -> None:
+        """Shows/labels/fills exactly as many extra path fields as this
+        camera's own discovered_stream_paths has beyond the first (the
+        primary self._rtsp_path_edit field above always holds index 0) -
+        see this class's own __init__ comment for why a small fixed pool
+        instead of fully dynamic Qt layout mutation."""
+        paths = camera.discovered_stream_paths
+        labels = ip_stream_labels(paths)
+        for i, (label_widget, edit_widget) in enumerate(zip(self._extra_path_labels, self._extra_path_edits), start=1):
+            if i < len(paths):
+                label_text = labels[i] if i < len(labels) else f"{_('LBL_RTSP_PATH')} {i + 1}"
+                label_widget.setText(label_text)
+                label_widget.setVisible(True)
+                edit_widget.setVisible(True)
+                if edit_widget.text() != paths[i]:
+                    edit_widget.setText(paths[i])
+            else:
+                label_widget.setVisible(False)
+                edit_widget.setVisible(False)
+
+    def _on_extra_path_edited(self) -> None:
+        # Real stream count, not widget on-screen visibility - a card
+        # that's never been shown (or is scrolled out of view inside
+        # this panel's own QScrollArea) can report isVisible() == False
+        # even for a field that's genuinely in use, so that can't be
+        # what decides whether an edit here is real.
+        paths = list(self._camera.discovered_stream_paths)
+        real_count = len(paths)
+        active_index = ip_stream_labels(paths).index(self._camera.camera_type) if self._camera.camera_type in ip_stream_labels(paths) else 0
+        for i, edit_widget in enumerate(self._extra_path_edits, start=1):
+            if i >= real_count:
+                continue
+            value = edit_widget.text()
+            if paths[i] == value:
+                continue
+            paths[i] = value
+            self._on_field_changed(self._camera.id, "discovered_stream_paths", paths)
+            if i == active_index:
+                self._on_field_changed(self._camera.id, "rtsp_path", value)
 
     def _on_ip_username_edited(self) -> None:
         self._on_field_changed(self._camera.id, "ip_username", self._ip_username_edit.text())

@@ -75,6 +75,33 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
+## [0.3.7]
+
+- **Setup Camera now shows one real, editable path field per discovered
+  stream** - STUDIO/SUITE parity, same real bug found via live user
+  testing: a camera whose last "Discover Path" run found 2+ real
+  streams had nowhere to show/edit the 2nd one, only the primary
+  `rtsp_path` field existed. `CameraCard` now shows up to 3 extra
+  labelled, editable fields (real hardware in this ecosystem has never
+  shown more than 2, so a small fixed pool rather than fully dynamic
+  Qt layout mutation) - editing the field matching the CURRENTLY
+  selected stream also updates the live `rtsp_path`, editing another
+  just updates its own stored path for when that stream gets selected
+  later. A fresh discovery still autofills every field it found.
+- **Switching streams in the type combobox now reconnects immediately**,
+  instead of waiting for whatever incidental state broadcast happens to
+  trigger the next `refresh()` - real behavior parity with the
+  underlying bug HYDRA-UMC-STUDIO's own CamerasView.tsx had (its own
+  fix: see that repo's CHANGELOG). `_on_type_combo_changed()` now stops
+  and restarts this card's own MJPEG stream task the moment `rtsp_path`
+  actually changes, rather than leaving the old frame on screen until
+  something else happens to refresh it.
+- Real assertion coverage extended in `tests/verify_cameras_panel.py`
+  for the extra path fields (visibility, autofill, and that editing the
+  active vs. an inactive one has the right effect on the live
+  `rtsp_path`). Full existing suite unaffected (every other
+  `verify_*.py` still passes).
+
 ## [0.3.6]
 
 - **Stopped is a real status now, not a red "error" badge** - the
