@@ -172,6 +172,14 @@ def _run() -> None:
     assert "●" in card._status_badge.text() and card._status_badge.toolTip() == ""
     card.update_status({"status": "error", "lastError": "connection refused"})
     assert card._status_badge.toolTip() == "connection refused"
+    # "stopped" - a real, deliberate state (the connected toggle is off,
+    # the server already stopped the real process), never an error -
+    # must render in the neutral grey reserved for it, not the red
+    # _STATUS_COLORS["error"] a status this module doesn't recognize
+    # would otherwise fall back to.
+    card.update_status({"status": "stopped", "lastError": None})
+    assert "●" in card._status_badge.text()
+    assert "#8a97a6" in card._status_badge.styleSheet()
     card.update_status(None)
     assert card._status_badge.text() == ""
 

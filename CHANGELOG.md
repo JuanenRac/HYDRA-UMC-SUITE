@@ -75,6 +75,18 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
+## [0.3.6]
+
+- **Stopped is a real status now, not a red "error" badge** - the
+  client half of HYDRA-UMC-SERVER's fix for a real bug: a camera
+  toggled off used to leave its real capture process alive, silently
+  burning CPU/memory (see that repo's own CHANGELOG). Now that the
+  server genuinely stops that process and reports a real `"stopped"`
+  status, `CameraCard`'s own badge shows it in its own neutral grey
+  (new `STATUS_STREAM_STOPPED` key × 7 languages) instead of falling
+  back to a raw, untranslated `"STOPPED"` string in the red error
+  color a status it didn't recognize used to get.
+
 ## [0.3.5]
 
 - **Real multi-stream RTSP support - STUDIO/SUITE parity.** A real IP

@@ -59,7 +59,7 @@ _THERMAL_TYPE_OPTIONS = CAMERA_TYPES[3:]
 # Real camera-process status colors, matching HYDRA-UMC-STUDIO's own
 # Config.tsx badge coloring for the exact same 3 states HYDRA-UMC-SERVER's
 # own GET /api/cameras/status can report (see that route's own comment).
-_STATUS_COLORS = {"running": "#10b981", "starting": "#f59e0b", "error": "#ef4444"}
+_STATUS_COLORS = {"running": "#10b981", "starting": "#f59e0b", "error": "#ef4444", "stopped": "#8a97a6"}
 
 GRID_COLUMNS = 4
 _USB_PAGE = 0
@@ -445,6 +445,11 @@ class CameraCard(QFrame):
             "running": _("STATUS_STREAM_RUNNING"),
             "starting": _("STATUS_STREAM_STARTING"),
             "error": _("STATUS_STREAM_ERROR"),
+            # A real, deliberate state (this camera's own connected
+            # toggle is off - the server already stopped its real
+            # process rather than burning CPU/memory on a feed nothing's
+            # asking to see), never an error.
+            "stopped": _("STATUS_STREAM_STOPPED"),
         }.get(state, state.upper())
         self._status_badge.setText(f"● {label}")
         self._status_badge.setStyleSheet(f"font-size: 10px; font-weight: 700; color: {color};")
