@@ -236,6 +236,34 @@ class HydraConnection(QObject):
             return None
         return resp.status_code, body
 
+    async def canota_request(
+        self, method: str, path: str, *, params: dict | None = None, data: bytes | None = None
+    ) -> tuple[int, object] | None:
+        """Real GET/POST to HYDRA-UMC-SERVER's own /api/hardware/canota/*
+        routes (version query, flash) - matches STUDIO's own
+        hardwareQueryVersion()/hardwareStartFlash() (src/lib/canOta.ts)
+        one-to-one: always sent with this connection's own auth token,
+        same base_url/error-handling shape as _request_json() above. Kept
+        as its own method only because a flash POST sends a raw
+        application/octet-stream firmware body, not JSON - `_request_json`
+        has no `data:` param for that. A real flash cycle can run long (no
+        populated STM32H745 board exists yet to have actually timed one
+        against - see can_ota.py's own header), so this uses a generous
+        60s timeout rather than `_request_json`'s own 5s default, which
+        assumes a quick settings-style round trip."""
+        headers = self._auth_headers()
+        if data is not None:
+            headers["Content-Type"] = "application/octet-stream"
+        try:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                resp = await client.request(
+                    method, f"{self.info.base_url}{path}", params=params, content=data, headers=headers, timeout=60.0
+                )
+                body = resp.json()
+        except (httpx.HTTPError, ValueError):
+            return None
+        return resp.status_code, body
+
     async def fetch_ecosystem_status(self) -> tuple[int, object] | None:
         """GET /api/ecosystem/status - no auth required server-side (same
         trust tier as fetch_system_metrics() above)."""

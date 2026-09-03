@@ -101,6 +101,15 @@ class RobotView:
         return bool(self.raw.get("online", False))
 
     @property
+    def urtc_connected(self) -> bool:
+        """Whether this robot's own URTC Tool Head is reachable at all
+        (Tier 2 of the CAN-OTA chain, HYDRA-UMC-STUDIO's own
+        `RobotState.urtcConnected`) - gates the urtcHead/urtcExpansion
+        options in Flasher/Tester's own Board select (a robot slot with
+        no URTC head can't reach either)."""
+        return bool(self.raw.get("urtcConnected", False))
+
+    @property
     def joints(self) -> dict[str, float]:
         # A NaN/Infinity value can reach this dict two ways this app doesn't
         # control: a server payload authored by something other than SUITE
@@ -462,6 +471,22 @@ class ControllerView:
     def set_kinematic_brain_stage(self, config: dict[str, Any]) -> None:
         self.raw["kinematicBrainStage"] = config
 
+    @property
+    def kinematic_brain(self) -> dict[str, Any]:
+        """HYDRA-UMC-STUDIO's own `kinematicBrain` (`CanOtaBoardState` -
+        firmwareVersion/bootloaderVersion/hardwareId/lastSeen) - the
+        Kinematic Brain's own CAN-OTA firmware/identity record (Tier 0),
+        DISTINCT from `kinematic_brain_stage` above (that one is its
+        LIVE stage state - gantry position, heated bed, etc; this one is
+        which firmware it's running). Never None - callers already treat
+        a never-queried board as `{}`/falsy fields, same as STUDIO's own
+        `boardState?.firmwareVersion || '?'` pattern (Flasher.tsx)."""
+        value = self.raw.get("kinematicBrain")
+        return value if isinstance(value, dict) else {}
+
+    def set_kinematic_brain(self, data: dict[str, Any]) -> None:
+        self.raw["kinematicBrain"] = data
+
     def __repr__(self) -> str:
         return f"ControllerView(id={self.id!r}, name={self.name!r}, robots={len(self.robots)})"
 
@@ -509,6 +534,20 @@ class HydraState:
             "visionDevice": raw_ai.get("visionDevice") or "hailo8",
             "cognitiveDevice": raw_ai.get("cognitiveDevice") or "none",
         }
+
+    @property
+    def can_ota_transport(self) -> str:
+        """The same `settings.canOta.transport` field HYDRA-UMC STUDIO's
+        own Flasher.tsx/Tester.tsx read (`'mock' | 'hardware'`) -
+        deployment-level, describes what's actually wired up on this
+        real CM5, not a per-session UI toggle (STUDIO itself has no
+        Config screen for this either - matches that field's own
+        `canOta?:` optional type). Defaults to "mock" for anything else
+        (missing, or a value neither side recognizes), same as STUDIO's
+        own `settings.canOta?.transport === 'hardware'` strict-equality
+        check - only an EXACT "hardware" ever reaches the real path."""
+        raw_can_ota = (self.raw.get("settings") or {}).get("canOta") or {}
+        return "hardware" if raw_can_ota.get("transport") == "hardware" else "mock"
 
     def to_json_dict(self) -> dict[str, Any]:
         """The exact dict to POST back / send over the settings WebSocket
