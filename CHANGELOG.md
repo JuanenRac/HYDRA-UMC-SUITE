@@ -16,6 +16,36 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
+(nothing yet)
+
+## [0.3.8]
+
+- **Fixed a real permanent-freeze bug in the Cameras panel's own stream
+  loop** - the SUITE-side port of the same live user report that fixed
+  it in HYDRA-UMC-STUDIO (camera 4, 2 real streams: after enough
+  switches, the feed stopped reconnecting at all). `_run_stream()` used
+  to try exactly once - if `iter_mjpeg_frames()` ended after already
+  showing real frames (the server's own camera-process supervisor
+  killing and respawning a hung capture process, up to ~30s between its
+  own attempts - see HYDRA-UMC-SERVER's CHANGELOG), this task just
+  silently stopped: no error shown, the last real frame frozen on
+  screen forever, no further attempt made unless an unrelated state
+  broadcast happened to call `_start_stream()` again later. Now loops on
+  its own with a real capped backoff (1.5s up to 15s), resetting to fast
+  retries the moment a real frame arrives again - only `task.cancel()`
+  (camera off, card removed) ends it.
+- **New real PTZ (pan/tilt/zoom) control - IP cameras only**, matching
+  HYDRA-UMC-STUDIO's own Vision Center one-to-one. A checkable toggle
+  next to the video area reveals a real direction/zoom pad; each button
+  sends a real continuous-move command on press and a real stop on
+  release, through HYDRA-UMC-SERVER's new `POST /api/camera/:id/ptz`
+  (new `HydraConnection.send_ptz()`). A camera with no real PTZ hardware
+  shows the server's own honest error instead of pretending the move
+  worked. New `BTN_PTZ_TOGGLE`/`MSG_PTZ_FAILED` keys × 7 languages. Real
+  headless test coverage extended in `tests/verify_cameras_panel.py`
+  (toggle visibility gated on source type, a real send call forwarding
+  this camera's own host/credentials, an honest-failure response shown
+  and not swallowed, the toggle hiding itself again on a USB switch).
 - **Documentation audit: every community-health doc (`CODE_OF_CONDUCT.md`/`CONTRIBUTING.md`/`SECURITY.md`/`SUPPORT.md`/`LICENSE.md`/`installer/README.md`) is now actually linked from the README** (new "📚 Documentation & Community" section, all 7 languages) - a real gap found while checking every doc file's own README-linkage requirement: these 6 files existed and were content-accurate, but nothing in any README pointed to them, in any language. Cross-checked against `HYDRA-UMC-STUDIO`'s own README and found the identical pattern there too - likely an ecosystem-wide gap, not unique to this repo, tracked separately for the rest of the ecosystem.
 - **Live 3D preview for the Pick & Place panel (`juanenPnP`/`lumenPnP`), real STL mesh, closing the last gap in this parity effort** - real port of STUDIO's own `LumenPnPRig.tsx`, the one tool-attachment module with a real merged mesh instead of primitive geometry. New `assets/meshes/lumenpnp/` (the 5 real `.stl` files - `base`/`y_carriage`/`x_carriage`/`z_carriage_n1`/`z_carriage_n2` - copied verbatim from `HYDRA-UMC-STUDIO/public/models/lumenpnp/`, tessellated from Opulo's own official FreeCAD source; see that folder's own `ATTRIBUTION.txt` for the full provenance and why, unlike STUDIO's own `.glb`-only loading, this app loads the raw `.stl` directly - the browser-specific WebGL context-lost bug that forced STUDIO onto a pre-merged `.glb` has no equivalent in a desktop PyOpenGL app, so no new mesh format support was needed, just the existing `mesh.py`/`load_link_set()` path every other robot mesh already uses). New `hydra_suite/render/pnp_rig.py`: `pnp_world_link_transforms()`, a real Cartesian-gantry chain (base fixed -> y_carriage translates world Y -> x_carriage translates local X -> z_carriage_n1/n2 translate local Z and each rotate about their own Z for their own nozzle) - not a serial joint chain like `kinematics.py`'s UR/quaternion families, and not the flat WORLD-space `Segment` list `module_rig.py`'s 4 primitive modules use either, since this rig genuinely moves per real axis values. `RobotViewport` gained a parallel `set_attached_pnp()` module-only mode (independent of `set_attached_module()`'s primitive path - the mesh-loading/draw path genuinely differs) with the same lazy-load-on-first-GL-context-availability pattern every robot's own mesh set already uses. `PickAndPlacePanel` now embeds its own `RobotViewport` side by side with the pose-preview sliders, live on enable/disable/machine-switch, and - the same real gap this pass also fixed in the CNC/Laser/Heated Bed/Vacuum Table port below - `_on_axis_changed()` now refreshes the preview immediately instead of waiting for the next state broadcast round-trip. Real headless test coverage added to `tests/verify_pick_and_place_panel.py`: the real gantry chain composition (base stays fixed, y/x carriages compose correctly, both nozzles share the same real position and differ only in rotation), `RobotViewport.set_attached_pnp()`'s pending-mesh-load cache path, and the panel driving its own embedded viewport from real enable/axis-change/machine-switch/disable transitions - plus a real GL-context smoke check (actual `.stl` load, actual GPU buffer build, actual paint pass) confirming the real triangle counts match STUDIO's own `ATTRIBUTION.txt` figures exactly (base 32,640 / y_carriage 23,858 / x_carriage 19,188 / each nozzle 5,474). This closes the tool-attachment live-3D-preview gap completely - all 5 modules that have one on STUDIO's own side now have one here too.
 - **Live 3D preview for the CNC/Laser/Heated Bed/Vacuum Table config panels** - real port of STUDIO's own per-panel right-hand "3D Live View" (`SharedModule3DView.tsx`, a react-three-fiber `<Canvas>`), previously deliberately NOT ported because this app's own 3D renderer (`render/viewport.py`'s `RobotViewport`) had no support for rendering an attached tool module's own geometry at all - a real gap, not a shortcut, as that file's own former header comment said explicitly. New `hydra_suite/render/module_rig.py`: the same box/cylinder geometry as `SharedModule3DView.tsx` - same shapes, positions, and hex colors, at the same real mm-to-meter scale - for the 4 module types that have one on STUDIO's own side (`juanenCNC`/`juanenLaser` share `LumenStyleFrame`'s legs/rails/gantry/toolhead; `heatedBed`/`vacuumTable` get their own simpler stacks); any other module key (ATC, XY Table, Rack Manager, Pick & Place, Kinematic Brain Stage, Flasher, Tester) returns an empty segment list - none of those have a live preview on STUDIO's own side either, so a blank viewport there is faithful, not an omission. `RobotViewport` gained a real module-only rendering mode (`set_attached_module()`) that swaps out the normal robot/joint-chain draw path for a flat, non-animated segment list - checked and drawn BEFORE the robot registry lookup, so it never touches the existing per-robot rendering code. `ModuleConfigPanel` (the shared base behind `CncPanel`/`LaserPanel`/`HeatedBedPanel`/`VacuumTablePanel`) now embeds its own `RobotViewport` instance side by side with the settings form, matching STUDIO's own two-column layout, and keeps it live: enabling the module attaches the preview, disabling detaches it, and - a real gap caught while adding test coverage for this, not by inspection - editing the width/length spinbox now refreshes the preview immediately instead of waiting for the next state broadcast to round-trip back from the server, matching STUDIO's own reactive `<Canvas>` (`_on_size_changed()` now calls `_refresh_controls()` before pushing, not only after). The Pick & Place panel's own `juanenPnP`/`lumenPnP` preview is real GLB-mesh geometry on STUDIO's side (`LumenPnPRig.tsx`), a genuinely separate, larger piece of work (real mesh loading, not primitives) tracked apart from this pass, not silently faked here with a box. Real headless test coverage added to the existing `tests/verify_module_config_panel.py`: `RobotViewport.set_attached_module()`'s pending-rebuild cache path (attach/detach/an unported module key), and `ModuleConfigPanel` genuinely driving its own embedded viewport from real enable/width-change/disable state transitions - both passing, alongside the full existing suite and a full-tree `py_compile`.
@@ -74,6 +104,10 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   controls as the Updater command deck.
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
+
+## [0.3.8]
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.3.7]
 

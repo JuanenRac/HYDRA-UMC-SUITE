@@ -186,6 +186,43 @@ class CameraCard(QFrame):
         self._video_area.setObjectName("cameraVideoArea")
         layout.addWidget(self._video_area, 1)
 
+        # Real pan/tilt/zoom control - IP cameras only, matching
+        # HYDRA-UMC-STUDIO's own CamerasView.tsx one-to-one (see that
+        # file's own header comment on the same feature). A checkable
+        # toggle reveals the real direction/zoom pad below the feed;
+        # each button sends a real continuous-move command on press and
+        # a real stop (0/0/0) on release, same as STUDIO's own D-pad.
+        self._ptz_button = QPushButton(_("BTN_PTZ_TOGGLE"))
+        self._ptz_button.setCheckable(True)
+        self._ptz_button.setVisible(False)  # refresh() shows this only for is_ip
+        self._ptz_button.toggled.connect(self._on_ptz_toggled)
+        layout.addWidget(self._ptz_button)
+
+        self._ptz_row = QWidget()
+        ptz_row_layout = QHBoxLayout(self._ptz_row)
+        ptz_row_layout.setContentsMargins(0, 0, 0, 0)
+        ptz_row_layout.setSpacing(3)
+        for label, pan, tilt, zoom in [
+            ("◀", -60, 0, 0),  # ◀ pan left
+            ("▲", 0, 60, 0),  # ▲ tilt up
+            ("▼", 0, -60, 0),  # ▼ tilt down
+            ("▶", 60, 0, 0),  # ▶ pan right
+            ("+", 0, 0, 60),  # zoom in
+            ("−", 0, 0, -60),  # − zoom out
+        ]:
+            btn = QPushButton(label)
+            btn.pressed.connect(lambda p=pan, t=tilt, z=zoom: asyncio.ensure_future(self._send_ptz(p, t, z)))
+            btn.released.connect(lambda: asyncio.ensure_future(self._send_ptz(0, 0, 0)))
+            ptz_row_layout.addWidget(btn)
+        self._ptz_row.setVisible(False)
+        layout.addWidget(self._ptz_row)
+
+        self._ptz_status_label = QLabel()
+        self._ptz_status_label.setWordWrap(True)
+        self._ptz_status_label.setStyleSheet("font-size: 9px; color: #ef4444;")
+        self._ptz_status_label.setVisible(False)
+        layout.addWidget(self._ptz_status_label)
+
         self._type_combo = QComboBox()
         self._type_combo.currentTextChanged.connect(self._on_type_combo_changed)
         layout.addWidget(self._type_combo)
@@ -328,6 +365,10 @@ class CameraCard(QFrame):
         is_ip = camera.source_type == "ip"
         self._sync_type_options(is_ip, camera.camera_type)
 
+        self._ptz_button.setVisible(is_ip)
+        if not is_ip and self._ptz_button.isChecked():
+            self._ptz_button.setChecked(False)  # also hides _ptz_row via _on_ptz_toggled
+
         self._robot_combo.blockSignals(True)
         self._robot_combo.clear()
         self._robot_combo.addItem(_("OPT_NONE_FLOATING"), None)
@@ -399,27 +440,50 @@ class CameraCard(QFrame):
             self._stream_task = None
 
     async def _run_stream(self, url: str) -> None:
+        # Real reconnect loop, not a one-shot - matches
+        # HYDRA-UMC-STUDIO's own CamerasView.tsx <img onError> retry.
+        # Real bug fixed here, found via the same live user report that
+        # fixed STUDIO's own version (camera with 2 real streams,
+        # switching stopped taking effect after a while): the old version
+        # only ever tried once - if `iter_mjpeg_frames` ended after
+        # already showing real frames (the server's own camera-process
+        # supervisor killing and respawning a hung capture process, see
+        # HYDRA-UMC-SERVER's CHANGELOG - can take up to ~30s between its
+        # own attempts on a genuinely unresponsive camera), this task
+        # just silently stopped, leaving the LAST real frame frozen on
+        # screen forever - no error shown, no further attempt made,
+        # unless some unrelated state broadcast happened to call
+        # `_start_stream()` again later. Now this loops on its own,
+        # capped exponential backoff (1.5s up to 15s), reset to fast
+        # retries the moment a real frame arrives again - only
+        # `task.cancel()` (camera turned off, card removed) ends it.
         self._show_stream_placeholder(_("LBL_CONNECTING_STREAM"), "#38bdf8")
-        got_a_frame = False
+        attempt = 0
         try:
-            async for frame in iter_mjpeg_frames(url):
-                got_a_frame = True
-                pixmap = QPixmap()
-                if pixmap.loadFromData(frame, "JPG"):
-                    scaled = pixmap.scaled(
-                        self._video_area.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
-                    )
-                    self._video_area.setPixmap(scaled)
-                    self._video_area.setText("")
+            while True:
+                got_a_frame = False
+                async for frame in iter_mjpeg_frames(url):
+                    if not got_a_frame:
+                        got_a_frame = True
+                        attempt = 0  # a real frame arrived - the next real drop starts backoff over from 1.5s
+                    pixmap = QPixmap()
+                    if pixmap.loadFromData(frame, "JPG"):
+                        scaled = pixmap.scaled(
+                            self._video_area.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                        )
+                        self._video_area.setPixmap(scaled)
+                        self._video_area.setText("")
+                # Real stream end (server not running mjpeg_server.py for
+                # this camera yet, network drop, the server's own
+                # supervisor mid-respawn, etc.) - show the same honest
+                # placeholder a never-actually-streaming camera shows
+                # (never a broken frozen frame pretending to still be
+                # live), then keep trying.
+                self._show_stream_placeholder(_("STATUS_NO_SIGNAL"), "#4a5563")
+                attempt += 1
+                await asyncio.sleep(min(1.5 * attempt, 15.0))
         except asyncio.CancelledError:
             return
-        # Real stream end (server not running mjpeg_server.py for this
-        # camera yet, network drop, etc.) - matches CamerasView.tsx's own
-        # <img onError> fallback: show the same honest placeholder a
-        # never-actually-streaming camera shows, not a broken-image glyph
-        # or a frozen last frame pretending to still be live.
-        if not got_a_frame:
-            self._show_stream_placeholder(_("STATUS_NO_SIGNAL"), "#4a5563")
 
     def _show_stream_placeholder(self, text: str, color: str) -> None:
         self._video_area.setPixmap(QPixmap())
@@ -663,6 +727,30 @@ class CameraCard(QFrame):
         value = str(index) if sys.platform == "win32" else f"/dev/video{index}"
         self._hardware_source_edit.setText(value)
         self._on_field_changed(self._camera.id, "hardware_source", value)
+
+    def _on_ptz_toggled(self, checked: bool) -> None:
+        self._ptz_row.setVisible(checked and self._camera.source_type == "ip")
+        if not checked:
+            self._ptz_status_label.setVisible(False)
+
+    async def _send_ptz(self, pan: int, tilt: int, zoom: int) -> None:
+        conn: HydraConnection | None = self._get_connection()
+        if conn is None or not self._camera.ip_host:
+            return
+        result = await conn.send_ptz(
+            self._camera.id, self._camera.ip_host, self._camera.ip_username, self._camera.ip_password, pan, tilt, zoom
+        )
+        if result is None:
+            self._ptz_status_label.setText(_("MSG_PTZ_FAILED"))
+            self._ptz_status_label.setVisible(True)
+            return
+        status, body = result
+        if status == 200 and isinstance(body, dict) and body.get("ok") is True:
+            self._ptz_status_label.setVisible(False)
+            return
+        error = body.get("error") if isinstance(body, dict) else None
+        self._ptz_status_label.setText(str(error) if error else _("MSG_PTZ_FAILED"))
+        self._ptz_status_label.setVisible(True)
 
     async def _discover_rtsp(self) -> None:
         if self._discovery_task is not None and not self._discovery_task.done():

@@ -95,12 +95,22 @@ def _run() -> None:
     async def _fake_camera_status() -> tuple[int, object]:
         return 200, {"c1:1": {"status": "running", "lastError": None, "port": 8100}}
 
+    # Real call log, not just a canned response - the PTZ assertions below
+    # need to confirm _send_ptz() actually forwards THIS camera's own real
+    # ip_host/username/password, not just that it returns ok.
+    ptz_calls: list[tuple] = []
+
+    async def _fake_send_ptz(camera_id: int, host: str, username: str, password: str, pan: int, tilt: int, zoom: int) -> tuple[int, object]:
+        ptz_calls.append((camera_id, host, username, password, pan, tilt, zoom))
+        return 200, {"ok": True}
+
     controller.connections["c1"] = types.SimpleNamespace(
         state=state,
         push_state=_noop_push_state,
         discover_usb_devices=_fake_discover_usb,
         discover_rtsp_path=_fake_discover_rtsp,
         fetch_camera_status=_fake_camera_status,
+        send_ptz=_fake_send_ptz,
         # Real HydraConnection.info always has this - only needed here
         # since _on_type_combo_changed's own real stream-switch behavior
         # (card._get_stream_url() -> conn.info.base_url) is now exercised
@@ -273,6 +283,40 @@ def _run() -> None:
     cam1 = panel._current_camera(1)
     assert cam1.discovered_stream_paths[2] == "/13-edited"
     assert cam1.rtsp_path == "/13-edited", "editing the currently-active stream's path must update the live rtsp_path too"
+
+    # --- real PTZ control (IP-only, matches CamerasView.tsx's own D-pad
+    # toggle placed between the power and YOLOv8 buttons) --------------------
+    cam1 = panel._current_camera(1)
+    assert cam1.source_type == "ip", "camera must still be IP at this point in the test"
+    assert not card._ptz_button.isHidden(), "PTZ toggle must show for an IP camera"
+    assert card._ptz_row.isHidden(), "the direction/zoom pad stays collapsed until the toggle is checked"
+    card._ptz_button.setChecked(True)
+    assert not card._ptz_row.isHidden(), "checking the PTZ toggle must reveal the direction/zoom pad"
+
+    loop.run_until_complete(card._send_ptz(60, 0, 0))
+    assert ptz_calls[-1] == (1, cam1.ip_host, cam1.ip_username, cam1.ip_password, 60, 0, 0), (
+        f"PTZ must forward this camera's own real host/credentials, got {ptz_calls[-1]}"
+    )
+    assert card._ptz_status_label.isHidden(), "a real ok:true response must not show an error"
+
+    # A camera with no real PTZ hardware answers honestly - the server
+    # reports a real error instead of pretending the move worked, and the
+    # card must surface it, not swallow it.
+    async def _fake_send_ptz_unsupported(camera_id, host, username, password, pan, tilt, zoom):
+        return 502, {"ok": False, "error": "camera answered the PTZ request with HTTP 404"}
+
+    controller.connections["c1"].send_ptz = _fake_send_ptz_unsupported
+    loop.run_until_complete(card._send_ptz(0, 60, 0))
+    assert not card._ptz_status_label.isHidden(), "a real PTZ failure must be shown, not swallowed"
+    assert "404" in card._ptz_status_label.text()
+
+    # Flip to USB - the PTZ toggle (and its own pad) must hide itself, not
+    # leave an IP-only control sitting active on a USB camera.
+    card._on_source_type_clicked("usb")
+    loop.run_until_complete(asyncio.sleep(0))
+    panel._on_state_changed(controller.active_state)
+    assert card._ptz_button.isHidden(), "PTZ toggle must hide for a USB camera"
+    assert card._ptz_row.isHidden()
 
     print("verify_cameras_panel: all real assertions passed")
 

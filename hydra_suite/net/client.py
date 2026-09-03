@@ -358,6 +358,20 @@ class HydraConnection(QObject):
         one "stream serve" would open, not a separate guess."""
         return await self._request_json("GET", "/api/camera/discover-usb-devices", auth=True)
 
+    async def send_ptz(
+        self, camera_id: int, host: str, username: str, password: str, pan: int, tilt: int, zoom: int
+    ) -> tuple[int, object] | None:
+        """POST /api/camera/:id/ptz (admin-only) - real PSIA continuous-
+        move command relayed to the camera's own HTTP API, IP cameras
+        only (matches HYDRA-UMC-STUDIO's own CamerasView.tsx one-to-one).
+        pan/tilt/zoom each -100..100, 0/0/0 = stop. A camera with no real
+        motorized PTZ hardware answers with a real error - the server
+        reports it as-is, never pretends the move worked."""
+        return await self._request_json(
+            "POST", f"/api/camera/{camera_id}/ptz", auth=True,
+            json_body={"host": host, "username": username, "password": password, "pan": pan, "tilt": tilt, "zoom": zoom},
+        )
+
     async def fetch_state(self) -> HydraState:
         """One-shot REST read - used for the initial load before the
         WebSocket connects, and as a manual "force refresh" the UI can
