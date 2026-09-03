@@ -123,14 +123,15 @@ Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Comman
   Heizbett/Vakuumtisch teilen sich eine `ModuleConfigPanel`-Implementierung
   (STUDIOs eigene `CNC.tsx`/`Laser.tsx` sind bis auf den Modul-Schlüssel
   identische Komponenten); die übrigen 7 brauchten jeweils ein eigenes,
-  eigens gebautes Panel. 4 davon (CNC, Laser, Heizbett, Vakuumtisch)
-  haben jetzt auch die Live-3D-Vorschau, die die entsprechenden
-  Bildschirme von STUDIO neben dem Einstellungsformular zeigen
-  (`render/module_rig.py`, ein echter Port von STUDIOs eigener Box-/
-  Zylinder-Geometrie, gezeichnet von einem `RobotViewport` in einem
-  eigenen modul-only-Modus). Die einzige verbleibende Lücke ist die
-  Vorschau von Pick & Place, die auf STUDIOs Seite ein echtes `.glb`-Mesh
-  statt Primitiven ist - eine wirklich eigenständige, größere Aufgabe.
+  eigens gebautes Panel. Alle 5 Module, die auf STUDIOs Seite eine
+  Live-3D-Vorschau haben, haben sie jetzt auch hier: CNC/Laser/Heizbett/
+  Vakuumtisch (`render/module_rig.py`, ein echter Port von STUDIOs
+  eigener Box-/Zylinder-Geometrie) und Pick & Place
+  (`render/pnp_rig.py`, ein echter Port von STUDIOs eigenem
+  `LumenPnPRig.tsx` - die 5 echten `.stl`-Meshes in
+  `assets/meshes/lumenpnp/`, positioniert über eine echte kartesische
+  Portal-Kinematikkette statt Primitiven), jeweils gezeichnet von einem
+  `RobotViewport` im eigenen modul-only-Modus.
 
 ---
 

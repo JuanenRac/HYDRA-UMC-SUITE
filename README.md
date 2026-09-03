@@ -118,14 +118,14 @@ The desktop now has a persistent, game-console-inspired command deck using the o
   coverage. CNC/Laser/Heated Bed/Vacuum Table share one
   `ModuleConfigPanel` implementation (STUDIO's own `CNC.tsx`/`Laser.tsx`
   are identical components apart from the module key); the other 7 each
-  needed their own real, purpose-built panel. 4 of them (CNC, Laser,
-  Heated Bed, Vacuum Table) now also have the live 3D preview STUDIO's
-  own equivalent screens show alongside the settings form
-  (`render/module_rig.py`, a real port of STUDIO's own box/cylinder
-  geometry, drawn by a `RobotViewport` switched into a module-only
-  mode). The one remaining gap is Pick & Place's own preview, which is a
-  real `.glb` mesh on STUDIO's side rather than primitives - a
-  genuinely separate, larger piece of work.
+  needed their own real, purpose-built panel. All 5 modules that have a
+  live 3D preview on STUDIO's own side now have one here too: CNC/Laser/
+  Heated Bed/Vacuum Table (`render/module_rig.py`, a real port of
+  STUDIO's own box/cylinder geometry) and Pick & Place
+  (`render/pnp_rig.py`, a real port of STUDIO's own `LumenPnPRig.tsx` -
+  the 5 real `.stl` meshes in `assets/meshes/lumenpnp/`, posed through a
+  real Cartesian-gantry chain, not primitives), each drawn by a
+  `RobotViewport` switched into its own module-only mode.
 
 ---
 

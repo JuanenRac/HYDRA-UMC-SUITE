@@ -27,9 +27,13 @@
 # numbers. Manual pose preview only: neither side has a live firmware
 # feed for either PnP machine yet (see PickAndPlace.tsx's own comment).
 #
-# Deliberately does NOT port the right-hand "3D Live View" - same real,
-# separate omission as the rest of this family (see
-# module_config_panel.py's own header).
+# Also ports the right-hand "3D Live View" for real - a dedicated
+# RobotViewport (render/viewport.py) switched into PnP module-only mode
+# (set_attached_pnp(), render/pnp_rig.py) rather than module_rig.py's
+# primitive-built family: juanenPnP/lumenPnP have a real STL rig
+# (assets/meshes/lumenpnp/), the one real-mesh exception among all the
+# tool-attachment modules - see module_config_panel.py's own header for
+# the 4 primitive ones.
 #
 # Writes via push_active_state(), matching STUDIO's own updateRobot().
 # =============================================================================
@@ -52,6 +56,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
+from hydra_suite.render.viewport import RobotViewport
 
 MACHINE_TYPES: tuple[str, ...] = ("juanenPnP", "lumenPnP")
 MACHINE_LABELS: dict[str, str] = {"juanenPnP": "JuanenPnP", "lumenPnP": "LumenPnP"}
@@ -118,8 +123,18 @@ class PickAndPlacePanel(QWidget):
         empty_layout.addStretch(2)
         self._stack.addWidget(empty_page)
 
+        # Settings form + live 3D preview, side by side - matches STUDIO's
+        # own PickAndPlace.tsx two-column layout (settings form on the
+        # left, its own <Canvas> on the right), same pattern
+        # module_config_panel.py's own settings_page now uses too.
         settings_page = QWidget()
-        settings_layout = QVBoxLayout(settings_page)
+        settings_page_layout = QHBoxLayout(settings_page)
+        settings_page_layout.setContentsMargins(0, 0, 0, 0)
+        settings_page_layout.setSpacing(8)
+
+        settings_column = QWidget()
+        settings_layout = QVBoxLayout(settings_column)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
         settings_box = QGroupBox(_("GROUP_MODULE_SETTINGS"))
         settings_box_layout = QVBoxLayout(settings_box)
 
@@ -180,6 +195,12 @@ class PickAndPlacePanel(QWidget):
 
         settings_layout.addWidget(settings_box)
         settings_layout.addStretch(1)
+        settings_page_layout.addWidget(settings_column, 1)
+
+        self._pnp_viewport = RobotViewport()
+        self._pnp_viewport.setMinimumWidth(220)
+        settings_page_layout.addWidget(self._pnp_viewport, 1)
+
         self._stack.addWidget(settings_page)
 
         controller.active_state_changed.connect(self._on_state_changed)
@@ -227,11 +248,13 @@ class PickAndPlacePanel(QWidget):
         self._enable_btn.setText(_("BTN_ENABLE_MODULE", machine=machine_label))
         if not has_robot:
             self._stack.setCurrentIndex(0)
+            self._pnp_viewport.set_attached_pnp(None)
             return
 
         enabled = self._current_robot.module_enabled(self._machine_type)
         self._stack.setCurrentIndex(1 if enabled else 0)
         if not enabled:
+            self._pnp_viewport.set_attached_pnp(None)
             return
 
         module = self._current_robot.module(self._machine_type)
@@ -248,7 +271,21 @@ class PickAndPlacePanel(QWidget):
                 self._axis_spins[field].setValue(value)
                 self._axis_sliders[field].blockSignals(False)
                 self._axis_spins[field].blockSignals(False)
+            self._pnp_viewport.set_attached_pnp(
+                self._machine_type,
+                axis_x_mm=float(module.get("axisX", 0) or 0),
+                axis_y_mm=float(module.get("axisY", 0) or 0),
+                axis_z_mm=float(module.get("axisZ", 0) or 0),
+                nozzle1_deg=float(module.get("nozzle1Rotation", 0) or 0),
+                nozzle2_deg=float(module.get("nozzle2Rotation", 0) or 0),
+            )
         else:
+            # Real in STUDIO's own source but unreachable through this
+            # panel's Machine combo (see this file's own header) - no real
+            # PnP geometry applies to a hypothetical non-PnP machine type,
+            # so the preview stays detached rather than showing stale
+            # LumenPnP geometry.
+            self._pnp_viewport.set_attached_pnp(None)
             size = module.get("size", {})
             self._width_spin.blockSignals(True)
             self._length_spin.blockSignals(True)
@@ -300,6 +337,11 @@ class PickAndPlacePanel(QWidget):
         module = self._current_robot.module(self._machine_type)
         module[field] = value
         self._current_robot.set_module(self._machine_type, module)
+        # Updates the live 3D preview immediately rather than waiting for
+        # the next state broadcast to round-trip back from the server -
+        # same real gap fixed in module_config_panel.py's own
+        # _on_size_changed(), matching STUDIO's own reactive <Canvas>.
+        self._refresh_controls()
         self._controller.push_active_state()
 
     def _on_width_changed(self, value: int) -> None:

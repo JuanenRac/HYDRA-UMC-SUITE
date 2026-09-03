@@ -94,15 +94,19 @@ just moves where it breaks.
   already on screen - not on every WebSocket push from anywhere else in
   the swarm, which is what made the view visibly laggy on a busy multi-robot
   server even though nothing about the displayed robot had changed.
-- **Live 3D preview for the CNC/Laser/Heated Bed/Vacuum Table config
-  panels** (`render/module_rig.py` + `render/viewport.py`'s
-  `set_attached_module()`) - real port of STUDIO's own per-panel
+- **Live 3D preview for all 5 tool-attachment modules that have one on
+  STUDIO's own side** - CNC/Laser/Heated Bed/Vacuum Table
+  (`render/module_rig.py` + `render/viewport.py`'s
+  `set_attached_module()`, a real port of STUDIO's own per-panel
   `SharedModule3DView.tsx`: same box/cylinder shapes, positions, and hex
-  colors at the same real mm-to-meter scale, drawn by a `RobotViewport`
-  instance switched into a flat, module-only rendering mode embedded
-  directly in `ModuleConfigPanel`'s own layout, live-updating on
-  enable/disable and on every width/length edit. See "Deliberately out
-  of scope" below for the one panel (Pick & Place) this doesn't cover.
+  colors at the same real mm-to-meter scale) and Pick & Place
+  (`render/pnp_rig.py` + `set_attached_pnp()`, a real port of STUDIO's
+  own `LumenPnPRig.tsx`: the 5 real `.stl` meshes in
+  `assets/meshes/lumenpnp/`, posed through a real Cartesian-gantry chain,
+  not primitives). Both modes are drawn by a `RobotViewport` instance
+  embedded directly in the owning panel's own layout, live-updating on
+  enable/disable and on every real edit (width/length for the primitive
+  4; X/Y/Z/nozzle1/nozzle2 for Pick & Place).
 - **Jog controls, Overview, Server Browser, local trajectory point
   recorder** - all read/write against the real live state of whichever
   server is active.
@@ -183,10 +187,3 @@ just moves where it breaks.
   yet, despite being a real, shipping part of HYDRA-UMC-STUDIO's own
   data model and README. `RobotView` in `models.py` doesn't read/write
   this field yet.
-- **Live 3D preview for the Pick & Place panel** (`juanenPnP`/
-  `lumenPnP`) - the other 4 tool-attachment panels now have one (see
-  "Real and verified" above), but STUDIO's own equivalent for these two
-  machines (`LumenPnPRig.tsx`) renders a real merged/indexed `.glb`
-  mesh, not primitive boxes/cylinders - a genuinely separate, larger
-  piece of work (`render/mesh.py` currently only loads raw `.stl`, not
-  `.glb`), not a mechanical extension of `module_rig.py`.

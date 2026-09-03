@@ -1,0 +1,47 @@
+LumenPnP v4 mesh files (base.stl, y_carriage.stl, x_carriage.stl,
+z_carriage_n1.stl, z_carriage_n2.stl)
+
+Source: https://github.com/opulo-inc/lumenpnp
+Path:   pnp/cad/assembly.FCStd (and the linked FreeCAD sub-documents it
+        references under pnp/cad/CHA, FDM, FST, MISC, PCB, PPG)
+License: CERN-OHL-W v2, Copyright (c) Opulo - per that repo's own LICENSE
+file, section 1 ("The hardware designs located at ./pnp/cad and ./pnp/pcb
+are available under the CERN-OHL-W v2 license"). Opulo's own logo/branding
+and the "Opulo"/"LumenPnP" names are trademarked and NOT included here -
+these are pure geometry exports, no branding/marks embedded.
+
+Copied verbatim from HYDRA-UMC-STUDIO's own public/models/lumenpnp/ -
+see that project's own ATTRIBUTION.txt (same folder) for the full real
+story of how these 5 files were generated (LumenPnP ships no STL and has
+no native FreeCAD Assembly::/Joint objects at all, so they were produced
+by opening the real assembly.FCStd headless and re-grouping ~700 real CAD
+parts into 5 rigid-body merges matching the machine's own real kinematic
+structure - determined by reading each leaf part's own real bounding
+box, not guessed) and the real triangle-budget tradeoffs that shape
+(base ~32.6K / y_carriage ~23.9K / x_carriage ~19.2K / z_carriage_n1+n2
+~5.5K each - a recognizable silhouette, not a bolt-for-bolt replica).
+
+UNLIKE HYDRA-UMC-STUDIO's own LumenPnPRig.tsx, which loads a separate
+pre-merged/indexed .glb export of these same 5 parts (needed there only
+because 5 synchronous Three.js mergeVertices() calls landing in the same
+React commit, right as 5 concurrent browser fetches resolved together,
+blocked the main thread long enough to trip a real WebGL context-lost
+watchdog - verified via headless Chromium against the live dev server),
+this app's own render/mesh.py loads these raw .stl files directly, same
+as every other robot mesh in this folder - a desktop PyOpenGL app has no
+browser main-thread/Suspense-concurrency equivalent to trigger that same
+failure, so the .glb-only workaround doesn't apply here; no .glb of these
+was generated for or is used by this repository.
+
+Real axis travel limits (render/pnp_rig.py's own X/Y/Z ranges, matching
+ui/panels/pick_and_place_panel.py's own PNP_AXES bounds) come from the
+same source repo's own openpnp/machine.xml (the real machine's own
+OpenPnP control-software config), not a guess: X 0-433mm, Y 0-487mm. Z's
+own soft limits in that file are disabled in favor of a safe-zone check,
+so the 0-90mm Z range here is an estimate from the real CAD's own
+Z-carriage rail length instead of a quoted spec - same estimate
+HYDRA-UMC-STUDIO's own LumenPnPRig.tsx already uses.
+
+JuanenPnP (this ecosystem's own author's build) shares this exact mesh
+set and kinematic rig - per the author's own confirmation, it is
+visually and mechanically identical to stock LumenPnP v4.

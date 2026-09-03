@@ -32,10 +32,26 @@ from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
 from hydra_suite.render.module_rig import module_segments
 from hydra_suite.render.module_rig import segment_world_transform as module_segment_world_transform
+from hydra_suite.render.pnp_rig import PNP_LINK_NAMES, PNP_MESH_DIR, PNP_MESH_FILES, pnp_world_link_transforms
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "meshes"
 
 DEFAULT_MODEL = "UR5e (6-DOF)"
+
+# LumenPnP/JuanenPnP link colors - hex values copied verbatim from
+# LumenPnPRig.tsx's own frameMat/carriageMat/nozzleMat (Opulo's own real
+# brand yellow on the moving nozzle carriages, neutral aluminum-extrusion
+# gray for the fixed frame and the Y/X carriages).
+_PNP_COLOR_FRAME = (0x9A / 255, 0xA1 / 255, 0xAB / 255)
+_PNP_COLOR_CARRIAGE = (0xC7 / 255, 0xCD / 255, 0xD6 / 255)
+_PNP_COLOR_NOZZLE = (0xEA / 255, 0xB3 / 255, 0x08 / 255)
+_PNP_LINK_COLORS: dict[str, tuple[float, float, float]] = {
+    "base": _PNP_COLOR_FRAME,
+    "y_carriage": _PNP_COLOR_CARRIAGE,
+    "x_carriage": _PNP_COLOR_CARRIAGE,
+    "z_carriage_n1": _PNP_COLOR_NOZZLE,
+    "z_carriage_n2": _PNP_COLOR_NOZZLE,
+}
 
 VERTEX_SHADER = """
 #version 330 core
@@ -187,6 +203,22 @@ class RobotViewport(QOpenGLWidget):
         self._module_segments_cache: list = []
         self._pending_module_rebuild = False
 
+        # PnP module-only mode (render/pnp_rig.py) - a separate real-mesh
+        # sibling of the module-only mode above, used by
+        # ui/panels/pick_and_place_panel.py's own embedded RobotViewport
+        # instead of set_attached_module(): juanenPnP/lumenPnP have a real
+        # STL rig (assets/meshes/lumenpnp/), not primitive box/cylinder
+        # geometry, and a real 2-axis-plus-2-nozzle pose rather than a
+        # static width/length. Mutually exclusive with
+        # _attached_module_type in practice (each embedding panel only
+        # ever calls one of the two setters on a given instance) but kept
+        # as an independent flag rather than folded into it, since the
+        # mesh-loading/draw path genuinely differs (real STL set vs.
+        # primitives built from Segment).
+        self._pnp_machine_type: str | None = None
+        self._pnp_pose: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
+        self._pending_pnp_mesh_load = False
+
         self._yaw = -35.0
         self._pitch = 20.0
         self._distance = 2.2
@@ -257,6 +289,40 @@ class RobotViewport(QOpenGLWidget):
             self._pending_module_rebuild = True
         self.update()
 
+    def set_attached_pnp(
+        self,
+        machine_type: str | None,
+        axis_x_mm: float = 0.0,
+        axis_y_mm: float = 0.0,
+        axis_z_mm: float = 0.0,
+        nozzle1_deg: float = 0.0,
+        nozzle2_deg: float = 0.0,
+    ) -> None:
+        """Switches this viewport into PnP module-only mode
+        (render/pnp_rig.py) - a real live 3D preview of the LumenPnP/
+        JuanenPnP gantry, matching HYDRA-UMC-STUDIO's own real-mesh
+        LumenPnPRig.tsx. `machine_type` is `"juanenPnP"`/`"lumenPnP"` (both
+        share the exact same real mesh set and rig - see
+        assets/meshes/lumenpnp/ATTRIBUTION.txt) or `None` to leave PnP
+        mode. The mesh set loads once, lazily, on first real use (same
+        caching as every robot's own mesh set in _mesh_buffers_by_dir) -
+        not at import time, since a viewport that's never shown a PnP
+        preview shouldn't pay for it."""
+        self._pnp_machine_type = machine_type
+        self._pnp_pose = (axis_x_mm, axis_y_mm, axis_z_mm, nozzle1_deg, nozzle2_deg)
+        if machine_type is not None and PNP_MESH_DIR not in self._mesh_buffers_by_dir:
+            if self._gl_ready:
+                self._load_mesh_set(PNP_MESH_DIR, PNP_LINK_NAMES, PNP_MESH_FILES)
+            else:
+                # Same real-world timing gap set_attached_module() already
+                # guards against: a freshly-constructed, not-yet-shown
+                # viewport has no GL context yet for _load_mesh_set()'s own
+                # makeCurrent() to bind - stash the request so
+                # initializeGL() can load it once a context actually
+                # exists, instead of silently losing this call.
+                self._pending_pnp_mesh_load = True
+        self.update()
+
     def _load_mesh_set(self, mesh_dir: str, link_names: tuple[str, ...], mesh_files: dict[str, str]) -> None:
         meshes = load_link_set(ASSETS_DIR / mesh_dir, mesh_files)
         # set_robot_model() (this method's only non-initializeGL caller)
@@ -300,6 +366,9 @@ class RobotViewport(QOpenGLWidget):
                 for seg in self._module_segments_cache
             ]
             self._pending_module_rebuild = False
+        if self._pending_pnp_mesh_load:
+            self._load_mesh_set(PNP_MESH_DIR, PNP_LINK_NAMES, PNP_MESH_FILES)
+            self._pending_pnp_mesh_load = False
         entry = ROBOT_REGISTRY[self._model_name]
         if entry.family in ("ur", "quat"):
             self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
@@ -322,6 +391,10 @@ class RobotViewport(QOpenGLWidget):
         gl.glUniformMatrix4fv(self._uniforms["uView"], 1, gl.GL_TRUE, view)
         gl.glUniformMatrix4fv(self._uniforms["uProjection"], 1, gl.GL_TRUE, proj)
         gl.glUniform3f(self._uniforms["uCameraPos"], *eye)
+
+        if self._pnp_machine_type is not None:
+            self._draw_pnp()
+            return
 
         if self._attached_module_type is not None:
             self._draw_module_preview()
@@ -355,6 +428,15 @@ class RobotViewport(QOpenGLWidget):
             model = module_segment_world_transform(seg)
             gl.glUniform3f(self._uniforms["uBaseColor"], *seg.color)
             self._draw_model(model, buf)
+
+    def _draw_pnp(self) -> None:
+        buffers = self._mesh_buffers_by_dir.get(PNP_MESH_DIR)
+        if not buffers:
+            return  # not loaded yet - only happens for a fraction of a frame right after set_attached_pnp()'s own initial call
+        transforms = pnp_world_link_transforms(*self._pnp_pose)
+        for name in PNP_LINK_NAMES:
+            gl.glUniform3f(self._uniforms["uBaseColor"], *_PNP_LINK_COLORS[name])
+            self._draw_model(transforms[name], buffers[name])
 
     def _draw_generic(self) -> None:
         frames = generic_frame_transforms(self._joints_deg)
