@@ -287,6 +287,16 @@ LBL_ATC_REVOLVER=リボルバー
 LBL_PANEL_GRID_LAYOUT=パネルグリッドレイアウト
 LBL_REVOLVER_CAPACITY=リボルバー容量
 LBL_BASE_PICKUP_POS=基準ピックアップ位置
+
+# Pick & Placeパネル
+HEADING_PICK_AND_PLACE=Pick & Place
+LBL_MACHINE=マシン
+LBL_PNP_POSE_PREVIEW=ポーズプレビュー（手動 - まだライブフィードなし）
+LBL_PNP_AXIS_X=X軸（mm）
+LBL_PNP_AXIS_Y=Y軸（mm）
+LBL_PNP_AXIS_Z=Z軸、両ノズル（mm）
+LBL_PNP_NOZZLE1=ノズル1回転（度）
+LBL_PNP_NOZZLE2=ノズル2回転（度）
 BTN_EDIT_POS=位置を編集
 LBL_TOOL_ASSIGNMENTS=ツール割り当て
 BTN_LOAD_CONFIG=設定を読み込み

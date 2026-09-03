@@ -287,6 +287,16 @@ LBL_ATC_REVOLVER=Revolver
 LBL_PANEL_GRID_LAYOUT=Panel Grid Layout
 LBL_REVOLVER_CAPACITY=Revolver Capacity
 LBL_BASE_PICKUP_POS=Base Pickup Position
+
+# Pick & Place panel
+HEADING_PICK_AND_PLACE=Pick & Place
+LBL_MACHINE=Machine
+LBL_PNP_POSE_PREVIEW=Pose preview (manual - no live feed yet)
+LBL_PNP_AXIS_X=X axis (mm)
+LBL_PNP_AXIS_Y=Y axis (mm)
+LBL_PNP_AXIS_Z=Z axis, both nozzles (mm)
+LBL_PNP_NOZZLE1=Nozzle 1 rotation (deg)
+LBL_PNP_NOZZLE2=Nozzle 2 rotation (deg)
 BTN_EDIT_POS=Edit Pos
 LBL_TOOL_ASSIGNMENTS=Tool Assignments
 BTN_LOAD_CONFIG=Load Config
