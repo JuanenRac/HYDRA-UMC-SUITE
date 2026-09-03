@@ -275,6 +275,16 @@ python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" 
 
 ---
 
+## 📚 文档与社区
+
+- **[docs/ROADMAP.md](docs/ROADMAP.md)** —— 今天哪些是真实且端到端验证过的，哪些是刻意仍未纳入范围的。
+- **[installer/README.md](installer/README.md)** —— 如何构建 Windows `.exe` 安装程序和 Linux `.deb` 软件包。
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** —— 提交 Pull Request 所需的技术栈和编码规范。
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** —— 本社区所期望的行为准则。
+- **[SECURITY.md](SECURITY.md)** —— 如何报告漏洞，以及本应用真实的安全关注重点。
+- **[SUPPORT.md](SUPPORT.md)** —— 在哪里提问和报告缺陷。
+- **[LICENSE.md](LICENSE.md)** —— 本项目自身的许可证，以及 `assets/meshes/` 下每个文件夹各自遵循的独立许可证。
+
 ## 👤 作者
 **JuanenRac** (Electro Hobby 3D)
 📧 electrohobby3d@gmail.com
