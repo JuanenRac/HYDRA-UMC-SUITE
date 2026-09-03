@@ -88,7 +88,9 @@ def _run() -> None:
         return 200, {"devices": [{"index": 0, "available": True, "width": 640, "height": 480}]}
 
     async def _fake_discover_rtsp(host: str, port: int, username: str, password: str) -> tuple[int, object]:
-        return 200, {"ok": True, "path": "/profile0", "status": 200, "triedPaths": ["/11", "/12", "/profile0"]}
+        # 2 real paths found, not just 1 - exercises the real multi-stream
+        # picker (ip_stream_labels()), not just the single-path case.
+        return 200, {"ok": True, "paths": ["/11", "/12"], "triedPaths": ["/11", "/12", "/profile0"]}
 
     async def _fake_camera_status() -> tuple[int, object]:
         return 200, {"c1:1": {"status": "running", "lastError": None, "port": 8100}}
@@ -151,7 +153,11 @@ def _run() -> None:
 
     panel._on_state_changed(controller.active_state)  # real refresh(), same as a server echo would trigger
     ip_options = [card._type_combo.itemText(i) for i in range(card._type_combo.count())]
-    assert ip_options == [CAMERA_TYPES[1], CAMERA_TYPES[2], *CAMERA_TYPES[3:]], f"unexpected IP-mode options: {ip_options}"
+    # No real "Discover Path" has run for this camera yet at this point -
+    # ip_stream_labels() honestly offers only Main until discovery
+    # actually confirms more real streams exist (see its own header
+    # comment) - never assumes a fixed pair.
+    assert ip_options == [CAMERA_TYPES[1], *CAMERA_TYPES[3:]], f"unexpected IP-mode options before any discovery: {ip_options}"
 
     # A Thermal selection must survive a source-type toggle unchanged
     # (never auto-normalized away) - see _on_source_type_clicked's own comment.
@@ -188,8 +194,44 @@ def _run() -> None:
     card._ip_host_edit.setText("192.168.0.203")
     loop.run_until_complete(card._discover_rtsp())
     cam1 = panel._current_camera(1)
-    assert cam1.rtsp_path == "/profile0", "a real discovered path must be written back through _on_field_changed"
-    assert "profile0" in card._discovery_status_label.text()
+    assert cam1.discovered_stream_paths == ["/11", "/12"], "every real found path must be recorded, not just the first"
+    assert cam1.rtsp_path == "/11", "the FIRST discovered path (main) must be the default"
+    assert cam1.camera_type == "IP Vision Camera Main Stream", "a fresh discovery must reset the selection to Main"
+    assert "/11" in card._discovery_status_label.text() and "/12" in card._discovery_status_label.text()
+
+    # --- real multi-stream picker (matches CamerasView.tsx's own combobox
+    # split, but now driven by ip_stream_labels() instead of a fixed pair) ---
+    # Camera is still nominally "usb" here (the Thermal-survival block
+    # above ended on it) - discovery itself doesn't require IP mode, but
+    # the combobox split does, so flip back to IP first.
+    card._on_source_type_clicked("ip")
+    loop.run_until_complete(asyncio.sleep(0))
+    panel._on_state_changed(controller.active_state)  # real refresh(), same as a server echo would trigger
+    two_stream_options = [card._type_combo.itemText(i) for i in range(card._type_combo.count())]
+    assert two_stream_options == ["IP Vision Camera Main Stream", "IP Vision Camera Sub Stream", *CAMERA_TYPES[3:]], (
+        f"unexpected 2-stream options: {two_stream_options}"
+    )
+
+    # Selecting "Sub Stream" must be a REAL behavior change, not just a
+    # label - it has to re-point rtsp_path at the real 2nd stream found.
+    card._on_type_combo_changed("IP Vision Camera Sub Stream")
+    loop.run_until_complete(asyncio.sleep(0))
+    cam1 = panel._current_camera(1)
+    assert cam1.rtsp_path == "/12", "picking the Sub Stream option must switch rtsp_path to the real 2nd discovered path"
+    assert cam1.camera_type == "IP Vision Camera Sub Stream"
+
+    # A camera with 3+ real discovered streams gets numbered Sub options,
+    # per the user's own spec (Main, Sub 1, Sub 2, ...).
+    panel._on_field_changed(1, "discovered_stream_paths", ["/11", "/12", "/13"])
+    panel._on_state_changed(controller.active_state)
+    three_stream_options = [card._type_combo.itemText(i) for i in range(card._type_combo.count())]
+    assert three_stream_options == [
+        "IP Vision Camera Main Stream", "IP Vision Camera Sub Stream 1", "IP Vision Camera Sub Stream 2", *CAMERA_TYPES[3:],
+    ], f"unexpected 3-stream options: {three_stream_options}"
+    card._on_type_combo_changed("IP Vision Camera Sub Stream 2")
+    loop.run_until_complete(asyncio.sleep(0))
+    cam1 = panel._current_camera(1)
+    assert cam1.rtsp_path == "/13", "Sub Stream 2 must map to the real 3rd discovered path"
 
     print("verify_cameras_panel: all real assertions passed")
 

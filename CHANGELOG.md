@@ -75,6 +75,29 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
+## [0.3.5]
+
+- **Real multi-stream RTSP support - STUDIO/SUITE parity.** A real IP
+  camera on this ecosystem's own network can expose more than a fixed
+  Main/Sub pair - HYDRA-UMC-SERVER's own `discoverRtspPath()` used to
+  stop scanning at the first candidate that answered, so a camera with
+  2+ real streams only ever surfaced whichever one happened to be
+  tried first (see that repo's own CHANGELOG). New `models.py`'s
+  `ip_stream_labels()` (mirrors HYDRA-UMC-STUDIO's own `ipStreamLabels()`
+  exactly) derives the real option list from a camera's own new
+  `discovered_stream_paths` field: 1 stream -> Main only, 2 -> Main/Sub,
+  3+ -> Main/Sub Stream 1/Sub Stream 2/... `CameraCard`'s own type
+  combobox now builds its IP options from this instead of the old fixed
+  pair - picking a different one is a real behavior change, not just a
+  label: it re-points that camera's own `rtsp_path` at the corresponding
+  discovered stream, which the server's own process supervisor picks up
+  and respawns the real capture for. A fresh "Discover Path" run now
+  records the FULL found list, not just the first, and resets the
+  selection to Main by default. Real assertion coverage extended in
+  `tests/verify_cameras_panel.py` for the 2-stream and 3-stream cases
+  (dynamic option lists, and that selecting a numbered Sub option
+  actually switches `rtsp_path`).
+
 ## [0.3.4]
 
 - **Camera discovery + real live status - STUDIO/SUITE parity.** Mirrors

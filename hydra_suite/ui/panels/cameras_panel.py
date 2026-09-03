@@ -45,15 +45,15 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import CAMERA_TYPES, RTSP_DEFAULT_PORT, CameraView, HydraState, RobotView
+from hydra_suite.models import CAMERA_TYPES, RTSP_DEFAULT_PORT, CameraView, HydraState, RobotView, ip_stream_labels
 from hydra_suite.net.client import HydraConnection
 
-# type strings that split into a USB-only vs IP-only pair, mirroring
-# HYDRA-UMC-STUDIO's own CamerasView.tsx combobox split (see that
-# file's own header comment on why a real IP camera needs 2 stream
-# options and a USB one needs only 1).
+# type strings for the USB-only and Thermal option groups, mirroring
+# HYDRA-UMC-STUDIO's own CamerasView.tsx combobox split. The IP group is
+# NOT a fixed pair here - see ip_stream_labels() in models.py, used
+# directly wherever this panel needs the real, per-camera IP option
+# list instead.
 _USB_TYPE_OPTIONS = (CAMERA_TYPES[0],)
-_IP_TYPE_OPTIONS = (CAMERA_TYPES[1], CAMERA_TYPES[2])
 _THERMAL_TYPE_OPTIONS = CAMERA_TYPES[3:]
 
 # Real camera-process status colors, matching HYDRA-UMC-STUDIO's own
@@ -405,18 +405,21 @@ class CameraCard(QFrame):
     def _sync_type_options(self, is_ip: bool, camera_type: str) -> None:
         """Rebuilds the type combobox's own option list to match this
         camera's real sourceType - USB gets only "USB Vision Camera", IP
-        gets both real stream options - matching HYDRA-UMC-STUDIO's own
-        CamerasView.tsx combobox split (see this module's own
-        _USB_TYPE_OPTIONS/_IP_TYPE_OPTIONS comment). Thermal options stay
-        in both lists unconditionally (see CAMERA_TYPES's own comment).
-        A stored `camera_type` no longer valid for the current
-        sourceType (e.g. legacy data, or a mid-flight toggle not yet
-        echoed back) falls back to the list's own first entry rather
+        gets exactly as many Main/Sub/Sub N options as this camera's own
+        last real "Discover Path" run actually found
+        (ip_stream_labels(self._camera.discovered_stream_paths) - never
+        a fixed pair, matching HYDRA-UMC-STUDIO's own CamerasView.tsx
+        combobox split). Thermal options stay in both lists
+        unconditionally (see CAMERA_TYPES's own comment). A stored
+        `camera_type` no longer valid for the current sourceType/
+        discovery state (e.g. legacy data, or a mid-flight toggle not
+        yet echoed back) falls back to the list's own first entry rather
         than leaving Qt's combobox in the blank/mismatched state a
         `value` with no matching `<option>` produces - same reasoning as
         CamerasView.tsx's own React <select> comment."""
         self._type_combo.blockSignals(True)
-        options = (_IP_TYPE_OPTIONS if is_ip else _USB_TYPE_OPTIONS) + _THERMAL_TYPE_OPTIONS
+        ip_options = ip_stream_labels(self._camera.discovered_stream_paths) if is_ip else _USB_TYPE_OPTIONS
+        options = ip_options + _THERMAL_TYPE_OPTIONS
         self._type_combo.clear()
         self._type_combo.addItems(options)
         idx = self._type_combo.findText(camera_type)
@@ -452,8 +455,23 @@ class CameraCard(QFrame):
         self._on_toggle(self._camera.id)
 
     def _on_type_combo_changed(self, text: str) -> None:
-        if text:
-            self._on_type_changed(self._camera.id, text)
+        if not text:
+            return
+        # Real behavior, not just a label change: picking a different
+        # discovered stream here re-points rtsp_path at that real
+        # stream's own path, so this actually switches what the live
+        # feed shows - the server's own camera-process supervisor
+        # (reconcileCameraProcesses) respawns the real capture the
+        # moment this saves, since rtsp_path is part of its fingerprint.
+        # Mirrors HYDRA-UMC-STUDIO's own CamerasView.tsx <select> onChange.
+        if self._camera.source_type == "ip":
+            labels = ip_stream_labels(self._camera.discovered_stream_paths)
+            if text in labels:
+                idx = labels.index(text)
+                paths = self._camera.discovered_stream_paths
+                if idx < len(paths):
+                    self._on_field_changed(self._camera.id, "rtsp_path", paths[idx])
+        self._on_type_changed(self._camera.id, text)
 
     def _on_robot_combo_changed(self, index: int) -> None:
         self._on_field_changed(self._camera.id, "assigned_robot_id", self._robot_combo.itemData(index))
@@ -469,7 +487,7 @@ class CameraCard(QFrame):
         # alone either way (see CAMERA_TYPES's own comment).
         current_type = self._camera.camera_type
         if current_type not in _THERMAL_TYPE_OPTIONS:
-            new_type = _IP_TYPE_OPTIONS[0] if value == "ip" else _USB_TYPE_OPTIONS[0]
+            new_type = ip_stream_labels(self._camera.discovered_stream_paths)[0] if value == "ip" else _USB_TYPE_OPTIONS[0]
             if current_type != new_type:
                 self._on_type_changed(self._camera.id, new_type)
 
@@ -597,11 +615,22 @@ class CameraCard(QFrame):
         # its own `ok` field inside the body (see that route's own
         # RtspDescribeResult), same as HYDRA-UMC-STUDIO's own
         # `res.ok && body.ok` check right above this comment's mirror.
-        if status == 200 and isinstance(body, dict) and body.get("ok") and body.get("path"):
-            path = str(body["path"])
-            self._rtsp_path_edit.setText(path)
-            self._on_field_changed(self._camera.id, "rtsp_path", path)
-            self._set_discovery_status(_("MSG_RTSP_PATH_FOUND") + f": {path}", "#10b981")
+        # `paths` is the FULL list of every real stream this camera
+        # answered on, never just the first - see ip_stream_labels()'s
+        # own header comment for why this camera never assumes a fixed
+        # Main/Sub pair from here on.
+        found_paths = body.get("paths") if isinstance(body, dict) else None
+        if status == 200 and isinstance(body, dict) and body.get("ok") and isinstance(found_paths, list) and found_paths:
+            paths = [str(p) for p in found_paths]
+            self._on_field_changed(self._camera.id, "discovered_stream_paths", paths)
+            self._rtsp_path_edit.setText(paths[0])
+            self._on_field_changed(self._camera.id, "rtsp_path", paths[0])
+            # Reset to Main after a fresh discovery - same default
+            # CameraCard._sync_type_options() would otherwise silently
+            # fall back to anyway if the previously-selected label no
+            # longer exists in the new, real option list.
+            self._on_type_changed(self._camera.id, ip_stream_labels(paths)[0])
+            self._set_discovery_status(_("MSG_RTSP_PATH_FOUND") + f": {', '.join(paths)}", "#10b981")
             return
         if status == 200 and isinstance(body, dict):
             tried = body.get("triedPaths")

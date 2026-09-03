@@ -274,15 +274,17 @@ class RobotView:
         return f"RobotView(id={self.id!r}, model={self.model!r}, online={self.online})"
 
 
-# The 6 camera type strings HYDRA-UMC-STUDIO's own store.tsx CameraType
-# union allows - see that file's own CameraState interface. The 2 "IP
-# Vision Camera" entries split Main/Sub Stream because a real IP camera
-# in this ecosystem (the YGTek units at .203/.204/.210/.211) can expose
-# 2 real RTSP streams at once - CamerasView.tsx's own combobox only
-# offers whichever pair (USB vs the 2 IP options) matches that camera's
-# real sourceType, same logic this panel's own CameraCard._sync_type_options()
-# below applies. The 3 Thermal entries stay unconditional either way
-# until thermal sensors get real functionality (see project memory).
+# The base camera type strings HYDRA-UMC-STUDIO's own store.tsx
+# CameraType union allows - see that file's own CameraState interface.
+# The "IP Vision Camera ... Stream" entries exist because a real IP
+# camera in this ecosystem (the YGTek/Hipcam units at
+# .203/.204/.210/.211) can expose more than one real RTSP stream at
+# once - CamerasView.tsx's own combobox (and this panel's own
+# CameraCard._sync_type_options() below) only ever offers as many
+# Main/Sub/Sub N options as ip_stream_labels() below says a given
+# camera's own last real "Discover Path" run actually found, never a
+# fixed pair. The 3 Thermal entries stay unconditional either way until
+# thermal sensors get real functionality (see project memory).
 CAMERA_TYPES = (
     "USB Vision Camera",
     "IP Vision Camera Main Stream",
@@ -291,6 +293,26 @@ CAMERA_TYPES = (
     "Thermal (MLX90641)",
     "Thermal (MLX90642)",
 )
+
+
+def ip_stream_labels(paths: list[str] | None) -> tuple[str, ...]:
+    """Real label set for an IP camera's own stream picker, derived from
+    how many real RTSP streams the last "Discover Path" run actually
+    found for THIS camera (`discoveredStreamPaths`, HYDRA-UMC-SERVER's
+    own discoverRtspPath()'s full `paths` list, persisted client-side) -
+    mirrors HYDRA-UMC-STUDIO's own store.tsx ipStreamLabels() exactly.
+    No discovery run yet (None/empty) reads the same as "1 stream,
+    unconfirmed" - the only honest default when nothing's actually been
+    probed. Exactly 2 streams keeps the plain "Sub Stream" label
+    (matches this ecosystem's own real Hipcam units); 3 or more numbers
+    every stream after the first ("Sub Stream 1", "Sub Stream 2", ...)
+    so each stays individually selectable."""
+    count = len(paths) if paths else 1
+    if count <= 1:
+        return ("IP Vision Camera Main Stream",)
+    if count == 2:
+        return ("IP Vision Camera Main Stream", "IP Vision Camera Sub Stream")
+    return ("IP Vision Camera Main Stream", *(f"IP Vision Camera Sub Stream {i}" for i in range(1, count)))
 
 # Matches HYDRA-UMC-STUDIO's own store.tsx RTSP_DEFAULT_PORT (real port
 # 554 - the RTSP/RFC 2326 standard) - see CameraView.rtsp_port below for
@@ -425,6 +447,21 @@ class CameraView:
 
     def set_ip_password(self, value: str) -> None:
         self.raw["ipPassword"] = value
+
+    @property
+    def discovered_stream_paths(self) -> list[str]:
+        """Every real RTSP path the last "Discover Path" run actually
+        found for THIS camera (HYDRA-UMC-SERVER's own
+        discoverRtspPath()'s full `paths` list, not just the first) -
+        drives ip_stream_labels() above, and the same `discoveredStreamPaths`
+        JSON key HYDRA-UMC-STUDIO's own CameraState carries, since this
+        is the same synced settings blob. Empty (never `[""]` or similar)
+        until discovery has actually been run at least once."""
+        value = self.raw.get("discoveredStreamPaths")
+        return [str(p) for p in value] if isinstance(value, list) else []
+
+    def set_discovered_stream_paths(self, value: list[str]) -> None:
+        self.raw["discoveredStreamPaths"] = list(value)
 
     def __repr__(self) -> str:
         return f"CameraView(id={self.id!r}, connected={self.connected}, type={self.camera_type!r})"
