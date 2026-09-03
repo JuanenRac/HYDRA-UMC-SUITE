@@ -297,6 +297,24 @@ LBL_PNP_AXIS_Y=Y軸（mm）
 LBL_PNP_AXIS_Z=Z軸、両ノズル（mm）
 LBL_PNP_NOZZLE1=ノズル1回転（度）
 LBL_PNP_NOZZLE2=ノズル2回転（度）
+
+# キネマティックブレインステージパネル（コントローラーレベル、ローカルSTM32H745ステージ）
+HEADING_KINEMATIC_BRAIN_STAGE=キネマティックブレインステージ
+LBL_GANTRY=XYガントリー（X、Y1、Y2、Z）
+LBL_HEIGHT_Z=高さ（Z mm）
+LBL_ATC_REVOLVER_E0=ATCレボルバー（E0）
+LBL_TOOL_COUNT=ツールスロット数
+LBL_HOMED=原点復帰済み
+LBL_NOT_HOMED=原点復帰未完了
+LBL_CONVEYOR=コンベア（E1）
+LBL_CONVEYOR_NOT_INSTALLED=このマシンにはコンベアが取り付けられていません
+BTN_MARK_INSTALLED=取り付け済みにする
+LBL_RUNNING=稼働中
+LBL_STOPPED=停止中
+LBL_ENDSTOPS=エンドストップ（各軸 2 個）
+LBL_FANS=ファン（3個）
+LBL_PUMPS=ポンプ（8+2）
+LBL_VALVES=バルブ（8+2）
 BTN_EDIT_POS=位置を編集
 LBL_TOOL_ASSIGNMENTS=ツール割り当て
 BTN_LOAD_CONFIG=設定を読み込み

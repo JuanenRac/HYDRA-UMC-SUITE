@@ -298,6 +298,24 @@ LBL_PNP_AXIS_Y=Axe Y (mm)
 LBL_PNP_AXIS_Z=Axe Z, les deux buses (mm)
 LBL_PNP_NOZZLE1=Rotation buse 1 (degrés)
 LBL_PNP_NOZZLE2=Rotation buse 2 (degrés)
+
+# Panneau Kinematic Brain Stage (niveau contrôleur, étage local STM32H745)
+HEADING_KINEMATIC_BRAIN_STAGE=Kinematic Brain Stage
+LBL_GANTRY=Portique XY (X, Y1, Y2, Z)
+LBL_HEIGHT_Z=Hauteur (Z mm)
+LBL_ATC_REVOLVER_E0=Barillet ATC (E0)
+LBL_TOOL_COUNT=Emplacements d'outils
+LBL_HOMED=Origine effectuée
+LBL_NOT_HOMED=Origine non effectuée
+LBL_CONVEYOR=Convoyeur (E1)
+LBL_CONVEYOR_NOT_INSTALLED=Aucun convoyeur installé sur cette machine
+BTN_MARK_INSTALLED=Marquer comme installé
+LBL_RUNNING=En marche
+LBL_STOPPED=Arrêté
+LBL_ENDSTOPS=Fins de course (2 par axe)
+LBL_FANS=Ventilateurs (3x)
+LBL_PUMPS=Pompes (8+2)
+LBL_VALVES=Vannes (8+2)
 BTN_EDIT_POS=Modifier la Position
 LBL_TOOL_ASSIGNMENTS=Attribution des Outils
 BTN_LOAD_CONFIG=Charger la Configuration

@@ -54,6 +54,25 @@ def default_rack_system() -> dict[str, Any]:
     return {"enabled": False, "rack1": default_rack("Input"), "rack2": default_rack("Output")}
 
 
+def default_kinematic_brain_stage() -> dict[str, Any]:
+    """Matches HYDRA-UMC-STUDIO's own createDefaultKinematicBrainStage()
+    exactly - real seed values, not invented ones (600x400x150mm real
+    table default, 6-slot ATC revolver default, etc.)."""
+    return {
+        "xyTable": {"x": 0, "y1": 0, "y2": 0, "z": 0, "tableSize": {"width": 600, "length": 400, "height": 150}},
+        "heatedBed": {"targetTemp": 0, "currentTemp1": 24, "currentTemp2": 24, "ssrActive": False},
+        "atcRevolver": {"toolCount": 6, "currentIndex": 0, "targetIndex": 0, "homed": False},
+        "conveyor": {"installed": False, "running": False, "speedPercent": 0},
+        "endstops": {
+            "xMin": False, "xMax": False, "y1Min": False, "y1Max": False, "y2Min": False, "y2Max": False,
+            "zMin": False, "zMax": False, "e0Min": False, "e0Max": False, "e1Min": False, "e1Max": False,
+        },
+        "fans": [False, False, False],
+        "pumps": [False] * 10,
+        "valves": [False] * 10,
+    }
+
+
 class RobotView:
     """Thin, mutation-friendly view over one entry of controllers[].robots[].
 
@@ -419,6 +438,29 @@ class ControllerView:
     @property
     def cameras(self) -> list[CameraView]:
         return [CameraView(c) for c in (self.raw.get("cameras") or [])]
+
+    @property
+    def kinematic_brain_stage(self) -> dict[str, Any]:
+        """HYDRA-UMC-STUDIO's own `kinematicBrainStage`
+        (KinematicBrainStage.tsx) - the Kinematic Brain's OWN local
+        6-axis stage (STM32H745): XY gantry + Z, heated bed, ATC
+        revolver, conveyor, 12 endstops, fans/pumps/valves. UNLIKE every
+        other module on `RobotView` above, this is CONTROLLER-level
+        state (one Kinematic Brain per controller, not per robot) - see
+        that file's own header comment. Genuinely optional on the
+        TypeScript side (`kinematicBrainStage?: KinematicBrainStage`)
+        with no "Enable" affordance at all if absent - STUDIO's own
+        component just renders nothing (`if (!activeController ||
+        !stage) return null`). In practice every real controller is
+        seeded with this via `createDefaultKinematicBrainStage()` and
+        it's never actually missing - returns that same real default
+        here too rather than an unusable blank panel for an edge case
+        neither side's own default state ever actually hits."""
+        value = self.raw.get("kinematicBrainStage")
+        return value if isinstance(value, dict) else default_kinematic_brain_stage()
+
+    def set_kinematic_brain_stage(self, config: dict[str, Any]) -> None:
+        self.raw["kinematicBrainStage"] = config
 
     def __repr__(self) -> str:
         return f"ControllerView(id={self.id!r}, name={self.name!r}, robots={len(self.robots)})"

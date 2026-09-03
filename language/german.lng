@@ -298,6 +298,24 @@ LBL_PNP_AXIS_Y=Y-Achse (mm)
 LBL_PNP_AXIS_Z=Z-Achse, beide Düsen (mm)
 LBL_PNP_NOZZLE1=Düse 1 Rotation (Grad)
 LBL_PNP_NOZZLE2=Düse 2 Rotation (Grad)
+
+# Kinematic-Brain-Stage-Panel (Controller-Ebene, lokale STM32H745-Stage)
+HEADING_KINEMATIC_BRAIN_STAGE=Kinematic Brain Stage
+LBL_GANTRY=XY-Portal (X, Y1, Y2, Z)
+LBL_HEIGHT_Z=Höhe (Z mm)
+LBL_ATC_REVOLVER_E0=ATC-Revolver (E0)
+LBL_TOOL_COUNT=Werkzeugplätze
+LBL_HOMED=Referenziert
+LBL_NOT_HOMED=Nicht referenziert
+LBL_CONVEYOR=Förderband (E1)
+LBL_CONVEYOR_NOT_INSTALLED=Kein Förderband an dieser Maschine installiert
+BTN_MARK_INSTALLED=Als installiert markieren
+LBL_RUNNING=Läuft
+LBL_STOPPED=Gestoppt
+LBL_ENDSTOPS=Endschalter (2 pro Achse)
+LBL_FANS=Lüfter (3x)
+LBL_PUMPS=Pumpen (8+2)
+LBL_VALVES=Ventile (8+2)
 BTN_EDIT_POS=Position Bearbeiten
 LBL_TOOL_ASSIGNMENTS=Werkzeugzuweisungen
 BTN_LOAD_CONFIG=Konfiguration Laden

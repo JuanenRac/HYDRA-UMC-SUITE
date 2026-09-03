@@ -297,6 +297,24 @@ LBL_PNP_AXIS_Y=Y axis (mm)
 LBL_PNP_AXIS_Z=Z axis, both nozzles (mm)
 LBL_PNP_NOZZLE1=Nozzle 1 rotation (deg)
 LBL_PNP_NOZZLE2=Nozzle 2 rotation (deg)
+
+# Kinematic Brain Stage panel (controller-level, STM32H745 local stage)
+HEADING_KINEMATIC_BRAIN_STAGE=Kinematic Brain Stage
+LBL_GANTRY=XY Gantry (X, Y1, Y2, Z)
+LBL_HEIGHT_Z=Height (Z mm)
+LBL_ATC_REVOLVER_E0=ATC Revolver (E0)
+LBL_TOOL_COUNT=Tool slots
+LBL_HOMED=Homed
+LBL_NOT_HOMED=Not homed
+LBL_CONVEYOR=Conveyor Belt (E1)
+LBL_CONVEYOR_NOT_INSTALLED=No conveyor installed on this machine
+BTN_MARK_INSTALLED=Mark as installed
+LBL_RUNNING=Running
+LBL_STOPPED=Stopped
+LBL_ENDSTOPS=Endstops (2 per axis)
+LBL_FANS=Fans (3x)
+LBL_PUMPS=Pumps (8+2)
+LBL_VALVES=Valves (8+2)
 BTN_EDIT_POS=Edit Pos
 LBL_TOOL_ASSIGNMENTS=Tool Assignments
 BTN_LOAD_CONFIG=Load Config

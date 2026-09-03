@@ -45,6 +45,7 @@ from hydra_suite.ui.panels.cnc_panel import CncPanel
 from hydra_suite.ui.panels.ecosystem_services_panel import EcosystemServicesPanel
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import EcosystemTelemetryPanel
 from hydra_suite.ui.panels.heated_bed_panel import HeatedBedPanel
+from hydra_suite.ui.panels.kinematic_brain_stage_panel import KinematicBrainStagePanel
 from hydra_suite.ui.panels.laser_panel import LaserPanel
 from hydra_suite.ui.panels.logs_panel import LogsPanel
 from hydra_suite.ui.panels.overview import OverviewPanel
@@ -146,6 +147,7 @@ class MainWindow(QMainWindow):
         self.xy_table_panel = XYTablePanel(self.controller)
         self.rack_config_panel = RackConfigPanel(self.controller)
         self.pick_and_place_panel = PickAndPlacePanel(self.controller)
+        self.kinematic_brain_stage_panel = KinematicBrainStagePanel(self.controller)
 
         self.robot_control.robot_selected.connect(self.viewport_panel.set_selected_robot)
         self.robot_control.robot_selected.connect(self.trajectory_panel.set_selected_robot)
@@ -171,6 +173,7 @@ class MainWindow(QMainWindow):
         dock_xy_table = self._make_dock(_("HEADING_XY_TABLE"), self.xy_table_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_rack = self._make_dock(_("HEADING_RACK_MANAGER"), self.rack_config_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_pick_and_place = self._make_dock(_("HEADING_PICK_AND_PLACE"), self.pick_and_place_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_kinematic_brain_stage = self._make_dock(_("HEADING_KINEMATIC_BRAIN_STAGE"), self.kinematic_brain_stage_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
 
         self._docks = {
             "servers": dock_servers,
@@ -194,6 +197,7 @@ class MainWindow(QMainWindow):
             "xy_table": dock_xy_table,
             "rack": dock_rack,
             "pick_and_place": dock_pick_and_place,
+            "kinematic_brain_stage": dock_kinematic_brain_stage,
         }
 
         # Sensible default arrangement - the user is free to drag any of
@@ -230,6 +234,7 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(dock_atc, dock_xy_table)
         self.tabifyDockWidget(dock_xy_table, dock_rack)
         self.tabifyDockWidget(dock_rack, dock_pick_and_place)
+        self.tabifyDockWidget(dock_pick_and_place, dock_kinematic_brain_stage)
         dock_traj.raise_()
 
         # A dock closed via its own [x] button would otherwise be gone for
@@ -239,7 +244,7 @@ class MainWindow(QMainWindow):
         for dock in (
             dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
-            dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc, dock_xy_table, dock_rack, dock_pick_and_place,
+            dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc, dock_xy_table, dock_rack, dock_pick_and_place, dock_kinematic_brain_stage,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
 
