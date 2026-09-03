@@ -124,10 +124,15 @@ Il desktop include ora una console di comando persistente, ispirata a un menu di
   condividono un'unica implementazione `ModuleConfigPanel` (i propri
   `CNC.tsx`/`Laser.tsx` di STUDIO sono componenti identici a parte la
   chiave del modulo); gli altri 7 hanno richiesto ciascuno un proprio
-  pannello reale, costruito su misura. L'unico divario rimasto rispetto
-  a STUDIO è l'anteprima 3D dal vivo che la maggior parte di questi
-  pannelli ha lì - `render/viewport.py` non supporta ancora la geometria
-  dei moduli collegati.
+  pannello reale, costruito su misura. 4 di essi (CNC, Laser, Piano
+  Riscaldato, Tavolo a Vuoto) ora hanno anche l'anteprima 3D dal vivo
+  che le schermate equivalenti di STUDIO mostrano accanto al modulo di
+  impostazioni (`render/module_rig.py`, un porting reale della
+  geometria a scatole/cilindri di STUDIO, disegnata da un
+  `RobotViewport` messo in una modalità esclusiva per il modulo).
+  L'unico divario rimasto è l'anteprima di Pick & Place, che su STUDIO è
+  una mesh `.glb` reale invece di primitive - un lavoro genuinamente
+  separato e di portata maggiore.
 
 ---
 

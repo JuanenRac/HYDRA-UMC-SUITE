@@ -128,10 +128,15 @@ Le bureau inclut maintenant une console de commande persistante, inspirée d'un 
   seule implémentation `ModuleConfigPanel` (les propres `CNC.tsx`/
   `Laser.tsx` de STUDIO sont des composants identiques à l'exception de la
   clé du module) ; les 7 autres ont chacun nécessité leur propre panneau
-  réel, construit sur mesure. Le seul écart restant par rapport à STUDIO
-  est l'aperçu 3D en direct que la plupart de ces panneaux ont là-bas -
-  `render/viewport.py` ne prend pas encore en charge la géométrie des
-  modules attachés.
+  réel, construit sur mesure. 4 d'entre eux (CNC, Laser, Lit chauffant,
+  Table à vide) ont désormais aussi l'aperçu 3D en direct que les
+  écrans équivalents de STUDIO affichent à côté du formulaire de
+  réglages (`render/module_rig.py`, un portage réel de la géométrie en
+  boîtes/cylindres de STUDIO, dessinée par un `RobotViewport` placé
+  dans un mode exclusivement dédié au module). Le seul écart restant est
+  l'aperçu de Pick & Place, qui côté STUDIO est un vrai maillage `.glb`
+  plutôt que des primitives - un travail véritablement distinct et de
+  plus grande ampleur.
 
 ---
 

@@ -123,10 +123,14 @@ Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Comman
   Heizbett/Vakuumtisch teilen sich eine `ModuleConfigPanel`-Implementierung
   (STUDIOs eigene `CNC.tsx`/`Laser.tsx` sind bis auf den Modul-Schlüssel
   identische Komponenten); die übrigen 7 brauchten jeweils ein eigenes,
-  eigens gebautes Panel. Die einzige verbleibende Lücke gegenüber STUDIO
-  ist die Live-3D-Vorschau, die die meisten dieser Panels dort haben -
-  `render/viewport.py` unterstützt noch keine Geometrie angedockter
-  Module.
+  eigens gebautes Panel. 4 davon (CNC, Laser, Heizbett, Vakuumtisch)
+  haben jetzt auch die Live-3D-Vorschau, die die entsprechenden
+  Bildschirme von STUDIO neben dem Einstellungsformular zeigen
+  (`render/module_rig.py`, ein echter Port von STUDIOs eigener Box-/
+  Zylinder-Geometrie, gezeichnet von einem `RobotViewport` in einem
+  eigenen modul-only-Modus). Die einzige verbleibende Lücke ist die
+  Vorschau von Pick & Place, die auf STUDIOs Seite ein echtes `.glb`-Mesh
+  statt Primitiven ist - eine wirklich eigenständige, größere Aufgabe.
 
 ---
 

@@ -123,10 +123,15 @@ El escritorio incorpora una consola de mando persistente, inspirada en un menú 
   Mesa de Vacío comparten una única implementación `ModuleConfigPanel`
   (el propio `CNC.tsx`/`Laser.tsx` de STUDIO son componentes idénticos
   salvo por la clave del módulo); los otros 7 necesitaron cada uno su
-  propio panel real, construido a medida. La única brecha que queda
-  frente a STUDIO es la vista previa 3D en vivo que la mayoría de estos
-  paneles tienen allí - `render/viewport.py` todavía no soporta
-  geometría de módulos acoplados.
+  propio panel real, construido a medida. 4 de ellos (CNC, Láser, Cama
+  Caliente, Mesa de Vacío) ahora también tienen la vista previa 3D en
+  vivo que las pantallas equivalentes de STUDIO muestran junto al
+  formulario de ajustes (`render/module_rig.py`, un port real de la
+  geometría de cajas/cilindros de STUDIO, dibujada por un
+  `RobotViewport` puesto en un modo exclusivo de módulo). La única
+  brecha que queda es la vista previa de Pick & Place, que en STUDIO es
+  una malla `.glb` real en vez de primitivas - un trabajo genuinamente
+  aparte y de mayor alcance.
 
 ---
 

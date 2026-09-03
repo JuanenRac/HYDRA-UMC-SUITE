@@ -21,16 +21,17 @@
 # _extra_reset_fields) rather than re-implementing the shared robot
 # selector/enable-disable/size/reset shape a second time.
 #
-# Deliberately does NOT port CNC.tsx/Laser.tsx's own right-hand "3D Live
-# View" (a react-three-fiber <Canvas> rendering Shared3DEnvironment +
-# SharedModule3DView) - HYDRA-UMC-SUITE's own 3D viewport
-# (render/viewport.py's RobotViewport) is a from-scratch renderer with no
-# existing support for rendering an attached tool module's own geometry,
-# and building that is a real, separate piece of work, not a mechanical
-# port. This panel's own real, functional config surface (enable/disable,
-# size, reset) is unaffected by that omission - see this repo's own
-# [[project_suite_studio_parity_gap]] for the full list of still-pending
-# panels this reasoning also applies to.
+# Also ports CNC.tsx/Laser.tsx's own right-hand "3D Live View" for real
+# (a react-three-fiber <Canvas> rendering Shared3DEnvironment +
+# SharedModule3DView) - a dedicated RobotViewport instance
+# (render/viewport.py) switched into module-only mode
+# (set_attached_module(), render/module_rig.py) rather than the shared
+# robot viewport, matching STUDIO's own per-panel <Canvas> (each of
+# these screens owns its own 3D view there too, not a shared one). Not
+# every module_key has real preview geometry ported yet -
+# module_rig.py's own module_segments() returns an empty list (a blank
+# but real, not stubbed-with-a-placeholder, viewport) for anything
+# outside CNC/Laser/HeatedBed/VacuumTable - see that file's own header.
 #
 # Writes via push_active_state() (a full-tree settings mutation), matching
 # STUDIO's own updateRobot() - not the atomic send_robot_command() path,
@@ -56,6 +57,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
+from hydra_suite.render.viewport import RobotViewport
 
 DEFAULT_SIZE_MM = 500
 
@@ -113,9 +115,18 @@ class ModuleConfigPanel(QWidget):
         empty_layout.addStretch(2)
         self._stack.addWidget(empty_page)
 
-        # Page 1: module settings.
+        # Page 1: module settings + live 3D preview, side by side - matches
+        # STUDIO's own CNC.tsx/Laser.tsx two-column layout (settings form
+        # on the left, its own <Canvas> on the right) rather than stacking
+        # them, since both fit comfortably at this panel's own real width.
         settings_page = QWidget()
-        settings_layout = QVBoxLayout(settings_page)
+        settings_page_layout = QHBoxLayout(settings_page)
+        settings_page_layout.setContentsMargins(0, 0, 0, 0)
+        settings_page_layout.setSpacing(8)
+
+        settings_column = QWidget()
+        settings_layout = QVBoxLayout(settings_column)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
         settings_box = QGroupBox(_("GROUP_MODULE_SETTINGS"))
         settings_box_layout = QVBoxLayout(settings_box)
 
@@ -147,6 +158,12 @@ class ModuleConfigPanel(QWidget):
         settings_layout.addWidget(settings_box)
         self._build_extra_settings(settings_layout)
         settings_layout.addStretch(1)
+        settings_page_layout.addWidget(settings_column, 1)
+
+        self._module_viewport = RobotViewport()
+        self._module_viewport.setMinimumWidth(220)
+        settings_page_layout.addWidget(self._module_viewport, 1)
+
         self._stack.addWidget(settings_page)
 
         controller.active_state_changed.connect(self._on_state_changed)
@@ -193,16 +210,20 @@ class ModuleConfigPanel(QWidget):
         self._enable_btn.setEnabled(has_robot)
 
         if not enabled:
+            self._module_viewport.set_attached_module(None)
             return
 
         module = robot.module(self._module_key)
         size = module.get("size") or {}
         default_width, default_length = self._display_default_size_mm()
+        width_mm = size.get("width", default_width)
+        length_mm = size.get("length", default_length)
         self._updating = True
-        self._width_spin.setValue(int(size.get("width", default_width)))
-        self._length_spin.setValue(int(size.get("length", default_length)))
+        self._width_spin.setValue(int(width_mm))
+        self._length_spin.setValue(int(length_mm))
         self._updating = False
         self._refresh_extra_controls(module)
+        self._module_viewport.set_attached_module(self._module_key, float(width_mm), float(length_mm))
 
     # --- extension points for a module with more than size (e.g.
     # heated_bed_panel.py's own heating controls) - no-op by default so
@@ -309,4 +330,11 @@ class ModuleConfigPanel(QWidget):
         size[axis] = value
         module["size"] = size
         self._current_robot.set_module(self._module_key, module)
+        # Updates the live 3D preview immediately, matching STUDIO's own
+        # reactive <Canvas> (it re-renders on every keystroke, not only
+        # once the server echoes the write back) - without this, dragging
+        # the width/length spinbox would leave the preview showing the
+        # OLD size until the next state broadcast round-trips, which on a
+        # slow/disconnected link could be seconds or never.
+        self._refresh_controls()
         self._push()

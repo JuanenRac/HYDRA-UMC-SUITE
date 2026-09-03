@@ -30,6 +30,8 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
 from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
+from hydra_suite.render.module_rig import module_segments
+from hydra_suite.render.module_rig import segment_world_transform as module_segment_world_transform
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "meshes"
 
@@ -174,6 +176,17 @@ class RobotViewport(QOpenGLWidget):
         entry = ROBOT_REGISTRY[DEFAULT_MODEL]
         self._joints_deg: dict[str, float] = dict(entry.home_pose_deg)
 
+        # Module-only mode (render/module_rig.py) - a SEPARATE
+        # RobotViewport instance embedded in ModuleConfigPanel switches
+        # into this via set_attached_module() instead of ever calling
+        # set_robot_model(); no robot is drawn while a module is set.
+        # None = normal robot-viewport mode (the shared 3D Viewport dock
+        # and every *ArmDetail screen use this widget that way).
+        self._attached_module_type: str | None = None
+        self._module_buffers: list[GLMeshBuffer] = []
+        self._module_segments_cache: list = []
+        self._pending_module_rebuild = False
+
         self._yaw = -35.0
         self._pitch = 20.0
         self._distance = 2.2
@@ -213,6 +226,37 @@ class RobotViewport(QOpenGLWidget):
             self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
         self.update()
 
+    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0) -> None:
+        """Switches this viewport into module-only mode (render/module_rig.py)
+        - a real live 3D preview of a tool-attachment module's own real
+        geometry, matching HYDRA-UMC-STUDIO's own SharedModule3DView.tsx.
+        `module_type=None` returns to normal robot-viewport mode (unused
+        by ModuleConfigPanel's own dedicated instance, which is always in
+        module mode for its whole lifetime, but kept real rather than a
+        one-way switch in case a future caller wants to reuse one widget
+        for both)."""
+        self._attached_module_type = module_type
+        segs = module_segments(module_type, width_mm, length_mm) if module_type else []
+        if self._gl_ready:
+            self.makeCurrent()
+            try:
+                self._module_buffers = [
+                    GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
+                    for seg in segs
+                ]
+            finally:
+                self.doneCurrent()
+            self._module_segments_cache = segs
+        else:
+            # GL context not ready yet (widget constructed but not shown)
+            # - initializeGL's own real-world caller order means this can
+            # happen for a freshly-created module-only viewport; stash the
+            # real segments so the buffers can be built once initializeGL
+            # does run, instead of silently losing this call.
+            self._module_segments_cache = segs
+            self._pending_module_rebuild = True
+        self.update()
+
     def _load_mesh_set(self, mesh_dir: str, link_names: tuple[str, ...], mesh_files: dict[str, str]) -> None:
         meshes = load_link_set(ASSETS_DIR / mesh_dir, mesh_files)
         # set_robot_model() (this method's only non-initializeGL caller)
@@ -250,6 +294,12 @@ class RobotViewport(QOpenGLWidget):
         ]
 
         self._gl_ready = True
+        if self._pending_module_rebuild:
+            self._module_buffers = [
+                GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
+                for seg in self._module_segments_cache
+            ]
+            self._pending_module_rebuild = False
         entry = ROBOT_REGISTRY[self._model_name]
         if entry.family in ("ur", "quat"):
             self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
@@ -273,6 +323,10 @@ class RobotViewport(QOpenGLWidget):
         gl.glUniformMatrix4fv(self._uniforms["uProjection"], 1, gl.GL_TRUE, proj)
         gl.glUniform3f(self._uniforms["uCameraPos"], *eye)
 
+        if self._attached_module_type is not None:
+            self._draw_module_preview()
+            return
+
         entry = ROBOT_REGISTRY.get(self._model_name)
         if entry is None:
             return
@@ -295,6 +349,12 @@ class RobotViewport(QOpenGLWidget):
 
         for name, model in zip(entry.link_names, transforms):
             self._draw_model(model, buffers[name])
+
+    def _draw_module_preview(self) -> None:
+        for seg, buf in zip(self._module_segments_cache, self._module_buffers):
+            model = module_segment_world_transform(seg)
+            gl.glUniform3f(self._uniforms["uBaseColor"], *seg.color)
+            self._draw_model(model, buf)
 
     def _draw_generic(self) -> None:
         frames = generic_frame_transforms(self._joints_deg)
