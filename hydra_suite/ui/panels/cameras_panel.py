@@ -10,20 +10,23 @@
 # an equivalent split for). This card's own metadata is real end to end
 # (which cameras a controller has, their type, assigned robot, source
 # type, and real USB/IP connection settings), and the real MJPEG stream
-# itself now exists in this ecosystem too (HYDRA-UMC-VISION-STREAMER's
-# own `stream serve`, proxied through HYDRA-UMC-SERVER's own
-# `GET /api/camera/:id/stream`, verified against real USB and IP
-# hardware) - this card's own "video" area just doesn't render those
-# pixels yet (still a clearly-labeled placeholder, matching
-# CamerasView.tsx's own text state), a separate, not-yet-done piece of
-# work here, not a hardware limitation. Editing a camera here really
-# does round-trip to the server and to any browser tab watching the
-# same controller, the same synced settings blob every other panel here
-# already reads/writes.
+# now renders here too - iter_mjpeg_frames() below is a real client for
+# HYDRA-UMC-VISION-STREAMER's own `stream serve`, proxied through
+# HYDRA-UMC-SERVER's own `GET /api/camera/:id/stream`, the same real
+# JPEG SOI/EOI marker-scanning approach HYDRA-UMC-ANDROID-CONTROL's own
+# MjpegStreamParser.kt already uses, not a placeholder. Editing a camera
+# here really does round-trip to the server and to any browser tab
+# watching the same controller, the same synced settings blob every
+# other panel here already reads/writes.
 # =============================================================================
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+
+import httpx
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -47,6 +50,73 @@ GRID_COLUMNS = 4
 _USB_PAGE = 0
 _IP_PAGE = 1
 
+# Max single JPEG frame this reader accepts before treating it as
+# corrupt and resyncing to the next SOI - matches
+# HYDRA-UMC-ANDROID-CONTROL's own MjpegStreamParser.kt exactly (same
+# real 1MB ceiling, same "keep the socket, resync instead of dropping
+# the whole connection over one oversized frame" reasoning).
+_MJPEG_MAX_FRAME_BYTES = 1024 * 1024
+_JPEG_SOI = b"\xff\xd8"
+_JPEG_EOI = b"\xff\xd9"
+
+
+async def iter_mjpeg_frames(url: str) -> AsyncIterator[bytes]:
+    """Real MJPEG multipart/x-mixed-replace client - reads raw bytes off
+    the wire and scans for JPEG SOI(0xFFD8)/EOI(0xFFD9) markers directly,
+    the same real, proven approach HYDRA-UMC-ANDROID-CONTROL's own
+    MjpegStreamParser.kt uses (see that file's own header) - deliberately
+    NOT parsing the multipart boundary/Content-Length headers at all,
+    since the marker scan already works regardless of exact framing and
+    is what the one other real client in this ecosystem already does.
+    Yields one complete, real JPEG frame's raw bytes at a time; ends
+    (StopAsyncIteration) on a genuine connection close/error - never
+    raises out of this generator, so a caller's own `async for` loop
+    doesn't need its own try/except around iteration itself."""
+    try:
+        async with httpx.AsyncClient() as client:
+            async with client.stream("GET", url, timeout=httpx.Timeout(10.0, read=None)) as resp:
+                if resp.status_code != 200:
+                    return
+                buffer = bytearray()
+                async for chunk in resp.aiter_bytes():
+                    buffer.extend(chunk)
+                    while True:
+                        start = buffer.find(_JPEG_SOI)
+                        if start < 0:
+                            # No SOI at all yet - drop everything except a
+                            # possible trailing 0xFF (could be the first
+                            # byte of a SOI split across chunks).
+                            if buffer and buffer[-1] == 0xFF:
+                                del buffer[:-1]
+                            else:
+                                buffer.clear()
+                            break
+                        end = buffer.find(_JPEG_EOI, start + 2)
+                        if end < 0:
+                            # Frame not complete yet. If what we're
+                            # accumulating already exceeds the real cap,
+                            # drop the leading SOI so a genuinely
+                            # oversized/corrupt frame can't grow the
+                            # buffer forever - the next chunk's own scan
+                            # then looks for a fresh SOI instead.
+                            if len(buffer) - start > _MJPEG_MAX_FRAME_BYTES:
+                                del buffer[: start + 2]
+                                continue
+                            del buffer[:start]
+                            break
+                        frame = bytes(buffer[start : end + 2])
+                        del buffer[: end + 2]
+                        if len(frame) <= _MJPEG_MAX_FRAME_BYTES:
+                            yield frame
+                        # else: corrupt/oversized frame, silently skipped -
+                        # matches MjpegFrameResult.CorruptFrame's own
+                        # "keep reading, don't kill the feed" behavior.
+    except (httpx.HTTPError, OSError):
+        return
+    # asyncio.CancelledError deliberately NOT caught here - swallowing it
+    # would break the caller's own task.cancel() contract (cancellation
+    # needs to actually propagate, not look like a clean stream end).
+
 
 class CameraCard(QFrame):
     def __init__(
@@ -55,6 +125,7 @@ class CameraCard(QFrame):
         on_toggle,
         on_type_changed,
         on_field_changed,
+        get_stream_url,
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
@@ -64,6 +135,14 @@ class CameraCard(QFrame):
         self._on_toggle = on_toggle
         self._on_type_changed = on_type_changed
         self._on_field_changed = on_field_changed
+        # Callable[[int], str | None] - resolves this camera's own real
+        # GET /api/camera/:id/stream URL against whichever server is
+        # currently active (None if no server is connected right now) -
+        # a plain callback rather than a fixed URL since the active
+        # connection can change while this card is alive.
+        self._get_stream_url = get_stream_url
+        self._stream_task: asyncio.Task | None = None
+        self._streaming_connected = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -218,13 +297,66 @@ class CameraCard(QFrame):
             self._ip_password_edit.setText(camera.ip_password)
 
         if camera.connected:
-            self._video_area.setText(_("STATUS_LIVE"))
-            self._video_area.setStyleSheet("background: #0a0f14; color: #10b981; font-weight: 700; border: 1px solid #1a2530;")
             self._toggle_button.setText(_("BTN_TOGGLE_CONNECTION") + f" ({_('STATUS_CONNECTED')})")
+            self._start_stream()
         else:
+            self._stop_stream()
+            self._video_area.setPixmap(QPixmap())
             self._video_area.setText(_("STATUS_NO_SIGNAL"))
             self._video_area.setStyleSheet("background: #0a0f14; color: #4a5563; border: 1px dashed #1a2530;")
             self._toggle_button.setText(_("BTN_TOGGLE_CONNECTION") + f" ({_('STATUS_DISCONNECTED')})")
+
+    # --- real MJPEG stream ------------------------------------------------
+
+    def _start_stream(self) -> None:
+        if self._stream_task is not None and not self._stream_task.done():
+            return  # already streaming - refresh() runs on every state
+            # broadcast, not just real changes, so this must be a no-op
+            # for "still connected, nothing changed" the common case.
+        url = self._get_stream_url(self._camera.id)
+        if not url:
+            self._show_stream_placeholder(_("STATUS_LIVE"), "#10b981")
+            return
+        self._stream_task = asyncio.ensure_future(self._run_stream(url))
+
+    def stop_stream(self) -> None:
+        """Public - CamerasPanel calls this before deleting a card whose
+        camera left the roster, so an in-flight HTTP stream doesn't keep
+        running against a widget that's about to be destroyed."""
+        self._stop_stream()
+
+    def _stop_stream(self) -> None:
+        if self._stream_task is not None:
+            self._stream_task.cancel()
+            self._stream_task = None
+
+    async def _run_stream(self, url: str) -> None:
+        self._show_stream_placeholder(_("LBL_CONNECTING_STREAM"), "#38bdf8")
+        got_a_frame = False
+        try:
+            async for frame in iter_mjpeg_frames(url):
+                got_a_frame = True
+                pixmap = QPixmap()
+                if pixmap.loadFromData(frame, "JPG"):
+                    scaled = pixmap.scaled(
+                        self._video_area.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                    )
+                    self._video_area.setPixmap(scaled)
+                    self._video_area.setText("")
+        except asyncio.CancelledError:
+            return
+        # Real stream end (server not running mjpeg_server.py for this
+        # camera yet, network drop, etc.) - matches CamerasView.tsx's own
+        # <img onError> fallback: show the same honest placeholder a
+        # never-actually-streaming camera shows, not a broken-image glyph
+        # or a frozen last frame pretending to still be live.
+        if not got_a_frame:
+            self._show_stream_placeholder(_("STATUS_NO_SIGNAL"), "#4a5563")
+
+    def _show_stream_placeholder(self, text: str, color: str) -> None:
+        self._video_area.setPixmap(QPixmap())
+        self._video_area.setText(text)
+        self._video_area.setStyleSheet(f"background: #0a0f14; color: {color}; font-weight: 700; border: 1px solid #1a2530;")
 
     def _on_toggle_clicked(self) -> None:
         self._on_toggle(self._camera.id)
@@ -294,7 +426,7 @@ class CamerasPanel(QWidget):
             row, col = divmod(i, GRID_COLUMNS)
             card = self._cards.get(camera.id)
             if card is None:
-                card = CameraCard(camera, self._on_toggle_connection, self._on_type_changed, self._on_field_changed)
+                card = CameraCard(camera, self._on_toggle_connection, self._on_type_changed, self._on_field_changed, self._get_stream_url)
                 self._cards[camera.id] = card
                 self._grid.addWidget(card, row, col)
             else:
@@ -308,8 +440,15 @@ class CamerasPanel(QWidget):
         # removed too, rather than left showing stale data forever.
         for stale_id in set(self._cards) - seen_ids:
             card = self._cards.pop(stale_id)
+            card.stop_stream()
             self._grid.removeWidget(card)
             card.deleteLater()
+
+    def _get_stream_url(self, camera_id: int) -> str | None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return None
+        return f"{conn.info.base_url}/api/camera/{camera_id}/stream"
 
     def _current_camera(self, camera_id: int) -> CameraView | None:
         state = self._controller.active_state

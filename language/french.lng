@@ -433,3 +433,5 @@ NAV_FIRMWARE_UPDATE=Mise à jour du micrologiciel
 
 NAV_TESTER_CENTER=Centre de test
 NAV_HARDWARE_TESTER=Testeur matériel
+
+LBL_CONNECTING_STREAM=CONNEXION...

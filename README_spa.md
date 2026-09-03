@@ -103,16 +103,14 @@ El escritorio incorpora una consola de mando persistente, inspirada en un menú 
   existen, su tipo, estado de conexión y un
   selector real de Tipo de Origen USB/IP (RTSP) con campos genéricos de
   host/puerto/ruta/credenciales por marca) sincronizado con el servidor
-  real de la misma forma que cualquier otro panel de aquí. Los metadatos
-  son reales de principio a fin, y el stream MJPEG real ya existe en
-  este ecosistema (el propio `stream serve` de HYDRA-UMC-VISION-STREAMER,
-  retransmitido a través del `GET /api/camera/:id/stream` de
-  HYDRA-UMC-SERVER, verificado contra hardware USB e IP real) - el área
-  de vídeo de este panel simplemente aún no renderiza esos píxeles
-  (sigue siendo un marcador de posición de texto claramente etiquetado,
-  igual que el propio CamerasView.tsx de HYDRA-UMC-STUDIO), un trabajo
-  real y separado todavía pendiente aquí, ya no una limitación de
-  hardware.
+  real de la misma forma que cualquier otro panel de aquí, además de
+  vídeo en vivo real: los metadatos son reales de principio a fin, y
+  cada tarjeta de cámara renderiza el propio stream MJPEG real (el
+  propio `stream serve` de HYDRA-UMC-VISION-STREAMER, retransmitido a
+  través del `GET /api/camera/:id/stream` de HYDRA-UMC-SERVER) mediante
+  un cliente real de escaneo de marcadores JPEG SOI/EOI (el mismo
+  enfoque real que ya usa el propio `MjpegStreamParser.kt` de
+  HYDRA-UMC-ANDROID-CONTROL), verificado contra hardware USB e IP real.
 - **🛠️ Configuración de accesorios de herramienta, los 11 de 11 paneles** -
   CNC, Láser, Cama Caliente, Mesa de Vacío, ATC (Cambiador Automático de
   Herramienta), Mesa XY, Gestor de Racks, Pick & Place, Etapa del

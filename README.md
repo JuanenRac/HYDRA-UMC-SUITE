@@ -100,15 +100,14 @@ The desktop now has a persistent, game-console-inspired command deck using the o
 - **📷 Cameras** - real per-controller camera roster (which cameras
   exist, their type, connected state, and a real USB/IP (RTSP) Source
   Type toggle with generic per-brand host/port/path/credential fields)
-  synced with the real server the same way
-  every other panel here is. The metadata is real end to end and the
-  real MJPEG stream itself now exists in this ecosystem (HYDRA-UMC-
+  synced with the real server the same way every other panel here is,
+  plus real live video: the metadata is real end to end and each
+  camera card renders the real MJPEG stream itself (HYDRA-UMC-
   VISION-STREAMER's own `stream serve`, proxied through HYDRA-UMC-
-  SERVER's `GET /api/camera/:id/stream`, verified against real USB and
-  IP hardware) - this panel's own video area just doesn't render those
-  pixels yet (still a clearly-labeled placeholder, matching HYDRA-UMC-
-  STUDIO's own CamerasView.tsx text state), a separate, not-yet-done
-  piece of work here, not a hardware limitation anymore.
+  SERVER's `GET /api/camera/:id/stream`) via a real JPEG SOI/EOI
+  marker-scanning client (the same real approach HYDRA-UMC-ANDROID-
+  CONTROL's own `MjpegStreamParser.kt` uses), verified against real USB
+  and IP hardware.
 - **🛠️ Tool-attachment config, all 11 of 11 panels** - CNC, Laser,
   Heated Bed, Vacuum Table, ATC (Automatic Tool Changer), XY Table,
   Rack Manager, Pick & Place, Kinematic Brain Stage, Flasher, and

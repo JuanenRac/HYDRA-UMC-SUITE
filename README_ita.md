@@ -104,15 +104,14 @@ Il desktop include ora una console di comando persistente, ispirata a un menu di
   un vero selettore del Tipo di Origine USB/IP (RTSP) con
   campi generici host/porta/percorso/credenziali indipendenti dalla
   marca) sincronizzato con il server reale nello stesso modo di ogni
-  altro pannello qui. I metadati sono reali dall'inizio alla fine, e il
-  vero stream MJPEG ora esiste in questo ecosistema (il proprio
-  `stream serve` di HYDRA-UMC-VISION-STREAMER, inoltrato tramite il
-  `GET /api/camera/:id/stream` di HYDRA-UMC-SERVER, verificato su vero
-  hardware USB e IP) - l'area video di questo pannello semplicemente non
-  renderizza ancora quei pixel (resta un segnaposto testuale chiaramente
-  etichettato, come il proprio CamerasView.tsx di HYDRA-UMC-STUDIO) - un
-  lavoro reale e separato ancora da fare qui, non più una limitazione
-  hardware.
+  altro pannello qui, oltre a un vero video dal vivo: i metadati sono
+  reali dall'inizio alla fine, e ogni scheda telecamera renderizza il
+  vero stream MJPEG stesso (il proprio `stream serve` di
+  HYDRA-UMC-VISION-STREAMER, inoltrato tramite il
+  `GET /api/camera/:id/stream` di HYDRA-UMC-SERVER) tramite un vero
+  client di scansione dei marcatori JPEG SOI/EOI (lo stesso approccio
+  reale già usato dal proprio `MjpegStreamParser.kt` di
+  HYDRA-UMC-ANDROID-CONTROL), verificato su vero hardware USB e IP.
 - **🛠️ Configurazione accessori, tutti gli 11 pannelli su 11** - CNC,
   Laser, Piano Riscaldato, Tavolo a Vuoto, ATC (Cambio Utensile
   Automatico), Tavolo XY, Gestore Rack, Pick & Place, Kinematic Brain

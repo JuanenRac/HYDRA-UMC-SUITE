@@ -104,15 +104,14 @@ Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Comman
   existieren, ihr Typ, Verbindungsstatus und ein
   echter USB/IP-(RTSP-)Quelltyp-Umschalter mit generischen, markenneutralen
   Host-/Port-/Pfad-/Zugangsdaten-Feldern), synchronisiert mit dem echten
-  Server auf dieselbe Weise wie jedes andere Panel hier. Die Metadaten
-  sind durchgehend echt, und der echte MJPEG-Stream existiert inzwischen
-  in diesem Ökosystem (HYDRA-UMC-VISION-STREAMERs eigenes `stream serve`,
-  weitergeleitet über HYDRA-UMC-SERVERs `GET /api/camera/:id/stream`,
-  gegen echte USB- und IP-Hardware verifiziert) - dieses Panel rendert
-  diese Pixel selbst nur noch nicht (weiterhin ein klar gekennzeichneter
-  Text-Platzhalter, wie beim eigenen CamerasView.tsx von HYDRA-UMC-STUDIO)
-  - eine echte, separate, noch nicht erledigte Aufgabe hier, keine
-  Hardware-Einschränkung mehr.
+  Server auf dieselbe Weise wie jedes andere Panel hier, plus echtes
+  Live-Video: Die Metadaten sind durchgehend echt, und jede Kamerakarte
+  rendert den echten MJPEG-Stream selbst (HYDRA-UMC-VISION-STREAMERs
+  eigenes `stream serve`, weitergeleitet über HYDRA-UMC-SERVERs
+  `GET /api/camera/:id/stream`) über einen echten JPEG-SOI/EOI-Marker-
+  Scan-Client (derselbe echte Ansatz, den HYDRA-UMC-ANDROID-CONTROLs
+  eigenes `MjpegStreamParser.kt` bereits verwendet), verifiziert gegen
+  echte USB- und IP-Hardware.
 - **🛠️ Werkzeug-Konfiguration, alle 11 von 11 Panels** - CNC, Laser,
   Heizbett, Vakuumtisch, ATC (Automatischer Werkzeugwechsler), XY-Tisch,
   Rack-Manager, Pick & Place, Kinematic Brain Stage, Flasher und Tester -

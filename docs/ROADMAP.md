@@ -126,8 +126,14 @@ just moves where it breaks.
   Source Type toggle (USB / IP), with real, generic per-brand RTSP
   fields (host/port/path/credentials) - matches
   `HYDRA-UMC-VISION-STREAMER`'s own `CameraConfig(source_type=...)`
-  one-to-one. The metadata round-trips for real; this app's own camera
-  card does not render the live MJPEG pixels yet (see below).
+  one-to-one, plus real live MJPEG rendering (`iter_mjpeg_frames()`,
+  `cameras_panel.py`) - a real client for the same proxied stream,
+  scanning raw bytes for JPEG SOI/EOI markers directly (the same real,
+  proven approach `HYDRA-UMC-ANDROID-CONTROL`'s own
+  `MjpegStreamParser.kt` uses) rather than parsing the multipart
+  boundary. Verified against a real local HTTP server serving a real
+  multipart stream, including an oversized/corrupt frame being skipped
+  without killing the feed.
 
 ## 🚧 Deliberately out of scope this pass
 
@@ -150,13 +156,6 @@ just moves where it breaks.
   later (bringing a tunnel up/down from inside the app, not just using
   one that's already connected), that's a genuinely separate feature to
   scope then, not something this pass silently half-built.
-- **Live MJPEG rendering in the Cameras panel** - the real proxied
-  stream (`GET /api/camera/:id/stream`) already works end to end
-  against real USB and IP hardware, and HYDRA-UMC-STUDIO's own browser
-  UI already renders it via a plain `<img>` tag; this app's own camera
-  card still shows a text placeholder (LIVE/NO SIGNAL) instead of the
-  real pixels. Real, scoped follow-up - fetching an MJPEG multipart
-  stream into a Qt-paintable surface, not a redesign.
 - **Real BLE/Bluetooth transport** - not applicable to SUITE (a desktop
   app reaching a HYDRA-UMC over the network) - see the 2 mobile control
   apps' own `docs/ARCHITECTURE.md` for that transport's own status.
