@@ -101,6 +101,33 @@ just moves where it breaks.
   mature docking system), not a custom-built one - float, dock, tab
   together, split, close, and re-show via the View menu all work because
   Qt itself already implements them correctly.
+- **All 11 of 11 tool-attachment config panels** - CNC, Laser, Heated
+  Bed, Vacuum Table, ATC (Automatic Tool Changer), XY Table, Rack
+  Manager, Pick & Place, Kinematic Brain Stage (the controller-level
+  gantry/heated-bed/ATC-revolver/conveyor/endstops/fans/pumps/valves
+  state), Flasher, and Tester - real feature parity with every one of
+  HYDRA-UMC-STUDIO's own tool-specific screens, each a faithful port of
+  its real behavior (including STUDIO's own occasionally quirky
+  behavior, reproduced on purpose rather than "fixed" here), each with
+  its own real headless test coverage. See `README.md`'s own Features
+  section for the per-panel breakdown.
+- **CAN-OTA/SPI-OTA flashing and diagnostics** (`hydra_suite/can_ota.py`,
+  a real port of HYDRA-UMC-STUDIO's own `src/lib/canOta.ts`) - `mock`
+  transport simulates the whole protocol client-side (page-by-page
+  flash progress, self-test, a raw CAN bus monitor); `hardware`
+  transport reaches a REAL path for the Kinematic Brain and Robot
+  Controller Board tiers via a new `HydraConnection.canota_request()`
+  (`net/client.py`) against `HYDRA-UMC-SERVER`'s own
+  `/api/hardware/canota/*` routes - the URTC Tool Head/Advanced
+  Expansion tiers have no real relay tunnel yet on either client, an
+  honest boundary reproduced from STUDIO's own source, not a gap
+  specific to this app.
+- **Real IP (RTSP) camera support alongside USB** - each camera's own
+  Source Type toggle (USB / IP), with real, generic per-brand RTSP
+  fields (host/port/path/credentials) - matches
+  `HYDRA-UMC-VISION-STREAMER`'s own `CameraConfig(source_type=...)`
+  one-to-one. The metadata round-trips for real; this app's own camera
+  card does not render the live MJPEG pixels yet (see below).
 
 ## 🚧 Deliberately out of scope this pass
 
@@ -123,11 +150,13 @@ just moves where it breaks.
   later (bringing a tunnel up/down from inside the app, not just using
   one that's already connected), that's a genuinely separate feature to
   scope then, not something this pass silently half-built.
-- **CAN-OTA flashing/testing from SUITE** - the same real gap
-  `REMOTE_API.md` section 4 documents: HYDRA-UMC STUDIO's own Flasher/
-  Tester run entirely client-side against a simulated transport, with no
-  server-side endpoint for a remote client to drive. Revisit once that
-  exists.
+- **Live MJPEG rendering in the Cameras panel** - the real proxied
+  stream (`GET /api/camera/:id/stream`) already works end to end
+  against real USB and IP hardware, and HYDRA-UMC-STUDIO's own browser
+  UI already renders it via a plain `<img>` tag; this app's own camera
+  card still shows a text placeholder (LIVE/NO SIGNAL) instead of the
+  real pixels. Real, scoped follow-up - fetching an MJPEG multipart
+  stream into a Qt-paintable surface, not a redesign.
 - **Real BLE/Bluetooth transport** - not applicable to SUITE (a desktop
   app reaching a HYDRA-UMC over the network) - see the 2 mobile control
   apps' own `docs/ARCHITECTURE.md` for that transport's own status.
@@ -142,11 +171,13 @@ just moves where it breaks.
   doesn't originate its own writes that way yet. Real gap, not urgent (the
   message-size handling above means a full-tree push at least doesn't
   crash the connection).
-- **`combinedWith` (combined-robot mode), firmware/bootloader per board,
-  the Kinematic Brain Stage (gantry/heated bed/ATC/conveyor/endstops/
-  fans/pumps/valves), and the accessory panels** (XY Table, ATC Tools,
-  Rack Manager, Pick&Place, CNC, Laser, Vacuum Table, Heated Bed) - none
-  of these exist in this app's UI yet, despite being real, shipping
-  parts of HYDRA-UMC-STUDIO's own data model and README. Confirmed real
-  gaps by a dedicated audit - `RobotView`/`ControllerView` in `models.py`
-  don't expose any of these fields at all yet.
+- **`combinedWith` (combined-robot mode)** - not exposed in this app's UI
+  yet, despite being a real, shipping part of HYDRA-UMC-STUDIO's own
+  data model and README. `RobotView` in `models.py` doesn't read/write
+  this field yet.
+- **Live 3D preview of an attached tool module** - every one of the 11
+  tool-attachment config panels above ports the real config surface
+  (enable/disable, size, per-module settings) but not the live 3D
+  preview HYDRA-UMC-STUDIO's own equivalent screens show alongside it -
+  `render/viewport.py` has no support yet for rendering an attached
+  module's own geometry on top of a robot.
