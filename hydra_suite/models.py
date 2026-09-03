@@ -292,8 +292,8 @@ class CameraView:
     carries the real, server-synced METADATA (which cameras exist,
     their type, connected state) - the real MJPEG pixels themselves
     (HYDRA-UMC-VISION-STREAMER's own `stream serve`, proxied live
-    through HYDRA-UMC-SERVER's `GET /api/camera/:id/stream` - real as of
-    2026-09-03, verified end to end against a real USB webcam) are not
+    through HYDRA-UMC-SERVER's `GET /api/camera/:id/stream` - real,
+    verified end to end against a real USB webcam) are not
     something this metadata view fetches or renders; a real camera-pips.py
     live viewport, matching STUDIO's own CameraPIP, is a separate,
     not-yet-done piece of work here, not a hardware limitation anymore."""

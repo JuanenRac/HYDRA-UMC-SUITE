@@ -1,7 +1,7 @@
 """Real assertion-based coverage for CameraView's new IP-camera fields
 (models.py) and CamerasPanel's own Source Type toggle + robot assignment
 (ui/panels/cameras_panel.py) - the SUITE-side port of HYDRA-UMC-STUDIO's
-own Config.tsx "Camera Setup" tab (2026-09-03). Headless: a real
+own Config.tsx "Camera Setup" tab. Headless: a real
 QApplication, no network connection, feeding a real HydraState through
 SuiteController.active_state_changed the same way a real WS/REST update
 would - not mocked at the Qt layer, only the network is never actually

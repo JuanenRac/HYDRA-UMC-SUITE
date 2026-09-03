@@ -1,7 +1,7 @@
 """Real assertion-based coverage for ControllerView.kinematic_brain_stage/
 set_kinematic_brain_stage (models.py) and KinematicBrainStagePanel
 (ui/panels/kinematic_brain_stage_panel.py) - the SUITE-side port of
-HYDRA-UMC-STUDIO's own KinematicBrainStage.tsx (2026-09-03). UNLIKE every
+HYDRA-UMC-STUDIO's own KinematicBrainStage.tsx. UNLIKE every
 panel tested so far, this is CONTROLLER-level state, not per-robot -
 no robot selector, no per-robot lookup. Headless: a real QApplication,
 no network connection, feeding a real HydraState through

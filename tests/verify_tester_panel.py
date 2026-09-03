@@ -1,7 +1,7 @@
 """Real assertion-based coverage for TesterPanel
 (ui/panels/tester_panel.py) - the SUITE-side port of
 HYDRA-UMC-STUDIO's own Tester.tsx, the LAST of the 11
-[[project_suite_studio_parity_gap]] panels (2026-09-03). Exercises real
+[[project_suite_studio_parity_gap]] panels. Exercises real
 can_ota.py logic (mock_self_test/mock_bus_monitor actually run, not
 stubbed). Headless: a real QApplication, no network connection, feeding
 a real HydraState through SuiteController.active_state_changed."""

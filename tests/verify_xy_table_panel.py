@@ -1,7 +1,7 @@
 """Real assertion-based coverage for RobotView.xy_table/set_xy_table/
 set_has_xy_table (models.py) and XYTablePanel (ui/panels/xy_table_panel.py) -
-the SUITE-side port of HYDRA-UMC-STUDIO's own XYTableConfig.tsx
-(2026-09-03). Headless: a real QApplication, no network connection,
+the SUITE-side port of HYDRA-UMC-STUDIO's own XYTableConfig.tsx.
+Headless: a real QApplication, no network connection,
 feeding a real HydraState through SuiteController.active_state_changed
 the same way a real WS/REST update would. Same convention as
 verify_atc_tools_panel.py."""

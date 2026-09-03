@@ -1,6 +1,6 @@
 """Real assertion-based coverage for PickAndPlacePanel
 (ui/panels/pick_and_place_panel.py) - the SUITE-side port of
-HYDRA-UMC-STUDIO's own PickAndPlace.tsx (2026-09-03). Reuses the
+HYDRA-UMC-STUDIO's own PickAndPlace.tsx. Reuses the
 existing, already-tested RobotView.module()/module_enabled()/
 set_module() accessors (see verify_module_config_panel.py) rather than
 duplicating that coverage - this file focuses on what's new here: the

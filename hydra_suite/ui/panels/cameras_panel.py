@@ -7,16 +7,19 @@
 # Config.tsx "Camera Setup" tab combined into one card (SUITE has no
 # separate Config screen for this - one card doing both keeps the same
 # real capability without inventing a second panel STUDIO doesn't have
-# an equivalent split for). Same honesty boundary as CamerasView.tsx:
-# NO real camera hardware/video stream exists anywhere in this ecosystem
-# yet (see that file's own header) - what IS real is the camera METADATA
+# an equivalent split for). This card's own metadata is real end to end
 # (which cameras a controller has, their type, assigned robot, source
-# type, and - as of 2026-09-03 - real USB/IP connection settings), which
-# lives in the same synced settings blob every other panel here already
-# reads/writes, so editing a camera here really does round-trip to the
-# server and to any browser tab watching the same controller. The
-# "video" area itself is a clearly-labeled placeholder (LIVE/NO SIGNAL
-# text), not a fake video feed pretending to be real.
+# type, and real USB/IP connection settings), and the real MJPEG stream
+# itself now exists in this ecosystem too (HYDRA-UMC-VISION-STREAMER's
+# own `stream serve`, proxied through HYDRA-UMC-SERVER's own
+# `GET /api/camera/:id/stream`, verified against real USB and IP
+# hardware) - this card's own "video" area just doesn't render those
+# pixels yet (still a clearly-labeled placeholder, matching
+# CamerasView.tsx's own text state), a separate, not-yet-done piece of
+# work here, not a hardware limitation. Editing a camera here really
+# does round-trip to the server and to any browser tab watching the
+# same controller, the same synced settings blob every other panel here
+# already reads/writes.
 # =============================================================================
 from __future__ import annotations
 
@@ -92,7 +95,7 @@ class CameraCard(QFrame):
         # Source Type toggle (USB / IP Camera) - real, generic RTSP
         # support alongside USB, matching HYDRA-UMC-STUDIO's own
         # Config.tsx "Camera Setup" tab one-to-one (see that file's own
-        # header comment, 2026-09-03).
+        # header comment).
         source_row = QHBoxLayout()
         self._usb_button = QPushButton(_("BTN_SOURCE_USB"))
         self._usb_button.setCheckable(True)

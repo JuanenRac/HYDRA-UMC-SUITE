@@ -98,16 +98,30 @@ The desktop now has a persistent, game-console-inspired command deck using the o
   (same `language/*.lng` convention as URTC-FLASHER/URTC-TESTER), switch
   from the Language menu (takes effect after a restart).
 - **📷 Cameras** - real per-controller camera roster (which cameras
-  exist, their type, connected state) synced with the real server the
-  same way every other panel here is - the video feed itself is a
-  clearly-labeled placeholder, matching HYDRA-UMC-STUDIO's own
-  CamerasView.tsx honesty boundary (no real camera hardware/stream
-  exists anywhere in this ecosystem yet).
-- **🛠️ CNC / Laser tool-attachment config** - enable/disable, width/length
-  (mm) size, reset, one shared panel implementation ported from HYDRA-UMC
-  STUDIO's own `CNC.tsx`/`Laser.tsx` (identical components apart from the
-  module key). First 2 of 11 tool-specific config panels STUDIO already
-  has; the rest are a real, standing, still-open gap.
+  exist, their type, connected state, and a real USB/IP (RTSP) Source
+  Type toggle with generic per-brand host/port/path/credential fields)
+  synced with the real server the same way
+  every other panel here is. The metadata is real end to end and the
+  real MJPEG stream itself now exists in this ecosystem (HYDRA-UMC-
+  VISION-STREAMER's own `stream serve`, proxied through HYDRA-UMC-
+  SERVER's `GET /api/camera/:id/stream`, verified against real USB and
+  IP hardware) - this panel's own video area just doesn't render those
+  pixels yet (still a clearly-labeled placeholder, matching HYDRA-UMC-
+  STUDIO's own CamerasView.tsx text state), a separate, not-yet-done
+  piece of work here, not a hardware limitation anymore.
+- **🛠️ Tool-attachment config, all 11 of 11 panels** - CNC, Laser,
+  Heated Bed, Vacuum Table, ATC (Automatic Tool Changer), XY Table,
+  Rack Manager, Pick & Place, Kinematic Brain Stage, Flasher, and
+  Tester - real feature parity with every one of HYDRA-UMC STUDIO's own
+  tool-specific screens, each a faithful port (including the real,
+  sometimes-quirky behavior STUDIO's own source has, reproduced on
+  purpose rather than "fixed" here) with its own real headless test
+  coverage. CNC/Laser/Heated Bed/Vacuum Table share one
+  `ModuleConfigPanel` implementation (STUDIO's own `CNC.tsx`/`Laser.tsx`
+  are identical components apart from the module key); the other 7 each
+  needed their own real, purpose-built panel. The one remaining gap
+  versus STUDIO is the live 3D preview most of these panels have there -
+  `render/viewport.py` has no attached-module-geometry support yet.
 
 ---
 

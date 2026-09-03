@@ -100,18 +100,35 @@ El escritorio incorpora una consola de mando persistente, inspirada en un menú 
   convención `language/*.lng` que URTC-FLASHER/URTC-TESTER), se cambia
   desde el menú Idioma (efectivo tras reiniciar).
 - **📷 Cámaras** - listado real de cámaras por controladora (qué cámaras
-  existen, su tipo, estado de conexión) sincronizado con el servidor real
-  de la misma forma que cualquier otro panel de aquí - el propio feed de
-  vídeo es un marcador de posición claramente etiquetado, siguiendo el
-  mismo límite de honestidad que el propio CamerasView.tsx de
-  HYDRA-UMC-STUDIO (todavía no existe hardware/stream de cámara real en
-  ninguna parte de este ecosistema).
-- **🛠️ Configuración de accesorios CNC / Láser** - habilitar/deshabilitar,
-  tamaño ancho/largo (mm), restablecer, una única implementación de panel
-  compartida, portada desde `CNC.tsx`/`Laser.tsx` de HYDRA-UMC STUDIO
-  (componentes idénticos salvo por la clave del módulo). Los 2 primeros de
-  los 11 paneles de configuración por herramienta que STUDIO ya tiene; el
-  resto sigue siendo una brecha real y abierta.
+  existen, su tipo, estado de conexión y un
+  selector real de Tipo de Origen USB/IP (RTSP) con campos genéricos de
+  host/puerto/ruta/credenciales por marca) sincronizado con el servidor
+  real de la misma forma que cualquier otro panel de aquí. Los metadatos
+  son reales de principio a fin, y el stream MJPEG real ya existe en
+  este ecosistema (el propio `stream serve` de HYDRA-UMC-VISION-STREAMER,
+  retransmitido a través del `GET /api/camera/:id/stream` de
+  HYDRA-UMC-SERVER, verificado contra hardware USB e IP real) - el área
+  de vídeo de este panel simplemente aún no renderiza esos píxeles
+  (sigue siendo un marcador de posición de texto claramente etiquetado,
+  igual que el propio CamerasView.tsx de HYDRA-UMC-STUDIO), un trabajo
+  real y separado todavía pendiente aquí, ya no una limitación de
+  hardware.
+- **🛠️ Configuración de accesorios de herramienta, los 11 de 11 paneles** -
+  CNC, Láser, Cama Caliente, Mesa de Vacío, ATC (Cambiador Automático de
+  Herramienta), Mesa XY, Gestor de Racks, Pick & Place, Etapa del
+  Cerebro Cinemático, Flasher y Tester - paridad de funciones real con
+  cada una de las pantallas propias específicas por herramienta de
+  HYDRA-UMC STUDIO, cada una un port fiel (incluyendo el comportamiento
+  real, a veces peculiar, que el propio código fuente de STUDIO tiene,
+  reproducido a propósito en vez de "arreglado" aquí) con su propia
+  cobertura de test real sin interfaz gráfica. CNC/Láser/Cama Caliente/
+  Mesa de Vacío comparten una única implementación `ModuleConfigPanel`
+  (el propio `CNC.tsx`/`Laser.tsx` de STUDIO son componentes idénticos
+  salvo por la clave del módulo); los otros 7 necesitaron cada uno su
+  propio panel real, construido a medida. La única brecha que queda
+  frente a STUDIO es la vista previa 3D en vivo que la mayoría de estos
+  paneles tienen allí - `render/viewport.py` todavía no soporta
+  geometría de módulos acoplados.
 
 ---
 

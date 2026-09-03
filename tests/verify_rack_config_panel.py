@@ -1,6 +1,6 @@
 """Real assertion-based coverage for RobotView.rack_system/set_rack_system
 (models.py) and RackConfigPanel (ui/panels/rack_config_panel.py) - the
-SUITE-side port of HYDRA-UMC-STUDIO's own RackConfigView.tsx (2026-09-03).
+SUITE-side port of HYDRA-UMC-STUDIO's own RackConfigView.tsx.
 Headless: a real QApplication, no network connection, feeding a real
 HydraState through SuiteController.active_state_changed. Same convention
 as verify_xy_table_panel.py."""

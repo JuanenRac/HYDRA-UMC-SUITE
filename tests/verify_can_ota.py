@@ -1,5 +1,5 @@
 """Real assertion-based coverage for can_ota.py - the SUITE-side port of
-HYDRA-UMC-STUDIO's own src/lib/canOta.ts (2026-09-03). Covers the pure
+HYDRA-UMC-STUDIO's own src/lib/canOta.ts. Covers the pure
 helpers, the mock async generators (mock_flash/mock_self_test - run for
 real, not stubbed, since they're fast enough headless), CRC32 against a
 known real value, and resolve_hardware_target's own real tier-mapping

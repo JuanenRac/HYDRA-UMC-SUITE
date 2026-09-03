@@ -100,18 +100,35 @@ Il desktop include ora una console di comando persistente, ispirata a un menu di
   convenzione `language/*.lng` di URTC-FLASHER/URTC-TESTER), si cambia dal
   menu Lingua (effettivo dopo un riavvio).
 - **📷 Telecamere** - elenco reale delle telecamere per controllore (quali
-  telecamere esistono, il loro tipo, lo stato di connessione) sincronizzato
-  con il server reale nello stesso modo di ogni altro pannello qui - il
-  flusso video stesso è un segnaposto chiaramente etichettato, in linea con
-  lo stesso confine di onestà del CamerasView.tsx di HYDRA-UMC-STUDIO
-  (nessun hardware/stream di telecamera reale esiste ancora da nessuna
-  parte in questo ecosistema).
-- **🛠️ Configurazione accessori CNC / Laser** - abilita/disabilita,
-  dimensioni larghezza/lunghezza (mm), ripristino, un'unica
-  implementazione di pannello condivisa, portata da `CNC.tsx`/`Laser.tsx`
-  di HYDRA-UMC STUDIO (componenti identici a parte la chiave del modulo).
-  I primi 2 degli 11 pannelli di configurazione per strumento che STUDIO
-  già possiede; il resto rimane un divario reale e ancora aperto.
+  telecamere esistono, il loro tipo, lo stato di connessione e
+  un vero selettore del Tipo di Origine USB/IP (RTSP) con
+  campi generici host/porta/percorso/credenziali indipendenti dalla
+  marca) sincronizzato con il server reale nello stesso modo di ogni
+  altro pannello qui. I metadati sono reali dall'inizio alla fine, e il
+  vero stream MJPEG ora esiste in questo ecosistema (il proprio
+  `stream serve` di HYDRA-UMC-VISION-STREAMER, inoltrato tramite il
+  `GET /api/camera/:id/stream` di HYDRA-UMC-SERVER, verificato su vero
+  hardware USB e IP) - l'area video di questo pannello semplicemente non
+  renderizza ancora quei pixel (resta un segnaposto testuale chiaramente
+  etichettato, come il proprio CamerasView.tsx di HYDRA-UMC-STUDIO) - un
+  lavoro reale e separato ancora da fare qui, non più una limitazione
+  hardware.
+- **🛠️ Configurazione accessori, tutti gli 11 pannelli su 11** - CNC,
+  Laser, Piano Riscaldato, Tavolo a Vuoto, ATC (Cambio Utensile
+  Automatico), Tavolo XY, Gestore Rack, Pick & Place, Kinematic Brain
+  Stage, Flasher e Tester - vera parità di funzionalità con ognuna delle
+  schermate specifiche per strumento di HYDRA-UMC STUDIO, ciascuna un
+  porting fedele (incluso il comportamento reale, a volte peculiare, che
+  il codice sorgente di STUDIO stesso ha - riprodotto di proposito
+  anziché "corretto" qui) con una propria copertura di test reale senza
+  interfaccia grafica. CNC/Laser/Piano Riscaldato/Tavolo a Vuoto
+  condividono un'unica implementazione `ModuleConfigPanel` (i propri
+  `CNC.tsx`/`Laser.tsx` di STUDIO sono componenti identici a parte la
+  chiave del modulo); gli altri 7 hanno richiesto ciascuno un proprio
+  pannello reale, costruito su misura. L'unico divario rimasto rispetto
+  a STUDIO è l'anteprima 3D dal vivo che la maggior parte di questi
+  pannelli ha lì - `render/viewport.py` non supporta ancora la geometria
+  dei moduli collegati.
 
 ---
 

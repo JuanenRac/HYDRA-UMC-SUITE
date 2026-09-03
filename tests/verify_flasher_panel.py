@@ -1,6 +1,6 @@
 """Real assertion-based coverage for FlasherPanel
 (ui/panels/flasher_panel.py) - the SUITE-side port of
-HYDRA-UMC-STUDIO's own Flasher.tsx (2026-09-03). Exercises real
+HYDRA-UMC-STUDIO's own Flasher.tsx. Exercises real
 can_ota.py logic (mock_flash actually runs to completion, real CRC32),
 not stubbed. Headless: a real QApplication, no network connection,
 feeding a real HydraState through SuiteController.active_state_changed."""
