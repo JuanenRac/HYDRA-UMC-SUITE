@@ -274,9 +274,23 @@ class RobotView:
         return f"RobotView(id={self.id!r}, model={self.model!r}, online={self.online})"
 
 
-# The 4 camera type strings HYDRA-UMC-STUDIO's own store.tsx CameraType
-# union allows - see that file's own CameraState interface.
-CAMERA_TYPES = ("USB Vision Camera", "Thermal (MLX90640)", "Thermal (MLX90641)", "Thermal (MLX90642)")
+# The 6 camera type strings HYDRA-UMC-STUDIO's own store.tsx CameraType
+# union allows - see that file's own CameraState interface. The 2 "IP
+# Vision Camera" entries split Main/Sub Stream because a real IP camera
+# in this ecosystem (the YGTek units at .203/.204/.210/.211) can expose
+# 2 real RTSP streams at once - CamerasView.tsx's own combobox only
+# offers whichever pair (USB vs the 2 IP options) matches that camera's
+# real sourceType, same logic this panel's own CameraCard._sync_type_options()
+# below applies. The 3 Thermal entries stay unconditional either way
+# until thermal sensors get real functionality (see project memory).
+CAMERA_TYPES = (
+    "USB Vision Camera",
+    "IP Vision Camera Main Stream",
+    "IP Vision Camera Sub Stream",
+    "Thermal (MLX90640)",
+    "Thermal (MLX90641)",
+    "Thermal (MLX90642)",
+)
 
 # Matches HYDRA-UMC-STUDIO's own store.tsx RTSP_DEFAULT_PORT (real port
 # 554 - the RTSP/RFC 2326 standard) - see CameraView.rtsp_port below for

@@ -329,6 +329,35 @@ class HydraConnection(QObject):
         comment on that route."""
         return await self._request_json("POST", "/api/admin/restart", auth=True)
 
+    async def fetch_camera_status(self) -> tuple[int, object] | None:
+        """GET /api/cameras/status (admin-only) - real live status of
+        every camera's own local `stream serve` process, keyed
+        "<controllerId>:<cameraId>" (HYDRA-UMC-SERVER's own new
+        per-camera process supervisor). The real "did this camera's
+        config actually work" feedback the Cameras panel never had
+        before - matches HYDRA-UMC-STUDIO's own Config.tsx one-to-one."""
+        return await self._request_json("GET", "/api/cameras/status", auth=True)
+
+    async def discover_rtsp_path(self, host: str, port: int, username: str, password: str) -> tuple[int, object] | None:
+        """POST /api/camera/discover-rtsp-path (admin-only) - real RTSP
+        DESCRIBE probing against a curated list of this ecosystem's own
+        known-real paths, server-side (see server.ts's own
+        RTSP_PATH_CANDIDATES/discoverRtspPath()). Never guesses a path
+        client-side; the server reports exactly which real paths it
+        tried either way."""
+        return await self._request_json(
+            "POST", "/api/camera/discover-rtsp-path", auth=True,
+            json_body={"host": host, "port": port, "username": username, "password": password},
+        )
+
+    async def discover_usb_devices(self) -> tuple[int, object] | None:
+        """GET /api/camera/discover-usb-devices (admin-only) - real
+        cv2.VideoCapture enumeration, shelled out to
+        HYDRA-UMC-VISION-STREAMER's own "discover-usb" subcommand on
+        the server side - an index this reports is genuinely the same
+        one "stream serve" would open, not a separate guess."""
+        return await self._request_json("GET", "/api/camera/discover-usb-devices", auth=True)
+
     async def fetch_state(self) -> HydraState:
         """One-shot REST read - used for the initial load before the
         WebSocket connects, and as a manual "force refresh" the UI can

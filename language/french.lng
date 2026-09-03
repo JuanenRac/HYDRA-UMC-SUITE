@@ -108,6 +108,17 @@ LBL_RTSP_PORT=Port RTSP
 LBL_RTSP_PATH=Chemin RTSP
 LBL_IP_USERNAME=Nom d'utilisateur
 LBL_IP_PASSWORD=Mot de passe
+BTN_DISCOVER_USB=Découvrir les périphériques USB
+BTN_DISCOVER_RTSP=Découvrir le chemin
+LBL_DISCOVERING=Découverte en cours...
+MSG_USB_DISCOVERY_FAILED=Échec de la découverte des périphériques USB - impossible de joindre le serveur.
+MSG_NO_USB_DEVICES_FOUND=Aucun périphérique USB trouvé.
+MSG_RTSP_PATH_FOUND=Trouvé
+MSG_RTSP_PATH_NOT_FOUND=Aucun des chemins testés n'a répondu
+MSG_RTSP_DISCOVERY_FAILED=Échec de la découverte RTSP - impossible de joindre le serveur.
+STATUS_STREAM_RUNNING=EN DIRECT
+STATUS_STREAM_STARTING=DÉMARRAGE
+STATUS_STREAM_ERROR=ERREUR
 
 STATUS_CONNECTED=Connecté
 STATUS_DISCONNECTED=Déconnecté

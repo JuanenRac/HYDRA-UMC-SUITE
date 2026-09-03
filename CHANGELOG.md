@@ -75,6 +75,50 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - Added the command-deck labels to all seven Suite language files and
   synchronized the public README languages with the real visual behavior.
 
+## [0.3.4]
+
+- **Camera discovery + real live status - STUDIO/SUITE parity.** Mirrors
+  HYDRA-UMC-STUDIO's own Config.tsx additions for HYDRA-UMC-SERVER's new
+  camera-process supervisor (`reconcileCameraProcesses()`,
+  `GET /api/cameras/status`, `POST /api/camera/discover-rtsp-path`,
+  `GET /api/camera/discover-usb-devices` - see that repo's own
+  CHANGELOG). `CameraCard` (`cameras_panel.py`) gets a real per-camera
+  status badge (polled every 3s, running/starting/error color-coded,
+  real `lastError` in the tooltip), a "Discover USB Devices" button
+  (lists real indices the server's own `cv2.VideoCapture` probe found,
+  picking one fills `hardwareSource` with the real platform-correct
+  value - a bare index on Windows, `/dev/videoN` on Linux/CM5), and a
+  "Discover Path" button for IP cameras (tries this ecosystem's own
+  known-real RTSP paths server-side, never invents one, reports exactly
+  which ones were tried on failure). No separate "Apply" button needed
+  here - unlike STUDIO's own 500ms-debounced save, this app's
+  `push_active_state()` already writes on every field edit immediately.
+  New `HydraConnection.fetch_camera_status()`/`discover_rtsp_path()`/
+  `discover_usb_devices()` follow the existing `_request_json()`-
+  delegating one-liner pattern.
+- **Type combobox now context-sensitive to source type.** `CAMERA_TYPES`
+  gained `"IP Vision Camera Main Stream"`/`"IP Vision Camera Sub Stream"`
+  (a real IP camera in this ecosystem can expose 2 real RTSP streams at
+  once) alongside the existing `"USB Vision Camera"` and the 3 Thermal
+  options (left unconditional - no thermal-sensor functionality yet).
+  `CameraCard`'s own type combobox now only offers the pair matching the
+  camera's real `sourceType` (mirrors HYDRA-UMC-STUDIO's own
+  `CamerasView.tsx` combobox split) instead of always listing all
+  options - a `type` value no longer valid for the current
+  `sourceType` falls back to that list's own first entry rather than
+  leaving Qt's combobox in a blank/mismatched state. Toggling source
+  type (USB <-> IP) auto-normalizes a stale `type` label the same way
+  Config.tsx's own onClick handlers do, leaving a Thermal selection
+  untouched either way.
+- Real assertion coverage added to `tests/verify_cameras_panel.py` for
+  all of the above (combobox context-sensitivity across both directions
+  of the source-type toggle, the Thermal-survives-a-toggle case, the
+  status badge, and both discovery round trips against a fake
+  `HydraConnection`) - all passing, plus the full existing suite
+  unaffected. `npx`-equivalent `tsc`/build not applicable here; ran
+  every `tests/verify_*.py` and `smoke_test_app.py` in this repo's own
+  `.venv` with no regressions.
+
 ## [0.3.3]
 
 - Build version synchronized with `hydra-umc.project.json` and the repository-native version source.

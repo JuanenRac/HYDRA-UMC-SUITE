@@ -22,10 +22,11 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from collections.abc import AsyncIterator
 
 import httpx
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
@@ -45,6 +46,20 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import CAMERA_TYPES, RTSP_DEFAULT_PORT, CameraView, HydraState, RobotView
+from hydra_suite.net.client import HydraConnection
+
+# type strings that split into a USB-only vs IP-only pair, mirroring
+# HYDRA-UMC-STUDIO's own CamerasView.tsx combobox split (see that
+# file's own header comment on why a real IP camera needs 2 stream
+# options and a USB one needs only 1).
+_USB_TYPE_OPTIONS = (CAMERA_TYPES[0],)
+_IP_TYPE_OPTIONS = (CAMERA_TYPES[1], CAMERA_TYPES[2])
+_THERMAL_TYPE_OPTIONS = CAMERA_TYPES[3:]
+
+# Real camera-process status colors, matching HYDRA-UMC-STUDIO's own
+# Config.tsx badge coloring for the exact same 3 states HYDRA-UMC-SERVER's
+# own GET /api/cameras/status can report (see that route's own comment).
+_STATUS_COLORS = {"running": "#10b981", "starting": "#f59e0b", "error": "#ef4444"}
 
 GRID_COLUMNS = 4
 _USB_PAGE = 0
@@ -126,6 +141,7 @@ class CameraCard(QFrame):
         on_type_changed,
         on_field_changed,
         get_stream_url,
+        get_connection,
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
@@ -141,17 +157,28 @@ class CameraCard(QFrame):
         # a plain callback rather than a fixed URL since the active
         # connection can change while this card is alive.
         self._get_stream_url = get_stream_url
+        # Callable[[], HydraConnection | None] - same "resolve against
+        # whatever's active right now" reasoning as get_stream_url, used
+        # by the discovery buttons below (POST/GET calls, not the
+        # streaming GET get_stream_url resolves).
+        self._get_connection = get_connection
         self._stream_task: asyncio.Task | None = None
         self._streaming_connected = False
+        self._discovery_task: asyncio.Task | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
+        header_row = QHBoxLayout()
         header = QLabel()
         header.setObjectName("cameraCardHeading")
-        layout.addWidget(header)
+        header_row.addWidget(header, 1)
         self._header = header
+        self._status_badge = QLabel()
+        self._status_badge.setStyleSheet("font-size: 10px; font-weight: 700;")
+        header_row.addWidget(self._status_badge)
+        layout.addLayout(header_row)
 
         self._video_area = QLabel()
         self._video_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -160,7 +187,6 @@ class CameraCard(QFrame):
         layout.addWidget(self._video_area, 1)
 
         self._type_combo = QComboBox()
-        self._type_combo.addItems(CAMERA_TYPES)
         self._type_combo.currentTextChanged.connect(self._on_type_combo_changed)
         layout.addWidget(self._type_combo)
 
@@ -196,6 +222,14 @@ class CameraCard(QFrame):
         self._hardware_source_edit.setPlaceholderText("/dev/video0")
         self._hardware_source_edit.editingFinished.connect(self._on_hardware_source_edited)
         usb_layout.addWidget(self._hardware_source_edit)
+
+        self._discover_usb_btn = QPushButton(_("BTN_DISCOVER_USB"))
+        self._discover_usb_btn.clicked.connect(lambda: asyncio.ensure_future(self._discover_usb()))
+        usb_layout.addWidget(self._discover_usb_btn)
+        self._usb_devices_combo = QComboBox()
+        self._usb_devices_combo.setVisible(False)
+        self._usb_devices_combo.activated.connect(self._on_usb_device_picked)
+        usb_layout.addWidget(self._usb_devices_combo)
         self._source_stack.addWidget(usb_page)
 
         ip_page = QWidget()
@@ -227,6 +261,10 @@ class CameraCard(QFrame):
         port_path_row.addLayout(path_col, 2)
         ip_layout.addLayout(port_path_row)
 
+        self._discover_rtsp_btn = QPushButton(_("BTN_DISCOVER_RTSP"))
+        self._discover_rtsp_btn.clicked.connect(lambda: asyncio.ensure_future(self._discover_rtsp()))
+        ip_layout.addWidget(self._discover_rtsp_btn)
+
         cred_row = QHBoxLayout()
         user_col = QVBoxLayout()
         user_col.addWidget(QLabel(_("LBL_IP_USERNAME")))
@@ -248,6 +286,12 @@ class CameraCard(QFrame):
         self._source_stack.addWidget(ip_page)
         layout.addWidget(self._source_stack)
 
+        self._discovery_status_label = QLabel()
+        self._discovery_status_label.setWordWrap(True)
+        self._discovery_status_label.setStyleSheet("font-size: 10px; color: #8a97a6;")
+        self._discovery_status_label.setVisible(False)
+        layout.addWidget(self._discovery_status_label)
+
         self._toggle_button = QPushButton()
         self._toggle_button.clicked.connect(self._on_toggle_clicked)
         layout.addWidget(self._toggle_button)
@@ -258,11 +302,8 @@ class CameraCard(QFrame):
         self._camera = camera
         self._header.setText(f"{_('LBL_CAM')} {camera.id}")
 
-        self._type_combo.blockSignals(True)
-        idx = self._type_combo.findText(camera.camera_type)
-        if idx >= 0:
-            self._type_combo.setCurrentIndex(idx)
-        self._type_combo.blockSignals(False)
+        is_ip = camera.source_type == "ip"
+        self._sync_type_options(is_ip, camera.camera_type)
 
         self._robot_combo.blockSignals(True)
         self._robot_combo.clear()
@@ -278,7 +319,6 @@ class CameraCard(QFrame):
         self._robot_combo.setCurrentIndex(restore_index)
         self._robot_combo.blockSignals(False)
 
-        is_ip = camera.source_type == "ip"
         self._usb_button.setChecked(not is_ip)
         self._ip_button.setChecked(is_ip)
         self._source_stack.setCurrentIndex(_IP_PAGE if is_ip else _USB_PAGE)
@@ -321,9 +361,13 @@ class CameraCard(QFrame):
 
     def stop_stream(self) -> None:
         """Public - CamerasPanel calls this before deleting a card whose
-        camera left the roster, so an in-flight HTTP stream doesn't keep
-        running against a widget that's about to be destroyed."""
+        camera left the roster, so an in-flight HTTP stream (or a
+        still-running discovery request) doesn't keep touching a widget
+        that's about to be destroyed."""
         self._stop_stream()
+        if self._discovery_task is not None:
+            self._discovery_task.cancel()
+            self._discovery_task = None
 
     def _stop_stream(self) -> None:
         if self._stream_task is not None:
@@ -358,6 +402,52 @@ class CameraCard(QFrame):
         self._video_area.setText(text)
         self._video_area.setStyleSheet(f"background: #0a0f14; color: {color}; font-weight: 700; border: 1px solid #1a2530;")
 
+    def _sync_type_options(self, is_ip: bool, camera_type: str) -> None:
+        """Rebuilds the type combobox's own option list to match this
+        camera's real sourceType - USB gets only "USB Vision Camera", IP
+        gets both real stream options - matching HYDRA-UMC-STUDIO's own
+        CamerasView.tsx combobox split (see this module's own
+        _USB_TYPE_OPTIONS/_IP_TYPE_OPTIONS comment). Thermal options stay
+        in both lists unconditionally (see CAMERA_TYPES's own comment).
+        A stored `camera_type` no longer valid for the current
+        sourceType (e.g. legacy data, or a mid-flight toggle not yet
+        echoed back) falls back to the list's own first entry rather
+        than leaving Qt's combobox in the blank/mismatched state a
+        `value` with no matching `<option>` produces - same reasoning as
+        CamerasView.tsx's own React <select> comment."""
+        self._type_combo.blockSignals(True)
+        options = (_IP_TYPE_OPTIONS if is_ip else _USB_TYPE_OPTIONS) + _THERMAL_TYPE_OPTIONS
+        self._type_combo.clear()
+        self._type_combo.addItems(options)
+        idx = self._type_combo.findText(camera_type)
+        self._type_combo.setCurrentIndex(idx if idx >= 0 else 0)
+        self._type_combo.blockSignals(False)
+
+    def update_status(self, status: dict | None) -> None:
+        """Real per-camera process status from HYDRA-UMC-SERVER's own
+        GET /api/cameras/status (HYDRA-UMC-SUITE's own CamerasPanel polls
+        this on a timer and fans it out to every card) - matches
+        HYDRA-UMC-STUDIO's own Config.tsx status badge one-to-one.
+        `status` is None when there's no active connection, no entry for
+        this camera yet (process not reconciled since server start), or
+        the poll itself failed - all 3 show the same neutral "unknown"
+        badge rather than a false "error"."""
+        if not status:
+            self._status_badge.setText("")
+            self._status_badge.setToolTip("")
+            return
+        state = str(status.get("status", ""))
+        color = _STATUS_COLORS.get(state, "#8a97a6")
+        label = {
+            "running": _("STATUS_STREAM_RUNNING"),
+            "starting": _("STATUS_STREAM_STARTING"),
+            "error": _("STATUS_STREAM_ERROR"),
+        }.get(state, state.upper())
+        self._status_badge.setText(f"● {label}")
+        self._status_badge.setStyleSheet(f"font-size: 10px; font-weight: 700; color: {color};")
+        last_error = status.get("lastError")
+        self._status_badge.setToolTip(str(last_error) if last_error else "")
+
     def _on_toggle_clicked(self) -> None:
         self._on_toggle(self._camera.id)
 
@@ -370,6 +460,18 @@ class CameraCard(QFrame):
 
     def _on_source_type_clicked(self, value: str) -> None:
         self._on_field_changed(self._camera.id, "source_type", value)
+        # Auto-normalize `type` on a source-type toggle, same as
+        # HYDRA-UMC-STUDIO's own Config.tsx onClick handlers - a camera
+        # switched IP -> USB (or vice versa) keeps a stale "IP Vision
+        # Camera Main Stream"/"USB Vision Camera" label otherwise, which
+        # _sync_type_options() above would then silently fall back away
+        # from on the very next refresh(). Thermal selections are left
+        # alone either way (see CAMERA_TYPES's own comment).
+        current_type = self._camera.camera_type
+        if current_type not in _THERMAL_TYPE_OPTIONS:
+            new_type = _IP_TYPE_OPTIONS[0] if value == "ip" else _USB_TYPE_OPTIONS[0]
+            if current_type != new_type:
+                self._on_type_changed(self._camera.id, new_type)
 
     def _on_hardware_source_edited(self) -> None:
         self._on_field_changed(self._camera.id, "hardware_source", self._hardware_source_edit.text())
@@ -389,12 +491,136 @@ class CameraCard(QFrame):
     def _on_ip_password_edited(self) -> None:
         self._on_field_changed(self._camera.id, "ip_password", self._ip_password_edit.text())
 
+    # --- real discovery (GET /api/camera/discover-usb-devices, POST
+    # /api/camera/discover-rtsp-path) - see HydraConnection's own
+    # discover_usb_devices()/discover_rtsp_path() header comments for
+    # exactly what these round-trip to server-side. Mirrors
+    # HYDRA-UMC-STUDIO's own Config.tsx discoverUsbDevices()/
+    # discoverRtspPath() one-to-one, adapted to this panel's own
+    # button -> asyncio.ensure_future() -> QLabel pattern (same one
+    # admin_server_panel.py's own _save_port() already uses).
+
+    def _set_discovery_status(self, text: str, color: str = "#8a97a6") -> None:
+        self._discovery_status_label.setVisible(bool(text))
+        self._discovery_status_label.setText(text)
+        self._discovery_status_label.setStyleSheet(f"font-size: 10px; color: {color};")
+
+    async def _discover_usb(self) -> None:
+        if self._discovery_task is not None and not self._discovery_task.done():
+            return  # already running - the button click below can't
+            # actually reach here twice concurrently since Qt serializes
+            # signal delivery on the GUI thread, but a second click while
+            # the first request is still in flight is a real possibility.
+        conn: HydraConnection | None = self._get_connection()
+        if conn is None:
+            self._set_discovery_status(_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
+            return
+        self._discover_usb_btn.setEnabled(False)
+        self._usb_devices_combo.setVisible(False)
+        self._set_discovery_status(_("LBL_DISCOVERING"))
+        self._discovery_task = asyncio.ensure_future(self._run_discover_usb(conn))
+        await self._discovery_task
+
+    async def _run_discover_usb(self, conn: HydraConnection) -> None:
+        try:
+            result = await conn.discover_usb_devices()
+        finally:
+            self._discover_usb_btn.setEnabled(True)
+        if result is None:
+            self._set_discovery_status(_("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
+            return
+        status, body = result
+        devices = body.get("devices") if status == 200 and isinstance(body, dict) else None
+        if status != 200 or not isinstance(devices, list):
+            message = body.get("error") if isinstance(body, dict) else None
+            self._set_discovery_status(str(message) if message else _("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
+            return
+        if not devices:
+            self._set_discovery_status(_("MSG_NO_USB_DEVICES_FOUND"), "#f59e0b")
+            return
+        self._usb_devices_combo.blockSignals(True)
+        self._usb_devices_combo.clear()
+        for device in devices:
+            if not isinstance(device, dict):
+                continue
+            index = device.get("index")
+            width, height = device.get("width"), device.get("height")
+            label = f"/dev/video{index}" if index is not None else "?"
+            if width and height:
+                label += f" ({width}x{height})"
+            self._usb_devices_combo.addItem(label, index)
+        self._usb_devices_combo.blockSignals(False)
+        self._usb_devices_combo.setVisible(self._usb_devices_combo.count() > 0)
+        self._set_discovery_status("")
+
+    def _on_usb_device_picked(self, list_index: int) -> None:
+        index = self._usb_devices_combo.itemData(list_index)
+        if index is None:
+            return
+        # Windows/OpenCV opens by bare numeric index; Linux/V4L2 opens by
+        # /dev/videoN path - HYDRA-UMC-VISION-STREAMER's own
+        # MjpegCaptureSource.start() (and this same discover-usb
+        # subcommand) already accept either, so hand it the platform's
+        # own real value rather than guessing one format for both.
+        value = str(index) if sys.platform == "win32" else f"/dev/video{index}"
+        self._hardware_source_edit.setText(value)
+        self._on_field_changed(self._camera.id, "hardware_source", value)
+
+    async def _discover_rtsp(self) -> None:
+        if self._discovery_task is not None and not self._discovery_task.done():
+            return
+        conn: HydraConnection | None = self._get_connection()
+        if conn is None:
+            self._set_discovery_status(_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
+            return
+        host = self._ip_host_edit.text().strip()
+        if not host:
+            self._set_discovery_status(_("LBL_IP_HOST"), "#ef4444")
+            return
+        self._discover_rtsp_btn.setEnabled(False)
+        self._set_discovery_status(_("LBL_DISCOVERING"))
+        self._discovery_task = asyncio.ensure_future(
+            self._run_discover_rtsp(conn, host, self._rtsp_port_spin.value(), self._ip_username_edit.text(), self._ip_password_edit.text())
+        )
+        await self._discovery_task
+
+    async def _run_discover_rtsp(self, conn: HydraConnection, host: str, port: int, username: str, password: str) -> None:
+        try:
+            result = await conn.discover_rtsp_path(host, port, username, password)
+        finally:
+            self._discover_rtsp_btn.setEnabled(True)
+        if result is None:
+            self._set_discovery_status(_("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
+            return
+        status, body = result
+        # discoverRtspPath() always answers HTTP 200 - success/failure is
+        # its own `ok` field inside the body (see that route's own
+        # RtspDescribeResult), same as HYDRA-UMC-STUDIO's own
+        # `res.ok && body.ok` check right above this comment's mirror.
+        if status == 200 and isinstance(body, dict) and body.get("ok") and body.get("path"):
+            path = str(body["path"])
+            self._rtsp_path_edit.setText(path)
+            self._on_field_changed(self._camera.id, "rtsp_path", path)
+            self._set_discovery_status(_("MSG_RTSP_PATH_FOUND") + f": {path}", "#10b981")
+            return
+        if status == 200 and isinstance(body, dict):
+            tried = body.get("triedPaths")
+            suffix = f" ({', '.join(str(t) for t in tried)})" if isinstance(tried, list) and tried else ""
+            self._set_discovery_status(_("MSG_RTSP_PATH_NOT_FOUND") + suffix, "#f59e0b")
+            return
+        message = body.get("error") if isinstance(body, dict) else None
+        self._set_discovery_status(str(message) if message else _("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
+
 
 class CamerasPanel(QWidget):
     def __init__(self, controller: SuiteController, parent: QWidget | None = None):
         super().__init__(parent)
         self._controller = controller
         self._cards: dict[int, CameraCard] = {}
+        # keyed "<controllerId>:<cameraId>", same real shape
+        # GET /api/cameras/status returns - see CameraCard.update_status()'s
+        # own header comment.
+        self._camera_status: dict[str, dict] = {}
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 8, 8, 8)
@@ -415,6 +641,37 @@ class CamerasPanel(QWidget):
 
         controller.active_state_changed.connect(self._on_state_changed)
 
+        # Real per-camera process status, polled the same way
+        # admin_server_panel.py polls admin config - a short interval
+        # (matches HYDRA-UMC-STUDIO's own Config.tsx 3s poll) since this
+        # is cheap, in-memory Map read server-side, not a real hardware
+        # touch. Runs unconditionally rather than only-while-tab-visible
+        # (this panel has no separate "is my tab active" signal to hook
+        # like Config.tsx's own `configTab === 'cameras'` gate does) -
+        # acceptable here since there's only ever one CamerasPanel alive.
+        self._status_poll_timer = QTimer(self)
+        self._status_poll_timer.setInterval(3000)
+        self._status_poll_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
+        self._status_poll_timer.start()
+
+    async def _poll_camera_status(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        result = await conn.fetch_camera_status()
+        if result is None:
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict):
+            return
+        self._camera_status = body
+        state = self._controller.active_state
+        active = state.active_controller if state else None
+        if active is None:
+            return
+        for camera_id, card in self._cards.items():
+            card.update_status(self._camera_status.get(f"{active.id}:{camera_id}"))
+
     def _on_state_changed(self, state: HydraState) -> None:
         active = state.active_controller
         cameras = active.cameras if active is not None else []
@@ -426,13 +683,17 @@ class CamerasPanel(QWidget):
             row, col = divmod(i, GRID_COLUMNS)
             card = self._cards.get(camera.id)
             if card is None:
-                card = CameraCard(camera, self._on_toggle_connection, self._on_type_changed, self._on_field_changed, self._get_stream_url)
+                card = CameraCard(
+                    camera, self._on_toggle_connection, self._on_type_changed, self._on_field_changed, self._get_stream_url, self._get_connection
+                )
                 self._cards[camera.id] = card
                 self._grid.addWidget(card, row, col)
             else:
                 self._grid.removeWidget(card)
                 self._grid.addWidget(card, row, col)
             card.refresh(camera, robots)
+            if active is not None:
+                card.update_status(self._camera_status.get(f"{active.id}:{camera.id}"))
 
         # A camera that's no longer in the server's own list (removed
         # controller, or - even though nothing in this ecosystem does
@@ -449,6 +710,9 @@ class CamerasPanel(QWidget):
         if conn is None:
             return None
         return f"{conn.info.base_url}/api/camera/{camera_id}/stream"
+
+    def _get_connection(self) -> HydraConnection | None:
+        return self._controller.active_connection
 
     def _current_camera(self, camera_id: int) -> CameraView | None:
         state = self._controller.active_state
