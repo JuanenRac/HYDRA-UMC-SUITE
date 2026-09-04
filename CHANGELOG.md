@@ -18,6 +18,10 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.3.9]
+
+- **Real left navigation panel, matching HYDRA-UMC-STUDIO's own structural scheme** - real user feedback: SUITE's flat top-toolbar navigation didn't match STUDIO's own left-panel menu/submenu layout ("no tiene el mismo esquema de estructura que studio... con su panel izquierdo con los menu y submenus"). New `NavSidebar` (`ui/nav_sidebar.py`) ports that same real shape - a root menu plus 3 real drill-down submenus (Industrial/URTC/HYDRA-UMC, each with its own Back-to-Root control) - onto this app's own real dock system: every button shows+raises one of the same real `QDockWidget` panels the old toolbar buttons did, nothing about the underlying dockable/floatable/tabbable panel system changed. The command deck keeps only what a flat toolbar still suits (branding, live connection status, About); its 5 former nav buttons moved into the sidebar. New real test (`tests/verify_nav_sidebar.py`) diffs the sidebar's own dock-key coverage against `main_window.py`'s real `self._docks` 1:1, so a future dock added to one file and forgotten in the other fails a real test.
+
 ## [0.3.8]
 
 - **Fixed a real permanent-freeze bug in the Cameras panel's own stream

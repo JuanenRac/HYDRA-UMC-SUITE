@@ -83,7 +83,7 @@ QLabel#commandDeckTitle {
     letter-spacing: 1px;
     padding: 0 7px 0 2px;
 }
-QToolButton#commandDeckNav, QToolButton#commandDeckAbout {
+QToolButton#commandDeckAbout {
     background: #10243a;
     border: 1px solid #294965;
     border-radius: 10px;
@@ -91,13 +91,66 @@ QToolButton#commandDeckNav, QToolButton#commandDeckAbout {
     font-weight: 600;
     padding: 8px 12px;
 }
-QToolButton#commandDeckNav:hover, QToolButton#commandDeckAbout:hover {
+QToolButton#commandDeckAbout:hover {
     background: #1a4967;
     border-color: #38d4e6;
     color: #ffffff;
 }
-QToolButton#commandDeckNav:pressed, QToolButton#commandDeckAbout:pressed {
+QToolButton#commandDeckAbout:pressed {
     background: #13364f;
+}
+
+/* Real left navigation panel - see ui/nav_sidebar.py's own header for
+   why this replaced the command deck's own flat nav buttons above (real
+   user feedback: SUITE didn't match STUDIO's own left-panel menu/submenu
+   scheme). Same deep-navy/cyan language as the rest of this stylesheet. */
+QDockWidget#dock_nav_sidebar {
+    border: none;
+    border-right: 1px solid #17354a;
+}
+QWidget#navSidebar {
+    background-color: #0a1a2b;
+}
+QPushButton#navSidebarItem, QPushButton#navSidebarCategory, QPushButton#navSidebarBack {
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    color: #c8e5f5;
+    font-weight: 600;
+    font-size: 12px;
+    text-align: left;
+    padding: 9px 12px;
+}
+QPushButton#navSidebarItem:hover, QPushButton#navSidebarCategory:hover, QPushButton#navSidebarBack:hover {
+    background: #142b43;
+    color: #ffffff;
+}
+QPushButton#navSidebarItem:pressed, QPushButton#navSidebarCategory:pressed, QPushButton#navSidebarBack:pressed {
+    background: #173a56;
+}
+QPushButton#navSidebarCategory {
+    color: #91a8bd;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 700;
+}
+QPushButton#navSidebarBack {
+    color: #38d4e6;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding-bottom: 12px;
+}
+QLabel#navSidebarSection {
+    color: #4a6379;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px 5px 12px;
+    border-bottom: 1px solid rgba(41, 73, 101, 0.5);
 }
 QLabel#commandDeckState, QLabel#commandDeckTarget, QLabel#commandDeckClock {
     background: #0b1a2a;

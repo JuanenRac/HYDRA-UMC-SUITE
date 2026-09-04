@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 from hydra_suite import __version__
 from hydra_suite.app import SuiteController
 from hydra_suite.ui.about_dialog import AboutDialog
+from hydra_suite.ui.nav_sidebar import NavSidebar
 from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
 from hydra_suite.ui.panels.admin_clients_panel import AdminClientsPanel
 from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
@@ -82,6 +83,7 @@ class MainWindow(QMainWindow):
 
         self._build_menu()
         self._build_panels()
+        self._build_nav_sidebar()
         self._build_command_deck()
         self._build_status_bar()
 
@@ -270,6 +272,38 @@ class MainWindow(QMainWindow):
         ):
             self._view_menu.addAction(dock.toggleViewAction())
 
+    # --- navigation sidebar ---------------------------------------------------
+
+    def _build_nav_sidebar(self) -> None:
+        """Real structural parity fix: real user feedback said SUITE
+        lacked STUDIO's own left-panel menu/submenu navigation scheme,
+        having only the flat top command-deck buttons. See
+        nav_sidebar.py's own header for the full real rationale.
+
+        A real QDockWidget (same mechanism every other panel in this
+        window already uses), but with every movable/floatable/closable
+        feature stripped - this is structural navigation chrome, not a
+        content panel a user would want to float away or lose, the same
+        real reason the top command deck is a QToolBar rather than a
+        dock. `setTitleBarWidget(QWidget())` swaps in an empty widget so
+        it renders with no title bar/drag handle at all.
+        """
+        sidebar = NavSidebar(self)
+        sidebar.navigate_requested.connect(self._activate_dock)
+
+        dock = QDockWidget(self)
+        dock.setObjectName("dock_nav_sidebar")
+        dock.setWidget(sidebar)
+        dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
+        dock.setTitleBarWidget(QWidget(dock))
+        dock.setFixedWidth(230)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
+        # Forces the sidebar into its own column to the left of the
+        # Servers/Overview tab group, rather than Qt's own default of
+        # stacking same-area docks arbitrarily.
+        self.splitDockWidget(dock, self._docks["servers"], Qt.Orientation.Horizontal)
+        self._nav_sidebar_dock = dock
+
     # --- command deck -------------------------------------------------------
 
     def _build_command_deck(self) -> None:
@@ -287,10 +321,11 @@ class MainWindow(QMainWindow):
         QDockWidget panels, not a second, parallel UI toolkit for the bar
         above them) - see CHANGELOG.md for the full account.
 
-        Each navigation control raises one of the application's existing,
-        dockable panels. That keeps the game-console presentation useful:
-        it is a quick route to real Server, Robot, Camera and Log surfaces,
-        while the operator can still rearrange every dock freely afterwards.
+        Primary navigation now lives in the real left NavSidebar
+        (_build_nav_sidebar) instead of here - real user feedback said
+        this flat button row didn't match STUDIO's own left-panel
+        menu/submenu scheme. This deck keeps only what a flat toolbar
+        actually suits: branding, live connection status, and About.
         """
         deck = QToolBar(_("TOPBAR_PRODUCT"), self)
         deck.setObjectName("commandDeck")
@@ -320,12 +355,6 @@ class MainWindow(QMainWindow):
         title.setObjectName("commandDeckTitle")
         deck.addWidget(title)
         deck.addSeparator()
-
-        self._add_deck_navigation("DOCK_OVERVIEW", "overview")
-        self._add_deck_navigation("DOCK_ROBOT_CONTROL", "robot")
-        self._add_deck_navigation("TAB_CAMERAS", "cameras")
-        self._add_deck_navigation("DOCK_TRAJECTORY", "trajectory")
-        self._add_deck_navigation("DOCK_LOGS", "logs")
 
         spacer = QWidget(deck)
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
@@ -357,14 +386,6 @@ class MainWindow(QMainWindow):
         self._clock_timer = QTimer(self)
         self._clock_timer.timeout.connect(self._update_command_deck_clock)
         self._clock_timer.start(1000)
-
-    def _add_deck_navigation(self, label_key: str, dock_key: str) -> None:
-        button = QToolButton(self._command_deck)
-        button.setObjectName("commandDeckNav")
-        button.setText(_(label_key))
-        button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        button.clicked.connect(lambda _checked=False, key=dock_key: self._activate_dock(key))
-        self._command_deck.addWidget(button)
 
     def _activate_dock(self, key: str) -> None:
         dock = self._docks[key]
