@@ -10,9 +10,11 @@ and real QML load. Run directly:
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 
+import qasync
 from PySide6.QtGui import QGuiApplication
 
 from hydra_suite.app import SuiteController
@@ -23,6 +25,12 @@ from qt_suite import MIGRATED_PANELS, SuiteQtBridge
 
 def _run() -> None:
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
+    # Real qasync loop - SuiteController.add_server()/remove_server()
+    # (app.py) schedule real asyncio.ensure_future() work, same real
+    # requirement qt_suite.py's own run_qtquick() sets up before
+    # anything touches SuiteController.
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
     controller = SuiteController()
     bridge = SuiteQtBridge(controller)
 
@@ -60,6 +68,24 @@ def _run() -> None:
     bridge.setLogSearchFilter("")
     bridge.clearLogs()
     assert bridge.logEntries == []
+
+    # --- servers: real ServerInfo/HydraConnection objects, no network ---
+    assert bridge.serverRows == []
+    bridge.addManualServer("", 3000, "u", "p")  # empty host must be rejected
+    assert bridge.serverRows == []
+    bridge.addManualServer("10.0.0.9", 3000, "", "p")  # missing username must be rejected
+    assert bridge.serverRows == []
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    assert len(bridge.serverRows) == 1
+    conn_id = bridge.serverRows[0]["connId"]
+    assert bridge.serverRows[0]["hostPort"] == "10.0.0.9:3000"
+    assert bridge.serverRows[0]["active"] is True, "the first server added becomes active automatically"
+    creds = bridge.serverCredentials(conn_id)
+    assert creds["username"] == "admin" and creds["password"] == "hunter2"
+    bridge.saveServerCredentials(conn_id, "admin2", "newpass")
+    assert bridge.serverCredentials(conn_id)["username"] == "admin2"
+    bridge.removeServer(conn_id)
+    assert bridge.serverRows == []
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

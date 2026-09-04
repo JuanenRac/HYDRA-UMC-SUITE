@@ -42,6 +42,7 @@ used while THEY were mid-migration.
 """
 from __future__ import annotations
 
+import asyncio
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -55,7 +56,9 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hydra_suite import __version__, logging_handler
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import HydraState
+from hydra_suite.models import HydraState, ServerInfo
+from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
+from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
 QML_PATH = Path(__file__).resolve().parent / "assets" / "qml" / "Main.qml"
@@ -80,7 +83,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers"})
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
@@ -140,6 +143,18 @@ class SuiteQtBridge(QObject):
         controller.active_state_changed.connect(self._on_overview_state_changed)
         controller.active_metrics_changed.connect(self._on_overview_metrics_changed)
         controller.active_status_changed.connect(self._on_connection_status)
+
+        # -- Servers (ported from server_browser.py's own ServerBrowserPanel -
+        # STATUS_DISPLAY_KEYS is imported from there directly rather than
+        # copied, so both UIs always agree on the same real status wording). --
+        self._server_statuses: dict[str, str] = {}
+        self._server_login: dict[str, tuple[bool, str]] = {}
+        self._scanning = False
+        self._scan_status_text = ""
+        controller.connections_changed.connect(self._on_servers_changed)
+        controller.active_connection_changed.connect(lambda _cid: self._on_servers_changed())
+        controller.connection_status_changed.connect(self._on_server_status)
+        controller.connection_login_changed.connect(self._on_server_login)
 
     # -- navigation --------------------------------------------------------
 
@@ -254,6 +269,121 @@ class SuiteQtBridge(QObject):
         self._all_log_entries.clear()
         self._displayed_log_entries.clear()
         self._logsChanged.emit()
+
+    # -- Servers ---------------------------------------------------------
+
+    @Property("QVariantList", notify=changed)
+    def serverRows(self) -> list[dict[str, object]]:
+        rows: list[dict[str, object]] = []
+        active_id = self._controller._active_id  # same real field server_browser.py's own _refresh_table reads directly
+        for conn_id, conn in self._controller.connections.items():
+            robot_count = len(conn.state.active_controller.robots) if conn.state.active_controller else conn.info.robot_count
+            login = self._server_login.get(conn_id)
+            if login is not None and not login[0]:
+                status_key = "login_failed"
+            else:
+                status_key = self._server_statuses.get(conn_id, "connecting")
+            rows.append({
+                "connId": conn_id,
+                "name": conn.info.display_name,
+                "hostPort": f"{conn.info.host}:{conn.info.port}",
+                "robotCount": robot_count,
+                "statusText": _(STATUS_DISPLAY_KEYS.get(status_key, "STATUS_CONNECTING")),
+                "loginDetail": login[1] if login is not None and not login[0] else "",
+                "active": conn_id == active_id,
+            })
+        return rows
+
+    @Property(bool, notify=changed)
+    def serverScanning(self) -> bool:
+        return self._scanning
+
+    @Property(str, notify=changed)
+    def serverScanStatus(self) -> str:
+        return self._scan_status_text
+
+    @Property(int, constant=True)
+    def defaultServerPort(self) -> int:
+        return DEFAULT_PORT
+
+    def _on_servers_changed(self) -> None:
+        self.changed.emit()
+
+    def _on_server_status(self, conn_id: str, status: str) -> None:
+        self._server_statuses[conn_id] = status
+        self.changed.emit()
+
+    def _on_server_login(self, conn_id: str, ok: bool, detail: str) -> None:
+        self._server_login[conn_id] = (ok, detail)
+        self.changed.emit()
+
+    @Slot()
+    def scanServers(self) -> None:
+        if self._scanning:
+            return
+        self._scanning = True
+        self._scan_status_text = _("STATUS_SCANNING")
+        self.changed.emit()
+        asyncio.ensure_future(self._run_server_scan())
+
+    async def _run_server_scan(self) -> None:
+        # discover_servers() runs the brute-force subnet scan and real
+        # mDNS/Bonjour discovery CONCURRENTLY (net/discovery.py's own
+        # header comment) and dedupes between them - same real call
+        # server_browser.py's own _run_scan makes, unchanged.
+        found = 0
+        try:
+            async for info in discover_servers():
+                found += 1
+                self._controller.add_server(info)
+                self._scan_status_text = _("STATUS_SCANNING_PROGRESS", found=found)
+                self.changed.emit()
+        finally:
+            self._scanning = False
+            self._scan_status_text = _("STATUS_SCAN_COMPLETE", found=found) if found else _("STATUS_SCAN_COMPLETE_NONE")
+            self.changed.emit()
+
+    @Slot(str, int, str, str)
+    def addManualServer(self, host: str, port: int, username: str, password: str) -> None:
+        host = host.strip()
+        username = username.strip()
+        if not host or not username or not password:
+            return
+        info = ServerInfo(host=host, port=port, hostname=host, username=username, password=password)
+        self._controller.add_server(info)
+
+    @Slot(str)
+    def setActiveServer(self, conn_id: str) -> None:
+        self._controller.set_active(conn_id)
+
+    @Slot(str)
+    def removeServer(self, conn_id: str) -> None:
+        self._controller.remove_server(conn_id)
+
+    @Slot(str, result="QVariant")
+    def serverCredentials(self, conn_id: str) -> dict[str, str]:
+        conn = self._controller.connections.get(conn_id)
+        if conn is None:
+            return {"username": "", "password": ""}
+        return {"username": conn.info.username, "password": conn.info.password}
+
+    @Slot(str, str, str)
+    def saveServerCredentials(self, conn_id: str, username: str, password: str) -> None:
+        conn = self._controller.connections.get(conn_id)
+        if conn is None or not username or not password:
+            return
+        conn.info.username = username
+        conn.info.password = password
+        # Credentials just changed - force a clean reconnect rather than
+        # waiting for HydraConnection's own retry loop to notice on its
+        # own timer, same real reason server_browser.py's own
+        # _on_edit_credentials does this.
+        asyncio.ensure_future(self._reconnect_server(conn))
+
+    @staticmethod
+    async def _reconnect_server(conn) -> None:
+        await conn.disconnect()
+        await conn.connect()
 
     # -- Overview --------------------------------------------------------
 

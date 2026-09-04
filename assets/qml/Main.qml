@@ -41,6 +41,17 @@ ApplicationWindow {
     // numbered since QML has no equivalent implicit page-order concept
     // worth relying on here.
     property string navPage: "root"
+    // Which server row's credentials the shared dialog below is
+    // currently editing - "" when none.
+    property string credentialsConnId: ""
+
+    function openCredentials(connId) {
+        var creds = suiteBackend.serverCredentials(connId)
+        window.credentialsConnId = connId
+        credentialsUsernameField.text = creds.username
+        credentialsPasswordField.text = creds.password
+        credentialsDialog.open()
+    }
 
     component Card: Rectangle {
         color: window.panel
@@ -157,6 +168,43 @@ ApplicationWindow {
         }
     }
 
+    // Real, shared credentials editor - ported from server_browser.py's
+    // own CredentialsDialog (a small modal QDialog there). Opened via
+    // window.openCredentials(connId), which pre-fills both fields from
+    // the real, currently-stored values.
+    Dialog {
+        id: credentialsDialog
+        anchors.centerIn: parent
+        modal: true
+        width: 360
+        title: suiteBackend.uiText("TITLE_EDIT_CREDENTIALS")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+        contentItem: ColumnLayout {
+            spacing: 10
+            RowLayout {
+                Text { text: suiteBackend.uiText("LBL_USERNAME"); color: window.muted; Layout.preferredWidth: 90 }
+                TextField {
+                    id: credentialsUsernameField
+                    Layout.fillWidth: true
+                    color: window.textPrimary
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+            }
+            RowLayout {
+                Text { text: suiteBackend.uiText("LBL_PASSWORD"); color: window.muted; Layout.preferredWidth: 90 }
+                TextField {
+                    id: credentialsPasswordField
+                    Layout.fillWidth: true
+                    echoMode: TextInput.Password
+                    color: window.textPrimary
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+            }
+        }
+        onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text)
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -253,6 +301,7 @@ ApplicationWindow {
                     if (!suiteBackend.activePanelMigrated) return notMigratedComponent
                     if (suiteBackend.activePanel === "logs") return logsComponent
                     if (suiteBackend.activePanel === "overview") return overviewComponent
+                    if (suiteBackend.activePanel === "servers") return serversComponent
                     return notMigratedComponent
                 }
             }
@@ -270,6 +319,112 @@ ApplicationWindow {
                 font.family: "Bahnschrift"
                 wrapMode: Text.WordWrap
                 Layout.preferredWidth: 480
+            }
+        }
+    }
+
+    Component {
+        id: serversComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            Text { text: suiteBackend.uiText("HEADING_SERVERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Button {
+                    text: suiteBackend.serverScanning ? "..." : suiteBackend.uiText("BTN_SCAN_NETWORK")
+                    enabled: !suiteBackend.serverScanning
+                    onClicked: suiteBackend.scanServers()
+                }
+                Text { text: suiteBackend.serverScanStatus; color: window.muted; font.pixelSize: 10 }
+            }
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                TextField {
+                    id: hostField
+                    placeholderText: suiteBackend.uiText("PLACEHOLDER_HOST")
+                    color: window.textPrimary
+                    Layout.fillWidth: true
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                SpinBox {
+                    id: portSpin
+                    from: 1; to: 65535
+                    value: suiteBackend.defaultServerPort
+                    editable: true
+                    Layout.preferredWidth: 140
+                }
+                TextField {
+                    id: userField
+                    placeholderText: suiteBackend.uiText("LBL_USERNAME")
+                    color: window.textPrimary
+                    Layout.preferredWidth: 110
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                TextField {
+                    id: passField
+                    placeholderText: suiteBackend.uiText("LBL_PASSWORD")
+                    echoMode: TextInput.Password
+                    color: window.textPrimary
+                    Layout.preferredWidth: 110
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                Button {
+                    text: suiteBackend.uiText("BTN_ADD")
+                    onClicked: {
+                        suiteBackend.addManualServer(hostField.text, portSpin.value, userField.text, passField.text)
+                        hostField.text = ""
+                    }
+                }
+            }
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("COL_SERVER"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 200 }
+                Text { text: suiteBackend.uiText("COL_HOST"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 180 }
+                Text { text: suiteBackend.uiText("COL_ROBOTS"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 80 }
+                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: suiteBackend.serverRows
+                spacing: 4
+                delegate: Rectangle {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 34
+                    radius: 8
+                    color: modelData.active ? "#1a4967" : window.panelAlt
+                    border.width: modelData.active ? 1 : 0
+                    border.color: window.green
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        Text { text: modelData.name; color: window.textPrimary; font.bold: modelData.active; font.pixelSize: 11; Layout.preferredWidth: 192; elide: Text.ElideRight }
+                        Text { text: modelData.hostPort; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 172 }
+                        Text { text: modelData.robotCount; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 72 }
+                        Text {
+                            text: modelData.statusText
+                            color: modelData.statusText === suiteBackend.uiText("STATUS_CONNECTED") ? window.green
+                                : (modelData.loginDetail !== "" ? "#ee6b80" : window.amber)
+                            font.pixelSize: 10
+                            Layout.fillWidth: true
+                            ToolTip.visible: modelData.loginDetail !== "" && statusHover.hovered
+                            ToolTip.text: modelData.loginDetail
+                            HoverHandler { id: statusHover }
+                        }
+                        Button { text: suiteBackend.uiText("BTN_SET_ACTIVE"); implicitHeight: 26; onClicked: suiteBackend.setActiveServer(modelData.connId) }
+                        Button { text: suiteBackend.uiText("BTN_EDIT_CREDENTIALS"); implicitHeight: 26; onClicked: window.openCredentials(modelData.connId) }
+                        Button { text: suiteBackend.uiText("BTN_REMOVE_SELECTED"); implicitHeight: 26; onClicked: suiteBackend.removeServer(modelData.connId) }
+                    }
+                }
             }
         }
     }
