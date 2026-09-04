@@ -302,6 +302,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "logs") return logsComponent
                     if (suiteBackend.activePanel === "overview") return overviewComponent
                     if (suiteBackend.activePanel === "servers") return serversComponent
+                    if (suiteBackend.activePanel === "robot") return robotComponent
                     return notMigratedComponent
                 }
             }
@@ -426,6 +427,82 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+    }
+
+    Component {
+        id: robotComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 14
+            Text { text: suiteBackend.uiText("HEADING_ROBOT_CONTROL"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            ComboBox {
+                id: robotCombo
+                Layout.preferredWidth: 260
+                model: suiteBackend.robotOptions
+                textRole: "label"
+                valueRole: "id"
+                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.selectedRobotId)
+                Connections {
+                    target: suiteBackend
+                    function onChanged() {
+                        var idx = robotCombo.indexOfValue(suiteBackend.selectedRobotId)
+                        if (idx !== robotCombo.currentIndex) robotCombo.currentIndex = idx
+                    }
+                }
+                onActivated: suiteBackend.selectRobot(currentValue)
+            }
+            Card {
+                Layout.fillWidth: true
+                Layout.preferredHeight: jointsColumn.implicitHeight + 28
+                ColumnLayout {
+                    id: jointsColumn
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("GROUP_JOINTS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Repeater {
+                        model: suiteBackend.selectedRobotJoints
+                        delegate: RowLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text { text: modelData.name.toUpperCase(); color: window.muted; font.bold: true; Layout.preferredWidth: 30 }
+                            Slider {
+                                Layout.fillWidth: true
+                                from: -180; to: 180
+                                value: modelData.value
+                                enabled: suiteBackend.canControlRobot
+                                onMoved: suiteBackend.setJoint(modelData.name, value)
+                            }
+                            Text { text: modelData.value.toFixed(1) + "°"; color: window.textPrimary; font.family: "Cascadia Mono"; Layout.preferredWidth: 55 }
+                        }
+                    }
+                }
+            }
+            Card {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 100
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("GROUP_PLAYBACK"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: suiteBackend.uiText("LBL_SPEED"); color: window.muted; Layout.preferredWidth: 90 }
+                        Slider { Layout.fillWidth: true; from: 1; to: 200; value: suiteBackend.selectedRobotSpeed; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotSpeed(Math.round(value)) }
+                        Text { text: suiteBackend.selectedRobotSpeed + "%"; color: window.textPrimary; Layout.preferredWidth: 45 }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: suiteBackend.uiText("LBL_ACCELERATION"); color: window.muted; Layout.preferredWidth: 90 }
+                        Slider { Layout.fillWidth: true; from: 1; to: 200; value: suiteBackend.selectedRobotAcceleration; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotAcceleration(Math.round(value)) }
+                        Text { text: suiteBackend.selectedRobotAcceleration + "%"; color: window.textPrimary; Layout.preferredWidth: 45 }
+                    }
+                }
+            }
+            Item { Layout.fillHeight: true }
         }
     }
 

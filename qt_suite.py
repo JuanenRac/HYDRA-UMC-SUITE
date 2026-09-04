@@ -56,7 +56,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hydra_suite import __version__, logging_handler
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import HydraState, ServerInfo
+from hydra_suite.models import JOINT_NAMES, HydraState, RobotView, ServerInfo
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
@@ -83,7 +83,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot"})
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
@@ -155,6 +155,15 @@ class SuiteQtBridge(QObject):
         controller.active_connection_changed.connect(lambda _cid: self._on_servers_changed())
         controller.connection_status_changed.connect(self._on_server_status)
         controller.connection_login_changed.connect(self._on_server_login)
+
+        # -- Robot Control (ported from robot_control.py's own
+        # RobotControlPanel - RotaryKnob's own custom-painted dial is not
+        # reproduced here, a Slider alone already sets the exact same
+        # real value the classic panel's knob+slider pair redundantly
+        # show, so nothing real is lost). --
+        self._selected_robot_id: str | None = None
+        self._active_robots_cache: list[RobotView] = []
+        controller.active_state_changed.connect(self._on_robot_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -384,6 +393,112 @@ class SuiteQtBridge(QObject):
     async def _reconnect_server(conn) -> None:
         await conn.disconnect()
         await conn.connect()
+
+    # -- Robot Control -----------------------------------------------------
+
+    def _active_robots(self) -> list[RobotView]:
+        # Cached from the last real active_state_changed delivery (see
+        # _on_robot_state_changed below) rather than re-derived from
+        # self._controller.active_state on every call - matches
+        # robot_control.py's own real pattern (it caches
+        # self._current_robot from the state PARAMETER a signal handler
+        # receives, never re-queries the controller independently
+        # elsewhere), and avoids a real staleness risk: re-deriving here
+        # would only coincidentally agree with what the signal just
+        # carried.
+        return self._active_robots_cache
+
+    def _selected_robot(self) -> RobotView | None:
+        for r in self._active_robots():
+            if r.id == self._selected_robot_id:
+                return r
+        return None
+
+    @Property("QVariantList", notify=changed)
+    def robotOptions(self) -> list[dict[str, str]]:
+        return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._active_robots()]
+
+    @Property(str, notify=changed)
+    def selectedRobotId(self) -> str:
+        return self._selected_robot_id or ""
+
+    @Property(bool, notify=changed)
+    def canControlRobot(self) -> bool:
+        return self._selected_robot() is not None
+
+    @Property("QVariantList", notify=changed)
+    def selectedRobotJoints(self) -> list[dict[str, object]]:
+        robot = self._selected_robot()
+        joints = robot.joints if robot is not None else {}
+        return [{"name": name, "value": joints.get(name, 0.0)} for name in JOINT_NAMES]
+
+    @Property(int, notify=changed)
+    def selectedRobotSpeed(self) -> int:
+        robot = self._selected_robot()
+        return int(robot.speed) if robot is not None else 100
+
+    @Property(int, notify=changed)
+    def selectedRobotAcceleration(self) -> int:
+        robot = self._selected_robot()
+        return int(robot.acceleration) if robot is not None else 100
+
+    def _on_robot_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+        self._active_robots_cache = robots
+        if self._selected_robot_id not in {r.id for r in robots}:
+            self._selected_robot_id = robots[0].id if robots else None
+        self.changed.emit()
+
+    @Slot(str)
+    def selectRobot(self, robot_id: str) -> None:
+        if robot_id != self._selected_robot_id:
+            self._selected_robot_id = robot_id or None
+            self.changed.emit()
+
+    @Slot(str, float)
+    def setJoint(self, joint_name: str, value: float) -> None:
+        robot = self._selected_robot()
+        if robot is None or joint_name not in JOINT_NAMES:
+            return
+        new_joints = dict(robot.joints)
+        new_joints[joint_name] = value
+
+        def local_mutate(r: RobotView, joints=new_joints) -> None:
+            for name, joint_value in joints.items():
+                r.set_joint(name, joint_value)
+
+        # Same real atomic 'jog' command + 50ms debounce as
+        # robot_control.py's own _on_joint_changed - see that method's
+        # own comment for why a full 6-joint override, debounced, is
+        # safe here.
+        self._controller.send_robot_command(
+            robot.id, "jog",
+            {"axis": "x", "amount": 0, "target": "robot", "joints": new_joints},
+            local_mutate,
+            debounce_ms=50,
+        )
+        self.changed.emit()
+
+    @Slot(int)
+    def setRobotSpeed(self, value: int) -> None:
+        robot = self._selected_robot()
+        if robot is None:
+            return
+        self._controller.send_robot_command(
+            robot.id, "speed", {"speed": value}, lambda r, v=value: r.set_speed(v), debounce_ms=300
+        )
+        self.changed.emit()
+
+    @Slot(int)
+    def setRobotAcceleration(self, value: int) -> None:
+        robot = self._selected_robot()
+        if robot is None:
+            return
+        self._controller.send_robot_command(
+            robot.id, "speed", {"acceleration": value}, lambda r, v=value: r.set_acceleration(v), debounce_ms=300
+        )
+        self.changed.emit()
 
     # -- Overview --------------------------------------------------------
 

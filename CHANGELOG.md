@@ -37,11 +37,16 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   transcribed from `nav_sidebar.py`'s own real source of truth, not a
   third invented one), a deliberate real design choice per the
   STUDIO<->SUITE parity rule.
-  **Real, honest status**: Overview, Logs and Servers are ported to
-  actual QML content so far (Servers - the swarm's real entry point:
-  network scan, manual add, per-row status/active/credentials/remove -
-  makes this shell genuinely usable end to end, not just a nav
-  skeleton); every other one of the 26 real panels shows a
+  **Real, honest status**: Overview, Logs, Servers and Robot Control
+  are ported to actual QML content so far (Servers - the swarm's real
+  entry point: network scan, manual add, per-row status/active/
+  credentials/remove - makes this shell genuinely usable end to end,
+  not just a nav skeleton; Robot Control - real per-joint jog sliders
+  and speed/acceleration, routed through the exact same atomic,
+  debounced `send_robot_command()`/optimistic-update path the classic
+  panel uses, RotaryKnob's own custom dial not reproduced since a
+  Slider alone already sets the identical real value); every other one
+  of the remaining 22 real panels shows a
   real "not yet migrated" placeholder (a small amber dot next to its
   nav label) rather than a fake, empty-but-styled panel pretending to
   be done. Run `python main.py --qtquick` to see this shell - the

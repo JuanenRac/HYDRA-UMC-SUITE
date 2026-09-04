@@ -114,6 +114,47 @@ def _run() -> None:
     assert bridge.overviewTemp == "61°C"
     assert bridge.overviewUptime == "1h 2m"
 
+    # --- robot control: correct real command routing. The full
+    # optimistic-mutation pipeline (local_mutate applying against a
+    # robot looked up fresh from HydraConnection's OWN internal state)
+    # is HydraConnection.send_command's own real surface, not this
+    # bridge's - so this checks the bridge's own real responsibility
+    # instead: does it call SuiteController.send_robot_command with the
+    # right robot id/command/params, exactly matching
+    # robot_control.py's own real _on_joint_changed/_on_speed_changed/
+    # _on_accel_changed calls? A recording stub replaces the real
+    # method for this (no real HydraConnection needed either way, since
+    # there is no active one here). ---
+    assert bridge.selectedRobotId == "r1", "the first robot becomes selected automatically"
+    assert bridge.canControlRobot is True
+    joints_before = {j["name"]: j["value"] for j in bridge.selectedRobotJoints}
+    assert joints_before == {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}
+
+    calls = []
+    controller.send_robot_command = lambda *a, **kw: calls.append((a, kw))
+
+    bridge.setJoint("j1", 45.0)
+    assert len(calls) == 1
+    args, kwargs = calls[0]
+    assert args[0] == "r1" and args[1] == "jog"
+    assert args[2]["joints"]["j1"] == 45.0 and args[2]["target"] == "robot"
+    assert kwargs.get("debounce_ms") == 50 or (len(args) > 4 and args[4] == 50)
+
+    calls.clear()
+    bridge.setRobotSpeed(150)
+    assert len(calls) == 1 and calls[0][0][0] == "r1" and calls[0][0][1] == "speed"
+    assert calls[0][0][2] == {"speed": 150}
+
+    calls.clear()
+    bridge.setRobotAcceleration(77)
+    assert len(calls) == 1 and calls[0][0][2] == {"acceleration": 77}
+
+    bridge.selectRobot("r2")
+    assert bridge.selectedRobotId == "r2"
+    assert bridge.canControlRobot is True
+    bridge.selectRobot("does-not-exist")
+    assert bridge.canControlRobot is False, "selecting an unknown id must not silently keep the old robot armed"
+
     # --- QML itself loads with zero warnings ---
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuickControls2 import QQuickStyle
