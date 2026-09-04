@@ -303,6 +303,64 @@ def _run() -> None:
     assert vision_card["errorText"] == "systemd refused"
     bridge.removeServer(es_conn_id)
 
+    # --- ecosystem telemetry: real query/aggregate routing, chart-point
+    # normalization math, and stats - fetch_telemetry_query/_aggregate
+    # are stubbed (the HTTP call itself isn't this bridge's own
+    # surface), the normalization/validation logic is. ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    tel_conn_id = bridge.serverRows[0]["connId"]
+    tel_conn = controller.connections[tel_conn_id]
+
+    async def _fake_telemetry_query(params):
+        return (200, [
+            {"timestamp": 1000, "value": 10},
+            {"timestamp": 2000, "value": 30},
+            {"timestamp": 3000, "value": 20},
+        ])
+
+    tel_conn.fetch_telemetry_query = _fake_telemetry_query
+    loop.run_until_complete(bridge._run_telemetry_query("query", "robot-1", "temp", "value", "1000", "3000", "60000", "avg"))
+    assert bridge.telemetryChartMode == "line"
+    pts = bridge.telemetryLinePoints
+    assert len(pts) == 3
+    assert pts[0]["nx"] == 0.0 and pts[-1]["nx"] == 1.0, "x must normalize across the real timestamp span"
+    assert pts[0]["ny"] == 0.0 and pts[1]["ny"] == 1.0, "y must normalize across the real value span (10->0, 30->1)"
+    assert bridge.telemetryStats["min"] == "10.00" and bridge.telemetryStats["max"] == "30.00"
+    assert bridge.telemetryStats["count"] == "3"
+
+    # Aggregate mode with missing required fields must be rejected
+    # client-side, never reaching the real network call.
+    aggregate_calls = []
+
+    async def _fake_telemetry_aggregate(params):
+        aggregate_calls.append(params)
+        return (200, [{"bucketStart": 0, "value": 5}, {"bucketStart": 60000, "value": 15}])
+
+    tel_conn.fetch_telemetry_aggregate = _fake_telemetry_aggregate
+    loop.run_until_complete(bridge._run_telemetry_query("aggregate", "", "", "", "", "", "60000", "avg"))
+    assert aggregate_calls == [], "aggregate mode must refuse to run with kind/field/start/end all empty"
+    assert bridge.telemetryStatusText == bridge.uiText("MSG_TELEMETRY_AGGREGATE_MISSING_FIELDS")
+
+    loop.run_until_complete(bridge._run_telemetry_query("aggregate", "", "temp", "value", "0", "120000", "60000", "avg"))
+    assert len(aggregate_calls) == 1
+    assert bridge.telemetryChartMode == "bar"
+    bars = bridge.telemetryBars
+    assert len(bars) == 2
+    assert abs(bars[0]["nh"] - (5 / 15)) < 1e-9
+    assert bars[1]["nh"] == 1.0
+
+    # A real 503 "not configured" response must clear the chart/stats,
+    # not silently keep showing the previous run's data.
+    async def _fake_telemetry_unavailable(params):
+        return (503, {"available": False})
+
+    tel_conn.fetch_telemetry_query = _fake_telemetry_unavailable
+    loop.run_until_complete(bridge._run_telemetry_query("query", "", "", "", "", "", "60000", "avg"))
+    assert bridge.telemetryStatusText == bridge.uiText("MSG_TELEMETRY_NOT_CONFIGURED")
+    assert bridge.telemetryChartMode == "empty"
+    assert bridge.telemetryShowStats is False
+    bridge.removeServer(tel_conn_id)
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

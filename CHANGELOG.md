@@ -36,48 +36,64 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   `URTC_ITEMS`/`HYDRAUMC_ITEMS`/`HYDRAUMC_ECOSYSTEM_ITEMS` - is
   transcribed from `nav_sidebar.py`'s own real source of truth, not a
   third invented one), a deliberate real design choice per the
-  STUDIO<->SUITE parity rule.
-  **Real, honest status**: Overview, Logs, Servers and Robot Control
-  are ported to actual QML content so far (Servers - the swarm's real
-  entry point: network scan, manual add, per-row status/active/
-  credentials/remove - makes this shell genuinely usable end to end,
-  not just a nav skeleton; Robot Control - real per-joint jog sliders
-  and speed/acceleration, routed through the exact same atomic,
-  debounced `send_robot_command()`/optimistic-update path the classic
-  panel uses, RotaryKnob's own custom dial not reproduced since a
-  Slider alone already sets the identical real value; Trajectory - the
-  same real local-only point recorder as the classic panel, record/jog-
-  to-point/delete, points reset only when the selected robot itself
-  changes; AI Family Status - the real GET /api/ecosystem/status scan
-  filtered to the 2 real AI families, cross-referenced against the same
-  server-persisted settings.aiHailo field STUDIO's own Config tab
-  writes, warning when a family has live projects but no Hailo device
-  configured; Admin Clients ("Connected Apps") - every live WebSocket
-  connection to the active server right now, admin-first sort, a
-  live "Xm ago" duration ticking every second independent of the 5s
-  data poll, exactly matching the classic panel's own two-timer
-  design; Admin Logs ("Server Log") - the remote Server's own on-disk
-  log, real tag extraction/filtering, and the same real "clear the
-  screen, keep tailing" anchor trick as the classic panel; Admin Server
-  ("Server Configuration") - listen-port config (a save never rebinds
-  the live socket, same real note as the classic panel), a live
-  GET /api/hydra-info snapshot, and a graceful restart behind the new
-  shared confirm dialog every future destructive action in this shell
-  can reuse; Ecosystem Services - the same real GET /api/ecosystem/
-  status scan AI Family Status uses, grouped into a real card grid by
-  family with the same 5-state health color/badge logic and
-  admin-only Start/Stop/Restart per card, Stop/Restart behind the
-  shared confirm dialog); every other one of the remaining 16 real
-  panels shows a
-  real "not yet migrated" placeholder (a small amber dot next to its
-  nav label) rather than a fake, empty-but-styled panel pretending to
-  be done. Run `python main.py --qtquick` to see this shell - the
-  classic, fully-functional `QDockWidget` app remains the default
-  entry point, same opt-in convention URTC-TESTER/URTC-FLASHER used
-  while THEY were mid-migration. New `verify_qt_suite_shell.py` (real
-  nav-taxonomy parity check against `nav_sidebar.py`'s own
-  `ALL_DOCK_KEYS`, real logging/filter/controller-signal assertions,
-  zero-QML-warnings load check).
+  STUDIO<->SUITE parity rule. Run `python main.py --qtquick` to see
+  this shell - the classic, fully-functional `QDockWidget` app remains
+  the default entry point, same opt-in convention URTC-TESTER/
+  URTC-FLASHER used while THEY were mid-migration. New
+  `verify_qt_suite_shell.py` (real nav-taxonomy parity check against
+  `nav_sidebar.py`'s own `ALL_DOCK_KEYS`, real per-panel assertions
+  against the real backend objects, zero-QML-warnings load check).
+
+  **Real, honest status** - 11 of the 26 real panels are ported to
+  actual QML content so far; every other one shows a real "not yet
+  migrated" placeholder (a small amber dot next to its nav label)
+  rather than a fake, empty-but-styled panel pretending to be done:
+  - **Servers** - the swarm's real entry point: network scan, manual
+    add, per-row status/active/credentials/remove.
+  - **Overview** - Active Controller/System Metrics cards + robot
+    table, from real `SuiteController` signals.
+  - **Logs** - this app's own local Python log, real level/text
+    filtering.
+  - **Robot Control** - real per-joint jog sliders and speed/
+    acceleration, routed through the exact same atomic, debounced
+    `send_robot_command()`/optimistic-update path the classic panel
+    uses. `RotaryKnob`'s own custom dial isn't reproduced - a `Slider`
+    alone already sets the identical real value.
+  - **Trajectory** - the same real local-only point recorder as the
+    classic panel (record/jog-to-point/delete); points reset only when
+    the selected robot itself changes.
+  - **AI Family Status** - the real `GET /api/ecosystem/status` scan
+    filtered to the 2 real AI families, cross-referenced against the
+    same server-persisted `settings.aiHailo` field STUDIO's own Config
+    tab writes, warning when a family has live projects but no Hailo
+    device configured.
+  - **Admin Clients** ("Connected Apps") - every live WebSocket
+    connection to the active server right now, admin-first sort, a
+    live "Xm ago" duration ticking every second independent of the 5s
+    data poll, exactly matching the classic panel's own two-timer
+    design.
+  - **Admin Logs** ("Server Log") - the remote Server's own on-disk
+    log, real tag extraction/filtering, and the same real "clear the
+    screen, keep tailing" anchor trick as the classic panel.
+  - **Admin Server** ("Server Configuration") - listen-port config (a
+    save never rebinds the live socket, same real note as the classic
+    panel), a live `GET /api/hydra-info` snapshot, and a graceful
+    restart behind a new shared confirm dialog every future destructive
+    action in this shell can reuse.
+  - **Ecosystem Services** - the same real `GET /api/ecosystem/status`
+    scan AI Family Status uses, grouped into a real card grid by family
+    with the same 5-state health color/badge logic and admin-only
+    Start/Stop/Restart per card (Stop/Restart behind the shared confirm
+    dialog).
+  - **Ecosystem Telemetry** - the same real two modes
+    HYDRA-UMC-DATALAKE's own API exposes (raw points via
+    `GET /api/telemetry/query`, bucketed via `/aggregate`), quick
+    time-range presets, and a min/max/avg/count stat row. Chart
+    rendering is a hand-drawn QML `Canvas` (a real polyline for raw
+    points, real bars for aggregated buckets) rather than
+    `import QtCharts` in QML - that module segfaults on load in this
+    real environment (PySide6 6.11.1, confirmed both offscreen and
+    on-screen - a real crash, not a test artifact).
 
 ## [0.3.9]
 

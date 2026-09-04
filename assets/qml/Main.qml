@@ -342,6 +342,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "admin_logs") return adminLogsComponent
                     if (suiteBackend.activePanel === "admin_server") return adminServerComponent
                     if (suiteBackend.activePanel === "ecosystem_services") return ecosystemServicesComponent
+                    if (suiteBackend.activePanel === "ecosystem_telemetry") return ecosystemTelemetryComponent
                     return notMigratedComponent
                 }
             }
@@ -1116,6 +1117,124 @@ ApplicationWindow {
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
                 font.pixelSize: 9
+            }
+        }
+    }
+
+    Component {
+        id: ecosystemTelemetryComponent
+        ColumnLayout {
+            id: telemetryRoot
+            width: contentLoader.width
+            spacing: 10
+            property bool isAggregate: modeCombo.currentIndex === 1
+
+            function runQuery() {
+                suiteBackend.runTelemetryQuery(
+                    telemetryRoot.isAggregate ? "aggregate" : "query",
+                    sourceIdField.text, kindField.text, fieldField.text,
+                    startField.text, endField.text, bucketField.text, aggCombo.currentText)
+            }
+
+            Text { text: suiteBackend.uiText("HEADING_ECOSYSTEM_TELEMETRY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            GridLayout {
+                columns: 2
+                columnSpacing: 8
+                rowSpacing: 6
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_MODE"); color: window.muted; font.pixelSize: 10 }
+                ComboBox {
+                    id: modeCombo
+                    Layout.preferredWidth: 200
+                    model: [suiteBackend.uiText("TELEMETRY_MODE_QUERY"), suiteBackend.uiText("TELEMETRY_MODE_AGGREGATE")]
+                }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_SOURCE_ID"); color: window.muted; font.pixelSize: 10 }
+                TextField { id: sourceIdField; color: window.textPrimary; Layout.preferredWidth: 220; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_KIND"); color: window.muted; font.pixelSize: 10 }
+                TextField { id: kindField; color: window.textPrimary; Layout.preferredWidth: 220; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_FIELD"); color: window.muted; font.pixelSize: 10 }
+                TextField { id: fieldField; color: window.textPrimary; Layout.preferredWidth: 220; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
+                Text { visible: telemetryRoot.isAggregate; text: suiteBackend.uiText("LBL_TELEMETRY_BUCKET_MS"); color: window.muted; font.pixelSize: 10 }
+                TextField { id: bucketField; visible: telemetryRoot.isAggregate; text: "60000"; color: window.textPrimary; Layout.preferredWidth: 120; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
+                Text { visible: telemetryRoot.isAggregate; text: suiteBackend.uiText("LBL_TELEMETRY_AGG"); color: window.muted; font.pixelSize: 10 }
+                ComboBox { id: aggCombo; visible: telemetryRoot.isAggregate; model: suiteBackend.telemetryAggregates; Layout.preferredWidth: 120 }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_RANGE"); color: window.muted; font.pixelSize: 10 }
+                Repeater {
+                    model: suiteBackend.telemetryRangePresets
+                    delegate: Button {
+                        required property var modelData
+                        text: modelData.label
+                        implicitWidth: 48
+                        onClicked: {
+                            var now = Date.now()
+                            startField.text = String(now - modelData.ms)
+                            endField.text = String(now)
+                        }
+                    }
+                }
+                TextField { id: startField; placeholderText: suiteBackend.uiText("LBL_TELEMETRY_START"); color: window.textPrimary; Layout.preferredWidth: 140; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
+                TextField { id: endField; placeholderText: suiteBackend.uiText("LBL_TELEMETRY_END"); color: window.textPrimary; Layout.preferredWidth: 140; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
+            }
+            RowLayout {
+                Button {
+                    text: suiteBackend.telemetryRunning ? "..." : suiteBackend.uiText("BTN_RUN_QUERY")
+                    enabled: !suiteBackend.telemetryRunning
+                    onClicked: telemetryRoot.runQuery()
+                }
+            }
+            Text { text: suiteBackend.telemetryStatusText; color: window.muted; font.pixelSize: 11 }
+            RowLayout {
+                visible: suiteBackend.telemetryShowStats
+                spacing: 8
+                EsStatBox { caption: suiteBackend.uiText("LBL_TELEMETRY_STAT_MIN"); value: suiteBackend.telemetryStats.min || "" }
+                EsStatBox { caption: suiteBackend.uiText("LBL_TELEMETRY_STAT_MAX"); value: suiteBackend.telemetryStats.max || "" }
+                EsStatBox { caption: suiteBackend.uiText("LBL_TELEMETRY_STAT_AVG"); value: suiteBackend.telemetryStats.avg || "" }
+                EsStatBox { caption: suiteBackend.uiText("LBL_TELEMETRY_STAT_COUNT"); value: suiteBackend.telemetryStats.count || "" }
+            }
+            Card {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 280
+                Canvas {
+                    id: telemetryCanvas
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    Connections { target: suiteBackend; function onChanged() { telemetryCanvas.requestPaint() } }
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        ctx.strokeStyle = "#1e293b"
+                        ctx.lineWidth = 1
+                        for (var gy = 0; gy <= 4; gy++) {
+                            var y = height * gy / 4
+                            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke()
+                        }
+                        if (suiteBackend.telemetryChartMode === "line") {
+                            var pts = suiteBackend.telemetryLinePoints
+                            ctx.strokeStyle = "#38bdf8"
+                            ctx.lineWidth = 2
+                            ctx.beginPath()
+                            for (var i = 0; i < pts.length; i++) {
+                                var px = pts[i].nx * width
+                                var py = height - pts[i].ny * height
+                                if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py)
+                            }
+                            ctx.stroke()
+                        } else if (suiteBackend.telemetryChartMode === "bar") {
+                            var bars = suiteBackend.telemetryBars
+                            var slot = width / Math.max(1, bars.length)
+                            var barWidth = Math.max(2, slot * 0.6)
+                            ctx.fillStyle = "#38bdf8"
+                            for (var b = 0; b < bars.length; b++) {
+                                var bh = bars[b].nh * height
+                                var bx = b * slot + (slot - barWidth) / 2
+                                ctx.fillRect(bx, height - bh, barWidth, bh)
+                            }
+                        }
+                    }
+                }
             }
         }
     }

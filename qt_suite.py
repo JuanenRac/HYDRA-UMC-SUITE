@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import qasync
-from PySide6.QtCore import Property, QObject, QTimer, QUrl, Signal, Slot
+from PySide6.QtCore import Property, QDateTime, QObject, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -64,6 +64,7 @@ from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
+from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
@@ -89,7 +90,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry"})
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
 _ADMIN_LOGS_LINES = 300
@@ -264,6 +265,21 @@ class SuiteQtBridge(QObject):
         self._es_status_text = _("LBL_ES_NOT_LOADED")
         self._es_refreshing = False
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: self.changed.emit())
+
+        # -- Ecosystem Telemetry (ported from ecosystem_telemetry_panel.py's
+        # own EcosystemTelemetryPanel - _AGGREGATES/_RANGE_PRESETS imported
+        # directly from there, never duplicated). Real chart rendering
+        # uses a hand-drawn QML Canvas, NOT `import QtCharts` in QML -
+        # that module segfaults on load in this real environment (PySide6
+        # 6.11.1, confirmed both offscreen and on-screen) - see this
+        # session's own memory note. --
+        self._tel_status_text = ""
+        self._tel_running = False
+        self._tel_is_aggregate = False
+        self._tel_chart_mode = "empty"
+        self._tel_line_points: list[dict[str, float]] = []
+        self._tel_bars: list[dict[str, object]] = []
+        self._tel_stats: dict[str, str] = {}
 
     # -- navigation --------------------------------------------------------
 
@@ -1144,6 +1160,166 @@ class SuiteQtBridge(QObject):
             self.changed.emit()
             return
         await self._refresh_ecosystem_services()
+
+    # -- Ecosystem Telemetry -------------------------------------------------
+
+    @Property(str, notify=changed)
+    def telemetryStatusText(self) -> str:
+        return self._tel_status_text
+
+    @Property(bool, notify=changed)
+    def telemetryRunning(self) -> bool:
+        return self._tel_running
+
+    @Property("QStringList", constant=True)
+    def telemetryAggregates(self) -> list[str]:
+        return list(_AGGREGATES)
+
+    @Property("QVariantList", constant=True)
+    def telemetryRangePresets(self) -> list[dict[str, object]]:
+        return [{"label": label, "ms": ms} for label, ms in _RANGE_PRESETS]
+
+    @Property(bool, notify=changed)
+    def telemetryShowStats(self) -> bool:
+        return bool(self._tel_stats)
+
+    @Property("QVariantMap", notify=changed)
+    def telemetryStats(self) -> dict[str, str]:
+        return self._tel_stats
+
+    @Property(str, notify=changed)
+    def telemetryChartMode(self) -> str:
+        return self._tel_chart_mode
+
+    @Property("QVariantList", notify=changed)
+    def telemetryLinePoints(self) -> list[dict[str, float]]:
+        return self._tel_line_points
+
+    @Property("QVariantList", notify=changed)
+    def telemetryBars(self) -> list[dict[str, object]]:
+        return self._tel_bars
+
+    @Slot(str, str, str, str, str, str, str, str)
+    def runTelemetryQuery(
+        self, mode: str, source_id: str, kind: str, field: str,
+        start: str, end: str, bucket_ms: str, agg: str,
+    ) -> None:
+        asyncio.ensure_future(self._run_telemetry_query(mode, source_id, kind, field, start, end, bucket_ms, agg))
+
+    async def _run_telemetry_query(
+        self, mode: str, source_id: str, kind: str, field: str,
+        start: str, end: str, bucket_ms: str, agg: str,
+    ) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._tel_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
+            self.changed.emit()
+            return
+        is_aggregate = mode == "aggregate"
+        params: dict[str, str] = {}
+        if source_id:
+            params["sourceId"] = source_id
+        if kind:
+            params["kind"] = kind
+        if field:
+            params["field"] = field
+        if start:
+            params["start"] = start
+        if end:
+            params["end"] = end
+
+        self._tel_running = True
+        self.changed.emit()
+        try:
+            if is_aggregate:
+                if not (kind and field and start and end):
+                    self._tel_status_text = _("MSG_TELEMETRY_AGGREGATE_MISSING_FIELDS")
+                    return
+                params["bucketMs"] = bucket_ms
+                params["agg"] = agg
+                result = await conn.fetch_telemetry_aggregate(params)
+            else:
+                result = await conn.fetch_telemetry_query(params)
+        finally:
+            self._tel_running = False
+            self.changed.emit()
+
+        if result is None:
+            self._tel_status_text = _("MSG_TELEMETRY_LOAD_ERROR")
+            self.changed.emit()
+            return
+        status, body = result
+        if status == 503 and isinstance(body, dict) and body.get("available") is False:
+            self._tel_status_text = _("MSG_TELEMETRY_NOT_CONFIGURED")
+            self._render_empty_telemetry_chart()
+            self._update_telemetry_stats([])
+            self.changed.emit()
+            return
+        if status != 200 or not isinstance(body, list):
+            self._tel_status_text = _("MSG_TELEMETRY_LOAD_ERROR")
+            self.changed.emit()
+            return
+
+        self._tel_status_text = "" if body else _("MSG_TELEMETRY_NO_DATA")
+        if is_aggregate:
+            self._render_telemetry_bar_chart(body)
+            self._update_telemetry_stats([float(b.get("value", 0)) for b in body])
+        else:
+            self._render_telemetry_line_chart(body)
+            self._update_telemetry_stats([float(p.get("value", 0)) for p in body])
+        self.changed.emit()
+
+    def _render_empty_telemetry_chart(self) -> None:
+        self._tel_chart_mode = "empty"
+        self._tel_line_points = []
+        self._tel_bars = []
+
+    def _render_telemetry_line_chart(self, points: list[dict]) -> None:
+        if not points:
+            self._render_empty_telemetry_chart()
+            return
+        self._tel_chart_mode = "line"
+        self._tel_bars = []
+        timestamps = [float(p.get("timestamp", 0)) for p in points]
+        values = [float(p.get("value", 0)) for p in points]
+        t_min, t_max = min(timestamps), max(timestamps)
+        v_min, v_max = min(values), max(values)
+        t_span = (t_max - t_min) or 1.0
+        v_span = (v_max - v_min) or 1.0
+        self._tel_line_points = [
+            {
+                "nx": (t - t_min) / t_span,
+                "ny": (v - v_min) / v_span if v_max != v_min else 0.5,
+            }
+            for t, v in zip(timestamps, values)
+        ]
+
+    def _render_telemetry_bar_chart(self, buckets: list[dict]) -> None:
+        if not buckets:
+            self._render_empty_telemetry_chart()
+            return
+        self._tel_chart_mode = "bar"
+        self._tel_line_points = []
+        values = [float(b.get("value", 0)) for b in buckets]
+        v_max = max(values) or 1.0
+        self._tel_bars = [
+            {
+                "nh": (v / v_max) if v_max else 0.0,
+                "label": QDateTime.fromMSecsSinceEpoch(int(b.get("bucketStart", 0))).toString("HH:mm"),
+            }
+            for v, b in zip(values, buckets)
+        ]
+
+    def _update_telemetry_stats(self, values: list[float]) -> None:
+        if not values:
+            self._tel_stats = {}
+            return
+        self._tel_stats = {
+            "min": f"{min(values):.2f}",
+            "max": f"{max(values):.2f}",
+            "avg": f"{sum(values) / len(values):.2f}",
+            "count": str(len(values)),
+        }
 
     # -- Overview --------------------------------------------------------
 
