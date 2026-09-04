@@ -58,8 +58,12 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   data poll, exactly matching the classic panel's own two-timer
   design; Admin Logs ("Server Log") - the remote Server's own on-disk
   log, real tag extraction/filtering, and the same real "clear the
-  screen, keep tailing" anchor trick as the classic panel); every other
-  one of the remaining 18 real panels shows a
+  screen, keep tailing" anchor trick as the classic panel; Admin Server
+  ("Server Configuration") - listen-port config (a save never rebinds
+  the live socket, same real note as the classic panel), a live
+  GET /api/hydra-info snapshot, and a graceful restart behind the new
+  shared confirm dialog every future destructive action in this shell
+  can reuse); every other one of the remaining 17 real panels shows a
   real "not yet migrated" placeholder (a small amber dot next to its
   nav label) rather than a fake, empty-but-styled panel pretending to
   be done. Run `python main.py --qtquick` to see this shell - the

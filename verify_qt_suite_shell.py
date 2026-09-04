@@ -20,6 +20,7 @@ from PySide6.QtGui import QGuiApplication
 from hydra_suite.app import SuiteController
 from hydra_suite.models import HydraState
 from hydra_suite.ui.nav_sidebar import ALL_DOCK_KEYS
+from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from qt_suite import MIGRATED_PANELS, SuiteQtBridge
 
 
@@ -196,6 +197,57 @@ def _run() -> None:
     assert bridge.adminLogsLines == ["[ADMIN] fourth line"], "a paused panel must not pick up a new poll"
     bridge.toggleAdminLogsLive()
     bridge.removeServer(al_conn_id)
+
+    # --- admin server: real port config load/save + hydra-info snapshot ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    as_conn_id = bridge.serverRows[0]["connId"]
+    as_conn = controller.connections[as_conn_id]
+    as_conn.role = "admin"
+
+    async def _fake_server_config():
+        return (200, {"port": 3000, "pendingPort": None})
+
+    async def _fake_hydra_info():
+        return (200, {"product": "HYDRA-UMC Server", "appVersion": "1.4.0", "uptimeSeconds": 7384, "controllerCount": 2, "robotCount": 5, "hostname": "hydra-cell-1"})
+
+    as_conn.fetch_admin_server_config = _fake_server_config
+    as_conn.fetch_hydra_info = _fake_hydra_info
+    loop.run_until_complete(bridge._refresh_admin_server())
+    assert bridge.adminServerInfoVisible is True
+    assert bridge.adminServerProduct == "HYDRA-UMC Server"
+    assert bridge.adminServerVersion == "v1.4.0"
+    assert bridge.adminServerUptime == _format_uptime(7384)
+    assert bridge.adminServerControllerCount == "2" and bridge.adminServerRobotCount == "5"
+    assert bridge.adminServerHost == "hydra-cell-1"
+    assert bridge.adminServerPendingPortText == "3000"
+
+    save_calls = []
+
+    async def _fake_save_port(port):
+        save_calls.append(port)
+        return (200, {})
+
+    as_conn.save_admin_server_port = _fake_save_port
+    loop.run_until_complete(bridge._save_admin_server_port("not-a-port"))
+    assert save_calls == [], "an invalid port must never reach the real save call"
+    assert bridge.adminServerStatusText == bridge.uiText("MSG_ADMIN_SERVER_PORT_INVALID")
+    loop.run_until_complete(bridge._save_admin_server_port("70000"))
+    assert save_calls == [], "an out-of-range port must never reach the real save call"
+    loop.run_until_complete(bridge._save_admin_server_port("8080"))
+    assert save_calls == [8080]
+    assert bridge.adminServerStatusText == bridge.uiText("MSG_ADMIN_SERVER_PORT_SAVED")
+
+    restart_calls = []
+
+    async def _fake_restart():
+        restart_calls.append(True)
+        return (200, {})
+
+    as_conn.restart_server = _fake_restart
+    loop.run_until_complete(bridge._restart_admin_server())
+    assert restart_calls == [True]
+    assert bridge.adminServerStatusText == bridge.uiText("MSG_ADMIN_SERVER_RESTART_REQUESTED")
+    bridge.removeServer(as_conn_id)
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

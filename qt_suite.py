@@ -61,6 +61,7 @@ from hydra_suite.models import JOINT_NAMES, HydraState, RobotView, ServerInfo
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
 from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
+from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
@@ -87,7 +88,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server"})
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
 _ADMIN_LOGS_LINES = 300
@@ -228,6 +229,17 @@ class SuiteQtBridge(QObject):
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_logs()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_logs()))
         asyncio.ensure_future(self._refresh_admin_logs())
+
+        # -- Admin Server (ported from admin_server_panel.py's own
+        # AdminServerPanel - _format_uptime imported directly from
+        # there, never duplicated). --
+        self._admin_server_status_text = _("MSG_ADMIN_ONLY")
+        self._admin_server_current_port: int | None = None
+        self._admin_server_pending_port_text = ""
+        self._admin_server_info: dict[str, object] = {}
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_server()))
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_server()))
+        asyncio.ensure_future(self._refresh_admin_server())
 
     # -- navigation --------------------------------------------------------
 
@@ -840,6 +852,124 @@ class SuiteQtBridge(QObject):
             return
         self._admin_logs_all_lines = body.get("lines") or []
         self._admin_logs_status_text = _("LBL_LOGS_FOOTER_LIVE", lines=_ADMIN_LOGS_LINES, seconds=_ADMIN_LOGS_POLL_MS // 1000)
+        self.changed.emit()
+
+    # -- Admin Server ------------------------------------------------------
+
+    @Property(str, notify=changed)
+    def adminServerStatusText(self) -> str:
+        return self._admin_server_status_text
+
+    @Property(bool, notify=changed)
+    def adminServerInfoVisible(self) -> bool:
+        return bool(self._admin_server_info)
+
+    @Property(str, notify=changed)
+    def adminServerProduct(self) -> str:
+        return str(self._admin_server_info.get("product") or "-")
+
+    @Property(str, notify=changed)
+    def adminServerVersion(self) -> str:
+        version = self._admin_server_info.get("appVersion")
+        return f"v{version}" if version else "-"
+
+    @Property(str, notify=changed)
+    def adminServerUptime(self) -> str:
+        return _format_uptime(self._admin_server_info.get("uptimeSeconds"))
+
+    @Property(str, notify=changed)
+    def adminServerControllerCount(self) -> str:
+        return str(self._admin_server_info.get("controllerCount", "-"))
+
+    @Property(str, notify=changed)
+    def adminServerRobotCount(self) -> str:
+        return str(self._admin_server_info.get("robotCount", "-"))
+
+    @Property(str, notify=changed)
+    def adminServerHost(self) -> str:
+        return str(self._admin_server_info.get("hostname") or "-")
+
+    @Property(str, notify=changed)
+    def adminServerPortLabel(self) -> str:
+        port = self._admin_server_current_port if self._admin_server_current_port is not None else "..."
+        return _("LBL_ADMIN_SERVER_PORT_CURRENT", port=port)
+
+    @Property(str, notify=changed)
+    def adminServerPendingPortText(self) -> str:
+        return self._admin_server_pending_port_text
+
+    async def _refresh_admin_server(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._admin_server_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
+            self.changed.emit()
+            return
+        if not conn.is_admin:
+            self._admin_server_status_text = _("MSG_ADMIN_ONLY")
+            self.changed.emit()
+            return
+        result = await conn.fetch_admin_server_config()
+        if result is None:
+            self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict):
+            self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        self._admin_server_status_text = ""
+        self._admin_server_current_port = body.get("port")
+        pending = body.get("pendingPort")
+        self._admin_server_pending_port_text = str(pending if pending is not None else self._admin_server_current_port or "")
+
+        info_result = await conn.fetch_hydra_info()
+        if info_result is not None:
+            info_status, info_body = info_result
+            if info_status == 200 and isinstance(info_body, dict):
+                self._admin_server_info = info_body
+        self.changed.emit()
+
+    @Slot(str)
+    def saveAdminServerPort(self, text: str) -> None:
+        asyncio.ensure_future(self._save_admin_server_port(text))
+
+    async def _save_admin_server_port(self, text: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        try:
+            port = int(text)
+        except ValueError:
+            self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_INVALID")
+            self.changed.emit()
+            return
+        if not (1 <= port <= 65535):
+            self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_INVALID")
+            self.changed.emit()
+            return
+        result = await conn.save_admin_server_port(port)
+        if result is None or result[0] != 200:
+            self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_SAVED")
+        self.changed.emit()
+
+    @Slot()
+    def restartAdminServer(self) -> None:
+        asyncio.ensure_future(self._restart_admin_server())
+
+    async def _restart_admin_server(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        result = await conn.restart_server()
+        if result is None or result[0] != 200:
+            self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        self._admin_server_status_text = _("MSG_ADMIN_SERVER_RESTART_REQUESTED")
         self.changed.emit()
 
     # -- Overview --------------------------------------------------------

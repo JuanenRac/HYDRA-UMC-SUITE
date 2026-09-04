@@ -45,6 +45,20 @@ ApplicationWindow {
     // currently editing - "" when none.
     property string credentialsConnId: ""
 
+    // Generic destructive-action confirm, shared by any panel that
+    // needs one (Admin Server's own restart today) - same real shape
+    // as URTC-FLASHER's own requestConfigWrite/configConfirm.
+    property string pendingConfirmTitle: ""
+    property string pendingConfirmBody: ""
+    property var pendingConfirmAction: null
+
+    function requestConfirm(title, body, action) {
+        pendingConfirmTitle = title
+        pendingConfirmBody = body
+        pendingConfirmAction = action
+        confirmDialog.open()
+    }
+
     function openCredentials(connId) {
         var creds = suiteBackend.serverCredentials(connId)
         window.credentialsConnId = connId
@@ -205,6 +219,25 @@ ApplicationWindow {
         onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text)
     }
 
+    Dialog {
+        id: confirmDialog
+        anchors.centerIn: parent
+        modal: true
+        width: 420
+        title: window.pendingConfirmTitle
+        standardButtons: Dialog.Cancel
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+        contentItem: ColumnLayout {
+            spacing: 14
+            Text { text: window.pendingConfirmBody; color: window.textPrimary; wrapMode: Text.WordWrap; Layout.preferredWidth: 380 }
+            Button {
+                text: suiteBackend.uiText("BTN_SAVE")
+                Layout.fillWidth: true
+                onClicked: { confirmDialog.close(); if (window.pendingConfirmAction) window.pendingConfirmAction() }
+            }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -307,6 +340,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "ai_family") return aiFamilyComponent
                     if (suiteBackend.activePanel === "admin_clients") return adminClientsComponent
                     if (suiteBackend.activePanel === "admin_logs") return adminLogsComponent
+                    if (suiteBackend.activePanel === "admin_server") return adminServerComponent
                     return notMigratedComponent
                 }
             }
@@ -802,6 +836,84 @@ ApplicationWindow {
                     wrapMode: Text.WrapAnywhere
                 }
             }
+        }
+    }
+
+    Component {
+        id: adminServerComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 12
+            Text { text: suiteBackend.uiText("HEADING_ADMIN_SERVER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.adminServerStatusText; color: window.muted; font.pixelSize: 11 }
+            Card {
+                visible: suiteBackend.adminServerInfoVisible
+                Layout.fillWidth: true
+                Layout.preferredHeight: 80
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 6
+                    RowLayout {
+                        Text { text: suiteBackend.adminServerProduct; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Item { Layout.fillWidth: true }
+                        Text { text: suiteBackend.adminServerVersion; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                    }
+                    RowLayout {
+                        spacing: 24
+                        ColumnLayout {
+                            spacing: 1
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_UPTIME"); color: window.muted; font.pixelSize: 8 }
+                            Text { text: suiteBackend.adminServerUptime; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                        }
+                        ColumnLayout {
+                            spacing: 1
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_CONTROLLERS"); color: window.muted; font.pixelSize: 8 }
+                            Text { text: suiteBackend.adminServerControllerCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                        }
+                        ColumnLayout {
+                            spacing: 1
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_ROBOTS"); color: window.muted; font.pixelSize: 8 }
+                            Text { text: suiteBackend.adminServerRobotCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                        }
+                        ColumnLayout {
+                            spacing: 1
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_HOST"); color: window.muted; font.pixelSize: 8 }
+                            Text { text: suiteBackend.adminServerHost; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                        }
+                    }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Text { text: suiteBackend.adminServerPortLabel; color: window.muted; font.pixelSize: 11 }
+                TextField {
+                    id: portField
+                    text: suiteBackend.adminServerPendingPortText
+                    color: window.textPrimary
+                    Layout.preferredWidth: 100
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                Button { text: suiteBackend.uiText("BTN_SAVE"); onClicked: suiteBackend.saveAdminServerPort(portField.text) }
+            }
+            Text {
+                text: suiteBackend.uiText("MSG_ADMIN_SERVER_PORT_NOTE")
+                color: window.amber
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                font.pixelSize: 10
+            }
+            Button {
+                id: restartButton
+                text: suiteBackend.uiText("BTN_RESTART_SERVER")
+                onClicked: window.requestConfirm(
+                    suiteBackend.uiText("TITLE_RESTART_SERVER"),
+                    suiteBackend.uiText("MSG_ADMIN_SERVER_RESTART_CONFIRM"),
+                    function() { suiteBackend.restartAdminServer() })
+                contentItem: Text { text: restartButton.text; color: "#ee6b80"; horizontalAlignment: Text.AlignHCenter }
+            }
+            Item { Layout.fillHeight: true }
         }
     }
 
