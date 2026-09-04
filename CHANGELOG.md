@@ -94,6 +94,16 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     `import QtCharts` in QML - that module segfaults on load in this
     real environment (PySide6 6.11.1, confirmed both offscreen and
     on-screen - a real crash, not a test artifact).
+  - **XY Table** - the same real, deliberately-preserved
+    `hasXYTable`/`xyTable` quirk the classic panel already documents:
+    Enable sets only the flag (the settings page shows with a 500mm
+    display fallback, but the real config object doesn't exist yet, so
+    width/jog are genuine no-ops) until Reset actually creates one
+    (writing 300mm - a real, different number from the display
+    fallback). Own independent robot selection, not shared with Robot
+    Control/Trajectory, matching the classic panel's own separate
+    combo box. The right-hand "3D Live View" isn't ported, same real,
+    separate omission as every panel in this family.
 
 ## [0.3.9]
 

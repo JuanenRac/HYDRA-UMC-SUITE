@@ -361,6 +361,66 @@ def _run() -> None:
     assert bridge.telemetryShowStats is False
     bridge.removeServer(tel_conn_id)
 
+    # --- xy table: real has_xy_table/xy_table quirk (two genuinely
+    # separate fields, no-op guards until Reset creates one), own real
+    # independent robot selection (not shared with Robot Control) ---
+    fake_state_xy = HydraState({
+        "settings": {}, "activeControllerId": "c1",
+        "controllers": [{"id": "c1", "name": "Cell", "ip": "10.0.0.1", "robots": [
+            {"id": "x1", "model": "XY-Bot"},
+        ]}],
+    })
+    controller.active_state_changed.emit(fake_state_xy)
+    assert bridge.xySelectedRobotId == "x1"
+    assert bridge.xyHasRobot is True
+    assert bridge.xyHasTable is False, "a robot with no hasXYTable flag must show the empty state"
+    assert bridge.xyCanReset is False, "Reset must stay disabled until a table exists at all"
+    assert bridge.xyWidth == 500 and bridge.xyLength == 500, "display fallback is 500mm before any real xyTable object exists"
+
+    push_calls_xy = []
+    controller.push_active_state = lambda: push_calls_xy.append(True)
+    bridge.enableXyTable()
+    # handleAddTable()'s own real quirk: only the flag is set, no
+    # xyTable block yet - the classic UI still switches to the settings
+    # page on has_xy_table alone (xyHasTable mirrors that flag exactly)
+    # and shows the 500mm DISPLAY fallback, but the underlying object is
+    # still genuinely None.
+    assert bridge.xyHasTable is True
+    xy_robot = bridge._xy_selected_robot()
+    assert xy_robot.has_xy_table is True
+    assert xy_robot.xy_table is None
+    assert bridge.xyWidth == 500 and bridge.xyLength == 500
+
+    # The no-op guards: width/jog must do nothing against a robot with
+    # the flag but no real xyTable object yet - matches
+    # handleSizeChange()/handleJog()'s own real no-op guards.
+    before_push_count = len(push_calls_xy)
+    bridge.setXyWidth(800)
+    bridge.jogXyTable("x", 1)
+    assert len(push_calls_xy) == before_push_count, "a no-op guard must never call push_active_state()"
+    assert xy_robot.xy_table is None, "still no real table object until Reset"
+
+    bridge.resetXyTable()
+    assert bridge.xyHasTable is True
+    assert bridge.xyWidth == 300 and bridge.xyLength == 300, "Reset writes 300mm, a real different number from the 500mm display fallback"
+    assert bridge.xyPosX == "0.00" and bridge.xyPosY == "0.00"
+
+    bridge.setXyWidth(1200)
+    assert bridge.xyWidth == 1200
+
+    bridge.setXyJogStep(10.0)
+    bridge.jogXyTable("x", 1)
+    assert bridge.xyPosX == "10.00"
+    bridge.jogXyTable("x", -1)
+    assert bridge.xyPosX == "0.00"
+    # Jog must clamp to the real table bound, never walk past it.
+    for _ in range(200):
+        bridge.jogXyTable("x", 1)
+    assert float(bridge.xyPosX) == 1200.0, "jog must clamp at the real configured width, not overshoot"
+
+    bridge.disableXyTable()
+    assert bridge.xyHasTable is False
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

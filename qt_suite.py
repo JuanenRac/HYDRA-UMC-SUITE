@@ -43,6 +43,7 @@ used while THEY were mid-migration.
 from __future__ import annotations
 
 import asyncio
+import json
 import sys
 import time
 from dataclasses import dataclass
@@ -65,6 +66,11 @@ from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.ui.panels.xy_table_panel import (
+    _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
+    JOG_STEPS_MM as _XY_JOG_STEPS_MM,
+    _default_xy_table,
+)
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
@@ -90,7 +96,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table"})
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
 _ADMIN_LOGS_LINES = 300
@@ -280,6 +286,17 @@ class SuiteQtBridge(QObject):
         self._tel_line_points: list[dict[str, float]] = []
         self._tel_bars: list[dict[str, object]] = []
         self._tel_stats: dict[str, str] = {}
+
+        # -- XY Table (ported from xy_table_panel.py's own XYTablePanel -
+        # _default_xy_table/_DISPLAY_DEFAULT_SIZE_MM/JOG_STEPS_MM
+        # imported directly from there, never duplicated. Own real,
+        # independent robot selection - NOT shared with Robot Control/
+        # Trajectory's own, matching the classic panel's own real
+        # independent QComboBox). --
+        self._xy_selected_robot_id: str | None = None
+        self._xy_jog_step_mm = 10.0
+        self._xy_robots_cache: list[RobotView] = []
+        controller.active_state_changed.connect(self._on_xy_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -1320,6 +1337,171 @@ class SuiteQtBridge(QObject):
             "avg": f"{sum(values) / len(values):.2f}",
             "count": str(len(values)),
         }
+
+    # -- XY Table ------------------------------------------------------------
+
+    def _on_xy_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+        self._xy_robots_cache = robots
+        if self._xy_selected_robot_id not in {r.id for r in robots}:
+            self._xy_selected_robot_id = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _xy_selected_robot(self) -> RobotView | None:
+        for r in self._xy_robots_cache:
+            if r.id == self._xy_selected_robot_id:
+                return r
+        return None
+
+    @Property("QVariantList", notify=changed)
+    def xyRobotOptions(self) -> list[dict[str, str]]:
+        return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._xy_robots_cache]
+
+    @Property(str, notify=changed)
+    def xySelectedRobotId(self) -> str:
+        return self._xy_selected_robot_id or ""
+
+    @Slot(str)
+    def selectXyRobot(self, robot_id: str) -> None:
+        if robot_id != self._xy_selected_robot_id:
+            self._xy_selected_robot_id = robot_id or None
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def xyHasRobot(self) -> bool:
+        return self._xy_selected_robot() is not None
+
+    @Property(bool, notify=changed)
+    def xyHasTable(self) -> bool:
+        robot = self._xy_selected_robot()
+        return robot is not None and robot.has_xy_table
+
+    @Property(bool, notify=changed)
+    def xyCanReset(self) -> bool:
+        return self.xyHasRobot and self.xyHasTable
+
+    @Property(int, notify=changed)
+    def xyWidth(self) -> int:
+        robot = self._xy_selected_robot()
+        table = robot.xy_table if robot is not None else None
+        size = table["tableSize"] if table else {}
+        return int(size.get("width", _XY_DISPLAY_DEFAULT_SIZE_MM))
+
+    @Property(int, notify=changed)
+    def xyLength(self) -> int:
+        robot = self._xy_selected_robot()
+        table = robot.xy_table if robot is not None else None
+        size = table["tableSize"] if table else {}
+        return int(size.get("length", _XY_DISPLAY_DEFAULT_SIZE_MM))
+
+    @Property(str, notify=changed)
+    def xyPosX(self) -> str:
+        robot = self._xy_selected_robot()
+        table = robot.xy_table if robot is not None else None
+        pos = table["pos"] if table else {"x": 0, "y": 0}
+        return f"{float(pos.get('x', 0)):.2f}"
+
+    @Property(str, notify=changed)
+    def xyPosY(self) -> str:
+        robot = self._xy_selected_robot()
+        table = robot.xy_table if robot is not None else None
+        pos = table["pos"] if table else {"x": 0, "y": 0}
+        return f"{float(pos.get('y', 0)):.2f}"
+
+    @Property("QVariantList", constant=True)
+    def xyJogSteps(self) -> list[float]:
+        return list(_XY_JOG_STEPS_MM)
+
+    @Slot(float)
+    def setXyJogStep(self, value: float) -> None:
+        self._xy_jog_step_mm = value
+
+    @Slot()
+    def enableXyTable(self) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None:
+            return
+        # Matches XYTableConfig.tsx's own handleAddTable() exactly: only
+        # the flag, no xyTable block yet - see xy_table_panel.py's own
+        # header for why.
+        robot.set_has_xy_table(True)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def disableXyTable(self) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None:
+            return
+        robot.set_has_xy_table(False)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def resetXyTable(self) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None:
+            return
+        robot.set_xy_table(_default_xy_table())
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int)
+    def setXyWidth(self, value: int) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None:
+            return
+        table = robot.xy_table
+        if not table:
+            return  # matches XYTableConfig.tsx's own handleSizeChange() no-op guard
+        table["tableSize"]["width"] = value
+        robot.set_xy_table(table)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int)
+    def setXyLength(self, value: int) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None:
+            return
+        table = robot.xy_table
+        if not table:
+            return
+        table["tableSize"]["length"] = value
+        robot.set_xy_table(table)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, int)
+    def jogXyTable(self, axis: str, direction: int) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None or axis not in ("x", "y"):
+            return
+        table = robot.xy_table
+        if not table:
+            return  # matches XYTableConfig.tsx's own handleJog() no-op guard
+        new_value = table["pos"][axis] + direction * self._xy_jog_step_mm
+        bound = table["tableSize"]["width" if axis == "x" else "length"]
+        new_value = max(0.0, min(new_value, float(bound)))
+        table["pos"][axis] = new_value
+        robot.set_xy_table(table)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str)
+    def saveXyTableConfig(self, path: str) -> None:
+        robot = self._xy_selected_robot()
+        if robot is None:
+            return
+        table = robot.xy_table
+        if not table:
+            return
+        local_path = QUrl(path).toLocalFile() or path
+        if not local_path:
+            return
+        with open(local_path, "w", encoding="utf-8") as f:
+            json.dump(table, f, indent=2)
 
     # -- Overview --------------------------------------------------------
 

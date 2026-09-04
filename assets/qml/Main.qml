@@ -13,6 +13,7 @@
 // =============================================================================
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.VectorImage
 
@@ -219,6 +220,14 @@ ApplicationWindow {
         onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text)
     }
 
+    FileDialog {
+        id: xyTableSaveDialog
+        title: suiteBackend.uiText("BTN_SAVE_CONFIG")
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["JSON (*.json)"]
+        onAccepted: suiteBackend.saveXyTableConfig(selectedFile.toString())
+    }
+
     Dialog {
         id: confirmDialog
         anchors.centerIn: parent
@@ -343,6 +352,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "admin_server") return adminServerComponent
                     if (suiteBackend.activePanel === "ecosystem_services") return ecosystemServicesComponent
                     if (suiteBackend.activePanel === "ecosystem_telemetry") return ecosystemTelemetryComponent
+                    if (suiteBackend.activePanel === "xy_table") return xyTableComponent
                     return notMigratedComponent
                 }
             }
@@ -1236,6 +1246,120 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+    }
+
+    Component {
+        id: xyTableComponent
+        ColumnLayout {
+            id: xyTableRoot
+            width: contentLoader.width
+            spacing: 12
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_XY_TABLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.xyCanReset; onClicked: suiteBackend.resetXyTable() }
+                ComboBox {
+                    id: xyRobotCombo
+                    Layout.preferredWidth: 200
+                    model: suiteBackend.xyRobotOptions
+                    textRole: "label"
+                    valueRole: "id"
+                    Component.onCompleted: currentIndex = indexOfValue(suiteBackend.xySelectedRobotId)
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() {
+                            var idx = xyRobotCombo.indexOfValue(suiteBackend.xySelectedRobotId)
+                            if (idx !== xyRobotCombo.currentIndex) xyRobotCombo.currentIndex = idx
+                        }
+                    }
+                    onActivated: suiteBackend.selectXyRobot(currentValue)
+                }
+            }
+
+            ColumnLayout {
+                visible: !suiteBackend.xyHasTable
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 40
+                spacing: 8
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_ASSIGNED").replace("{machine}", "XY Table"); color: window.textPrimary; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_DESC"); color: window.muted; wrapMode: Text.WordWrap; Layout.preferredWidth: 320; horizontalAlignment: Text.AlignHCenter }
+                Button { text: suiteBackend.uiText("BTN_ENABLE_MODULE").replace("{machine}", "XY Table"); enabled: suiteBackend.xyHasRobot; onClicked: suiteBackend.enableXyTable(); Layout.alignment: Qt.AlignHCenter }
+            }
+
+            ColumnLayout {
+                visible: suiteBackend.xyHasTable
+                spacing: 10
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 110
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                            Button {
+                                id: xyRemoveButton
+                                text: suiteBackend.uiText("BTN_REMOVE_MODULE")
+                                contentItem: Text { text: xyRemoveButton.text; color: "#f43f5e" }
+                                onClicked: suiteBackend.disableXyTable()
+                            }
+                        }
+                        RowLayout {
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { id: widthSpin; from: 100; to: 5000; stepSize: 10; value: suiteBackend.xyWidth; editable: true; onValueModified: suiteBackend.setXyWidth(value) }
+                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { id: lengthSpin; from: 100; to: 5000; stepSize: 10; value: suiteBackend.xyLength; editable: true; onValueModified: suiteBackend.setXyLength(value) }
+                        }
+                    }
+                }
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 160
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+                        Text { text: suiteBackend.uiText("GROUP_JOG_CONTROL"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_STEP"); color: window.muted; font.pixelSize: 10 }
+                            ComboBox {
+                                id: stepCombo
+                                Layout.preferredWidth: 100
+                                model: suiteBackend.xyJogSteps.map(function(s) { return s + " mm" })
+                                currentIndex: 4
+                                onActivated: suiteBackend.setXyJogStep(suiteBackend.xyJogSteps[currentIndex])
+                            }
+                        }
+                        RowLayout {
+                            spacing: 24
+                            ColumnLayout {
+                                Text { text: "X Axis"; color: window.muted; font.pixelSize: 10 }
+                                Text { text: suiteBackend.xyPosX; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16 }
+                                RowLayout {
+                                    Button { text: "◀"; onClicked: suiteBackend.jogXyTable("x", -1) }
+                                    Button { text: "▶"; onClicked: suiteBackend.jogXyTable("x", 1) }
+                                }
+                            }
+                            ColumnLayout {
+                                Text { text: "Y Axis"; color: window.muted; font.pixelSize: 10 }
+                                Text { text: suiteBackend.xyPosY; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16 }
+                                RowLayout {
+                                    Button { text: "▼"; onClicked: suiteBackend.jogXyTable("y", -1) }
+                                    Button { text: "▲"; onClicked: suiteBackend.jogXyTable("y", 1) }
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
+                            Button { text: suiteBackend.uiText("BTN_SAVE_CONFIG"); Layout.alignment: Qt.AlignBottom; onClicked: xyTableSaveDialog.open() }
+                        }
+                    }
+                }
+            }
+            Item { Layout.fillHeight: true }
         }
     }
 
