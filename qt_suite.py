@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -83,7 +84,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory"})
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
@@ -106,6 +107,7 @@ class SuiteQtBridge(QObject):
 
     changed = Signal()
     _logsChanged = Signal()
+    _trajectoryChanged = Signal()
 
     def __init__(self, controller: SuiteController) -> None:
         super().__init__()
@@ -163,6 +165,12 @@ class SuiteQtBridge(QObject):
         # show, so nothing real is lost). --
         self._selected_robot_id: str | None = None
         self._active_robots_cache: list[RobotView] = []
+        # Trajectory (ported from trajectory_panel.py's own TrajectoryPanel -
+        # a real local-only point recorder, NOT yet HYDRA-UMC-STUDIO's own
+        # WORKS/*.json format, same real scope note that file's own header
+        # gives). Reset only when the SELECTED ROBOT ITSELF changes (see
+        # _select_robot below), never on every swarm tick.
+        self._trajectory_points: list[dict[str, object]] = []
         controller.active_state_changed.connect(self._on_robot_state_changed)
 
     # -- navigation --------------------------------------------------------
@@ -426,6 +434,11 @@ class SuiteQtBridge(QObject):
     def canControlRobot(self) -> bool:
         return self._selected_robot() is not None
 
+    @Property(str, notify=changed)
+    def selectedRobotLabel(self) -> str:
+        robot = self._selected_robot()
+        return _("LBL_ROBOT_SELECTED", id=robot.id, model=robot.model) if robot is not None else _("LBL_NO_ROBOT_SELECTED")
+
     @Property("QVariantList", notify=changed)
     def selectedRobotJoints(self) -> list[dict[str, object]]:
         robot = self._selected_robot()
@@ -447,14 +460,26 @@ class SuiteQtBridge(QObject):
         robots = active.robots if active is not None else []
         self._active_robots_cache = robots
         if self._selected_robot_id not in {r.id for r in robots}:
-            self._selected_robot_id = robots[0].id if robots else None
+            self._select_robot(robots[0].id if robots else None)
         self.changed.emit()
 
     @Slot(str)
     def selectRobot(self, robot_id: str) -> None:
-        if robot_id != self._selected_robot_id:
-            self._selected_robot_id = robot_id or None
-            self.changed.emit()
+        self._select_robot(robot_id or None)
+        self.changed.emit()
+
+    def _select_robot(self, new_id: str | None) -> None:
+        """The one real place _selected_robot_id ever changes - resets
+        the recorded trajectory points exactly like
+        trajectory_panel.py's own set_selected_robot does (only on an
+        actual robot-identity change, never on every swarm tick a
+        continuing selection would otherwise wipe recordings within
+        moments of making them)."""
+        if new_id == self._selected_robot_id:
+            return
+        self._selected_robot_id = new_id
+        self._trajectory_points = []
+        self._trajectoryChanged.emit()
 
     @Slot(str, float)
     def setJoint(self, joint_name: str, value: float) -> None:
@@ -499,6 +524,41 @@ class SuiteQtBridge(QObject):
             robot.id, "speed", {"acceleration": value}, lambda r, v=value: r.set_acceleration(v), debounce_ms=300
         )
         self.changed.emit()
+
+    # -- Trajectory --------------------------------------------------------
+
+    @Property("QVariantList", notify=_trajectoryChanged)
+    def trajectoryPoints(self) -> list[dict[str, object]]:
+        return [
+            {"time": p["_time"], "joints": " / ".join(f"{p[name]:.1f}" for name in JOINT_NAMES)}
+            for p in self._trajectory_points
+        ]
+
+    @Slot()
+    def recordTrajectoryPoint(self) -> None:
+        robot = self._selected_robot()
+        if robot is None:
+            return
+        point: dict[str, object] = dict(robot.joints)
+        point["_time"] = time.strftime("%H:%M:%S")
+        self._trajectory_points.append(point)
+        self._trajectoryChanged.emit()
+
+    @Slot(int)
+    def applyTrajectoryPoint(self, index: int) -> None:
+        robot = self._selected_robot()
+        if robot is None or not 0 <= index < len(self._trajectory_points):
+            return
+        point = self._trajectory_points[index]
+        for name in JOINT_NAMES:
+            robot.set_joint(name, point[name])
+        self._controller.push_active_state()
+
+    @Slot(int)
+    def deleteTrajectoryPoint(self, index: int) -> None:
+        if 0 <= index < len(self._trajectory_points):
+            del self._trajectory_points[index]
+            self._trajectoryChanged.emit()
 
     # -- Overview --------------------------------------------------------
 

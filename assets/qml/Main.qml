@@ -303,6 +303,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "overview") return overviewComponent
                     if (suiteBackend.activePanel === "servers") return serversComponent
                     if (suiteBackend.activePanel === "robot") return robotComponent
+                    if (suiteBackend.activePanel === "trajectory") return trajectoryComponent
                     return notMigratedComponent
                 }
             }
@@ -503,6 +504,73 @@ ApplicationWindow {
                 }
             }
             Item { Layout.fillHeight: true }
+        }
+    }
+
+    Component {
+        id: trajectoryComponent
+        ColumnLayout {
+            id: trajectoryRoot
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            property int selectedRow: -1
+            Text { text: suiteBackend.uiText("HEADING_TRAJECTORY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.selectedRobotLabel; color: window.muted; font.pixelSize: 11 }
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("COL_TIME"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                Text { text: suiteBackend.uiText("HEADING_ROBOT_CONTROL") + " (J1…J6)"; color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: suiteBackend.trajectoryPoints
+                spacing: 3
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    width: ListView.view.width
+                    height: 28
+                    radius: 6
+                    color: trajectoryRoot.selectedRow === index ? "#1a4967" : (index % 2 === 0 ? "transparent" : window.panelAlt)
+                    border.width: trajectoryRoot.selectedRow === index ? 1 : 0
+                    border.color: window.green
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 6
+                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 94 }
+                        Text { text: modelData.joints; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true }
+                    }
+                    MouseArea { anchors.fill: parent; onClicked: trajectoryRoot.selectedRow = index }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Button {
+                    text: suiteBackend.uiText("BTN_RECORD_POSE")
+                    enabled: suiteBackend.canControlRobot
+                    onClicked: {
+                        suiteBackend.recordTrajectoryPoint()
+                        trajectoryRoot.selectedRow = suiteBackend.trajectoryPoints.length - 1
+                    }
+                }
+                Button {
+                    text: suiteBackend.uiText("BTN_JOG_TO_POINT")
+                    enabled: suiteBackend.canControlRobot && trajectoryRoot.selectedRow >= 0
+                    onClicked: suiteBackend.applyTrajectoryPoint(trajectoryRoot.selectedRow)
+                }
+                Button {
+                    text: suiteBackend.uiText("BTN_DELETE_POINT")
+                    enabled: trajectoryRoot.selectedRow >= 0
+                    onClicked: {
+                        suiteBackend.deleteTrajectoryPoint(trajectoryRoot.selectedRow)
+                        trajectoryRoot.selectedRow = -1
+                    }
+                }
+            }
         }
     }
 

@@ -155,6 +155,35 @@ def _run() -> None:
     bridge.selectRobot("does-not-exist")
     assert bridge.canControlRobot is False, "selecting an unknown id must not silently keep the old robot armed"
 
+    # --- trajectory: real point record/apply/delete against the real
+    # RobotView (push_active_state is stubbed the same way
+    # send_robot_command was above - HydraConnection.push_state()'s own
+    # network half is not this bridge's surface either) ---
+    bridge.selectRobot("r1")
+    assert bridge.trajectoryPoints == []
+    bridge.recordTrajectoryPoint()
+    assert len(bridge.trajectoryPoints) == 1
+    assert bridge.trajectoryPoints[0]["joints"] == "0.0 / 0.0 / 0.0 / 0.0 / 0.0 / 0.0"
+    bridge.setJoint("j2", 30.0)  # local_mutate never actually applied (stubbed above) - set the raw dict directly instead
+    bridge._selected_robot().raw["joints"] = {**bridge._selected_robot().raw.get("joints", {}), "j2": 30.0}
+    bridge.recordTrajectoryPoint()
+    assert len(bridge.trajectoryPoints) == 2
+    assert "30.0" in bridge.trajectoryPoints[1]["joints"]
+
+    push_calls = []
+    controller.push_active_state = lambda: push_calls.append(True)
+    bridge.applyTrajectoryPoint(0)  # point 0 was recorded before the j2=30 edit -> j2 back to 0.0
+    assert len(push_calls) == 1
+    assert bridge._selected_robot().raw["joints"]["j2"] == 0.0
+
+    bridge.deleteTrajectoryPoint(0)
+    assert len(bridge.trajectoryPoints) == 1
+
+    # Switching the selected robot resets recorded points - matches
+    # trajectory_panel.py's own set_selected_robot exactly.
+    bridge.selectRobot("r2")
+    assert bridge.trajectoryPoints == [], "switching robots must reset recorded trajectory points"
+
     # --- QML itself loads with zero warnings ---
     from PySide6.QtQml import QQmlApplicationEngine
     from PySide6.QtQuickControls2 import QQuickStyle

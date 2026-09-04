@@ -45,8 +45,10 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   and speed/acceleration, routed through the exact same atomic,
   debounced `send_robot_command()`/optimistic-update path the classic
   panel uses, RotaryKnob's own custom dial not reproduced since a
-  Slider alone already sets the identical real value); every other one
-  of the remaining 22 real panels shows a
+  Slider alone already sets the identical real value; Trajectory - the
+  same real local-only point recorder as the classic panel, record/jog-
+  to-point/delete, points reset only when the selected robot itself
+  changes); every other one of the remaining 21 real panels shows a
   real "not yet migrated" placeholder (a small amber dot next to its
   nav label) rather than a fake, empty-but-styled panel pretending to
   be done. Run `python main.py --qtquick` to see this shell - the
