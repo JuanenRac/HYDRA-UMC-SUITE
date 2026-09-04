@@ -59,6 +59,7 @@ from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import JOINT_NAMES, HydraState, RobotView, ServerInfo
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
+from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
@@ -84,7 +85,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family"})
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
@@ -172,6 +173,17 @@ class SuiteQtBridge(QObject):
         # _select_robot below), never on every swarm tick.
         self._trajectory_points: list[dict[str, object]] = []
         controller.active_state_changed.connect(self._on_robot_state_changed)
+
+        # -- AI Family Status (ported from ai_family_status_panel.py's own
+        # AiFamilyStatusPanel - AI_FAMILIES imported directly from there,
+        # never duplicated). --
+        self._ai_family_projects: list[dict] = []
+        self._ai_family_ai_hailo: dict[str, str] = {}
+        self._ai_family_status_text = _("LBL_ES_NOT_LOADED")
+        self._ai_family_refreshing = False
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_ai_family()))
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_ai_family()))
+        asyncio.ensure_future(self._refresh_ai_family())
 
     # -- navigation --------------------------------------------------------
 
@@ -559,6 +571,73 @@ class SuiteQtBridge(QObject):
         if 0 <= index < len(self._trajectory_points):
             del self._trajectory_points[index]
             self._trajectoryChanged.emit()
+
+    # -- AI Family Status --------------------------------------------------
+
+    @Property(str, notify=changed)
+    def aiFamilyStatusText(self) -> str:
+        return self._ai_family_status_text
+
+    @Property(bool, notify=changed)
+    def aiFamilyRefreshing(self) -> bool:
+        return self._ai_family_refreshing
+
+    @Property("QVariantList", notify=changed)
+    def aiFamilyGroups(self) -> list[dict[str, object]]:
+        groups: list[dict[str, object]] = []
+        for family, device_key, device_label in AI_FAMILIES:
+            items = [p for p in self._ai_family_projects if p.get("family") == family]
+            live_count = sum(1 for p in items if p.get("live") is True)
+            configured = self._ai_family_ai_hailo.get("visionDevice" if device_key == "hailo8" else "cognitiveDevice", "none")
+            title = _("LBL_AI_FAMILY_VISION", device=device_label) if device_key == "hailo8" else _("LBL_AI_FAMILY_COGNITIVE", device=device_label)
+            groups.append({
+                "title": title,
+                "devicePill": _("LBL_NONE_DEVICE") if configured == "none" else device_label,
+                "deviceConfigured": configured != "none",
+                "countText": _("LBL_AI_FAMILY_LIVE_COUNT", live=live_count, total=len(items)),
+                "mismatchWarning": _("MSG_AI_FAMILY_DEVICE_MISMATCH", family=family, device=device_label) if live_count > 0 and configured == "none" else "",
+                "projects": [
+                    {
+                        "name": str(p.get("name") or "-"),
+                        "meta": f"{p.get('role') or '-'} · v{p.get('version') or '-'}",
+                        "statusText": _("STATUS_ES_LIVE") if p.get("live") is True else (_("STATUS_ES_DEAD") if p.get("live") is False else _("STATUS_ES_NA")),
+                        "live": p.get("live"),
+                    }
+                    for p in items
+                ],
+            })
+        return groups
+
+    @Slot()
+    def refreshAiFamily(self) -> None:
+        asyncio.ensure_future(self._refresh_ai_family())
+
+    async def _refresh_ai_family(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._ai_family_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
+            self.changed.emit()
+            return
+        self._ai_family_refreshing = True
+        self.changed.emit()
+        try:
+            result = await conn.fetch_ecosystem_status()
+        finally:
+            self._ai_family_refreshing = False
+        if result is None:
+            self._ai_family_status_text = _("MSG_ES_LOAD_ERROR")
+            self.changed.emit()
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict) or not body.get("available"):
+            self._ai_family_status_text = _("MSG_ES_UNAVAILABLE")
+            self.changed.emit()
+            return
+        self._ai_family_status_text = ""
+        families = {f for f, _dev, _label in AI_FAMILIES}
+        self._ai_family_projects = [p for p in (body.get("projects") or []) if p.get("family") in families]
+        self._ai_family_ai_hailo = conn.state.ai_hailo
+        self.changed.emit()
 
     # -- Overview --------------------------------------------------------
 

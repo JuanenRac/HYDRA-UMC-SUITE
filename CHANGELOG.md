@@ -48,7 +48,11 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   Slider alone already sets the identical real value; Trajectory - the
   same real local-only point recorder as the classic panel, record/jog-
   to-point/delete, points reset only when the selected robot itself
-  changes); every other one of the remaining 21 real panels shows a
+  changes; AI Family Status - the real GET /api/ecosystem/status scan
+  filtered to the 2 real AI families, cross-referenced against the same
+  server-persisted settings.aiHailo field STUDIO's own Config tab
+  writes, warning when a family has live projects but no Hailo device
+  configured); every other one of the remaining 20 real panels shows a
   real "not yet migrated" placeholder (a small amber dot next to its
   nav label) rather than a fake, empty-but-styled panel pretending to
   be done. Run `python main.py --qtquick` to see this shell - the

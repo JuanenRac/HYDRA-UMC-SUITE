@@ -87,6 +87,37 @@ def _run() -> None:
     bridge.removeServer(conn_id)
     assert bridge.serverRows == []
 
+    # --- ai family: real HydraConnection.fetch_ecosystem_status() shape,
+    # network call itself stubbed (this bridge's own real responsibility
+    # is grouping/labeling the response, not the HTTP call) ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    ai_conn_id = bridge.serverRows[0]["connId"]
+    ai_conn = controller.connections[ai_conn_id]
+
+    async def _fake_ecosystem_status():
+        return (200, {
+            "available": True,
+            "projects": [
+                {"family": "Vision AI Node", "name": "vision-node-1", "role": "inference", "version": "1.2.0", "live": True},
+                {"family": "Cognitive AI Node", "name": "cognitive-node-1", "role": "planner", "version": "0.9.0", "live": False},
+                {"family": "Datalake", "name": "datalake-1", "role": "storage", "version": "2.0.0", "live": True},  # not an AI family - must be filtered out
+            ],
+        })
+
+    ai_conn.fetch_ecosystem_status = _fake_ecosystem_status
+    ai_conn.state.raw["settings"] = {"aiHailo": {"visionDevice": "none", "cognitiveDevice": "hailo10"}}
+    loop.run_until_complete(bridge._refresh_ai_family())
+    groups = {g["title"]: g for g in bridge.aiFamilyGroups}
+    assert len(bridge.aiFamilyGroups) == 2, "only the 2 real AI families, Datalake must be filtered out"
+    vision = next(g for g in bridge.aiFamilyGroups if len(g["projects"]) == 1 and g["projects"][0]["name"] == "vision-node-1")
+    assert vision["deviceConfigured"] is False, "visionDevice is 'none' in the fake settings"
+    assert vision["mismatchWarning"] != "", "a live Vision project with no configured device must warn"
+    cognitive = next(g for g in bridge.aiFamilyGroups if g["projects"] and g["projects"][0]["name"] == "cognitive-node-1")
+    assert cognitive["deviceConfigured"] is True
+    assert cognitive["mismatchWarning"] == "", "no warning when the family has a real device configured"
+    assert cognitive["projects"][0]["live"] is False
+    bridge.removeServer(ai_conn_id)
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

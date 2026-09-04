@@ -304,6 +304,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "servers") return serversComponent
                     if (suiteBackend.activePanel === "robot") return robotComponent
                     if (suiteBackend.activePanel === "trajectory") return trajectoryComponent
+                    if (suiteBackend.activePanel === "ai_family") return aiFamilyComponent
                     return notMigratedComponent
                 }
             }
@@ -571,6 +572,96 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+    }
+
+    Component {
+        id: aiFamilyComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 12
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_AI_FAMILY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: suiteBackend.aiFamilyRefreshing ? "..." : suiteBackend.uiText("BTN_REFRESH")
+                    enabled: !suiteBackend.aiFamilyRefreshing
+                    onClicked: suiteBackend.refreshAiFamily()
+                }
+            }
+            Text {
+                visible: suiteBackend.aiFamilyStatusText !== ""
+                text: suiteBackend.aiFamilyStatusText
+                color: window.muted
+                font.pixelSize: 11
+            }
+            Repeater {
+                model: suiteBackend.aiFamilyGroups
+                delegate: ColumnLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    spacing: 6
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: modelData.title; color: window.muted; font.bold: true; font.pixelSize: 10 }
+                        Item { Layout.fillWidth: true }
+                        Rectangle {
+                            radius: 9
+                            implicitHeight: 20
+                            implicitWidth: pillText.implicitWidth + 18
+                            color: modelData.deviceConfigured ? "#123a4a" : window.panelAlt
+                            Text { id: pillText; anchors.centerIn: parent; text: modelData.devicePill; color: modelData.deviceConfigured ? "#4fc3f7" : window.muted; font.bold: true; font.pixelSize: 9 }
+                        }
+                    }
+                    Text {
+                        visible: modelData.mismatchWarning !== ""
+                        text: modelData.mismatchWarning
+                        color: window.amber
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                        font.pixelSize: 10
+                    }
+                    GridLayout {
+                        columns: 2
+                        columnSpacing: 8
+                        rowSpacing: 8
+                        Layout.fillWidth: true
+                        Repeater {
+                            model: modelData.projects
+                            delegate: Card {
+                                required property var modelData
+                                Layout.preferredWidth: 360
+                                Layout.preferredHeight: 46
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    ColumnLayout {
+                                        spacing: 2
+                                        Layout.fillWidth: true
+                                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                                        Text { text: modelData.meta; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                                    }
+                                    Text {
+                                        text: modelData.statusText
+                                        color: modelData.live === true ? window.green : (modelData.live === false ? "#ee6b80" : window.muted)
+                                        font.bold: true
+                                        font.pixelSize: 9
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        visible: modelData.projects.length === 0
+                        text: suiteBackend.uiText("MSG_ES_NONE")
+                        color: "#556070"
+                        font.pixelSize: 10
+                    }
+                    Text { text: modelData.countText; color: "#556070"; font.pixelSize: 9 }
+                }
+            }
+            Item { Layout.fillHeight: true }
         }
     }
 
