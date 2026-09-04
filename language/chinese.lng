@@ -455,3 +455,9 @@ NAV_BACK_TO_ROOT=返回根菜单
 NAV_SECTION_ECOSYSTEM=生态系统
 
 LBL_CONNECTING_STREAM=连接中...
+
+# Qt Quick command deck (qt_suite.py) - real, new keys only;
+# every panel label/help text reuses existing keys above verbatim.
+QT_NOT_YET_MIGRATED_TITLE=尚未迁移
+QT_NOT_YET_MIGRATED_BODY=该面板的实际内容尚未移植到 Qt Quick。不加 --qtquick 运行即可使用拥有该内容的经典视图。
+QT_SUITE_TAGLINE=蜂群指挥台

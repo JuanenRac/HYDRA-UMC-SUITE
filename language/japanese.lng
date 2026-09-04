@@ -455,3 +455,9 @@ NAV_BACK_TO_ROOT=ルートに戻る
 NAV_SECTION_ECOSYSTEM=エコシステム
 
 LBL_CONNECTING_STREAM=接続中...
+
+# Qt Quick command deck (qt_suite.py) - real, new keys only;
+# every panel label/help text reuses existing keys above verbatim.
+QT_NOT_YET_MIGRATED_TITLE=未移行
+QT_NOT_YET_MIGRATED_BODY=このパネルの実際の内容はまだ Qt Quick に移植されていません。--qtquick を付けずに実行すると、内容のあるクラシック表示になります。
+QT_SUITE_TAGLINE=スワームコマンドデッキ

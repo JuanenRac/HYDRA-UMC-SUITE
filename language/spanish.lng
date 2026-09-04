@@ -456,3 +456,9 @@ NAV_BACK_TO_ROOT=Volver al inicio
 NAV_SECTION_ECOSYSTEM=Ecosistema
 
 LBL_CONNECTING_STREAM=CONECTANDO...
+
+# Qt Quick command deck (qt_suite.py) - real, new keys only;
+# every panel label/help text reuses existing keys above verbatim.
+QT_NOT_YET_MIGRATED_TITLE=Aun sin migrar
+QT_NOT_YET_MIGRATED_BODY=El contenido real de este panel todavia no esta portado a Qt Quick. Ejecuta sin --qtquick para la vista clasica, que si lo tiene.
+QT_SUITE_TAGLINE=PANEL DE MANDO DEL ENJAMBRE

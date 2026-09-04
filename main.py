@@ -35,6 +35,26 @@ IMAGES_DIR = Path(__file__).resolve().parent / "images"
 
 
 def main() -> int:
+    if "--qtquick" in sys.argv:
+        # The real "redesign from zero" this app's own CHANGELOG.md
+        # documents (see qt_suite.py's own module docstring for the
+        # full account) - only a subset of the 26 real panels are
+        # ported so far, every other one shows an honest placeholder.
+        # The classic QMainWindow+QDockWidget app below remains the
+        # default until real parity is reached, same opt-in convention
+        # URTC-TESTER/URTC-FLASHER used while THEY were mid-migration.
+        try:
+            from qt_suite import run_qtquick
+        except ImportError as exc:
+            print(
+                "ERROR: Qt Quick mode requires PySide6 and qasync. "
+                "Install this repository's requirements.txt first. "
+                f"Details: {exc}",
+                file=sys.stderr,
+            )
+            return 2
+        return run_qtquick()
+
     # Qt6 auto-scales by physical DPI by default (no AA_EnableHighDpiScaling
     # flag needed anymore, unlike Qt5), but its DEFAULT rounding policy snaps
     # a fractional OS scale factor (125%/150%/175% - Windows's own recommended

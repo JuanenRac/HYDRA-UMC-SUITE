@@ -16,7 +16,38 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
-(nothing yet)
+- **Real Qt Quick command-deck shell, the "redesign from zero" this
+  project needed** after both real ways of embedding QML inside the
+  established `QMainWindow`+`QDockWidget` tree proved unsafe:
+  `QQuickWidget` painted solid black; `QQuickView`+`createWindowContainer`
+  rendered correctly in isolation but corrupted sibling widgets' real
+  Z-order inside this app's actual 26-dock layout (NavSidebar vanished,
+  panels visually overlapped - reverted before shipping). New
+  `qt_suite.py`/`assets/qml/Main.qml` are a STANDALONE pure-QML
+  `ApplicationWindow` instead - the same real shape as
+  HYDRA-UMC-OS-REBUILDER/HYDRA-UMC-UPDATER/URTC-TESTER/URTC-FLASHER
+  (all of which already render correctly), not an embed, so the mixing
+  problem those two failed attempts hit doesn't apply here.
+  `hydra_suite.app.SuiteController` is reused completely unchanged - it
+  was already a plain, toolkit-agnostic `QObject` with Qt Signals.
+  Navigation trades `QDockWidget`'s float/split/tab-merge flexibility
+  for HYDRA-UMC-STUDIO's own simpler nav-sidebar-plus-single-content-
+  pane shape (the real taxonomy - `ROOT_ITEMS`/`INDUSTRIAL_ITEMS`/
+  `URTC_ITEMS`/`HYDRAUMC_ITEMS`/`HYDRAUMC_ECOSYSTEM_ITEMS` - is
+  transcribed from `nav_sidebar.py`'s own real source of truth, not a
+  third invented one), a deliberate real design choice per the
+  STUDIO<->SUITE parity rule.
+  **Real, honest status**: only Overview and Logs are ported to actual
+  QML content so far; every other one of the 26 real panels shows a
+  real "not yet migrated" placeholder (a small amber dot next to its
+  nav label) rather than a fake, empty-but-styled panel pretending to
+  be done. Run `python main.py --qtquick` to see this shell - the
+  classic, fully-functional `QDockWidget` app remains the default
+  entry point, same opt-in convention URTC-TESTER/URTC-FLASHER used
+  while THEY were mid-migration. New `verify_qt_suite_shell.py` (real
+  nav-taxonomy parity check against `nav_sidebar.py`'s own
+  `ALL_DOCK_KEYS`, real logging/filter/controller-signal assertions,
+  zero-QML-warnings load check).
 
 ## [0.3.9]
 
