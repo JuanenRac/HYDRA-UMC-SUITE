@@ -66,41 +66,55 @@
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # エントリポイント——フルスクリーン、最小 1920x1080、F11 でフルスクリーン/ウィンドウ表示を切替
+├── main.py                        # エントリーポイント - 最小1920x1080のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替
 ├── requirements.txt
-├── HYDRA-UMC_SUITE.spec           # PyInstaller の spec ファイル（下記 build_exe.bat/.sh 参照）
-├── build_exe.bat                  # ワンショット Windows ビルド -> dist/HYDRA-UMC_SUITE.exe
-├── build_exe.sh                   # ワンショット Linux ビルド -> dist/HYDRA-UMC_SUITE
-├── README.md                      # 本ファイル
-├── README_spa.md / README_ita.md / README_fra.md / README_deu.md / README_zho.md / README_jpn.md  <- 翻訳
+├── hydra-umc.project.json         # エコシステムマニフェスト - バージョン/ファミリー/親、dashboard/updater/OS-REBUILDERが読み取る実際の情報源
+├── bump_version.py                # hydra_suite/__init__.py自身の__version__に対するオドメーター式バージョン増分、実際のPyInstallerビルドの前にbuild_exe.bat/.shが実行する
+├── bump_manifest_version.py       # hydra-umc.project.jsonのバージョンをネイティブのものと同期（汎用、エコシステム全体でそのままコピーされる）
+├── build.bat / build.sh           # venv + 編集可能インストール + 実際のテストスイート（インクリメンタルビルド、バージョン管理あり）
+├── build-test.bat / build-test.sh # 同じチェックだが変更を伴わない - バージョンを増分せず、CHANGELOG.mdにも触れない
+├── run.bat / run.sh               # venv経由でmain.pyを起動
+├── HYDRA-UMC_SUITE.spec           # PyInstallerスペック（下記build_exe.bat/.sh参照）
+├── build_exe.bat                  # ワンショットのWindowsビルド -> dist/HYDRA-UMC_SUITE.exe
+├── build_exe.sh                   # ワンショットのLinuxビルド -> dist/HYDRA-UMC_SUITE
+├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
+├── README.md                      # このファイル
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- 翻訳版
+├── .github/                        # CIワークフロー、issueテンプレート、PRテンプレート（汎用、エコシステム共有）
 ├── hydra_suite/
-│   ├── models.py                   # HydraState/ControllerView/RobotView —— 実際の settings.json の形状に対する
-│   │                                 薄く、変更しやすいビュー
-│   ├── app.py                      # SuiteController —— 接続の群れ、「アクティブ」選択を保持、すべてのパネルがこれと通信
-│   ├── i18n.py                     # 7 言語 KEY=Value ローダー（language/*.lng）
+│   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView - 実際のsettings.json構造の上に構築された、軽量で変更しやすいビュー
+│   ├── app.py                      # SuiteController - 接続群と「アクティブ」選択を管理する。各パネルはこれと通信する
+│   ├── i18n.py                     # 7言語対応のKEY=Valueローダー（language/*.lng）
+│   ├── can_ota.py                  # 共有のCAN-OTA/SPI-OTAトランスポート（STUDIO自身のcanOta.tsの実際の移植）- FlasherとTesterで使用
+│   ├── logging_handler.py          # PythonのロギングをLogsパネルへルーティング
 │   ├── net/
-│   │   ├── discovery.py             # GET /api/hydra-info に対する並行サブネットスキャン + 実際のmDNS (_hydra._tcp)、重複排除済み
-│   │   └── client.py                # サーバーごとの REST + WebSocket 接続、リアルタイム双方向同期、ログイン
+│   │   ├── discovery.py             # 並行サブネットスキャン + 実際のmDNS（_hydra._tcp）、GET /api/hydra-infoに対する重複排除付き
+│   │   └── client.py                # サーバーごとのREST + WebSocket接続、実際の双方向ライブ同期、ログイン、管理/検出/PTZエンドポイント
 │   ├── render/
-│   │   ├── kinematics.py            # 正運動学（HYDRA-UMC-STUDIO 自身の urKinematicsShared.ts から移植）
-│   │   ├── generic_rig.py           # 専用メッシュセットを持たないあらゆるモデル向けのプリミティブ構築フォールバックリグ
-│   │   ├── mesh.py                  # STL 読み込み（numpy-stl）
-│   │   └── viewport.py              # QOpenGLWidget —— 実際の GLSL シェーダーパイプライン、オービットカメラ
+│   │   ├── kinematics.py            # 順運動学（HYDRA-UMC-STUDIO自身のurKinematicsShared.tsから移植）
+│   │   ├── generic_rig.py           # 専用メッシュを持たないモデル向けのプリミティブ構築フォールバックリグ
+│   │   ├── module_rig.py            # ツールアタッチメントモジュールのジオメトリ（CNC/レーザー/ヒートベッド/バキュームテーブル）
+│   │   ├── pnp_rig.py               # LumenPnP/JuanenPnPメッシュリグ用の実際のデカルトガントリーチェーン
+│   │   ├── mesh.py                  # STL読み込み（numpy-stl）
+│   │   └── viewport.py              # QOpenGLWidget - 実際のGLSLシェーダーパイプライン、オービットカメラ
 │   └── ui/
-│       ├── main_window.py           # QMainWindow + QDockWidget ワークスペース
-│       ├── theme.py                  # assets/qss/industrial_dark.qss を読み込み
-│       ├── widgets/rotary_knob.py    # カスタム描画のロータリーノブ（RotaryKnob.tsx のデスクトップ版対応物）
-│       └── panels/                   # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py, cameras_panel.py, logs_panel.py
+│       ├── main_window.py           # QMainWindow + QDockWidgetワークスペース
+│       ├── about_dialog.py          # 実際のAboutダイアログ（バージョン/作者/ライセンス）
+│       ├── theme.py                  # assets/qss/industrial_dark.qssを読み込み
+│       ├── widgets/rotary_knob.py    # カスタム描画のロータリーノブ（RotaryKnob.tsxのデスクトップ版対応物）
+│       └── panels/                   # ドッキング可能なパネルごとに1ファイル - STUDIO自身のタブとの実際の1:1パリティ：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+実際のPTZ制御）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
-│   ├── qss/industrial_dark.qss     # 未来的な産業用 Qt スタイルシート
-│   └── meshes/                      # 実際の STL メッシュ、ロボットごとに 1 フォルダ（24 モデル）、
-│                                       HYDRA-UMC-STUDIO 自身の public/models/<robot>/ からコピー（それぞれ自身の ATTRIBUTION.txt 付き）
-├── language/                        # english/spanish/italian/french/german/chinese/japanese の .lng ファイル
+│   ├── qss/industrial_dark.qss     # 未来的・産業的なQtスタイルシート
+│   └── meshes/                      # 実際のSTLメッシュ、ロボット/モジュールごとに1フォルダ、HYDRA-UMC-STUDIO自身のpublic/models/からコピー（それぞれ独自のATTRIBUTION.txt付き）
+├── language/                        # english/spanish/french/german/italian/japanese/chineseの.lngファイル
 ├── docs/
-│   └── ROADMAP.md                   # 実際に実装済みか否かを正直に述べたスコープ文書
-├── tests/                           # 手動の統合スモークテスト（実際に稼働中の HYDRA-UMC STUDIO サーバーが必要——
-│                                       モック化された単体テストスイートではない）+ 運動学検証スクリプト
-└── .vscode/                         # Python インタープリターのパス、起動設定、推奨拡張機能
+│   └── ROADMAP.md                   # 実際の範囲と未実装部分についての正直な記述
+├── tools/
+│   ├── build_test.py                # バージョン管理を伴わないコンパイルチェック（汎用、エコシステム共有）
+│   └── ci_validate.py               # CIで使用されるマニフェスト/CHANGELOG/ドキュメントの検証（汎用、エコシステム共有）
+├── tests/                           # 実際のヘッドレステストスイート（QApplication、ディスプレイ不要）- パネル/サブシステムごとに1つのverify_*.py、加えて運動学の移植と、実際に稼働中のSTUDIOサーバーが必要な手動スモークテスト
+├── installer/                       # プラットフォームごとのパッケージング資料・アセット
+└── .vscode/                         # Pythonインタープリターのパス、起動構成、推奨拡張機能
 ```
 
 ---

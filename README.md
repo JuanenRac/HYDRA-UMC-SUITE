@@ -142,35 +142,52 @@ below) to see the real thing rather than trust a stale image here later.
 HYDRA-UMC-SUITE/
 ├── main.py                        # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed
 ├── requirements.txt
+├── hydra-umc.project.json         # Ecosystem manifest - version/family/parent, the source dashboard/updater/OS-REBUILDER read
+├── bump_version.py                # Odometer version bump for hydra_suite/__init__.py's own __version__, run by build_exe.bat/.sh before every real PyInstaller build
+├── bump_manifest_version.py       # Syncs hydra-umc.project.json's version to the native one (generic, copied verbatim across the ecosystem)
+├── build.bat / build.sh           # venv + editable install + real test suite (incremental, versioning build)
+├── build-test.bat / build-test.sh # Same checks, non-mutating - never bumps the version or touches CHANGELOG.md
+├── run.bat / run.sh               # Launches main.py through the venv
 ├── HYDRA-UMC_SUITE.spec           # PyInstaller spec (see build_exe.bat/.sh below)
 ├── build_exe.bat                  # One-shot Windows build -> dist/HYDRA-UMC_SUITE.exe
 ├── build_exe.sh                   # One-shot Linux build -> dist/HYDRA-UMC_SUITE
+├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
 ├── README.md                      # this file
-├── README_spa.md / README_ita.md / README_fra.md / README_deu.md / README_zho.md / README_jpn.md  <- translations
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- translations
+├── .github/                        # CI workflow, issue templates, PR template (generic, ecosystem-shared)
 ├── hydra_suite/
-│   ├── models.py                   # HydraState/ControllerView/RobotView - thin, mutation-friendly views over the real settings.json shape
+│   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView - thin, mutation-friendly views over the real settings.json shape
 │   ├── app.py                      # SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
 │   ├── i18n.py                     # 7-language KEY=Value loader (language/*.lng)
+│   ├── can_ota.py                  # Shared CAN-OTA/SPI-OTA transport (real port of STUDIO's own canOta.ts) - used by Flasher and Tester
+│   ├── logging_handler.py          # Routes Python logging into the Logs panel
 │   ├── net/
 │   │   ├── discovery.py             # Concurrent subnet scan + real mDNS (_hydra._tcp) against GET /api/hydra-info, deduplicated
-│   │   └── client.py                # Per-server REST + WebSocket connection, live bidirectional sync, login
+│   │   └── client.py                # Per-server REST + WebSocket connection, live bidirectional sync, login, admin/discovery/PTZ endpoints
 │   ├── render/
 │   │   ├── kinematics.py            # Forward kinematics (ported from HYDRA-UMC-STUDIO's own urKinematicsShared.ts)
 │   │   ├── generic_rig.py           # Primitive-built fallback rig for any model with no dedicated mesh set
+│   │   ├── module_rig.py            # Tool-attachment module geometry (CNC/Laser/Heated Bed/Vacuum Table)
+│   │   ├── pnp_rig.py               # Real Cartesian-gantry chain for the LumenPnP/JuanenPnP mesh rig
 │   │   ├── mesh.py                  # STL loading (numpy-stl)
 │   │   └── viewport.py              # QOpenGLWidget - real GLSL shader pipeline, orbit camera
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + QDockWidget workspace
+│       ├── about_dialog.py          # Real About dialog (version/author/license)
 │       ├── theme.py                  # Loads assets/qss/industrial_dark.qss
 │       ├── widgets/rotary_knob.py    # Custom-painted rotary knob (desktop counterpart to RotaryKnob.tsx)
-│       └── panels/                   # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py, cameras_panel.py
+│       └── panels/                   # One file per dock panel - real 1:1 parity with STUDIO's own tabs: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ real PTZ control), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # The futuristic-industrial Qt stylesheet
-│   └── meshes/                      # Real STL meshes, one folder per robot (24 models), copied from HYDRA-UMC-STUDIO's own public/models/<robot>/ (each with its own ATTRIBUTION.txt)
-├── language/                        # english/spanish/italian/french/german .lng files
+│   └── meshes/                      # Real STL meshes, one folder per robot/module, copied from HYDRA-UMC-STUDIO's own public/models/ (each with its own ATTRIBUTION.txt)
+├── language/                        # english/spanish/french/german/italian/japanese/chinese .lng files
 ├── docs/
 │   └── ROADMAP.md                   # Honest real-vs-not-yet scope statement
-├── tests/                           # Manual integration smoke tests (require a real running HYDRA-UMC STUDIO server - not a mocked unit suite) + kinematics verification scripts
+├── tools/
+│   ├── build_test.py                # Non-versioning build/compile check (generic, ecosystem-shared)
+│   └── ci_validate.py               # Manifest/CHANGELOG/docs validation used by CI (generic, ecosystem-shared)
+├── tests/                           # Real headless test suite (QApplication, no display needed) - one verify_*.py per panel/subsystem, plus kinematics ports and manual smoke tests that need a real running STUDIO server
+├── installer/                       # Platform packaging notes/assets
 └── .vscode/                         # Python interpreter path, launch configs, recommended extensions
 ```
 

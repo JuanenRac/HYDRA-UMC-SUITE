@@ -66,40 +66,54 @@
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # 入口点——全屏，最小 1920x1080，F11 切换全屏/窗口模式
+├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口
 ├── requirements.txt
-├── HYDRA-UMC_SUITE.spec           # PyInstaller 规范文件（见下方 build_exe.bat/.sh）
-├── build_exe.bat                  # 一键式 Windows 构建 -> dist/HYDRA-UMC_SUITE.exe
-├── build_exe.sh                   # 一键式 Linux 构建 -> dist/HYDRA-UMC_SUITE
+├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
+├── bump_version.py                # 为 hydra_suite/__init__.py 自身的 __version__ 做里程表式版本递增，在每次真实的 PyInstaller 构建前由 build_exe.bat/.sh 运行
+├── bump_manifest_version.py       # 将 hydra-umc.project.json 的版本与原生版本同步（通用，在整个生态系统中原样复制）
+├── build.bat / build.sh           # venv + 可编辑安装 + 真实测试套件（增量构建，含版本递增）
+├── build-test.bat / build-test.sh # 相同的检查，但不产生变更 - 从不递增版本，也不改动 CHANGELOG.md
+├── run.bat / run.sh               # 通过 venv 启动 main.py
+├── HYDRA-UMC_SUITE.spec           # PyInstaller 规格文件（见下方 build_exe.bat/.sh）
+├── build_exe.bat                  # 一步式 Windows 构建 -> dist/HYDRA-UMC_SUITE.exe
+├── build_exe.sh                   # 一步式 Linux 构建 -> dist/HYDRA-UMC_SUITE
+├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
 ├── README.md                      # 本文件
-├── README_spa.md / README_ita.md / README_fra.md / README_deu.md / README_zho.md / README_jpn.md  <- 翻译
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- 翻译版本
+├── .github/                        # CI 工作流、issue 模板、PR 模板（通用，生态系统共享）
 ├── hydra_suite/
-│   ├── models.py                   # HydraState/ControllerView/RobotView —— 对真实 settings.json 结构的
-│   │                                 薄型、易于修改的视图
-│   ├── app.py                      # SuiteController —— 拥有整个连接集群、“活动”选择，每个面板都与它通信
-│   ├── i18n.py                     # 5 语言 KEY=Value 加载器（language/*.lng）
+│   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView —— 基于真实 settings.json 结构的轻量、可变视图
+│   ├── app.py                      # SuiteController —— 管理连接集群与"当前激活"选择；每个面板都与它通信
+│   ├── i18n.py                     # 7 语言 KEY=Value 加载器（language/*.lng）
+│   ├── can_ota.py                  # 共享的 CAN-OTA/SPI-OTA 传输层（STUDIO 自身 canOta.ts 的真实移植）—— 供 Flasher 和 Tester 使用
+│   ├── logging_handler.py          # 将 Python 日志路由到日志面板
 │   ├── net/
-│   │   ├── discovery.py             # 针对 GET /api/hydra-info 的并发子网扫描 + 真实 mDNS (_hydra._tcp),已去重
-│   │   └── client.py                # 每服务器 REST + WebSocket 连接、实时双向同步、登录
+│   │   ├── discovery.py             # 并发子网扫描 + 真实 mDNS（_hydra._tcp），对照 GET /api/hydra-info，带去重
+│   │   └── client.py                # 每台服务器的 REST + WebSocket 连接、实时双向同步、登录、管理/发现/PTZ 端点
 │   ├── render/
-│   │   ├── kinematics.py            # 正向运动学（从 HYDRA-UMC-STUDIO 自身的 urKinematicsShared.ts 移植）
-│   │   ├── generic_rig.py           # 面向任何没有专属网格集的型号的基本几何体后备装配
+│   │   ├── kinematics.py            # 正向运动学（移植自 HYDRA-UMC-STUDIO 自身的 urKinematicsShared.ts）
+│   │   ├── generic_rig.py           # 为没有专属网格的模型提供的基本图元后备骨架
+│   │   ├── module_rig.py            # 工具模块几何体（CNC/激光/加热床/真空台）
+│   │   ├── pnp_rig.py               # LumenPnP/JuanenPnP 网格骨架的真实笛卡尔龙门运动链
 │   │   ├── mesh.py                  # STL 加载（numpy-stl）
-│   │   └── viewport.py              # QOpenGLWidget —— 真实的 GLSL 着色器管线，环绕相机
+│   │   └── viewport.py              # QOpenGLWidget —— 真实 GLSL 着色器管线，轨道相机
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + QDockWidget 工作区
+│       ├── about_dialog.py          # 真实的"关于"对话框（版本/作者/许可证）
 │       ├── theme.py                  # 加载 assets/qss/industrial_dark.qss
-│       ├── widgets/rotary_knob.py    # 自定义绘制的旋钮（RotaryKnob.tsx 的桌面版对应物）
-│       └── panels/                   # server_browser.py, overview.py, robot_control.py, viewport_panel.py, trajectory_panel.py, cameras_panel.py, logs_panel.py
+│       ├── widgets/rotary_knob.py    # 自绘旋钮控件（RotaryKnob.tsx 的桌面对应组件）
+│       └── panels/                   # 每个可停靠面板一个文件 —— 与 STUDIO 自身标签页真正做到 1:1 对等：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+真实 PTZ 控制）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
-│   ├── qss/industrial_dark.qss     # 未来工业风的 Qt 样式表
-│   └── meshes/                      # 真实的 STL 网格，每个机器人一个文件夹（24 个型号），从 HYDRA-UMC-STUDIO 自身的
-│                                       public/models/<robot>/ 复制而来（各自附带自己的 ATTRIBUTION.txt）
-├── language/                        # english/spanish/italian/french/german/chinese/japanese .lng 文件
+│   ├── qss/industrial_dark.qss     # 未来工业风格的 Qt 样式表
+│   └── meshes/                      # 真实 STL 网格，每个机器人/模块一个文件夹，复制自 HYDRA-UMC-STUDIO 自身的 public/models/（各自附带 ATTRIBUTION.txt）
+├── language/                        # english/spanish/french/german/italian/japanese/chinese 的 .lng 文件
 ├── docs/
-│   └── ROADMAP.md                   # 诚实的“已真正实现 vs. 尚未实现”范围说明
-├── tests/                           # 手动集成冒烟测试（需要一个真实运行的 HYDRA-UMC STUDIO 服务器——而非
-│                                       模拟的单元测试套件）+ 运动学验证脚本
+│   └── ROADMAP.md                   # 关于真实已实现范围与尚未实现内容的诚实说明
+├── tools/
+│   ├── build_test.py                # 不涉及版本递增的编译检查（通用，生态系统共享）
+│   └── ci_validate.py               # CI 使用的清单/CHANGELOG/文档校验（通用，生态系统共享）
+├── tests/                           # 真实的无头测试套件（QApplication，无需显示器）—— 每个面板/子系统一个 verify_*.py，外加运动学移植验证和需要真实运行中 STUDIO 服务器的手动烟雾测试
+├── installer/                       # 各平台打包说明与资源
 └── .vscode/                         # Python 解释器路径、启动配置、推荐扩展
 ```
 
