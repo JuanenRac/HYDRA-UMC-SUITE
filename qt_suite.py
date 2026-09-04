@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import qasync
-from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
+from PySide6.QtCore import Property, QObject, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuickControls2 import QQuickStyle
@@ -59,6 +59,7 @@ from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import JOINT_NAMES, HydraState, RobotView, ServerInfo
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
+from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
@@ -85,7 +86,8 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients"})
+_ADMIN_CLIENTS_POLL_MS = 5000
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
@@ -184,6 +186,26 @@ class SuiteQtBridge(QObject):
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_ai_family()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_ai_family()))
         asyncio.ensure_future(self._refresh_ai_family())
+
+        # -- Admin Clients (ported from admin_clients_panel.py's own
+        # AdminClientsPanel - _relative_duration imported directly from
+        # there, never duplicated). Real 5s data poll + a separate 1s
+        # tick that only re-emits changed so the "Xm ago" durations
+        # advance smoothly between polls, matching that file's own real
+        # two-timer design exactly. --
+        self._admin_clients: list[dict] = []
+        self._admin_clients_status_text = _("MSG_ADMIN_ONLY")
+        self._admin_clients_timer = QTimer(self)
+        self._admin_clients_timer.setInterval(_ADMIN_CLIENTS_POLL_MS)
+        self._admin_clients_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_admin_clients()))
+        self._admin_clients_timer.start()
+        self._admin_clients_tick_timer = QTimer(self)
+        self._admin_clients_tick_timer.setInterval(1000)
+        self._admin_clients_tick_timer.timeout.connect(self.changed.emit)
+        self._admin_clients_tick_timer.start()
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_clients()))
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
+        asyncio.ensure_future(self._refresh_admin_clients())
 
     # -- navigation --------------------------------------------------------
 
@@ -637,6 +659,68 @@ class SuiteQtBridge(QObject):
         families = {f for f, _dev, _label in AI_FAMILIES}
         self._ai_family_projects = [p for p in (body.get("projects") or []) if p.get("family") in families]
         self._ai_family_ai_hailo = conn.state.ai_hailo
+        self.changed.emit()
+
+    # -- Admin Clients -----------------------------------------------------
+
+    @Property(str, notify=changed)
+    def adminClientsStatusText(self) -> str:
+        return self._admin_clients_status_text
+
+    @Property(bool, notify=changed)
+    def adminClientsShowStats(self) -> bool:
+        return len(self._admin_clients) > 0
+
+    @Property(int, notify=changed)
+    def adminClientsConnectedCount(self) -> int:
+        return len(self._admin_clients)
+
+    @Property(int, notify=changed)
+    def adminClientsAdminCount(self) -> int:
+        return sum(1 for c in self._admin_clients if c.get("role") == "admin")
+
+    @Property("QVariantList", notify=changed)
+    def adminClientsRows(self) -> list[dict[str, object]]:
+        sorted_clients = sorted(
+            self._admin_clients,
+            key=lambda c: (c.get("role") != "admin", str(c.get("username") or "")),
+        )
+        return [
+            {
+                "username": str(c.get("username") or _("LBL_CLIENT_UNKNOWN")),
+                "address": str(c.get("remoteAddress") or "-"),
+                "isAdmin": c.get("role") == "admin",
+                "roleLabel": str(c.get("role") or "?").upper(),
+                "duration": _relative_duration(c.get("connectedAt")),
+                "connected": bool(c.get("connected")),
+            }
+            for c in sorted_clients
+        ]
+
+    async def _refresh_admin_clients(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._admin_clients_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
+            self._admin_clients = []
+            self.changed.emit()
+            return
+        if not conn.is_admin:
+            self._admin_clients_status_text = _("MSG_ADMIN_ONLY")
+            self._admin_clients = []
+            self.changed.emit()
+            return
+        result = await conn.fetch_admin_clients()
+        if result is None:
+            self._admin_clients_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict):
+            self._admin_clients_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        self._admin_clients = body.get("clients") or []
+        self._admin_clients_status_text = _("LBL_CLIENTS_REFRESH_NOTE", seconds=_ADMIN_CLIENTS_POLL_MS // 1000)
         self.changed.emit()
 
     # -- Overview --------------------------------------------------------

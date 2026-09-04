@@ -118,6 +118,33 @@ def _run() -> None:
     assert cognitive["projects"][0]["live"] is False
     bridge.removeServer(ai_conn_id)
 
+    # --- admin clients: real admin gate + sort + relative duration ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    ac_conn_id = bridge.serverRows[0]["connId"]
+    ac_conn = controller.connections[ac_conn_id]
+    ac_conn.role = None  # not an admin session yet
+    loop.run_until_complete(bridge._refresh_admin_clients())
+    assert bridge.adminClientsRows == [], "a non-admin session must never show any real client list"
+    assert bridge.adminClientsStatusText == bridge.uiText("MSG_ADMIN_ONLY")
+
+    ac_conn.role = "admin"
+
+    async def _fake_admin_clients():
+        return (200, {"clients": [
+            {"username": "bob", "role": "operator", "remoteAddress": "10.0.0.20", "connected": True, "connectedAt": None},
+            {"username": "alice", "role": "admin", "remoteAddress": "10.0.0.21", "connected": True, "connectedAt": None},
+        ]})
+
+    ac_conn.fetch_admin_clients = _fake_admin_clients
+    loop.run_until_complete(bridge._refresh_admin_clients())
+    assert bridge.adminClientsConnectedCount == 2
+    assert bridge.adminClientsAdminCount == 1
+    assert bridge.adminClientsShowStats is True
+    rows = bridge.adminClientsRows
+    assert rows[0]["username"] == "alice" and rows[0]["isAdmin"] is True, "admin-first sort, same as the classic panel"
+    assert rows[1]["username"] == "bob" and rows[1]["isAdmin"] is False
+    bridge.removeServer(ac_conn_id)
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

@@ -305,6 +305,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "robot") return robotComponent
                     if (suiteBackend.activePanel === "trajectory") return trajectoryComponent
                     if (suiteBackend.activePanel === "ai_family") return aiFamilyComponent
+                    if (suiteBackend.activePanel === "admin_clients") return adminClientsComponent
                     return notMigratedComponent
                 }
             }
@@ -662,6 +663,85 @@ ApplicationWindow {
                 }
             }
             Item { Layout.fillHeight: true }
+        }
+    }
+
+    Component {
+        id: adminClientsComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            Text { text: suiteBackend.uiText("HEADING_ADMIN_CLIENTS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.adminClientsStatusText; color: window.muted; font.pixelSize: 11 }
+            RowLayout {
+                visible: suiteBackend.adminClientsShowStats
+                spacing: 10
+                Card {
+                    Layout.preferredWidth: 140
+                    Layout.preferredHeight: 60
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 2
+                        Text { text: suiteBackend.uiText("LBL_CLIENTS_STAT_CONNECTED"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                        Text { text: suiteBackend.adminClientsConnectedCount; color: window.textPrimary; font.pixelSize: 20; font.bold: true }
+                    }
+                }
+                Card {
+                    Layout.preferredWidth: 140
+                    Layout.preferredHeight: 60
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 2
+                        Text { text: suiteBackend.uiText("LBL_CLIENTS_STAT_ADMINS"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                        Text { text: suiteBackend.adminClientsAdminCount; color: window.textPrimary; font.pixelSize: 20; font.bold: true }
+                    }
+                }
+            }
+            Text {
+                // Same real unconditional behavior as
+                // admin_clients_panel.py's own _rebuild(): shown
+                // whenever the list is empty, whatever the reason
+                // (no active server / not admin / genuinely zero
+                // clients) - the status text above already explains why.
+                visible: suiteBackend.adminClientsRows.length === 0
+                text: suiteBackend.uiText("MSG_CLIENTS_NONE")
+                color: "#556070"
+                font.pixelSize: 11
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: suiteBackend.adminClientsRows
+                spacing: 4
+                delegate: Card {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 42
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 10
+                        Rectangle {
+                            width: 24; height: 24; radius: 12
+                            color: modelData.isAdmin ? "#123a1c" : "#0e2a3a"
+                            Text { anchors.centerIn: parent; text: modelData.isAdmin ? "A" : "U"; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: 10 }
+                        }
+                        ColumnLayout {
+                            spacing: 2
+                            Layout.fillWidth: true
+                            Text { text: modelData.username; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                            Text { text: modelData.address; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                        }
+                        Text { text: modelData.roleLabel; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: 9 }
+                        Text { text: modelData.duration; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                        Text { text: "●"; color: modelData.connected ? window.green : "#ee6b80"; font.pixelSize: 10 }
+                    }
+                }
+            }
         }
     }
 
