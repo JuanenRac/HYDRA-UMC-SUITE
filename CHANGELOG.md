@@ -104,6 +104,13 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     Control/Trajectory, matching the classic panel's own separate
     combo box. The right-hand "3D Live View" isn't ported, same real,
     separate omission as every panel in this family.
+  - **Rack Manager** - the same real, deliberately-preserved quirk the
+    classic panel's own header documents: Reset resets BOTH rack1 and
+    rack2 back to their real seed defaults (rack1=Input, rack2=Output)
+    regardless of which rack's own Reset button was clicked, discarding
+    any local changes to either. A real decimal-capable `SpinBox`
+    (QML's own is integer-only by default) for the 2-decimal joint/
+    table position fields.
 
 ## [0.3.9]
 

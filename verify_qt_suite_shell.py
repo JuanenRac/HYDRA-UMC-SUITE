@@ -18,7 +18,7 @@ import qasync
 from PySide6.QtGui import QGuiApplication
 
 from hydra_suite.app import SuiteController
-from hydra_suite.models import HydraState
+from hydra_suite.models import RACK_MAX_CAPACITY, HydraState
 from hydra_suite.ui.nav_sidebar import ALL_DOCK_KEYS
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from qt_suite import MIGRATED_PANELS, SuiteQtBridge
@@ -420,6 +420,42 @@ def _run() -> None:
 
     bridge.disableXyTable()
     assert bridge.xyHasTable is False
+
+    # --- rack manager: real reset-resets-BOTH-racks quirk, real
+    # capacity/slot/type/pos mutation ---
+    assert bridge.rackSelectedRobotId == "x1"
+    assert bridge.rackEnabled is False, "default_rack_system() starts disabled until enabled"
+    bridge.enableRackSystem()
+    assert bridge.rackEnabled is True
+    rack_robot = bridge._rack_selected_robot()
+    rack_robot.rack_system["rack1"]["type"] = "Input"
+    rack_robot.rack_system["rack2"]["type"] = "Output"
+    rack_robot.set_rack_system(rack_robot.rack_system)
+    data = {r["rackId"]: r for r in bridge.rackData}
+    assert data["rack1"]["type"] == "Input" and data["rack2"]["type"] == "Output"
+    assert data["rack1"]["active"] is True and len(data["rack1"]["slots"]) == data["rack1"]["capacity"]
+
+    assert data["rack1"]["slots"][0] is True, "default_rack()'s own real usableSlots default is all-True"
+    bridge.toggleRackSlot("rack1", 0)
+    data = {r["rackId"]: r for r in bridge.rackData}
+    assert data["rack1"]["slots"][0] is False
+    bridge.setRackCapacity("rack1", 5)
+    assert {r["rackId"]: r for r in bridge.rackData}["rack1"]["capacity"] == 5
+    bridge.setRackPos("rack1", "j2", 45.5)
+    assert {r["rackId"]: r for r in bridge.rackData}["rack1"]["pos"]["j2"] == 45.5
+
+    # The real, deliberately-preserved quirk: Reset (from EITHER rack's
+    # own button - both call the same Slot) resets BOTH racks back to
+    # their real defaults, discarding rack2's own "Output" type too.
+    bridge.setRackType("rack2", "None")  # change rack2 away from its real default, to prove Reset overwrites it back
+    bridge.resetRackSystem()
+    data = {r["rackId"]: r for r in bridge.rackData}
+    assert data["rack1"]["type"] == "Input" and data["rack2"]["type"] == "Output", "default_rack_system()'s own real seed: rack1=Input, rack2=Output"
+    assert data["rack1"]["capacity"] == RACK_MAX_CAPACITY, "Reset must discard the capacity=5 set earlier too"
+    assert bridge.rackEnabled is True, "Reset force-sets enabled True even if it already was"
+
+    bridge.disableRackSystem()
+    assert bridge.rackEnabled is False
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

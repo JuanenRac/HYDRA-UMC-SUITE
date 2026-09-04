@@ -58,7 +58,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hydra_suite import __version__, logging_handler
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import JOINT_NAMES, HydraState, RobotView, ServerInfo
+from hydra_suite.models import JOINT_NAMES, RACK_MAX_CAPACITY, HydraState, RobotView, ServerInfo, default_rack_system
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
 from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
@@ -96,7 +96,8 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack"})
+_RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
 _ADMIN_LOGS_LINES = 300
@@ -297,6 +298,15 @@ class SuiteQtBridge(QObject):
         self._xy_jog_step_mm = 10.0
         self._xy_robots_cache: list[RobotView] = []
         controller.active_state_changed.connect(self._on_xy_state_changed)
+
+        # -- Rack Manager (ported from rack_config_panel.py's own
+        # RackConfigPanel - RACK_MAX_CAPACITY/default_rack_system
+        # imported directly from there, never duplicated). Own real,
+        # independent robot selection, matching that panel's own
+        # separate QComboBox. --
+        self._rack_selected_robot_id: str | None = None
+        self._rack_robots_cache: list[RobotView] = []
+        controller.active_state_changed.connect(self._on_rack_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -1502,6 +1512,168 @@ class SuiteQtBridge(QObject):
             return
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(table, f, indent=2)
+
+    # -- Rack Manager ----------------------------------------------------
+
+    def _on_rack_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+        self._rack_robots_cache = robots
+        if self._rack_selected_robot_id not in {r.id for r in robots}:
+            self._rack_selected_robot_id = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _rack_selected_robot(self) -> RobotView | None:
+        for r in self._rack_robots_cache:
+            if r.id == self._rack_selected_robot_id:
+                return r
+        return None
+
+    @Property("QVariantList", notify=changed)
+    def rackRobotOptions(self) -> list[dict[str, str]]:
+        return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._rack_robots_cache]
+
+    @Property(str, notify=changed)
+    def rackSelectedRobotId(self) -> str:
+        return self._rack_selected_robot_id or ""
+
+    @Slot(str)
+    def selectRackRobot(self, robot_id: str) -> None:
+        if robot_id != self._rack_selected_robot_id:
+            self._rack_selected_robot_id = robot_id or None
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def rackHasRobot(self) -> bool:
+        return self._rack_selected_robot() is not None
+
+    @Property(bool, notify=changed)
+    def rackEnabled(self) -> bool:
+        robot = self._rack_selected_robot()
+        return robot is not None and bool(robot.rack_system.get("enabled"))
+
+    @Property("QStringList", constant=True)
+    def rackTypeOptions(self) -> list[str]:
+        return ["None", "Input", "Output"]
+
+    @Property("QStringList", constant=True)
+    def rackTypeLabels(self) -> list[str]:
+        return [_("LBL_DISABLED"), _("LBL_INPUT_RACK"), _("LBL_OUTPUT_RACK")]
+
+    @Property("QVariantList", notify=changed)
+    def rackData(self) -> list[dict[str, object]]:
+        robot = self._rack_selected_robot()
+        if robot is None or not robot.rack_system.get("enabled"):
+            return []
+        config = robot.rack_system
+        has_xy_table = robot.has_xy_table
+        result = []
+        for rack_id, title_key in (("rack1", "LBL_RACK1"), ("rack2", "LBL_RACK2")):
+            rack = config[rack_id]
+            rack_type = rack.get("type", "None")
+            active = rack_type != "None"
+            capacity = int(rack.get("capacity", RACK_MAX_CAPACITY))
+            usable_slots = rack.get("usableSlots", [])
+            pos = rack.get("basePickupPos", {})
+            result.append({
+                "rackId": rack_id,
+                "title": _(title_key),
+                "type": rack_type,
+                "active": active,
+                "capacity": capacity,
+                "maxCapacity": RACK_MAX_CAPACITY,
+                "slots": [bool(usable_slots[i]) if i < len(usable_slots) else False for i in range(capacity)],
+                "pos": {field: float(pos.get(field, 0)) for field in _RACK_POS_FIELDS},
+                "showTable": has_xy_table,
+            })
+        return result
+
+    @Slot()
+    def enableRackSystem(self) -> None:
+        robot = self._rack_selected_robot()
+        if robot is None:
+            return
+        config = robot.rack_system
+        config["enabled"] = True
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def disableRackSystem(self) -> None:
+        robot = self._rack_selected_robot()
+        if robot is None:
+            return
+        config = robot.rack_system
+        config["enabled"] = False
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def resetRackSystem(self) -> None:
+        # Matches RackConfigView.tsx's own real handleReset() exactly:
+        # BOTH racks reset, regardless of which rack's own Reset button
+        # was clicked - see rack_config_panel.py's own header for why
+        # this is a real, deliberately-preserved quirk, not a bug
+        # introduced here.
+        robot = self._rack_selected_robot()
+        if robot is None:
+            return
+        config = default_rack_system()
+        config["enabled"] = True
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, str)
+    def setRackType(self, rack_id: str, rack_type: str) -> None:
+        robot = self._rack_selected_robot()
+        if robot is None:
+            return
+        config = robot.rack_system
+        config[rack_id]["type"] = rack_type
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, int)
+    def setRackCapacity(self, rack_id: str, value: int) -> None:
+        robot = self._rack_selected_robot()
+        if robot is None:
+            return
+        config = robot.rack_system
+        config[rack_id]["capacity"] = value
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, str, float)
+    def setRackPos(self, rack_id: str, field: str, value: float) -> None:
+        robot = self._rack_selected_robot()
+        if robot is None or field not in _RACK_POS_FIELDS:
+            return
+        config = robot.rack_system
+        config[rack_id].setdefault("basePickupPos", {})[field] = value
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, int)
+    def toggleRackSlot(self, rack_id: str, index: int) -> None:
+        robot = self._rack_selected_robot()
+        if robot is None:
+            return
+        config = robot.rack_system
+        rack = config[rack_id]
+        slots = list(rack.get("usableSlots", []))
+        while len(slots) <= index:
+            slots.append(False)
+        slots[index] = not slots[index]
+        rack["usableSlots"] = slots
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
 
     # -- Overview --------------------------------------------------------
 

@@ -353,6 +353,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "ecosystem_services") return ecosystemServicesComponent
                     if (suiteBackend.activePanel === "ecosystem_telemetry") return ecosystemTelemetryComponent
                     if (suiteBackend.activePanel === "xy_table") return xyTableComponent
+                    if (suiteBackend.activePanel === "rack") return rackComponent
                     return notMigratedComponent
                 }
             }
@@ -1360,6 +1361,199 @@ ApplicationWindow {
                 }
             }
             Item { Layout.fillHeight: true }
+        }
+    }
+
+    // Real decimal-capable SpinBox - QML's own SpinBox works in ints
+    // only by default, but the classic panel's QDoubleSpinBox fields
+    // here (joint degrees, table mm) are real 2-decimal values -
+    // standard Qt Quick fixed-point trick (value stored *100 internally).
+    component DecimalSpinBox: SpinBox {
+        id: control
+        property real realValue: 0
+        property real realFrom: 0
+        property real realTo: 100
+        from: Math.round(realFrom * 100)
+        to: Math.round(realTo * 100)
+        value: Math.round(realValue * 100)
+        stepSize: 100
+        editable: true
+        signal realValueModified(real value)
+        validator: DoubleValidator {
+            bottom: Math.min(control.realFrom, control.realTo)
+            top: Math.max(control.realFrom, control.realTo)
+            decimals: 2
+            notation: DoubleValidator.StandardNotation
+        }
+        textFromValue: function(value, locale) { return Number(value / 100).toLocaleString(locale, "f", 2) }
+        valueFromText: function(text, locale) { return Math.round(Number.fromLocaleString(locale, text) * 100) }
+        onValueModified: control.realValueModified(control.value / 100)
+    }
+
+    Component {
+        id: rackGroupComponent
+        Card {
+            id: rackCard
+            required property var modelData
+            Layout.preferredWidth: 340
+            Layout.preferredHeight: rackColumn.implicitHeight + 28
+            ColumnLayout {
+                id: rackColumn
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 6
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: rackCard.modelData.title; color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                    Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); implicitHeight: 26; onClicked: suiteBackend.resetRackSystem() }
+                }
+                RowLayout {
+                    Text { text: suiteBackend.uiText("LBL_RACK_TYPE"); color: window.muted; font.pixelSize: 10 }
+                    ComboBox {
+                        Layout.preferredWidth: 150
+                        model: suiteBackend.rackTypeLabels
+                        currentIndex: suiteBackend.rackTypeOptions.indexOf(rackCard.modelData.type)
+                        onActivated: suiteBackend.setRackType(rackCard.modelData.rackId, suiteBackend.rackTypeOptions[currentIndex])
+                    }
+                }
+                ColumnLayout {
+                    visible: rackCard.modelData.active
+                    spacing: 6
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: suiteBackend.uiText("LBL_CAPACITY"); color: window.muted; font.pixelSize: 10 }
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 1; to: rackCard.modelData.maxCapacity
+                            value: rackCard.modelData.capacity
+                            onMoved: suiteBackend.setRackCapacity(rackCard.modelData.rackId, Math.round(value))
+                        }
+                        Text { text: rackCard.modelData.capacity; color: "#38bdf8"; font.family: "Cascadia Mono"; Layout.preferredWidth: 24 }
+                    }
+                    Text { text: suiteBackend.uiText("LBL_USABLE_SLOTS"); color: window.muted; font.pixelSize: 10 }
+                    GridLayout {
+                        columns: 6
+                        columnSpacing: 3
+                        rowSpacing: 3
+                        Repeater {
+                            model: rackCard.modelData.slots
+                            delegate: Button {
+                                required property bool modelData
+                                required property int index
+                                implicitWidth: 34
+                                implicitHeight: 34
+                                checkable: true
+                                checked: modelData
+                                text: (index + 1) + "\n" + (modelData ? "☑" : "☐")
+                                font.pixelSize: 8
+                                onClicked: suiteBackend.toggleRackSlot(rackCard.modelData.rackId, index)
+                            }
+                        }
+                    }
+                    Text { text: suiteBackend.uiText("LBL_BASE_PICKUP_POS"); color: window.muted; font.pixelSize: 10 }
+                    GridLayout {
+                        columns: 3
+                        columnSpacing: 6
+                        rowSpacing: 4
+                        Repeater {
+                            model: ["j1", "j2", "j3", "j4", "j5", "j6"]
+                            delegate: ColumnLayout {
+                                required property string modelData
+                                spacing: 1
+                                Text { text: modelData.toUpperCase() + " (°)"; color: window.muted; font.pixelSize: 8 }
+                                DecimalSpinBox {
+                                    realFrom: -360; realTo: 360
+                                    realValue: rackCard.modelData.pos[modelData]
+                                    Layout.preferredWidth: 100
+                                    onRealValueModified: function(v) { suiteBackend.setRackPos(rackCard.modelData.rackId, modelData, v) }
+                                }
+                            }
+                        }
+                    }
+                    RowLayout {
+                        visible: rackCard.modelData.showTable
+                        spacing: 12
+                        Repeater {
+                            model: ["tx", "ty"]
+                            delegate: ColumnLayout {
+                                required property string modelData
+                                spacing: 1
+                                Text { text: "Table " + modelData.substring(1).toUpperCase() + " (mm)"; color: "#d97706"; font.pixelSize: 8 }
+                                DecimalSpinBox {
+                                    realFrom: -5000; realTo: 5000
+                                    realValue: rackCard.modelData.pos[modelData]
+                                    Layout.preferredWidth: 100
+                                    onRealValueModified: function(v) { suiteBackend.setRackPos(rackCard.modelData.rackId, modelData, v) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: rackComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 12
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_RACK_MANAGER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                ComboBox {
+                    id: rackRobotCombo
+                    Layout.preferredWidth: 200
+                    model: suiteBackend.rackRobotOptions
+                    textRole: "label"
+                    valueRole: "id"
+                    Component.onCompleted: currentIndex = indexOfValue(suiteBackend.rackSelectedRobotId)
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() {
+                            var idx = rackRobotCombo.indexOfValue(suiteBackend.rackSelectedRobotId)
+                            if (idx !== rackRobotCombo.currentIndex) rackRobotCombo.currentIndex = idx
+                        }
+                    }
+                    onActivated: suiteBackend.selectRackRobot(currentValue)
+                }
+            }
+            ColumnLayout {
+                visible: !suiteBackend.rackEnabled
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 40
+                spacing: 8
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_ASSIGNED").replace("{machine}", "Rack"); color: window.textPrimary; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_DESC"); color: window.muted; wrapMode: Text.WordWrap; Layout.preferredWidth: 320; horizontalAlignment: Text.AlignHCenter }
+                Button { text: suiteBackend.uiText("BTN_ENABLE_MODULE").replace("{machine}", "Rack"); enabled: suiteBackend.rackHasRobot; onClicked: suiteBackend.enableRackSystem(); Layout.alignment: Qt.AlignHCenter }
+            }
+            RowLayout {
+                visible: suiteBackend.rackEnabled
+                Button {
+                    id: rackRemoveButton
+                    text: suiteBackend.uiText("BTN_REMOVE_MODULE")
+                    contentItem: Text { text: rackRemoveButton.text; color: "#f43f5e" }
+                    onClicked: suiteBackend.disableRackSystem()
+                }
+            }
+            Flickable {
+                visible: suiteBackend.rackEnabled
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                contentWidth: rackRow.implicitWidth
+                contentHeight: rackRow.implicitHeight
+                clip: true
+                RowLayout {
+                    id: rackRow
+                    spacing: 12
+                    Repeater {
+                        model: suiteBackend.rackData
+                        delegate: rackGroupComponent
+                    }
+                }
+            }
+            Item { Layout.fillHeight: true; visible: !suiteBackend.rackEnabled }
         }
     }
 
