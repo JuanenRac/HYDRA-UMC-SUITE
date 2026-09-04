@@ -341,6 +341,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "admin_clients") return adminClientsComponent
                     if (suiteBackend.activePanel === "admin_logs") return adminLogsComponent
                     if (suiteBackend.activePanel === "admin_server") return adminServerComponent
+                    if (suiteBackend.activePanel === "ecosystem_services") return ecosystemServicesComponent
                     return notMigratedComponent
                 }
             }
@@ -914,6 +915,208 @@ ApplicationWindow {
                 contentItem: Text { text: restartButton.text; color: "#ee6b80"; horizontalAlignment: Text.AlignHCenter }
             }
             Item { Layout.fillHeight: true }
+        }
+    }
+
+    component EsStatBox: Card {
+        id: esStatBoxRoot
+        property string caption: ""
+        property string value: ""
+        Layout.preferredWidth: 90
+        Layout.preferredHeight: 50
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 2
+            Text { text: esStatBoxRoot.caption; color: window.muted; font.pixelSize: 8; font.bold: true }
+            Text { text: esStatBoxRoot.value; color: window.textPrimary; font.pixelSize: 16; font.bold: true }
+        }
+    }
+
+    Component {
+        id: ecosystemServicesComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 10
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_ECOSYSTEM_SERVICES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: suiteBackend.esRefreshing ? "..." : suiteBackend.uiText("BTN_REFRESH")
+                    enabled: !suiteBackend.esRefreshing
+                    onClicked: suiteBackend.refreshEcosystemServices()
+                }
+            }
+            Text { text: suiteBackend.esStatusText; color: window.muted; font.pixelSize: 11 }
+            RowLayout {
+                visible: suiteBackend.esShowStats
+                spacing: 8
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_TOTAL"); value: suiteBackend.esStats.total }
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_LIVE"); value: suiteBackend.esStats.live }
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_FAMILIES"); value: suiteBackend.esStats.families }
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_RUNNING"); value: suiteBackend.esStats.running }
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_STOPPED"); value: suiteBackend.esStats.stopped }
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_ERROR"); value: suiteBackend.esStats.error }
+                EsStatBox { caption: suiteBackend.uiText("LBL_SERVICES_STAT_NA"); value: suiteBackend.esStats.na }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                TextField {
+                    placeholderText: suiteBackend.uiText("SERVICES_SEARCH_PLACEHOLDER")
+                    color: window.textPrimary
+                    Layout.preferredWidth: 220
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    onTextChanged: suiteBackend.setEsSearch(text)
+                }
+                Button {
+                    text: suiteBackend.uiText("SERVICES_ALL_FAMILIES")
+                    checkable: true
+                    checked: suiteBackend.esFamilyFilter === ""
+                    onClicked: suiteBackend.setEsFamilyFilter("")
+                }
+                Repeater {
+                    model: suiteBackend.esFamilies
+                    delegate: Button {
+                        required property string modelData
+                        text: modelData
+                        checkable: true
+                        checked: suiteBackend.esFamilyFilter === modelData
+                        onClicked: suiteBackend.setEsFamilyFilter(modelData)
+                    }
+                }
+            }
+            Flickable {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                contentWidth: width
+                contentHeight: esColumn.implicitHeight
+                clip: true
+                ColumnLayout {
+                    id: esColumn
+                    width: parent.width
+                    spacing: 10
+                    Repeater {
+                        model: suiteBackend.esGroups
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Text { text: modelData.family + "  (" + modelData.count + ")"; color: window.muted; font.bold: true; font.pixelSize: 10 }
+                            GridLayout {
+                                columns: 3
+                                columnSpacing: 8
+                                rowSpacing: 8
+                                Layout.fillWidth: true
+                                Repeater {
+                                    model: modelData.cards
+                                    delegate: Card {
+                                        id: serviceCard
+                                        required property var modelData
+                                        Layout.preferredWidth: 260
+                                        Layout.preferredHeight: 110
+                                        ColumnLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 10
+                                            spacing: 4
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Text { text: serviceCard.modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                                                Rectangle {
+                                                    radius: 6
+                                                    implicitWidth: badgeCol.implicitWidth + 12
+                                                    implicitHeight: badgeCol.implicitHeight + 6
+                                                    color: serviceCard.modelData.healthColorBg
+                                                    border.width: 1
+                                                    border.color: serviceCard.modelData.healthColorBorder
+                                                    ColumnLayout {
+                                                        id: badgeCol
+                                                        anchors.centerIn: parent
+                                                        spacing: 0
+                                                        Text { text: "● " + serviceCard.modelData.badgeText; color: serviceCard.modelData.healthColor; font.bold: true; font.pixelSize: 8 }
+                                                        Text { visible: serviceCard.modelData.version !== ""; text: serviceCard.modelData.version; color: serviceCard.modelData.healthColor; font.bold: true; font.pixelSize: 12; font.family: "Cascadia Mono" }
+                                                    }
+                                                }
+                                            }
+                                            RowLayout {
+                                                spacing: 8
+                                                Text { visible: serviceCard.modelData.stack !== ""; text: serviceCard.modelData.stack; color: serviceCard.modelData.stackColor; font.bold: true; font.pixelSize: 8 }
+                                                Text { visible: serviceCard.modelData.maturity !== ""; text: serviceCard.modelData.maturity; color: "#556070"; font.bold: true; font.pixelSize: 8 }
+                                                Item { Layout.fillWidth: true }
+                                            }
+                                            Text {
+                                                visible: serviceCard.modelData.hostPort !== "" || serviceCard.modelData.pidText !== ""
+                                                text: [serviceCard.modelData.hostPort, serviceCard.modelData.pidText].filter(function(s) { return s !== "" }).join("  ")
+                                                color: "#556070"
+                                                font.family: "Cascadia Mono"
+                                                font.pixelSize: 9
+                                            }
+                                            RowLayout {
+                                                visible: serviceCard.modelData.canControl
+                                                spacing: 6
+                                                Text {
+                                                    visible: serviceCard.modelData.actioning
+                                                    text: suiteBackend.uiText("LBL_SERVICES_ACTION_PENDING")
+                                                    color: window.muted
+                                                    font.pixelSize: 8
+                                                    font.bold: true
+                                                }
+                                                Button {
+                                                    visible: !serviceCard.modelData.actioning
+                                                    text: suiteBackend.uiText("BTN_SERVICES_START")
+                                                    implicitHeight: 22
+                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_START"); color: "#4caf50"; font.pixelSize: 9 }
+                                                    onClicked: suiteBackend.runEsServiceAction(serviceCard.modelData.unit, "start")
+                                                }
+                                                Button {
+                                                    visible: !serviceCard.modelData.actioning
+                                                    implicitHeight: 22
+                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_STOP"); color: "#e05050"; font.pixelSize: 9 }
+                                                    onClicked: window.requestConfirm(
+                                                        suiteBackend.uiText("TITLE_SERVICES_CONFIRM_STOP"),
+                                                        suiteBackend.uiText("MSG_SERVICES_CONFIRM_STOP").replace("{name}", serviceCard.modelData.name),
+                                                        function() { suiteBackend.runEsServiceAction(serviceCard.modelData.unit, "stop") })
+                                                }
+                                                Button {
+                                                    visible: !serviceCard.modelData.actioning
+                                                    implicitHeight: 22
+                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_RESTART"); color: "#4fc3f7"; font.pixelSize: 9 }
+                                                    onClicked: window.requestConfirm(
+                                                        suiteBackend.uiText("TITLE_SERVICES_CONFIRM_RESTART"),
+                                                        suiteBackend.uiText("MSG_SERVICES_CONFIRM_RESTART").replace("{name}", serviceCard.modelData.name),
+                                                        function() { suiteBackend.runEsServiceAction(serviceCard.modelData.unit, "restart") })
+                                                }
+                                            }
+                                            Text {
+                                                visible: serviceCard.modelData.errorText !== ""
+                                                text: serviceCard.modelData.errorText
+                                                color: "#e05050"
+                                                font.pixelSize: 8
+                                                wrapMode: Text.WordWrap
+                                                Layout.fillWidth: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        visible: suiteBackend.esGroups.length === 0
+                        text: suiteBackend.uiText("MSG_ES_NONE")
+                        color: "#556070"
+                        font.pixelSize: 11
+                    }
+                }
+            }
+            Text {
+                text: suiteBackend.uiText("MSG_ES_NO_CONTROL")
+                color: "#556070"
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                font.pixelSize: 9
+            }
         }
     }
 

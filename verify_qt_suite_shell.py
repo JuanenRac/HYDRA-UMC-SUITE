@@ -249,6 +249,60 @@ def _run() -> None:
     assert bridge.adminServerStatusText == bridge.uiText("MSG_ADMIN_SERVER_RESTART_REQUESTED")
     bridge.removeServer(as_conn_id)
 
+    # --- ecosystem services: real grouping/filtering/stats, and the
+    # real start/stop/restart routing (control_service is stubbed - the
+    # HTTP call itself isn't this bridge's own surface) ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    es_conn_id = bridge.serverRows[0]["connId"]
+    es_conn = controller.connections[es_conn_id]
+    es_conn.role = "admin"
+
+    async def _fake_es_status():
+        return (200, {"available": True, "scannedAt": "12:00:00", "projects": [
+            {"name": "vision-node", "family": "AI", "stack": "python", "live": True, "systemdUnit": "vision.service"},
+            {"name": "cognitive-node", "family": "AI", "stack": "python", "live": False, "systemdUnit": "cognitive.service"},
+            {"name": "server", "family": "Core", "stack": "node", "activeState": "active", "live": True, "serviceHost": "127.0.0.1", "servicePort": 3000, "pid": 4242, "systemdUnit": "server.service"},
+        ]})
+
+    es_conn.fetch_ecosystem_status = _fake_es_status
+    loop.run_until_complete(bridge._refresh_ecosystem_services())
+    assert bridge.esShowStats is True
+    assert bridge.esStats["total"] == 3 and bridge.esStats["live"] == 2 and bridge.esStats["families"] == 2
+    assert set(bridge.esFamilies) == {"AI", "Core"}
+    groups = {g["family"]: g for g in bridge.esGroups}
+    assert groups["AI"]["count"] == 2 and groups["Core"]["count"] == 1
+    core_card = groups["Core"]["cards"][0]
+    assert core_card["hostPort"] == "127.0.0.1:3000"
+    assert "4242" in core_card["pidText"]
+    assert core_card["canControl"] is True, "an admin session with a real systemdUnit must be controllable"
+
+    bridge.setEsFamilyFilter("AI")
+    assert len(bridge.esGroups) == 1 and bridge.esGroups[0]["family"] == "AI"
+    bridge.setEsSearch("cognitive")
+    assert len(bridge.esGroups[0]["cards"]) == 1 and bridge.esGroups[0]["cards"][0]["name"] == "cognitive-node"
+    bridge.setEsSearch("")
+    bridge.setEsFamilyFilter("")
+
+    control_calls = []
+
+    async def _fake_control_service(unit, action):
+        control_calls.append((unit, action))
+        return (200, {})
+
+    es_conn.control_service = _fake_control_service
+    loop.run_until_complete(bridge._run_es_service_action("vision.service", "restart"))
+    assert control_calls == [("vision.service", "restart")]
+    assert bridge._es_actioning_unit is None, "actioning flag must clear once the action resolves"
+
+    async def _fake_control_service_fails(unit, action):
+        return (500, {"error": "systemd refused"})
+
+    es_conn.control_service = _fake_control_service_fails
+    loop.run_until_complete(bridge._run_es_service_action("vision.service", "stop"))
+    vision_card = next(c for g in bridge.esGroups for c in g["cards"] if c["unit"] == "vision.service")
+    assert vision_card["errorText"] == "systemd refused"
+    bridge.removeServer(es_conn_id)
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

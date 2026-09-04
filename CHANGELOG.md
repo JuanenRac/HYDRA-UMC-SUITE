@@ -63,7 +63,12 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   the live socket, same real note as the classic panel), a live
   GET /api/hydra-info snapshot, and a graceful restart behind the new
   shared confirm dialog every future destructive action in this shell
-  can reuse); every other one of the remaining 17 real panels shows a
+  can reuse; Ecosystem Services - the same real GET /api/ecosystem/
+  status scan AI Family Status uses, grouped into a real card grid by
+  family with the same 5-state health color/badge logic and
+  admin-only Start/Stop/Restart per card, Stop/Restart behind the
+  shared confirm dialog); every other one of the remaining 16 real
+  panels shows a
   real "not yet migrated" placeholder (a small amber dot next to its
   nav label) rather than a fake, empty-but-styled panel pretending to
   be done. Run `python main.py --qtquick` to see this shell - the

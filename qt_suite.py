@@ -63,6 +63,7 @@ from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
 from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
+from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
@@ -88,12 +89,23 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services"})
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
 _ADMIN_LOGS_LINES = 300
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+def _with_alpha(hex_color: str, alpha: float) -> str:
+    """'#4caf50' + 0.13 -> 'rgba(76,175,80,0.13)' - QML's own color
+    parsing accepts CSS rgba() strings directly, unlike the classic
+    panel's own Qt style sheet hex-plus-alpha-suffix trick
+    (f"{color}22"), which is a QSS-only convention this Qt Quick deck
+    doesn't use anywhere else."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r},{g},{b},{alpha})"
 
 
 @dataclass(frozen=True)
@@ -240,6 +252,18 @@ class SuiteQtBridge(QObject):
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_server()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_server()))
         asyncio.ensure_future(self._refresh_admin_server())
+
+        # -- Ecosystem Services (ported from ecosystem_services_panel.py's
+        # own EcosystemServicesPanel - _health/_badge_label/_HEALTH_COLOR/
+        # _STACK_COLOR imported directly from there, never duplicated). --
+        self._es_projects: list[dict] = []
+        self._es_family_filter: str | None = None
+        self._es_search = ""
+        self._es_actioning_unit: str | None = None
+        self._es_action_error: tuple[str, str] | None = None
+        self._es_status_text = _("LBL_ES_NOT_LOADED")
+        self._es_refreshing = False
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: self.changed.emit())
 
     # -- navigation --------------------------------------------------------
 
@@ -971,6 +995,155 @@ class SuiteQtBridge(QObject):
             return
         self._admin_server_status_text = _("MSG_ADMIN_SERVER_RESTART_REQUESTED")
         self.changed.emit()
+
+    # -- Ecosystem Services --------------------------------------------------
+
+    @Property(str, notify=changed)
+    def esStatusText(self) -> str:
+        return self._es_status_text
+
+    @Property(bool, notify=changed)
+    def esRefreshing(self) -> bool:
+        return self._es_refreshing
+
+    @Property(str, notify=changed)
+    def esFamilyFilter(self) -> str:
+        return self._es_family_filter or ""
+
+    @Property("QStringList", notify=changed)
+    def esFamilies(self) -> list[str]:
+        return sorted({p.get("family") for p in self._es_projects if p.get("family")})
+
+    @Property(bool, notify=changed)
+    def esShowStats(self) -> bool:
+        return len(self._es_projects) > 0
+
+    @Property("QVariantMap", notify=changed)
+    def esStats(self) -> dict[str, int]:
+        return {
+            "total": len(self._es_projects),
+            "live": sum(1 for p in self._es_projects if p.get("live") is True),
+            "families": len({p.get("family") for p in self._es_projects if p.get("family")}),
+            "running": sum(1 for p in self._es_projects if _health(p) == "green"),
+            "stopped": sum(1 for p in self._es_projects if _health(p) == "red"),
+            "error": sum(1 for p in self._es_projects if _health(p) == "amber"),
+            "na": sum(1 for p in self._es_projects if _health(p) == "slate"),
+        }
+
+    @Property("QVariantList", notify=changed)
+    def esGroups(self) -> list[dict[str, object]]:
+        needle = self._es_search.strip().lower()
+        filtered = [
+            p for p in self._es_projects
+            if (self._es_family_filter is None or p.get("family") == self._es_family_filter)
+            and (not needle or needle in str(p.get("name", "")).lower())
+        ]
+        grouped: dict[str, list[dict]] = {}
+        for p in filtered:
+            key = p.get("family") or _("SERVICES_NO_FAMILY")
+            grouped.setdefault(key, []).append(p)
+
+        conn = self._controller.active_connection
+        is_admin = conn is not None and conn.is_admin
+        groups = []
+        for family in sorted(grouped.keys()):
+            items = grouped[family]
+            cards = []
+            for p in items:
+                health = _health(p)
+                unit = p.get("systemdUnit")
+                error = self._es_action_error if self._es_action_error is not None and self._es_action_error[0] == unit else None
+                health_color = _HEALTH_COLOR[health]
+                cards.append({
+                    "name": str(p.get("name") or "-"),
+                    "badgeText": _badge_label(p),
+                    "healthColor": health_color,
+                    "healthColorBg": _with_alpha(health_color, 0.13),
+                    "healthColorBorder": _with_alpha(health_color, 0.33),
+                    "version": f"v{p.get('version')}" if p.get("version") else "",
+                    "stack": p.get("stack") or "",
+                    "stackColor": _STACK_COLOR.get(p.get("stack"), "#7f8ea1"),
+                    "maturity": p.get("maturity") or "",
+                    "hostPort": f"{p.get('serviceHost')}:{p.get('servicePort')}" if p.get("serviceHost") else "",
+                    "pidText": f"{_('LBL_SERVICES_PID')} {p.get('pid')}" if p.get("pid") is not None else "",
+                    "canControl": bool(is_admin and unit),
+                    "unit": unit or "",
+                    "actioning": self._es_actioning_unit == unit,
+                    "errorText": error[1] if error is not None else "",
+                })
+            groups.append({"family": family, "count": len(items), "cards": cards})
+        return groups
+
+    @Slot()
+    def refreshEcosystemServices(self) -> None:
+        asyncio.ensure_future(self._refresh_ecosystem_services())
+
+    async def _refresh_ecosystem_services(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._es_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
+            self.changed.emit()
+            return
+        self._es_refreshing = True
+        self.changed.emit()
+        try:
+            result = await conn.fetch_ecosystem_status()
+        finally:
+            self._es_refreshing = False
+        if result is None:
+            self._es_status_text = _("MSG_ES_LOAD_ERROR")
+            self.changed.emit()
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict):
+            self._es_status_text = _("MSG_ES_LOAD_ERROR")
+            self.changed.emit()
+            return
+        if not body.get("available"):
+            self._es_status_text = _("MSG_ES_UNAVAILABLE")
+            self._es_projects = []
+            self.changed.emit()
+            return
+        self._es_projects = body.get("projects") or []
+        self._es_status_text = _("LBL_ES_SCANNED_AT", time=body.get("scannedAt") or "-")
+        self.changed.emit()
+
+    @Slot(str)
+    def setEsFamilyFilter(self, family: str) -> None:
+        self._es_family_filter = family or None
+        self.changed.emit()
+
+    @Slot(str)
+    def setEsSearch(self, text: str) -> None:
+        self._es_search = text
+        self.changed.emit()
+
+    @Slot(str, str)
+    def runEsServiceAction(self, unit: str, action: str) -> None:
+        asyncio.ensure_future(self._run_es_service_action(unit, action))
+
+    async def _run_es_service_action(self, unit: str, action: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        self._es_actioning_unit = unit
+        self._es_action_error = None
+        self.changed.emit()
+        try:
+            result = await conn.control_service(unit, action)
+        finally:
+            self._es_actioning_unit = None
+        if result is None:
+            self._es_action_error = (unit, _("MSG_SERVICES_ACTION_ERROR"))
+            self.changed.emit()
+            return
+        status, body = result
+        if status != 200:
+            message = body.get("error") if isinstance(body, dict) else None
+            self._es_action_error = (unit, message or f"HTTP {status}")
+            self.changed.emit()
+            return
+        await self._refresh_ecosystem_services()
 
     # -- Overview --------------------------------------------------------
 
