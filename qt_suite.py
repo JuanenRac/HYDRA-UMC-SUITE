@@ -60,6 +60,7 @@ from hydra_suite.i18n import _
 from hydra_suite.models import JOINT_NAMES, HydraState, RobotView, ServerInfo
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
+from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
 
@@ -86,8 +87,10 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs"})
 _ADMIN_CLIENTS_POLL_MS = 5000
+_ADMIN_LOGS_POLL_MS = 3000
+_ADMIN_LOGS_LINES = 300
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
@@ -206,6 +209,25 @@ class SuiteQtBridge(QObject):
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_clients()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
+
+        # -- Admin Logs (ported from admin_logs_panel.py's own
+        # AdminLogsPanel - _extract_tag imported directly from there,
+        # never duplicated). Same real "clear the screen, keep tailing"
+        # anchor trick, live/pause, and tag+search filtering. --
+        self._admin_logs_live = True
+        self._admin_logs_all_lines: list[str] = []
+        self._admin_logs_tag_filter: str | None = None
+        self._admin_logs_search = ""
+        self._admin_logs_cleared_anchor: str | None = None
+        self._admin_logs_cleared_at_empty = False
+        self._admin_logs_status_text = _("MSG_ADMIN_ONLY")
+        self._admin_logs_timer = QTimer(self)
+        self._admin_logs_timer.setInterval(_ADMIN_LOGS_POLL_MS)
+        self._admin_logs_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_admin_logs()))
+        self._admin_logs_timer.start()
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_logs()))
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_logs()))
+        asyncio.ensure_future(self._refresh_admin_logs())
 
     # -- navigation --------------------------------------------------------
 
@@ -721,6 +743,103 @@ class SuiteQtBridge(QObject):
             return
         self._admin_clients = body.get("clients") or []
         self._admin_clients_status_text = _("LBL_CLIENTS_REFRESH_NOTE", seconds=_ADMIN_CLIENTS_POLL_MS // 1000)
+        self.changed.emit()
+
+    # -- Admin Logs --------------------------------------------------------
+
+    @Property(str, notify=changed)
+    def adminLogsStatusText(self) -> str:
+        return self._admin_logs_status_text
+
+    @Property(bool, notify=changed)
+    def adminLogsLive(self) -> bool:
+        return self._admin_logs_live
+
+    @Property(str, notify=changed)
+    def adminLogsTagFilter(self) -> str:
+        return self._admin_logs_tag_filter or ""
+
+    @Property("QStringList", notify=changed)
+    def adminLogsTags(self) -> list[str]:
+        return sorted({tag for line in self._admin_logs_all_lines if (tag := _extract_tag(line))})
+
+    def _admin_logs_displayed_lines(self) -> list[str]:
+        if not self._admin_logs_cleared_at_empty and self._admin_logs_cleared_anchor is None:
+            return self._admin_logs_all_lines
+        if self._admin_logs_cleared_at_empty:
+            return self._admin_logs_all_lines
+        try:
+            idx = len(self._admin_logs_all_lines) - 1 - self._admin_logs_all_lines[::-1].index(self._admin_logs_cleared_anchor)
+        except ValueError:
+            # Anchor scrolled off the server's own LINES-line window - show
+            # everything rather than hide real content, same real reason
+            # admin_logs_panel.py's own _displayed_lines does.
+            return self._admin_logs_all_lines
+        return self._admin_logs_all_lines[idx + 1:]
+
+    @Property("QStringList", notify=changed)
+    def adminLogsLines(self) -> list[str]:
+        displayed = self._admin_logs_displayed_lines()
+        needle = self._admin_logs_search.strip().lower()
+        filtered = [
+            line for line in displayed
+            if (self._admin_logs_tag_filter is None or _extract_tag(line) == self._admin_logs_tag_filter)
+            and (not needle or needle in line.lower())
+        ]
+        if not filtered:
+            return [_("MSG_LOGS_NONE") if not displayed else _("LOGS_NO_MATCH")]
+        return filtered
+
+    @Slot()
+    def toggleAdminLogsLive(self) -> None:
+        self._admin_logs_live = not self._admin_logs_live
+        self.changed.emit()
+
+    @Slot()
+    def clearAdminLogs(self) -> None:
+        if self._admin_logs_all_lines:
+            self._admin_logs_cleared_anchor = self._admin_logs_all_lines[-1]
+            self._admin_logs_cleared_at_empty = False
+        else:
+            self._admin_logs_cleared_anchor = None
+            self._admin_logs_cleared_at_empty = True
+        self.changed.emit()
+
+    @Slot(str)
+    def setAdminLogsTagFilter(self, tag: str) -> None:
+        self._admin_logs_tag_filter = tag or None
+        self.changed.emit()
+
+    @Slot(str)
+    def setAdminLogsSearch(self, text: str) -> None:
+        self._admin_logs_search = text
+        self.changed.emit()
+
+    async def _refresh_admin_logs(self) -> None:
+        if not self._admin_logs_live:
+            return
+        conn = self._controller.active_connection
+        if conn is None:
+            self._admin_logs_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
+            self.changed.emit()
+            return
+        if not conn.is_admin:
+            self._admin_logs_status_text = _("MSG_ADMIN_ONLY")
+            self._admin_logs_all_lines = []
+            self.changed.emit()
+            return
+        result = await conn.fetch_admin_logs(_ADMIN_LOGS_LINES)
+        if result is None:
+            self._admin_logs_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict):
+            self._admin_logs_status_text = _("MSG_ADMIN_LOAD_ERROR")
+            self.changed.emit()
+            return
+        self._admin_logs_all_lines = body.get("lines") or []
+        self._admin_logs_status_text = _("LBL_LOGS_FOOTER_LIVE", lines=_ADMIN_LOGS_LINES, seconds=_ADMIN_LOGS_POLL_MS // 1000)
         self.changed.emit()
 
     # -- Overview --------------------------------------------------------

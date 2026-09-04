@@ -33,6 +33,12 @@ def _run() -> None:
     asyncio.set_event_loop(loop)
     controller = SuiteController()
     bridge = SuiteQtBridge(controller)
+    # Real background poll timers (admin clients/logs) start ticking the
+    # moment the bridge is constructed - stopped for the rest of this
+    # deterministic script so a stray real tick can never race an
+    # explicit loop.run_until_complete() call below.
+    bridge._admin_clients_timer.stop()
+    bridge._admin_logs_timer.stop()
 
     # --- nav taxonomy real parity with nav_sidebar.py's own real dock keys ---
     all_keys = set()
@@ -144,6 +150,52 @@ def _run() -> None:
     assert rows[0]["username"] == "alice" and rows[0]["isAdmin"] is True, "admin-first sort, same as the classic panel"
     assert rows[1]["username"] == "bob" and rows[1]["isAdmin"] is False
     bridge.removeServer(ac_conn_id)
+
+    # --- admin logs: real tag extraction, filtering, and the real
+    # "clear the screen, keep tailing" anchor trick ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    al_conn_id = bridge.serverRows[0]["connId"]
+    al_conn = controller.connections[al_conn_id]
+    al_conn.role = "admin"
+    fake_lines = ["[ADMIN] first line", "[WS] second line", "[ADMIN] third line"]
+
+    async def _fake_admin_logs(_lines):
+        # A real GET /api/admin/logs response is fresh JSON every call,
+        # never the same list object twice - returning a copy here
+        # (rather than the closed-over fake_lines directly) avoids
+        # accidentally aliasing this test's own fixture with
+        # self._admin_logs_all_lines, which a real HTTP response could
+        # never do.
+        return (200, {"lines": list(fake_lines)})
+
+    al_conn.fetch_admin_logs = _fake_admin_logs
+    loop.run_until_complete(bridge._refresh_admin_logs())
+    assert bridge.adminLogsLines == fake_lines
+    assert set(bridge.adminLogsTags) == {"ADMIN", "WS"}
+    bridge.setAdminLogsTagFilter("ADMIN")
+    assert bridge.adminLogsLines == ["[ADMIN] first line", "[ADMIN] third line"]
+    bridge.setAdminLogsTagFilter("")
+    bridge.setAdminLogsSearch("third")
+    assert bridge.adminLogsLines == ["[ADMIN] third line"]
+    bridge.setAdminLogsSearch("")
+
+    # Clear anchors on the last line currently held - a later poll that
+    # only appends past it must show just the new lines, matching
+    # admin_logs_panel.py's own real "keep tailing" behavior.
+    bridge.clearAdminLogs()
+    assert bridge.adminLogsLines == [bridge.uiText("MSG_LOGS_NONE")]
+    fake_lines = fake_lines + ["[ADMIN] fourth line"]
+    loop.run_until_complete(bridge._refresh_admin_logs())
+    assert bridge.adminLogsLines == ["[ADMIN] fourth line"]
+
+    # Pausing must skip the next real poll entirely.
+    bridge.toggleAdminLogsLive()
+    assert bridge.adminLogsLive is False
+    fake_lines.append("[ADMIN] should not appear while paused")
+    loop.run_until_complete(bridge._refresh_admin_logs())
+    assert bridge.adminLogsLines == ["[ADMIN] fourth line"], "a paused panel must not pick up a new poll"
+    bridge.toggleAdminLogsLive()
+    bridge.removeServer(al_conn_id)
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

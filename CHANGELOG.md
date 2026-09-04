@@ -56,7 +56,10 @@ before every PyInstaller build - not on a plain `python main.py` run. See
   connection to the active server right now, admin-first sort, a
   live "Xm ago" duration ticking every second independent of the 5s
   data poll, exactly matching the classic panel's own two-timer
-  design); every other one of the remaining 19 real panels shows a
+  design; Admin Logs ("Server Log") - the remote Server's own on-disk
+  log, real tag extraction/filtering, and the same real "clear the
+  screen, keep tailing" anchor trick as the classic panel); every other
+  one of the remaining 18 real panels shows a
   real "not yet migrated" placeholder (a small amber dot next to its
   nav label) rather than a fake, empty-but-styled panel pretending to
   be done. Run `python main.py --qtquick` to see this shell - the

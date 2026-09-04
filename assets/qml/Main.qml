@@ -306,6 +306,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "trajectory") return trajectoryComponent
                     if (suiteBackend.activePanel === "ai_family") return aiFamilyComponent
                     if (suiteBackend.activePanel === "admin_clients") return adminClientsComponent
+                    if (suiteBackend.activePanel === "admin_logs") return adminLogsComponent
                     return notMigratedComponent
                 }
             }
@@ -740,6 +741,65 @@ ApplicationWindow {
                         Text { text: modelData.duration; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
                         Text { text: "●"; color: modelData.connected ? window.green : "#ee6b80"; font.pixelSize: 10 }
                     }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: adminLogsComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_ADMIN_LOGS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button { text: suiteBackend.uiText("BTN_CLEAR"); onClicked: suiteBackend.clearAdminLogs() }
+                Button { text: suiteBackend.adminLogsLive ? suiteBackend.uiText("BTN_PAUSE") : suiteBackend.uiText("BTN_RESUME"); onClicked: suiteBackend.toggleAdminLogsLive() }
+            }
+            Text { text: suiteBackend.adminLogsStatusText; color: window.muted; font.pixelSize: 11 }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                TextField {
+                    placeholderText: suiteBackend.uiText("LOGS_SEARCH_PLACEHOLDER")
+                    color: window.textPrimary
+                    Layout.preferredWidth: 260
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    onTextChanged: suiteBackend.setAdminLogsSearch(text)
+                }
+                Button {
+                    text: suiteBackend.uiText("LOGS_ALL_TAGS")
+                    checkable: true
+                    checked: suiteBackend.adminLogsTagFilter === ""
+                    onClicked: suiteBackend.setAdminLogsTagFilter("")
+                }
+                Repeater {
+                    model: suiteBackend.adminLogsTags
+                    delegate: Button {
+                        required property string modelData
+                        text: modelData
+                        checkable: true
+                        checked: suiteBackend.adminLogsTagFilter === modelData
+                        onClicked: suiteBackend.setAdminLogsTagFilter(modelData)
+                    }
+                }
+            }
+            ListView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: suiteBackend.adminLogsLines
+                delegate: Text {
+                    required property string modelData
+                    width: ListView.view.width
+                    text: modelData
+                    color: window.muted
+                    font.family: "Cascadia Mono"
+                    font.pixelSize: 10
+                    wrapMode: Text.WrapAnywhere
                 }
             }
         }
