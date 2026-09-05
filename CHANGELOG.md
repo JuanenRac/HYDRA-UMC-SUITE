@@ -12,6 +12,28 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
+- **Fixed real overlapping-text layout bugs in the `--qtquick` deck.**
+  Found from a direct user report of wide elements sitting on top of
+  other controls, hiding their functions. Root cause, confirmed with a
+  real on-screen check (not a theory): a `RowLayout` doesn't reserve
+  real height for a wrapped `Text` sibling sharing its row with another
+  control - the row sizes itself off that Text's un-wrapped single-line
+  height, and the wrapped second line spills down over whatever comes
+  next. Hit twice here: the Ecosystem Services panel's own service-name
+  card header (several real service names, e.g.
+  `HYDRA-UMC-VISUAL-SERVOING-API`, genuinely wrap at that card's fixed
+  width, spilling over the health badge/description below), and the
+  Tester panel's own Self-Test note (spilling over the Raw Bus Monitor
+  section below it). Fixed both by binding the row's own
+  `Layout.preferredHeight` to `Math.max()` of its real children's
+  `implicitHeight`. Separately, the 3D Viewport panel's own
+  "unavailable" message used `anchors.centerIn` plus an arithmetic
+  `width: parent.width - 40` that could freeze at whatever width its
+  parent had at component-completion and never re-evaluate afterward,
+  wrapping the message one word per line in a sliver a few pixels wide
+  (confirmed on a structurally identical case in
+  HYDRA-UMC-EDITOR-URDF's own viewport panel) - switched to
+  `anchors.fill` + margins, which doesn't have that failure mode.
 - **Real Qt Quick command-deck shell, the "redesign from zero" this
   project needed** after both real ways of embedding QML inside the
   established `QMainWindow`+`QDockWidget` tree proved unsafe:

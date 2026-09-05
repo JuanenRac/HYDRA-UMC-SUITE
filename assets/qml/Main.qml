@@ -1047,8 +1047,19 @@ ApplicationWindow {
                                             spacing: 4
                                             RowLayout {
                                                 Layout.fillWidth: true
-                                                Text { text: serviceCard.modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                                                // Explicit, not left implicit - several real service names in
+                                                // this family (HYDRA-UMC-VISUAL-SERVOING-API,
+                                                // HYDRA-UMC-SYNTHETIC-DATA-GEN, ...) genuinely wrap to 2 lines
+                                                // at this card's own fixed width. A RowLayout doesn't know a
+                                                // wrapped Text's real height until after it's already assigned
+                                                // that Text its final fillWidth-stretched width, so without this
+                                                // it sized itself off the name's un-wrapped single-line height
+                                                // and the second line spilled down over the description text
+                                                // below it.
+                                                Layout.preferredHeight: Math.max(serviceNameText.implicitHeight, healthBadge.implicitHeight)
+                                                Text { id: serviceNameText; text: serviceCard.modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
                                                 Rectangle {
+                                                    id: healthBadge
                                                     radius: 6
                                                     implicitWidth: badgeCol.implicitWidth + 12
                                                     implicitHeight: badgeCol.implicitHeight + 6
@@ -3145,8 +3156,17 @@ ApplicationWindow {
 
                 Text { text: suiteBackend.uiText("LBL_SELF_TEST"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
                 RowLayout {
-                    Text { text: suiteBackend.uiText("LBL_SELF_TEST_NOTE"); color: window.muted; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    // Explicit, not left implicit - see the ecosystem
+                    // services card's own comment above for why a wrapped
+                    // sibling Text needs its RowLayout height bound to its
+                    // own real implicitHeight instead of left to the row's
+                    // un-wrapped default. This note text is long enough to
+                    // wrap at this row's own width, and was spilling down
+                    // over the button next to it.
+                    Layout.preferredHeight: Math.max(selfTestNoteText.implicitHeight, selfTestButton.implicitHeight)
+                    Text { id: selfTestNoteText; text: suiteBackend.uiText("LBL_SELF_TEST_NOTE"); color: window.muted; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     Button {
+                        id: selfTestButton
                         text: suiteBackend.testerTesting ? "..." : suiteBackend.uiText("BTN_RUN_SELF_TEST")
                         enabled: suiteBackend.testerQueryEnabled && !suiteBackend.testerTesting
                         onClicked: suiteBackend.runTesterSelfTest()
@@ -3282,10 +3302,23 @@ ApplicationWindow {
                     border.width: 1
                     border.color: "#1a2530"
                     Text {
-                        anchors.centerIn: parent
+                        // anchors.fill + margins, not anchors.centerIn plus
+                        // an arithmetic `width: parent.width - 40` - the
+                        // exact same real pattern found (and confirmed
+                        // broken with a real on-screen check, not just a
+                        // theory) in HYDRA-UMC-EDITOR-URDF's own structurally
+                        // identical viewport-unavailable message: that
+                        // expression can freeze at whatever width its parent
+                        // happened to have at component-completion and never
+                        // re-evaluate afterward, wrapping this message one
+                        // word per line in a sliver a few pixels wide.
+                        // Anchoring directly to the real, continuously
+                        // -updated parent geometry doesn't have that failure
+                        // mode.
+                        anchors.fill: parent
                         anchors.margins: 20
-                        width: parent.width - 40
                         horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                         wrapMode: Text.WordWrap
                         text: suiteBackend.viewportUnsupportedMessage
                         color: window.muted
