@@ -66,6 +66,16 @@ gebauter "Generic"-Fallback für jedes Modell ohne eigenen Mesh-Satz.
 
 Der Desktop enthält jetzt ein dauerhaftes, von Spielemenüs inspiriertes Command Deck mit dem offiziellen HYDRA-UMC-Symbol und der dunkelblau/cyanfarbenen Sprache von HYDRA-UMC-UPDATER. Die Steuerelemente für Übersicht, Robotersteuerung, Kameras, Trajektorie und Logs öffnen die jeweiligen echten, andockbaren Panels; rechts stehen Verbindungsstatus, aktives Serverziel und UTC-Uhr. Es ist eine visuelle Ebene über echten Suite-Funktionen, kein simuliertes Dashboard.
 
+### Vollständiges Qt-Quick-Redesign (`--qtquick`)
+
+Dieses Command Deck ist eine Ebene über dem klassischen `QMainWindow`. Diese App hat außerdem eine völlig eigenständige Qt-Quick-Shell:
+
+~~~
+python main.py --qtquick
+~~~
+
+Ein echtes QML-`ApplicationWindow` - anders als das obige Command Deck überhaupt nicht in das klassische Fenster eingebettet (beide echten Wege, QML in den klassischen `QMainWindow`/`QDockWidget`-Baum einzubetten, wurden ausprobiert und verworfen: `QQuickWidget` zeigte durchgehend Schwarz, und `QQuickView`+`createWindowContainer()` rendierte isoliert korrekt, verfälschte aber die echte Z-Reihenfolge benachbarter Docks, sobald es in das echte 26-Dock-Layout dieser App eingesetzt wurde). Dasselbe reale, bereits bewährte Muster, das HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER, URTC-TESTER, URTC-FLASHER und HYDRA-UMC-EDITOR-URDF bereits verwenden, gestartet neben dem unveränderten klassischen Einstiegspunkt, ohne ihn zu ersetzen. Tauscht die Flexibilität von `QDockWidget` (freischweben/teilen/als Tabs zusammenführen) gegen STUDIOs eigene einfachere Form aus Navigations-Seitenleiste plus einem einzigen Inhaltsbereich (bildet die reale Taxonomie von `nav_sidebar.py` Punkt für Punkt nach) - alle 26 echten klassischen Panels sind zu echtem QML-Inhalt portiert, einschließlich des 3D-Viewports, dessen Live-Vorschau über einen eigenen `OffscreenRobotRenderer` gespeist wird (ein echter, separater `QOpenGLContext`/`QOffscreenSurface`/Framebuffer, bewusst nicht das eigene `QQuickFramebufferObject` von Qt Quick, das das gesamte Quick-Backend der App vom echten Direct3D11-Standard unter Windows auf OpenGL zwingen würde) und dabei denselben echten Rendering-Code (`RobotGLRenderer`) wiederverwendet, den das klassische Viewport-Widget nutzt, übertragen an QML über einen `QQuickImageProvider`.
+
 ## 🏭 Funktionen
 
 - **🔍 Netzwerkerkennung** - ein gleichzeitiger Subnetz-Scan (`GET /api/hydra-info`) und echtes mDNS/Bonjour (`_hydra._tcp`, derselbe Dienst, den `server.ts` veröffentlicht und den HYDRA-UMC-IOS-CONTROL bereits abfragt) laufen gemeinsam auf der Suche nach echten HYDRA-UMC-STUDIO-Servern, dedupliziert nach Host:Port, plus manuelles Hinzufügen per Adresse für alles, was keines von beiden erreichen kann (ein anderes Subnetz, ein VPN-Tunnel).
@@ -147,7 +157,8 @@ veralteten Bild zu vertrauen.
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # Einstiegspunkt - Vollbild min. 1920x1080, F11 schaltet zwischen Vollbild/Fenster um
+├── main.py                        # Einstiegspunkt - Vollbild min. 1920x1080, F11 schaltet zwischen Vollbild/Fenster um; --qtquick wechselt zum Panel unten
+├── qt_suite.py                     # Qt-Quick-Frontend - eigenständiges `--qtquick`-Kommandopult (alle 26 Panels), verbindet den unveränderten SuiteController mit QML
 ├── requirements.txt
 ├── hydra-umc.project.json         # Ökosystem-Manifest - Version/Familie/Elternteil, die Quelle, die Dashboard/Updater/OS-REBUILDER lesen
 ├── bump_version.py                # Odometer-Versionserhöhung für das eigene __version__ von hydra_suite/__init__.py, ausgeführt von build_exe.bat/.sh vor jedem echten PyInstaller-Build
@@ -177,7 +188,7 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # Geometrie der Werkzeugmodule (CNC/Laser/Heizbett/Vakuumtisch)
 │   │   ├── pnp_rig.py               # Echte kartesische Portalkette für das LumenPnP/JuanenPnP-Mesh-Rig
 │   │   ├── mesh.py                  # STL-Laden (numpy-stl)
-│   │   └── viewport.py              # QOpenGLWidget - echte GLSL-Shader-Pipeline, Orbit-Kamera
+│   │   └── viewport.py              # RobotGLRenderer (echte GLSL-Shader-Pipeline, Orbit-Kamera) + der klassische QOpenGLWidget-Wrapper + OffscreenRobotRenderer für das 3D-Viewport-Panel des `--qtquick`-Decks
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + QDockWidget-Arbeitsbereich
 │       ├── about_dialog.py          # Echter Über-Dialog (Version/Autor/Lizenz)
@@ -186,6 +197,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # Eine Datei pro andockbarem Panel - echte 1:1-Parität mit STUDIOs eigenen Tabs: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ echte PTZ-Steuerung), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # Das futuristisch-industrielle Qt-Stylesheet
+│   ├── qml/Main.qml                 # Qt-Quick-UI des `--qtquick`-Kommandopults (alle 26 Panels)
 │   └── meshes/                      # Echte STL-Meshes, ein Ordner pro Roboter/Modul, kopiert aus HYDRA-UMC-STUDIOs eigenem public/models/ (jeweils mit eigener ATTRIBUTION.txt)
 ├── language/                        # .lng-Dateien english/spanish/french/german/italian/japanese/chinese
 ├── docs/

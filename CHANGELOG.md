@@ -1,10 +1,6 @@
 # Changelog
 
-All notable changes to HYDRA-UMC SUITE are summarized here. This file is a
-condensed, public-facing summary of the full internal work log, which is
-kept private and not published - exhaustive detail (exact line numbers,
-verification transcripts, root-cause analysis) lives only in that private
-log.
+All notable changes to HYDRA-UMC SUITE are documented in this file.
 
 Versioning: starting with this entry, `hydra_suite/__version__` follows an
 odometer-style `MAJOR.MINOR.PATCH` scheme with a base-10 carry rule - patch

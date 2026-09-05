@@ -63,6 +63,16 @@ without a dedicated mesh set.
 
 The desktop now has a persistent, game-console-inspired command deck using the official HYDRA-UMC icon and the deep navy/cyan language of HYDRA-UMC-UPDATER. Its Dashboard, Robot Control, Cameras, Trajectory and Logs controls raise the corresponding real dockable panels; its right side shows live connection state, selected server target and UTC time. It is a visual layer over existing Suite functions, not a simulated dashboard.
 
+### Full Qt Quick redesign (`--qtquick`)
+
+That command deck is a layer over the classic `QMainWindow`. This app also has a completely separate, standalone Qt Quick shell:
+
+~~~
+python main.py --qtquick
+~~~
+
+A genuine QML `ApplicationWindow` - not embedded in the classic window at all, unlike the command deck above (both real ways of embedding QML inside the classic `QMainWindow`/`QDockWidget` tree were tried and abandoned: `QQuickWidget` painted solid black, and `QQuickView`+`createWindowContainer()` rendered correctly in isolation but corrupted sibling docks' real Z-order once placed inside this app's actual 26-dock layout). The same real, proven pattern HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER, URTC-TESTER, URTC-FLASHER and HYDRA-UMC-EDITOR-URDF already use, launched alongside the unchanged classic entry point rather than replacing it. Trades `QDockWidget`'s float/split/tab-merge flexibility for STUDIO's own simpler nav-sidebar-plus-single-content-pane shape (mirroring `nav_sidebar.py`'s own real taxonomy item for item) - all 26 real classic panels are ported to real QML content, including the 3D Viewport, whose live preview is fed through a dedicated `OffscreenRobotRenderer` (a genuine separate `QOpenGLContext`/`QOffscreenSurface`/framebuffer, deliberately not Qt Quick's own `QQuickFramebufferObject`, which would force the whole app's Quick backend off Windows' real default Direct3D11 onto OpenGL) reusing the exact same real rendering code (`RobotGLRenderer`) the classic viewport widget uses, via a `QQuickImageProvider`.
+
 ## 🏭 Features
 
 - **🔍 Network discovery** - a concurrent subnet scan (`GET /api/hydra-info`)
@@ -140,7 +150,8 @@ below) to see the real thing rather than trust a stale image here later.
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed
+├── main.py                        # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed; --qtquick switches to the deck below
+├── qt_suite.py                     # Qt Quick front end - standalone `--qtquick` command deck (all 26 panels), bridges the unchanged SuiteController to QML
 ├── requirements.txt
 ├── hydra-umc.project.json         # Ecosystem manifest - version/family/parent, the source dashboard/updater/OS-REBUILDER read
 ├── bump_version.py                # Odometer version bump for hydra_suite/__init__.py's own __version__, run by build_exe.bat/.sh before every real PyInstaller build
@@ -170,7 +181,7 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # Tool-attachment module geometry (CNC/Laser/Heated Bed/Vacuum Table)
 │   │   ├── pnp_rig.py               # Real Cartesian-gantry chain for the LumenPnP/JuanenPnP mesh rig
 │   │   ├── mesh.py                  # STL loading (numpy-stl)
-│   │   └── viewport.py              # QOpenGLWidget - real GLSL shader pipeline, orbit camera
+│   │   └── viewport.py              # RobotGLRenderer (real GLSL shader pipeline, orbit camera) + the classic QOpenGLWidget wrapper + OffscreenRobotRenderer for the `--qtquick` deck's own 3D Viewport panel
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + QDockWidget workspace
 │       ├── about_dialog.py          # Real About dialog (version/author/license)
@@ -179,6 +190,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # One file per dock panel - real 1:1 parity with STUDIO's own tabs: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ real PTZ control), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # The futuristic-industrial Qt stylesheet
+│   ├── qml/Main.qml                 # Qt Quick UI for the `--qtquick` command deck (all 26 panels)
 │   └── meshes/                      # Real STL meshes, one folder per robot/module, copied from HYDRA-UMC-STUDIO's own public/models/ (each with its own ATTRIBUTION.txt)
 ├── language/                        # english/spanish/french/german/italian/japanese/chinese .lng files
 ├── docs/

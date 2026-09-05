@@ -40,6 +40,16 @@
 ## ✨ ビジュアル・コマンドデッキ
 
 デスクトップには、公式 HYDRA-UMC アイコンと HYDRA-UMC-UPDATER と同じ濃紺/シアンの視覚言語を使用した、ゲームメニュー風の常設コマンドデッキが加わりました。ダッシュボード、ロボット操作、カメラ、軌道、ログの操作は対応する実際のドッキングパネルを開き、右側には接続状態、アクティブサーバーターゲット、UTC 時計を表示します。これは Suite の実機能上の視覚レイヤーであり、模擬ダッシュボードではありません。
+### Qt Quick への全面リデザイン(`--qtquick`)
+
+このコマンドデッキは従来の `QMainWindow` の上に重なるレイヤーです。このアプリには、それとは別に完全に独立した Qt Quick シェルもあります:
+
+~~~
+python main.py --qtquick
+~~~
+
+本物の QML `ApplicationWindow` で、上記のコマンドデッキとは異なり従来のウィンドウにはまったく組み込まれていません(従来の `QMainWindow`/`QDockWidget` ツリーに QML を組み込む本物の 2 つの方法はどちらも試された上で断念されました:`QQuickWidget` は真っ黒に表示され、`QQuickView`+`createWindowContainer()` は単体では正しく描画されたものの、このアプリの実際の 26 ドックのレイアウトに組み込むと隣接するドックの本物の Z オーダーが壊れました)。HYDRA-UMC-OS-REBUILDER、HYDRA-UMC-UPDATER、URTC-TESTER、URTC-FLASHER、HYDRA-UMC-EDITOR-URDF がすでに使っている、実証済みの同じ本物のパターンで、従来のエントリポイントを置き換えるのではなく、その隣で起動します。`QDockWidget` のフロート/分割/タブ統合という柔軟性を、STUDIO 自身のよりシンプルなナビゲーションサイドバー+単一コンテンツペインという形(`nav_sidebar.py` 自身の実際の分類体系を項目ごとに忠実に再現)と引き換えており、26 個すべての従来パネルが本物の QML コンテンツに移植済みで、3D Viewport も含まれます。その Viewport のライブプレビューは専用の `OffscreenRobotRenderer`(本物の、独立した `QOpenGLContext`/`QOffscreenSurface`/フレームバッファで、Qt Quick 自身の `QQuickFramebufferObject` はあえて使っていません——それを使うとアプリ全体の Quick バックエンドを Windows の本来のデフォルトである Direct3D11 から OpenGL に強制的に切り替える必要が生じるためです)を介して供給されており、従来のビューポートウィジェットが使うのと同じ本物の描画コード(`RobotGLRenderer`)を再利用し、`QQuickImageProvider` 経由で QML に渡されます。
+
 
 ## 🏭 機能
 
@@ -66,7 +76,8 @@
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # エントリーポイント - 最小1920x1080のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替
+├── main.py                        # エントリーポイント - 最小1920x1080のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替。--qtquickで下記のデッキに切り替え
+├── qt_suite.py                     # Qt Quick フロントエンド —— 独立した `--qtquick` コマンドデッキ(全26パネル)、変更を加えていないSuiteControllerをQMLに接続
 ├── requirements.txt
 ├── hydra-umc.project.json         # エコシステムマニフェスト - バージョン/ファミリー/親、dashboard/updater/OS-REBUILDERが読み取る実際の情報源
 ├── bump_version.py                # hydra_suite/__init__.py自身の__version__に対するオドメーター式バージョン増分、実際のPyInstallerビルドの前にbuild_exe.bat/.shが実行する
@@ -96,7 +107,7 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # ツールアタッチメントモジュールのジオメトリ（CNC/レーザー/ヒートベッド/バキュームテーブル）
 │   │   ├── pnp_rig.py               # LumenPnP/JuanenPnPメッシュリグ用の実際のデカルトガントリーチェーン
 │   │   ├── mesh.py                  # STL読み込み（numpy-stl）
-│   │   └── viewport.py              # QOpenGLWidget - 実際のGLSLシェーダーパイプライン、オービットカメラ
+│   │   └── viewport.py              # RobotGLRenderer(実際のGLSLシェーダーパイプライン、オービットカメラ)+ 従来のQOpenGLWidgetラッパー + `--qtquick`デッキの3D Viewportパネル向けのOffscreenRobotRenderer
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + QDockWidgetワークスペース
 │       ├── about_dialog.py          # 実際のAboutダイアログ（バージョン/作者/ライセンス）
@@ -105,6 +116,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # ドッキング可能なパネルごとに1ファイル - STUDIO自身のタブとの実際の1:1パリティ：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+実際のPTZ制御）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # 未来的・産業的なQtスタイルシート
+│   ├── qml/Main.qml                 # `--qtquick` コマンドデッキ(全26パネル)のQt Quick UI
 │   └── meshes/                      # 実際のSTLメッシュ、ロボット/モジュールごとに1フォルダ、HYDRA-UMC-STUDIO自身のpublic/models/からコピー（それぞれ独自のATTRIBUTION.txt付き）
 ├── language/                        # english/spanish/french/german/italian/japanese/chineseの.lngファイル
 ├── docs/

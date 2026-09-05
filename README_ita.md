@@ -66,6 +66,16 @@ qualsiasi modello privo di un proprio set di mesh.
 
 Il desktop include ora una console di comando persistente, ispirata a un menu di gioco, con l'icona ufficiale HYDRA-UMC e la palette blu notte/ciano di HYDRA-UMC-UPDATER. I controlli Dashboard, Robot, Camere, Traiettoria e Log aprono i pannelli dockabili reali; a destra sono visibili stato della connessione, destinazione server attiva e ora UTC. È una superficie visiva delle funzioni reali di Suite, non una dashboard simulata.
 
+### Redesign completo in Qt Quick (`--qtquick`)
+
+Quella console di comando è un livello sopra il `QMainWindow` classico. Questa app ha anche una shell Qt Quick del tutto autonoma:
+
+~~~
+python main.py --qtquick
+~~~
+
+Una vera `ApplicationWindow` QML - per nulla incorporata nella finestra classica, a differenza della console sopra (sono stati provati entrambi i modi reali di incorporare QML nell'albero classico `QMainWindow`/`QDockWidget` ed entrambi sono stati abbandonati: `QQuickWidget` mostrava nero pieno, e `QQuickView`+`createWindowContainer()` renderizzava correttamente in isolamento ma corrompeva il reale Z-order dei dock vicini una volta inserito nel layout reale a 26 dock di questa app). Lo stesso schema reale e già collaudato usato da HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER, URTC-TESTER, URTC-FLASHER e HYDRA-UMC-EDITOR-URDF, avviato accanto al punto di ingresso classico senza sostituirlo. Scambia la flessibilità di flottare/dividere/unire in schede di `QDockWidget` con la forma più semplice a barra laterale di navigazione più un unico pannello di contenuto di STUDIO (rispecchiando punto per punto la reale tassonomia di `nav_sidebar.py`) - tutti i 26 pannelli classici reali sono portati a vero contenuto QML, incluso il Viewport 3D, la cui anteprima dal vivo viene alimentata tramite un `OffscreenRobotRenderer` dedicato (un `QOpenGLContext`/`QOffscreenSurface`/framebuffer realmente separato, deliberatamente non il `QQuickFramebufferObject` proprio di Qt Quick, che costringerebbe l'intero backend Quick dell'app dal vero Direct3D11 predefinito di Windows a OpenGL) riutilizzando lo stesso codice di rendering reale (`RobotGLRenderer`) usato dal widget del viewport classico, tramite un `QQuickImageProvider`.
+
 ## 🏭 Funzionalità
 
 - **🔍 Scoperta di rete** - una scansione concorrente della sottorete (`GET /api/hydra-info`) e il vero mDNS/Bonjour (`_hydra._tcp`, lo stesso servizio pubblicato da `server.ts` e già interrogato da HYDRA-UMC-IOS-CONTROL) vengono eseguiti insieme alla ricerca di server HYDRA-UMC STUDIO reali, deduplicati per host:porta, più aggiunta manuale per indirizzo per tutto ciò che nessuno dei due può raggiungere (una sottorete diversa, un tunnel VPN).
@@ -149,7 +159,8 @@ avanti di un'immagine ormai superata.
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # Punto di ingresso - schermo intero 1920x1080 min, F11 alterna schermo intero/finestra
+├── main.py                        # Punto di ingresso - schermo intero 1920x1080 min, F11 alterna schermo intero/finestra; --qtquick passa al pannello sotto
+├── qt_suite.py                     # Front end Qt Quick - pannello comandi `--qtquick` autonomo (tutti i 26 pannelli), collega l'SuiteController invariato a QML
 ├── requirements.txt
 ├── hydra-umc.project.json         # Manifesto dell'ecosistema - versione/famiglia/genitore, la fonte letta da dashboard/updater/OS-REBUILDER
 ├── bump_version.py                # Incremento di versione tipo odometro per il __version__ proprio di hydra_suite/__init__.py, eseguito da build_exe.bat/.sh prima di ogni build reale con PyInstaller
@@ -179,7 +190,7 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # Geometria dei moduli utensile (CNC/Laser/Piano Riscaldato/Tavolo Vuoto)
 │   │   ├── pnp_rig.py               # Vera catena cinematica cartesiana per il rig mesh LumenPnP/JuanenPnP
 │   │   ├── mesh.py                  # Caricamento STL (numpy-stl)
-│   │   └── viewport.py              # QOpenGLWidget - vera pipeline di shader GLSL, camera orbitale
+│   │   └── viewport.py              # RobotGLRenderer (vera pipeline di shader GLSL, camera orbitale) + il wrapper QOpenGLWidget classico + OffscreenRobotRenderer per il pannello Viewport 3D del deck `--qtquick`
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + area di lavoro QDockWidget
 │       ├── about_dialog.py          # Vera finestra Informazioni (versione/autore/licenza)
@@ -188,6 +199,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # Un file per pannello agganciabile - vera parità 1:1 con le schede di STUDIO: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ vero controllo PTZ), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # Il foglio di stile Qt futuristico-industriale
+│   ├── qml/Main.qml                 # UI Qt Quick del pannello comandi `--qtquick` (tutti i 26 pannelli)
 │   └── meshes/                      # Vere mesh STL, una cartella per robot/modulo, copiate dal proprio public/models/ di HYDRA-UMC-STUDIO (ciascuna con il proprio ATTRIBUTION.txt)
 ├── language/                        # File .lng english/spanish/french/german/italian/japanese/chinese
 ├── docs/

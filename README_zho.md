@@ -40,6 +40,16 @@
 ## ✨ 可视化指挥台
 
 桌面现已提供一个常驻、带有游戏菜单风格的指挥台，使用官方 HYDRA-UMC 图标以及 HYDRA-UMC-UPDATER 的深海军蓝/青色视觉语言。仪表板、机器人控制、相机、轨迹和日志按钮会打开对应的真实可停靠面板；右侧显示实时连接状态、活动服务器目标和 UTC 时钟。这是 Suite 真实功能上的视觉层，而不是模拟仪表板。
+### 完整的 Qt Quick 重新设计（`--qtquick`）
+
+这个指挥台是叠加在经典 `QMainWindow` 之上的一层。这个应用还拥有一个完全独立的 Qt Quick 外壳：
+
+~~~
+python main.py --qtquick
+~~~
+
+一个真正的 QML `ApplicationWindow`——与上面的指挥台不同，它完全没有嵌入经典窗口中（在经典 `QMainWindow`/`QDockWidget` 树中嵌入 QML 的两种真实方式都曾尝试过并被放弃：`QQuickWidget` 会显示纯黑色，而 `QQuickView`+`createWindowContainer()` 在隔离环境下渲染正确，但一旦放入这个应用真实的 26 个停靠面板布局中，就会破坏相邻停靠面板真实的 Z 顺序）。这与 HYDRA-UMC-OS-REBUILDER、HYDRA-UMC-UPDATER、URTC-TESTER、URTC-FLASHER 和 HYDRA-UMC-EDITOR-URDF 已经使用的、经过验证的同一种真实模式一致，与经典入口点并行启动，而不是取代它。它用 STUDIO 自身更简单的导航侧边栏加单一内容面板的形式（逐项复刻 `nav_sidebar.py` 自身真实的分类体系），取代了 `QDockWidget` 浮动/拆分/合并为标签页的灵活性——全部 26 个经典面板都被移植为真正的 QML 内容，包括 3D Viewport，其实时预览通过一个专用的 `OffscreenRobotRenderer` 提供（一个真正独立的 `QOpenGLContext`/`QOffscreenSurface`/帧缓冲，刻意不使用 Qt Quick 自身的 `QQuickFramebufferObject`，因为那会迫使整个应用的 Quick 后端从 Windows 真实的默认 Direct3D11 切换到 OpenGL），复用与经典视口控件相同的真实渲染代码（`RobotGLRenderer`），通过 `QQuickImageProvider` 传入 QML。
+
 
 ## 🏭 功能特性
 
@@ -66,7 +76,8 @@
 
 ```text
 HYDRA-UMC-SUITE/
-├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口
+├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
+├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
 ├── requirements.txt
 ├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
 ├── bump_version.py                # 为 hydra_suite/__init__.py 自身的 __version__ 做里程表式版本递增，在每次真实的 PyInstaller 构建前由 build_exe.bat/.sh 运行
@@ -96,7 +107,7 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # 工具模块几何体（CNC/激光/加热床/真空台）
 │   │   ├── pnp_rig.py               # LumenPnP/JuanenPnP 网格骨架的真实笛卡尔龙门运动链
 │   │   ├── mesh.py                  # STL 加载（numpy-stl）
-│   │   └── viewport.py              # QOpenGLWidget —— 真实 GLSL 着色器管线，轨道相机
+│   │   └── viewport.py              # RobotGLRenderer（真实 GLSL 着色器管线，轨道相机）+ 经典 QOpenGLWidget 包装 + 供 `--qtquick` 面板 3D Viewport 使用的 OffscreenRobotRenderer
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + QDockWidget 工作区
 │       ├── about_dialog.py          # 真实的"关于"对话框（版本/作者/许可证）
@@ -105,6 +116,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # 每个可停靠面板一个文件 —— 与 STUDIO 自身标签页真正做到 1:1 对等：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+真实 PTZ 控制）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # 未来工业风格的 Qt 样式表
+│   ├── qml/Main.qml                 # `--qtquick` 命令面板的 Qt Quick 界面（全部 26 个面板）
 │   └── meshes/                      # 真实 STL 网格，每个机器人/模块一个文件夹，复制自 HYDRA-UMC-STUDIO 自身的 public/models/（各自附带 ATTRIBUTION.txt）
 ├── language/                        # english/spanish/french/german/italian/japanese/chinese 的 .lng 文件
 ├── docs/
