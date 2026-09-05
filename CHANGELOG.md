@@ -196,6 +196,25 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     background update elsewhere could in principle still land while a
     user is mid-edit in a camera's own text field; fully isolating every
     timer in this app is real, separate future work, not done here.
+  - **Flasher, both real instances (URTC/HYDRA-UMC)** - real CAN-OTA
+    (and, for the Kinematic Brain, SPI-OTA) firmware flashing, matching
+    `flasher_panel.py`'s own `FlasherPanel` in full: real tier/board
+    selection with real reachability gating, real version query and
+    flash progress against `can_ota.py`'s own mock simulation generator
+    (fully usable ahead of real hardware) and its real hardware path for
+    kinematicBrain/controllerBoard, real GitHub firmware fetch/download,
+    and a real color-coded activity log. One generic bridge
+    implementation covers both real nav keys (`urtc_flasher`/
+    `hydra_flasher`), matching `main_window.py`'s own two separate
+    `FlasherPanel(tiers=...)` instances rather than a single panel
+    switching between tier sets. **Real bug caught by this panel's own
+    on-screen screenshot**: the two `CheckBox`es' own default label
+    color was nearly invisible against this app's dark background (the
+    first real `CheckBox` in this shell) - a first attempt at a custom
+    `contentItem` fixed the color but left the real indicator glyph
+    overlapping the label text; fixed for real by using a plain,
+    text-less `CheckBox` next to an independent sibling `Text` instead,
+    confirmed with a follow-up screenshot.
 
 ## [0.3.9]
 

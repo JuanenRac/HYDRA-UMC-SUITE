@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -58,6 +59,23 @@ from PySide6.QtQuickControls2 import QQuickStyle
 
 from hydra_suite import __version__, logging_handler
 from hydra_suite.app import SuiteController
+from hydra_suite.can_ota import (
+    GITHUB_FIRMWARE_REPO,
+    CanOtaTarget,
+    FlashOptions,
+    chip_name_for,
+    crc32,
+    download_github_firmware,
+    fetch_github_firmware_releases,
+    hardware_query_version,
+    hardware_start_flash,
+    has_advanced_expansion,
+    hop_description,
+    mock_flash,
+    mock_query_version,
+    resolve_hardware_target,
+    slot_label,
+)
 from hydra_suite.i18n import _
 from hydra_suite.models import (
     CAMERA_TYPES,
@@ -97,6 +115,7 @@ from hydra_suite.ui.panels.cameras_panel import (
 )
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.ui.panels.flasher_panel import HYDRA_BRAIN_TIERS, URTC_TIERS, _TIER_LABEL_KEYS
 from hydra_suite.ui.panels.heated_bed_panel import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
 from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
 from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
@@ -132,7 +151,12 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "urtc_flasher", "hydra_flasher"})
+
+# Real per-instance tier set - matches main_window.py's own two separate
+# FlasherPanel(tiers=...) instances exactly (URTC_TIERS/HYDRA_BRAIN_TIERS,
+# imported, never redeclared), not one panel switching between both.
+_FLASHER_TIERS: dict[str, tuple] = {"urtc_flasher": URTC_TIERS, "hydra_flasher": HYDRA_BRAIN_TIERS}
 _ATC_TYPE_KEYS: tuple[str, ...] = ("vertical_panel", "horizontal_panel", "revolver")
 
 # Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
@@ -489,6 +513,31 @@ class SuiteQtBridge(QObject):
         self._camera_status_timer.setInterval(3000)
         self._camera_status_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
         self._camera_status_timer.start()
+
+        # -- Flasher (ported from flasher_panel.py's own FlasherPanel -
+        # can_ota.py's CanOtaTarget/FlashOptions/etc. imported directly,
+        # never duplicated). Two real, separate instances (`urtc_flasher`/
+        # `hydra_flasher`, keyed by _FLASHER_TIERS above), each with its
+        # own real tier/robot selection/file/log - one dict per bit of
+        # state, keyed by nav key, rather than 2 sets of named attributes
+        # (same generic-over-nav-key shape as _MODULE_CONFIGS above).
+        # `_flasher_is_hardware` is the one real exception - it's a
+        # single, GLOBAL deployment setting (HydraState.can_ota_transport),
+        # not per-instance. --
+        self._flasher_is_hardware = False
+        self._flasher_controller: dict[str, ControllerView | None] = {k: None for k in _FLASHER_TIERS}
+        self._flasher_robot_id: dict[str, str | None] = {k: None for k in _FLASHER_TIERS}
+        self._flasher_tier: dict[str, str] = {k: tiers[0] for k, tiers in _FLASHER_TIERS.items()}
+        self._flasher_file: dict[str, dict | None] = {k: None for k in _FLASHER_TIERS}
+        self._flasher_gh_assets: dict[str, list] = {k: [] for k in _FLASHER_TIERS}
+        self._flasher_gh_busy: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        self._flasher_query_busy: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        self._flasher_flashing: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        self._flasher_progress: dict[str, dict] = {k: {} for k in _FLASHER_TIERS}
+        self._flasher_log: dict[str, list[dict]] = {k: [] for k in _FLASHER_TIERS}
+        self._flasher_allow_downgrade: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        self._flasher_erase_fram: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        controller.active_state_changed.connect(self._on_flasher_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -3127,6 +3176,430 @@ class SuiteQtBridge(QObject):
             return
         self._camera_status = body
         self._camerasChanged.emit()
+
+    # -- Flasher -----------------------------------------------------------
+
+    def _flasher_active_key(self) -> str | None:
+        return self._active_key if self._active_key in _FLASHER_TIERS else None
+
+    def _on_flasher_state_changed(self, state: HydraState) -> None:
+        self._flasher_is_hardware = state.can_ota_transport == "hardware"
+        for key in _FLASHER_TIERS:
+            ctrl = state.active_controller
+            self._flasher_controller[key] = ctrl
+            robots = ctrl.robots if ctrl is not None else []
+            ids = {r.id for r in robots}
+            if self._flasher_robot_id[key] not in ids:
+                self._flasher_robot_id[key] = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _flasher_current_robot(self, key: str) -> RobotView | None:
+        ctrl = self._flasher_controller.get(key)
+        rid = self._flasher_robot_id.get(key)
+        if ctrl is None or rid is None:
+            return None
+        for r in ctrl.robots:
+            if r.id == rid:
+                return r
+        return None
+
+    def _flasher_target(self, key: str) -> CanOtaTarget | None:
+        ctrl = self._flasher_controller.get(key)
+        if ctrl is None:
+            return None
+        tier = self._flasher_tier[key]
+        if tier == "kinematicBrain":
+            return CanOtaTarget(controller_name=ctrl.name, tier=tier)
+        robot = self._flasher_current_robot(key)
+        if robot is None:
+            return None
+        robots = ctrl.robots
+        index0 = next((i for i, r in enumerate(robots) if r.id == robot.id), -1)
+        if index0 < 0:
+            return None
+        return CanOtaTarget(controller_name=ctrl.name, tier=tier, robot_id=robot.id, robot_name=robot.model, robot_index0=index0)
+
+    def _flasher_board_state(self, key: str) -> dict:
+        ctrl = self._flasher_controller.get(key)
+        tier = self._flasher_tier[key]
+        if tier == "kinematicBrain":
+            return ctrl.kinematic_brain if ctrl is not None else {}
+        robot = self._flasher_current_robot(key)
+        return robot.module(tier) if robot is not None else {}
+
+    def _flasher_push_log(self, key: str, text: str, level: str = "info") -> None:
+        log = self._flasher_log.setdefault(key, [])
+        log.append({"text": text, "level": level})
+        if len(log) > 300:
+            del log[: len(log) - 300]
+
+    def _flasher_apply_patch(self, key: str, patch: dict) -> None:
+        ctrl = self._flasher_controller.get(key)
+        if ctrl is None:
+            return
+        tier = self._flasher_tier[key]
+        if tier == "kinematicBrain":
+            ctrl.set_kinematic_brain(patch)
+        else:
+            robot = self._flasher_current_robot(key)
+            if robot is None:
+                return
+            if tier == "urtcHead":
+                merged = {**robot.module("urtcHead"), **patch}
+                robot.set_module("urtcHead", merged)
+            else:
+                robot.set_module(tier, patch)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Property("QVariantList", notify=changed)
+    def flasherTierOptions(self) -> list[dict[str, object]]:
+        key = self._flasher_active_key()
+        if key is None:
+            return []
+        robot = self._flasher_current_robot(key)
+        expansion_available = has_advanced_expansion((robot.module("urtcHead") if robot else {}).get("expansionBoardType"))
+        result = []
+        for t in _FLASHER_TIERS[key]:
+            enabled = True
+            if t == "urtcHead":
+                enabled = bool(robot and robot.urtc_connected)
+            elif t == "urtcExpansion":
+                enabled = expansion_available
+            result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
+        return result
+
+    @Property(str, notify=changed)
+    def flasherTier(self) -> str:
+        key = self._flasher_active_key()
+        return self._flasher_tier.get(key, "") if key else ""
+
+    @Slot(str)
+    def selectFlasherTier(self, tier: str) -> None:
+        key = self._flasher_active_key()
+        if key is not None:
+            self._flasher_tier[key] = tier
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def flasherNeedsRobotSlot(self) -> bool:
+        key = self._flasher_active_key()
+        return key is not None and self._flasher_tier[key] != "kinematicBrain"
+
+    @Property("QVariantList", notify=changed)
+    def flasherRobotOptions(self) -> list[dict[str, str]]:
+        key = self._flasher_active_key()
+        if key is None:
+            return []
+        ctrl = self._flasher_controller.get(key)
+        robots = ctrl.robots if ctrl is not None else []
+        result = []
+        for i, r in enumerate(robots):
+            unreachable = "" if r.urtc_connected else f" ({_('LBL_URTC_UNREACHABLE')})"
+            result.append({"id": r.id, "label": f"{slot_label(i)} - {r.model}{unreachable}"})
+        return result
+
+    @Property(str, notify=changed)
+    def flasherSelectedRobotId(self) -> str:
+        key = self._flasher_active_key()
+        return (self._flasher_robot_id.get(key) or "") if key else ""
+
+    @Slot(str)
+    def selectFlasherRobot(self, robot_id: str) -> None:
+        key = self._flasher_active_key()
+        if key is not None:
+            self._flasher_robot_id[key] = robot_id or None
+            self.changed.emit()
+
+    @Property(str, notify=changed)
+    def flasherHopDescription(self) -> str:
+        key = self._flasher_active_key()
+        if key is None:
+            return ""
+        target = self._flasher_target(key)
+        return hop_description(target) if target else ""
+
+    @Property(bool, notify=changed)
+    def flasherUnreachable(self) -> bool:
+        key = self._flasher_active_key()
+        if key is None or not self._flasher_is_hardware:
+            return False
+        target = self._flasher_target(key)
+        return target is not None and resolve_hardware_target(target) is None
+
+    @Property(str, notify=changed)
+    def flasherVersionLabel(self) -> str:
+        key = self._flasher_active_key()
+        if key is None:
+            return _("LBL_NO_VERSION_KNOWN")
+        board = self._flasher_board_state(key)
+        if board.get("firmwareVersion"):
+            return f"{_('LBL_CURRENT_VERSION')}: {board.get('firmwareVersion', '?')} ({_('LBL_BOOTLOADER')} {board.get('bootloaderVersion', '?')})"
+        return _("LBL_NO_VERSION_KNOWN")
+
+    @Property(bool, notify=changed)
+    def flasherQueryBusy(self) -> bool:
+        key = self._flasher_active_key()
+        return self._flasher_query_busy.get(key, False) if key else False
+
+    @Slot()
+    def flasherQueryVersion(self) -> None:
+        key = self._flasher_active_key()
+        if key is None or self._flasher_query_busy.get(key) or self._flasher_controller.get(key) is None:
+            return
+        target = self._flasher_target(key)
+        if target is None:
+            return
+        self._flasher_query_busy[key] = True
+        self._flasher_push_log(key, f"{_('LBL_QUERYING')}: {hop_description(target)}")
+        self.changed.emit()
+        asyncio.ensure_future(self._run_flasher_query(key, target))
+
+    async def _run_flasher_query(self, key: str, target: CanOtaTarget) -> None:
+        try:
+            if self._flasher_is_hardware:
+                conn = self._controller.active_connection
+                if conn is None:
+                    self._flasher_push_log(key, _("LBL_NO_RESPONSE"), "error")
+                    return
+                result = await hardware_query_version(conn, target)
+            else:
+                result = await mock_query_version(target)
+        finally:
+            self._flasher_query_busy[key] = False
+            self.changed.emit()
+        if not result.online:
+            self._flasher_push_log(key, _("LBL_NO_RESPONSE"), "error")
+            self.changed.emit()
+            return
+        self._flasher_push_log(key, f"{_('LBL_VERSION_FOUND')}: {result.firmware_version} / {result.bootloader_version}", "ok")
+        patch = {"firmwareVersion": result.firmware_version, "bootloaderVersion": result.bootloader_version, "hardwareId": result.hardware_id}
+        if self._flasher_tier[key] == "urtcHead" and result.expansion_board_type is not None:
+            patch["expansionBoardType"] = result.expansion_board_type
+        self._flasher_apply_patch(key, patch)
+
+    @Property(str, notify=changed)
+    def flasherFileInfo(self) -> str:
+        key = self._flasher_active_key()
+        file = self._flasher_file.get(key) if key else None
+        if not file:
+            return _("LBL_NO_FILE")
+        return f"{file['name']} - {len(file['bytes']) / 1024:.1f} KB - CRC32 0x{crc32(file['bytes']):08X}"
+
+    @Property(bool, notify=changed)
+    def flasherHasFile(self) -> bool:
+        key = self._flasher_active_key()
+        return bool(self._flasher_file.get(key)) if key else False
+
+    @Slot(str)
+    def browseFlasherFile(self, path: str) -> None:
+        key = self._flasher_active_key()
+        if key is None:
+            return
+        local_path = QUrl(path).toLocalFile() or path
+        if not local_path:
+            return
+        with open(local_path, "rb") as f:
+            data = f.read()
+        name = os.path.basename(local_path)
+        self._flasher_file[key] = {"name": name, "bytes": data, "hardware_id": None, "version_tag": None}
+        self._flasher_push_log(key, f"{_('LBL_FILE_LOADED')}: {name} ({len(data)} bytes)")
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def flasherGithubAvailable(self) -> bool:
+        key = self._flasher_active_key()
+        return key is not None and GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key]) is not None
+
+    @Property(str, notify=changed)
+    def flasherGithubButtonLabel(self) -> str:
+        key = self._flasher_active_key()
+        if key is None:
+            return ""
+        repo = GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key])
+        return f"{_('BTN_DOWNLOAD_GITHUB')} ({repo})" if repo else ""
+
+    @Property(bool, notify=changed)
+    def flasherGithubBusy(self) -> bool:
+        key = self._flasher_active_key()
+        return self._flasher_gh_busy.get(key, False) if key else False
+
+    @Property("QVariantList", notify=changed)
+    def flasherGithubAssets(self) -> list[dict[str, object]]:
+        key = self._flasher_active_key()
+        if key is None:
+            return []
+        assets = self._flasher_gh_assets.get(key, [])
+        return [
+            {"index": i, "label": f"{a.display_name or a.name} v{a.release_tag}{f' - {a.chip}' if a.chip else ''} ({a.size / 1024:.1f} KB)"}
+            for i, a in enumerate(assets)
+        ]
+
+    @Slot()
+    def fetchFlasherGithub(self) -> None:
+        key = self._flasher_active_key()
+        if key is None:
+            return
+        tier = self._flasher_tier[key]
+        repo = GITHUB_FIRMWARE_REPO.get(tier)
+        if not repo:
+            return
+        self._flasher_gh_busy[key] = True
+        self._flasher_gh_assets[key] = []
+        self.changed.emit()
+        asyncio.ensure_future(self._run_flasher_github(key, repo, tier))
+
+    async def _run_flasher_github(self, key: str, repo: str, tier: str) -> None:
+        try:
+            assets = await fetch_github_firmware_releases(repo, tier)
+            self._flasher_gh_assets[key] = assets
+            self._flasher_push_log(key, f"{_('LBL_GITHUB_FOUND')}: {len(assets)} ({repo})")
+        except Exception as exc:
+            self._flasher_push_log(key, f"{_('LBL_GITHUB_ERROR')}: {exc}", "error")
+        finally:
+            self._flasher_gh_busy[key] = False
+            self.changed.emit()
+
+    @Slot(int)
+    def useFlasherGithubAsset(self, index: int) -> None:
+        key = self._flasher_active_key()
+        if key is None:
+            return
+        assets = self._flasher_gh_assets.get(key, [])
+        if not 0 <= index < len(assets):
+            return
+        asyncio.ensure_future(self._run_use_github_asset(key, assets[index]))
+
+    async def _run_use_github_asset(self, key: str, asset) -> None:
+        self._flasher_push_log(key, f"{_('LBL_GITHUB_DOWNLOADING')}: {asset.name}")
+        self.changed.emit()
+        try:
+            data = await download_github_firmware(asset)
+            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag}
+            self._flasher_push_log(key, f"{_('LBL_FILE_LOADED')}: {asset.name} ({len(data)} bytes)", "ok")
+        except Exception as exc:
+            self._flasher_push_log(key, f"{_('LBL_GITHUB_ERROR')}: {exc}", "error")
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def flasherAllowDowngrade(self) -> bool:
+        key = self._flasher_active_key()
+        return self._flasher_allow_downgrade.get(key, False) if key else False
+
+    @Slot(bool)
+    def setFlasherAllowDowngrade(self, value: bool) -> None:
+        key = self._flasher_active_key()
+        if key is not None:
+            self._flasher_allow_downgrade[key] = value
+
+    @Property(bool, notify=changed)
+    def flasherEraseFram(self) -> bool:
+        key = self._flasher_active_key()
+        return self._flasher_erase_fram.get(key, False) if key else False
+
+    @Slot(bool)
+    def setFlasherEraseFram(self, value: bool) -> None:
+        key = self._flasher_active_key()
+        if key is not None:
+            self._flasher_erase_fram[key] = value
+
+    @Property(bool, notify=changed)
+    def flasherFlashing(self) -> bool:
+        key = self._flasher_active_key()
+        return self._flasher_flashing.get(key, False) if key else False
+
+    @Property(bool, notify=changed)
+    def flasherCanFlash(self) -> bool:
+        key = self._flasher_active_key()
+        return key is not None and self.flasherHasFile and not self._flasher_flashing.get(key, False) and not self.flasherUnreachable
+
+    @Property(str, notify=changed)
+    def flasherConfirmMessage(self) -> str:
+        key = self._flasher_active_key()
+        if key is None:
+            return ""
+        target = self._flasher_target(key)
+        if target is None:
+            return ""
+        robot = self._flasher_current_robot(key)
+        ctrl = self._flasher_controller.get(key)
+        robot_label = robot.model if robot is not None else (ctrl.name if ctrl is not None else "")
+        return _("MSG_CONFIRM_FLASH", target=_(_TIER_LABEL_KEYS[self._flasher_tier[key]]), robot=robot_label)
+
+    @Property(str, notify=changed)
+    def flasherProgressLabel(self) -> str:
+        key = self._flasher_active_key()
+        return self._flasher_progress.get(key, {}).get("label", "") if key else ""
+
+    @Property(int, notify=changed)
+    def flasherProgressPercent(self) -> int:
+        key = self._flasher_active_key()
+        return self._flasher_progress.get(key, {}).get("percent", 0) if key else 0
+
+    @Property("QVariantList", notify=changed)
+    def flasherLog(self) -> list[dict[str, str]]:
+        key = self._flasher_active_key()
+        return self._flasher_log.get(key, []) if key else []
+
+    @Slot()
+    def startFlasherFlash(self) -> None:
+        key = self._flasher_active_key()
+        if key is None:
+            return
+        target = self._flasher_target(key)
+        file = self._flasher_file.get(key)
+        if target is None or not file:
+            return
+        asyncio.ensure_future(self._run_flash(key, target, file))
+
+    async def _run_flash(self, key: str, target: CanOtaTarget, file: dict) -> None:
+        self._flasher_flashing[key] = True
+        self._flasher_push_log(key, f"{_('LBL_FLASH_START')}: {file['name']} - {hop_description(target)}")
+        self.changed.emit()
+        try:
+            if self._flasher_is_hardware:
+                resolved = resolve_hardware_target(target)
+                if not resolved:
+                    self._flasher_push_log(key, _("LBL_HARDWARE_TARGET_UNREACHABLE"), "error")
+                    return
+                self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_CONNECTING"), "percent": 0}
+                self.changed.emit()
+                version_major, _sep, version_minor = (file.get("version_tag") or "0.0").partition(".")
+                hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
+                conn = self._controller.active_connection
+                if conn is None:
+                    self._flasher_push_log(key, _("LBL_NO_RESPONSE"), "error")
+                    return
+                result = await hardware_start_flash(
+                    conn, target, file["bytes"],
+                    int(version_major) if version_major.isdigit() else 0,
+                    int(version_minor) if version_minor.isdigit() else 0,
+                    hardware_id_number,
+                )
+                if result.success:
+                    self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_DONE"), "percent": 100}
+                    self._flasher_push_log(key, _("LBL_FLASH_DONE"), "ok")
+                    self._flasher_apply_patch(key, {"firmwareVersion": file["name"].removesuffix(".bin")})
+                else:
+                    self._flasher_push_log(key, f"{_('LBL_FLASH_HARDWARE_FAILED')}: {result.reason}", "error")
+                return
+
+            opts = FlashOptions(allow_downgrade=self._flasher_allow_downgrade.get(key, False), erase_fram=self._flasher_erase_fram.get(key, False))
+            last_phase = None
+            async for progress in mock_flash(target, file["bytes"], opts):
+                last_phase = progress.phase
+                suffix = f" ({progress.pages_sent}/{progress.pages_total})" if progress.pages_total > 1 and progress.phase == "transferring" else ""
+                self._flasher_progress[key] = {"label": f"{_(f'FLASHER_PROGRESS_{progress.phase.upper()}')}{suffix} - {progress.percent}%", "percent": progress.percent}
+                self.changed.emit()
+                if progress.phase == "transferring" and progress.pages_sent % 5 != 0 and progress.pages_sent != progress.pages_total:
+                    continue
+                self._flasher_push_log(key, f"{_(f'FLASHER_PROGRESS_{progress.phase.upper()}')} ({progress.pages_sent}/{progress.pages_total})", "error" if progress.phase == "error" else "info")
+            if last_phase != "error":
+                self._flasher_push_log(key, _("LBL_FLASH_DONE"), "ok")
+                self._flasher_apply_patch(key, {"firmwareVersion": file["name"].removesuffix(".bin")})
+        finally:
+            self._flasher_flashing[key] = False
+            self.changed.emit()
 
     # -- Overview --------------------------------------------------------
 

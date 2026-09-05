@@ -23,7 +23,9 @@ from hydra_suite.app import SuiteController
 from hydra_suite.models import RACK_MAX_CAPACITY, HydraState
 from hydra_suite.ui.nav_sidebar import ALL_DOCK_KEYS
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
+from hydra_suite.can_ota import GithubFirmwareAsset, VersionQueryResult
 from hydra_suite.ui.panels.atc_tools_panel import URTC_TOOLS
+import qt_suite as qs
 from qt_suite import MIGRATED_PANELS, SuiteQtBridge
 
 
@@ -786,6 +788,107 @@ def _run() -> None:
     assert {c["id"]: c for c in bridge.camerasData}[2]["ptzError"] == "no motorized PTZ hardware"
 
     bridge.removeServer(cam_conn_id)
+
+    # --- Flasher: 2 real, separate instances (urtc_flasher/hydra_flasher),
+    # real tier-enable gating, real per-instance robot selection, the
+    # real can_ota.py mock query/flash generators (not faked - only the
+    # random 5% "offline" branch in mock_query_version() is stubbed, to
+    # keep this test deterministic; mock_flash()'s own small anti-
+    # rollback random chance is avoided for real by setting
+    # allow_downgrade, which genuinely skips that branch), and real
+    # GitHub fetch/download with only the network transport stubbed ---
+    flasher_state = HydraState({
+        "activeControllerId": "c1",
+        "controllers": [{
+            "id": "c1", "name": "Cell One",
+            "robots": [
+                {"id": "x1", "model": "AR3", "urtcConnected": True},
+                {"id": "x2", "model": "AR2", "urtcConnected": False},
+            ],
+        }],
+    })
+    controller.active_state_changed.emit(flasher_state)
+
+    bridge.navigatePanel("urtc_flasher")
+    tiers = {t["key"]: t for t in bridge.flasherTierOptions}
+    assert set(tiers) == {"urtcHead", "urtcExpansion"}
+    assert bridge.flasherSelectedRobotId == "x1", "first real robot, matches every other panel's own restore-or-first logic"
+    assert tiers["urtcHead"]["enabled"] is True, "x1's own urtcConnected is True"
+    assert tiers["urtcExpansion"]["enabled"] is False, "no expansionBoardType configured yet"
+
+    bridge.selectFlasherRobot("x2")
+    tiers = {t["key"]: t for t in bridge.flasherTierOptions}
+    assert tiers["urtcHead"]["enabled"] is False, "x2's own urtcConnected is False"
+
+    bridge.navigatePanel("hydra_flasher")
+    hydra_tiers = {t["key"]: t for t in bridge.flasherTierOptions}
+    assert set(hydra_tiers) == {"kinematicBrain", "controllerBoard"}
+    assert bridge.flasherNeedsRobotSlot is False, "kinematicBrain is the real default tier - controller-level, no robot slot"
+    assert bridge.flasherSelectedRobotId == "x1", "hydra_flasher's own robot selection is genuinely separate - still x1, untouched by the x2 switch on urtc_flasher above"
+
+    bridge.selectFlasherTier("controllerBoard")
+    assert bridge.flasherNeedsRobotSlot is True
+    assert "A1" in bridge.flasherHopDescription and "STM32G474RET6" in bridge.flasherHopDescription, "real hop_description() text - controller -> SPI -> STM32H745 -> FDCAN1 -> slot label (chip)"
+
+    async def _fake_query_online(target):
+        return VersionQueryResult(online=True, firmware_version="0.1.2", bootloader_version="0.0.1", hardware_id="RCB-001")
+
+    qs.mock_query_version = _fake_query_online
+    target = bridge._flasher_target("hydra_flasher")
+    assert target is not None
+    loop.run_until_complete(bridge._run_flasher_query("hydra_flasher", target))
+    assert "0.1.2" in bridge.flasherVersionLabel
+    assert any("0.1.2" in e["text"] for e in bridge.flasherLog)
+
+    fw_path = tempfile.mktemp(suffix=".bin")
+    with open(fw_path, "wb") as f:
+        f.write(b"\x00" * 4096)
+    bridge.browseFlasherFile(fw_path)
+    assert "0x" in bridge.flasherFileInfo and "4.0 KB" in bridge.flasherFileInfo
+    os.remove(fw_path)
+
+    fake_asset = GithubFirmwareAsset(name="rcb_v2.bin", url="https://example.invalid/rcb_v2.bin", size=8192, release_tag="2.0.0", published_at="", chip="STM32G474RET6", hardware_id="0x48374334")
+
+    async def _fake_fetch_releases(repo, tier, branch="main"):
+        return [fake_asset]
+
+    downloaded = {}
+
+    async def _fake_download(asset):
+        downloaded["asset"] = asset
+        return b"\x11" * 8192
+
+    qs.fetch_github_firmware_releases = _fake_fetch_releases
+    qs.download_github_firmware = _fake_download
+    bridge.fetchFlasherGithub()
+    loop.run_until_complete(asyncio.sleep(0))
+    assert len(bridge.flasherGithubAssets) == 1 and "rcb_v2.bin" in bridge.flasherGithubAssets[0]["label"]
+    bridge.useFlasherGithubAsset(0)
+    loop.run_until_complete(asyncio.sleep(0))
+    assert downloaded["asset"] is fake_asset
+    assert "rcb_v2.bin" in bridge.flasherFileInfo
+
+    bridge.setFlasherAllowDowngrade(True)
+    target = bridge._flasher_target("hydra_flasher")
+    file = bridge._flasher_file["hydra_flasher"]
+    loop.run_until_complete(bridge._run_flash("hydra_flasher", target, file))
+    assert bridge.flasherProgressPercent == 100
+    assert any(e["text"] == "Flash complete" and e["level"] == "ok" for e in bridge.flasherLog), "the real translated LBL_FLASH_DONE message, ok level"
+    board = bridge._flasher_board_state("hydra_flasher")
+    assert board.get("firmwareVersion") == "rcb_v2", "real .bin suffix stripped, matches _flasher_apply_patch()'s own real behavior"
+
+    # Real hardware-unreachable gating: urtcExpansion has no real relay
+    # tunnel yet (resolve_hardware_target() returns None for it) - matches
+    # can_ota.py's own honest boundary, not something invented here.
+    hw_state = HydraState({
+        "settings": {"canOta": {"transport": "hardware"}},
+        "activeControllerId": "c1",
+        "controllers": [{"id": "c1", "name": "Cell One", "robots": [{"id": "x1", "model": "AR3", "urtcConnected": True}]}],
+    })
+    controller.active_state_changed.emit(hw_state)
+    bridge.navigatePanel("urtc_flasher")
+    bridge.selectFlasherTier("urtcExpansion")
+    assert bridge.flasherUnreachable is True
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

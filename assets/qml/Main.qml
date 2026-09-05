@@ -362,6 +362,8 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "vacuum_table") return moduleConfigComponent
                     if (suiteBackend.activePanel === "atc") return atcComponent
                     if (suiteBackend.activePanel === "cameras") return camerasComponent
+                    if (suiteBackend.activePanel === "urtc_flasher") return flasherComponent
+                    if (suiteBackend.activePanel === "hydra_flasher") return flasherComponent
                     return notMigratedComponent
                 }
             }
@@ -2771,6 +2773,214 @@ ApplicationWindow {
                         delegate: cameraCardComponent
                     }
                 }
+            }
+        }
+    }
+
+    FileDialog {
+        id: flasherBrowseDialog
+        title: suiteBackend.uiText("BTN_BROWSE_BIN")
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["Binary (*.bin)"]
+        onAccepted: suiteBackend.browseFlasherFile(selectedFile.toString())
+    }
+
+    // Real CAN-OTA (and, for the Kinematic Brain, SPI-OTA) firmware
+    // flasher - mirrors flasher_panel.py's own FlasherPanel 1:1 (mock
+    // simulation client-side, a real hardware path for kinematicBrain/
+    // controllerBoard). NOT an embed of the separate URTC-FLASHER app -
+    // this panel's own real logic lives in can_ota.py, imported directly,
+    // same as every other panel in this shell. Reused for both real nav
+    // keys (`urtc_flasher`/`hydra_flasher`) via _FLASHER_TIERS in
+    // qt_suite.py, same generic-over-nav-key shape as the Module Config
+    // family.
+    Component {
+        id: flasherComponent
+        Flickable {
+            id: flasherFlick
+            width: contentLoader.width
+            height: contentLoader.height
+            contentWidth: width
+            contentHeight: flasherColumn.implicitHeight
+            clip: true
+            ColumnLayout {
+                id: flasherColumn
+                width: flasherFlick.width
+                spacing: 10
+
+                Text { text: suiteBackend.uiText("HEADING_FLASHER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("LBL_HARDWARE_TARGET_UNREACHABLE"); color: window.amber; visible: suiteBackend.flasherUnreachable; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: flasherTargetColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: flasherTargetColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_BOARD"); color: window.muted; font.pixelSize: 10 }
+                            ComboBox {
+                                id: flasherTierCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.flasherTierOptions
+                                textRole: "label"
+                                valueRole: "key"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.flasherTier)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() {
+                                        var idx = flasherTierCombo.indexOfValue(suiteBackend.flasherTier)
+                                        if (idx !== flasherTierCombo.currentIndex) flasherTierCombo.currentIndex = idx
+                                    }
+                                }
+                                onActivated: suiteBackend.selectFlasherTier(currentValue)
+                            }
+                        }
+                        RowLayout {
+                            visible: suiteBackend.flasherNeedsRobotSlot
+                            Text { text: suiteBackend.uiText("LBL_ROBOT_SLOT"); color: window.muted; font.pixelSize: 10 }
+                            ComboBox {
+                                id: flasherRobotCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.flasherRobotOptions
+                                textRole: "label"
+                                valueRole: "id"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.flasherSelectedRobotId)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() {
+                                        var idx = flasherRobotCombo.indexOfValue(suiteBackend.flasherSelectedRobotId)
+                                        if (idx !== flasherRobotCombo.currentIndex) flasherRobotCombo.currentIndex = idx
+                                    }
+                                }
+                                onActivated: suiteBackend.selectFlasherRobot(currentValue)
+                            }
+                        }
+                        Text { text: suiteBackend.flasherHopDescription; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            Text { text: suiteBackend.flasherVersionLabel; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true }
+                            Button {
+                                text: suiteBackend.flasherQueryBusy ? "..." : suiteBackend.uiText("BTN_QUERY_VERSION")
+                                enabled: !suiteBackend.flasherQueryBusy
+                                onClicked: suiteBackend.flasherQueryVersion()
+                            }
+                        }
+                    }
+                }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: flasherFileColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: flasherFileColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_FIRMWARE_FILE"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        RowLayout {
+                            Button { text: suiteBackend.uiText("BTN_BROWSE_BIN"); Layout.fillWidth: true; onClicked: flasherBrowseDialog.open() }
+                            Button {
+                                visible: suiteBackend.flasherGithubAvailable
+                                text: suiteBackend.flasherGithubBusy ? "..." : suiteBackend.flasherGithubButtonLabel
+                                enabled: !suiteBackend.flasherGithubBusy
+                                Layout.fillWidth: true
+                                onClicked: suiteBackend.fetchFlasherGithub()
+                            }
+                        }
+                        Text { text: suiteBackend.flasherFileInfo; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        ColumnLayout {
+                            visible: suiteBackend.flasherGithubAssets.length > 0
+                            Layout.fillWidth: true
+                            Layout.maximumHeight: 120
+                            spacing: 2
+                            Repeater {
+                                model: suiteBackend.flasherGithubAssets
+                                delegate: Text {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    text: modelData.label
+                                    color: window.textPrimary
+                                    font.pixelSize: 9
+                                    MouseArea { anchors.fill: parent; onClicked: suiteBackend.useFlasherGithubAsset(modelData.index) }
+                                }
+                            }
+                        }
+                        RowLayout {
+                            spacing: 16
+                            // A plain, text-less CheckBox + an independent sibling
+                            // Text, rather than CheckBox's own `text`/`contentItem` -
+                            // the Basic style's own default label color barely shows
+                            // against this app's dark background, and a partial
+                            // `contentItem` override left the real indicator glyph
+                            // overlapping the label (a real, confirmed bug caught by
+                            // this control's own on-screen screenshot - two
+                            // independent RowLayout siblings sidesteps the whole
+                            // indicator/contentItem layout interaction instead).
+                            RowLayout {
+                                spacing: 6
+                                CheckBox { id: allowDowngradeCheck; checked: suiteBackend.flasherAllowDowngrade; onToggled: suiteBackend.setFlasherAllowDowngrade(checked) }
+                                Text {
+                                    text: suiteBackend.uiText("LBL_ALLOW_DOWNGRADE")
+                                    color: window.muted
+                                    MouseArea { anchors.fill: parent; onClicked: allowDowngradeCheck.toggle() }
+                                }
+                            }
+                            RowLayout {
+                                spacing: 6
+                                CheckBox { id: eraseFramCheck; checked: suiteBackend.flasherEraseFram; onToggled: suiteBackend.setFlasherEraseFram(checked) }
+                                Text {
+                                    text: suiteBackend.uiText("LBL_ERASE_FRAM")
+                                    color: window.muted
+                                    MouseArea { anchors.fill: parent; onClicked: eraseFramCheck.toggle() }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: suiteBackend.uiText("BTN_FLASH_NOW")
+                    enabled: suiteBackend.flasherCanFlash
+                    onClicked: window.requestConfirm(suiteBackend.uiText("BTN_FLASH_NOW"), suiteBackend.flasherConfirmMessage, function() { suiteBackend.startFlasherFlash() })
+                }
+                Text { text: suiteBackend.flasherProgressLabel; color: window.muted; font.pixelSize: 10; visible: text.length > 0 }
+                ProgressBar { Layout.fillWidth: true; from: 0; to: 100; value: suiteBackend.flasherProgressPercent }
+
+                Text { text: suiteBackend.uiText("LBL_LOG_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 160
+                    Flickable {
+                        id: flasherLogFlick
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        contentWidth: width
+                        contentHeight: flasherLogColumn.implicitHeight
+                        clip: true
+                        onContentHeightChanged: contentY = Math.max(0, contentHeight - height)
+                        ColumnLayout {
+                            id: flasherLogColumn
+                            width: flasherLogFlick.width
+                            spacing: 1
+                            Repeater {
+                                model: suiteBackend.flasherLog
+                                delegate: Text {
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    text: modelData.text
+                                    color: modelData.level === "error" ? "#fb7185" : (modelData.level === "ok" ? "#34d399" : "#94a3b8")
+                                    font.family: "Cascadia Mono"
+                                    font.pixelSize: 9
+                                    wrapMode: Text.WrapAnywhere
+                                }
+                            }
+                        }
+                    }
+                }
+                Item { Layout.preferredHeight: 12 }
             }
         }
     }
