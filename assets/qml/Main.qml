@@ -355,6 +355,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "xy_table") return xyTableComponent
                     if (suiteBackend.activePanel === "rack") return rackComponent
                     if (suiteBackend.activePanel === "pick_and_place") return pickAndPlaceComponent
+                    if (suiteBackend.activePanel === "kinematic_brain_stage") return kinematicBrainStageComponent
                     return notMigratedComponent
                 }
             }
@@ -1795,6 +1796,241 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
+            }
+        }
+    }
+
+    // Reusable checkable toggle-button grid - same shape as the classic
+    // panel's own _build_toggle_group() (Fans/Pumps/Valves), and reused
+    // for the Endstops grid too (a different column count, same idea).
+    component ToggleGrid: GridLayout {
+        property var values: []
+        property int columns_: 5
+        property var onToggle: function(index) {}
+        columns: columns_
+        columnSpacing: 4
+        rowSpacing: 4
+        Repeater {
+            model: values
+            delegate: Button {
+                required property bool modelData
+                required property int index
+                checkable: true
+                checked: modelData
+                implicitWidth: 34
+                implicitHeight: 30
+                text: index + 1
+                font.pixelSize: 10
+                onClicked: onToggle(index)
+            }
+        }
+    }
+
+    Component {
+        id: kinematicBrainStageComponent
+        Flickable {
+            id: kbsFlick
+            width: contentLoader.width
+            height: contentLoader.height
+            contentWidth: width
+            contentHeight: kbsColumn.implicitHeight
+            clip: true
+            ColumnLayout {
+                id: kbsColumn
+                width: kbsFlick.width
+                spacing: 12
+                Text { text: suiteBackend.uiText("HEADING_KINEMATIC_BRAIN_STAGE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: kbsGantryColumn.implicitHeight + 24
+                    ColumnLayout {
+                        id: kbsGantryColumn
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_GANTRY"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("LBL_STEP"); color: window.muted; font.pixelSize: 10 }
+                            ComboBox {
+                                id: kbsStepCombo
+                                Layout.preferredWidth: 100
+                                model: suiteBackend.kbsJogSteps.map(function(s) { return s + " mm" })
+                                currentIndex: suiteBackend.kbsJogSteps.indexOf(10.0)
+                                onActivated: suiteBackend.setKbsJogStep(suiteBackend.kbsJogSteps[currentIndex])
+                            }
+                        }
+                        RowLayout {
+                            spacing: 20
+                            Repeater {
+                                model: suiteBackend.kbsAxisData
+                                delegate: ColumnLayout {
+                                    required property var modelData
+                                    spacing: 2
+                                    Text { text: modelData.label; color: window.muted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
+                                    Text { text: modelData.value; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter }
+                                    RowLayout {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        Button { text: "−"; implicitWidth: 30; onClicked: suiteBackend.jogKbsAxis(modelData.axis, -1) }
+                                        Button { text: "+"; implicitWidth: 30; onClicked: suiteBackend.jogKbsAxis(modelData.axis, 1) }
+                                    }
+                                }
+                            }
+                            Item { Layout.fillWidth: true }
+                        }
+                        RowLayout {
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { from: 100; to: 5000; value: suiteBackend.kbsTableWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setKbsTableSize("width", value) }
+                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { from: 100; to: 5000; value: suiteBackend.kbsTableLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setKbsTableSize("length", value) }
+                            Text { text: suiteBackend.uiText("LBL_HEIGHT_Z"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { from: 10; to: 1000; value: suiteBackend.kbsTableHeight; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setKbsTableSize("height", value) }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+                    Card {
+                        Layout.preferredWidth: 320
+                        Layout.preferredHeight: kbsBedColumn.implicitHeight + 24
+                        ColumnLayout {
+                            id: kbsBedColumn
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 6
+                            Text { text: suiteBackend.uiText("HEADING_HEATED_BED"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_1"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm1; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 12 } }
+                            RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm2; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 12 } }
+                            RowLayout {
+                                Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: 10 }
+                                SpinBox { from: 0; to: 150; value: suiteBackend.kbsTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setKbsTargetTemp(value) }
+                                Button { text: suiteBackend.kbsSsrOn ? suiteBackend.uiText("BTN_SSR_ON") : suiteBackend.uiText("BTN_SSR_OFF"); onClicked: suiteBackend.toggleKbsSsr() }
+                            }
+                        }
+                    }
+                    Card {
+                        Layout.preferredWidth: 260
+                        Layout.preferredHeight: kbsAtcColumn.implicitHeight + 24
+                        ColumnLayout {
+                            id: kbsAtcColumn
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 6
+                            Text { text: suiteBackend.uiText("LBL_ATC_REVOLVER_E0"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            RowLayout {
+                                Button { text: "◀"; implicitWidth: 32; onClicked: suiteBackend.stepKbsAtc(-1) }
+                                Text { text: suiteBackend.kbsAtcIndex; color: "#a78bfa"; font.family: "Cascadia Mono"; font.pixelSize: 18; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter }
+                                Button { text: "▶"; implicitWidth: 32; onClicked: suiteBackend.stepKbsAtc(1) }
+                            }
+                            RowLayout {
+                                Text { text: suiteBackend.uiText("LBL_TOOL_COUNT"); color: window.muted; font.pixelSize: 10 }
+                                SpinBox { from: 2; to: 16; value: suiteBackend.kbsToolCount; editable: true; Layout.preferredWidth: 100; onValueModified: suiteBackend.setKbsToolCount(value) }
+                            }
+                            Text { text: suiteBackend.kbsHomed ? suiteBackend.uiText("LBL_HOMED") : suiteBackend.uiText("LBL_NOT_HOMED"); color: suiteBackend.kbsHomed ? window.green : window.amber; font.pixelSize: 10 }
+                        }
+                    }
+                }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: kbsConveyorRow.implicitHeight + 24
+                    RowLayout {
+                        id: kbsConveyorRow
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 10
+                        Text { text: suiteBackend.uiText("LBL_CONVEYOR"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("LBL_CONVEYOR_NOT_INSTALLED"); color: window.muted; visible: !suiteBackend.kbsConveyorInstalled; Layout.fillWidth: true }
+                        Button { text: suiteBackend.uiText("BTN_MARK_INSTALLED"); visible: !suiteBackend.kbsConveyorInstalled; onClicked: suiteBackend.installKbsConveyor() }
+                        Button {
+                            visible: suiteBackend.kbsConveyorInstalled
+                            text: suiteBackend.kbsConveyorRunning ? suiteBackend.uiText("LBL_RUNNING") : suiteBackend.uiText("LBL_STOPPED")
+                            onClicked: suiteBackend.toggleKbsConveyorRun()
+                        }
+                        Slider {
+                            visible: suiteBackend.kbsConveyorInstalled
+                            Layout.fillWidth: true
+                            from: 0; to: 100
+                            value: suiteBackend.kbsConveyorSpeed
+                            onMoved: suiteBackend.setKbsConveyorSpeed(Math.round(value))
+                        }
+                        Text { visible: suiteBackend.kbsConveyorInstalled; text: suiteBackend.kbsConveyorSpeed + "%"; color: window.textPrimary; font.family: "Cascadia Mono"; Layout.preferredWidth: 40 }
+                    }
+                }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: kbsEndstopColumn.implicitHeight + 24
+                    ColumnLayout {
+                        id: kbsEndstopColumn
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_ENDSTOPS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        GridLayout {
+                            columns: 6
+                            columnSpacing: 6
+                            rowSpacing: 6
+                            Repeater {
+                                model: suiteBackend.kbsEndstopData
+                                delegate: Button {
+                                    required property var modelData
+                                    checkable: true
+                                    checked: modelData.active
+                                    text: modelData.label
+                                    font.pixelSize: 9
+                                    onClicked: suiteBackend.toggleKbsEndstop(modelData.key)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+                    Card {
+                        Layout.preferredWidth: 200
+                        Layout.preferredHeight: kbsFansColumn.implicitHeight + 24
+                        ColumnLayout {
+                            id: kbsFansColumn
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 6
+                            Text { text: suiteBackend.uiText("LBL_FANS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            ToggleGrid { values: suiteBackend.kbsFans; columns_: 5; onToggle: function(i) { suiteBackend.toggleKbsFan(i) } }
+                        }
+                    }
+                    Card {
+                        Layout.preferredWidth: 220
+                        Layout.preferredHeight: kbsPumpsColumn.implicitHeight + 24
+                        ColumnLayout {
+                            id: kbsPumpsColumn
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 6
+                            Text { text: suiteBackend.uiText("LBL_PUMPS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            ToggleGrid { values: suiteBackend.kbsPumps; columns_: 5; onToggle: function(i) { suiteBackend.toggleKbsPump(i) } }
+                        }
+                    }
+                    Card {
+                        Layout.preferredWidth: 220
+                        Layout.preferredHeight: kbsValvesColumn.implicitHeight + 24
+                        ColumnLayout {
+                            id: kbsValvesColumn
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 6
+                            Text { text: suiteBackend.uiText("LBL_VALVES"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            ToggleGrid { values: suiteBackend.kbsValves; columns_: 5; onToggle: function(i) { suiteBackend.toggleKbsValve(i) } }
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                }
+                Item { Layout.preferredHeight: 20 }
             }
         }
     }

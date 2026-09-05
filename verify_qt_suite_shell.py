@@ -493,6 +493,71 @@ def _run() -> None:
     bridge.disablePnp()
     assert bridge.pnpEnabled is False
 
+    # --- kinematic brain stage: CONTROLLER-level (no robot selector at
+    # all, unlike every panel above) - real default seed + mutation
+    # across every sub-widget. Already fed by the same fake_state_xy
+    # active_state_changed emission above (every _on_*_state_changed
+    # hook on this bridge listens to that one real signal). ---
+    assert bridge.kbsHasController is True
+    axes = {a["axis"]: a for a in bridge.kbsAxisData}
+    assert axes["x"]["value"] == "0.00" and axes["z"]["value"] == "0.00"
+    assert bridge.kbsTableWidth == 600 and bridge.kbsTableLength == 400 and bridge.kbsTableHeight == 150, "default_kinematic_brain_stage()'s own real seed"
+
+    bridge.setKbsJogStep(50.0)
+    bridge.jogKbsAxis("x", 1)
+    axes = {a["axis"]: a for a in bridge.kbsAxisData}
+    assert axes["x"]["value"] == "50.00"
+    for _ in range(20):  # jog must clamp at the real configured width, never overshoot
+        bridge.jogKbsAxis("x", 1)
+    axes = {a["axis"]: a for a in bridge.kbsAxisData}
+    assert axes["x"]["value"] == "600.00"
+
+    bridge.setKbsTableSize("width", 800)
+    assert bridge.kbsTableWidth == 800
+
+    assert bridge.kbsTherm1 == "24.0°C" and bridge.kbsTherm2 == "24.0°C", "real default sensor seed"
+    assert bridge.kbsTargetTemp == 0
+    bridge.setKbsTargetTemp(60)
+    assert bridge.kbsTargetTemp == 60
+    assert bridge.kbsSsrOn is False
+    bridge.toggleKbsSsr()
+    assert bridge.kbsSsrOn is True
+
+    assert bridge.kbsAtcIndex == 1 and bridge.kbsToolCount == 6 and bridge.kbsHomed is False
+    bridge.stepKbsAtc(1)
+    assert bridge.kbsAtcIndex == 2 and bridge.kbsHomed is True, "stepping always sets homed True, matching _on_atc_step()'s own real behavior"
+    bridge.stepKbsAtc(-1)
+    assert bridge.kbsAtcIndex == 1
+
+    bridge.setKbsToolCount(4)
+    assert bridge.kbsToolCount == 4
+    bridge.stepKbsAtc(-1)  # currentIndex 0 -> -1 -> real negative-wraparound branch -> toolCount-1 = 3, displayed as 4
+    assert bridge.kbsAtcIndex == 4
+
+    assert bridge.kbsConveyorInstalled is False
+    bridge.installKbsConveyor()
+    assert bridge.kbsConveyorInstalled is True
+    assert bridge.kbsConveyorRunning is False
+    bridge.toggleKbsConveyorRun()
+    assert bridge.kbsConveyorRunning is True
+    bridge.setKbsConveyorSpeed(75)
+    assert bridge.kbsConveyorSpeed == 75
+
+    endstops = {e["key"]: e for e in bridge.kbsEndstopData}
+    assert len(endstops) == 12 and endstops["xMin"]["active"] is False
+    bridge.toggleKbsEndstop("xMin")
+    endstops = {e["key"]: e for e in bridge.kbsEndstopData}
+    assert endstops["xMin"]["active"] is True
+
+    assert bridge.kbsFans == [False, False, False]
+    assert len(bridge.kbsPumps) == 10 and len(bridge.kbsValves) == 10
+    bridge.toggleKbsFan(1)
+    assert bridge.kbsFans == [False, True, False]
+    bridge.toggleKbsPump(9)
+    assert bridge.kbsPumps[9] is True
+    bridge.toggleKbsValve(0)
+    assert bridge.kbsValves[0] is True
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

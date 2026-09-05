@@ -126,6 +126,18 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     "250"/"-90" rendered as just their last digit while the paired
     `Slider` sat at the correct position the whole time. Widened to
     150px.
+  - **Kinematic Brain Stage** - UNLIKE every panel above, this is
+    CONTROLLER-level state (one Kinematic Brain per controller), so it
+    has no robot selector at all, matching the classic panel's own
+    header note. XY gantry jog (X/Y1/Y2/Z, real step presets, real
+    per-axis bound clamping) + table size, heated bed (thermistor
+    readouts, target temp, SSR toggle), ATC revolver (prev/next, tool
+    count, homed indicator, real negative-index-wraparound handling),
+    conveyor (install-then-run/speed, hidden until installed, matching
+    the classic panel's own real "not installed yet" state), a
+    12-button Endstops grid, and 3 checkable toggle-button grids (Fans/
+    Pumps/Valves) via one new reusable `ToggleGrid` QML component
+    instead of hand-rolling the grid 3 times.
 
 ## [0.3.9]
 

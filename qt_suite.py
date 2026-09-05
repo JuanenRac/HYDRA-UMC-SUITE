@@ -58,7 +58,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hydra_suite import __version__, logging_handler
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import JOINT_NAMES, RACK_MAX_CAPACITY, HydraState, RobotView, ServerInfo, default_rack_system
+from hydra_suite.models import JOINT_NAMES, RACK_MAX_CAPACITY, ControllerView, HydraState, RobotView, ServerInfo, default_rack_system
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
 from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
@@ -66,6 +66,7 @@ from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
 from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
@@ -97,7 +98,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage"})
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
@@ -325,6 +326,17 @@ class SuiteQtBridge(QObject):
         self._pnp_robots_cache: list[RobotView] = []
         self._pnp_machine_type: str = MACHINE_TYPES[0]
         controller.active_state_changed.connect(self._on_pnp_state_changed)
+
+        # -- Kinematic Brain Stage (ported from
+        # kinematic_brain_stage_panel.py's own KinematicBrainStagePanel -
+        # AXIS_KEYS/JOG_STEPS_MM/ENDSTOP_ENTRIES/_clamp imported directly
+        # from there, never duplicated). UNLIKE every other panel ported
+        # so far, this is CONTROLLER-level state (one Kinematic Brain per
+        # controller) - no robot selector at all, matching that file's
+        # own header note. --
+        self._kbs_controller: ControllerView | None = None
+        self._kbs_jog_step_mm: float = 10.0
+        controller.active_state_changed.connect(self._on_kbs_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -1819,6 +1831,224 @@ class SuiteQtBridge(QObject):
         robot.set_module(self._pnp_machine_type, module)
         self._controller.push_active_state()
         self.changed.emit()
+
+    # -- Kinematic Brain Stage -----------------------------------------------
+
+    def _on_kbs_state_changed(self, state: HydraState) -> None:
+        self._kbs_controller = state.active_controller
+        self.changed.emit()
+
+    def _kbs_stage(self) -> dict:
+        return self._kbs_controller.kinematic_brain_stage if self._kbs_controller is not None else {}
+
+    def _kbs_patch(self, updates: dict) -> None:
+        """Matches kinematic_brain_stage_panel.py's own _patch() exactly -
+        one real write path for every control in this panel."""
+        if self._kbs_controller is None:
+            return
+        stage = self._kbs_controller.kinematic_brain_stage
+        stage.update(updates)
+        self._kbs_controller.set_kinematic_brain_stage(stage)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def kbsHasController(self) -> bool:
+        return self._kbs_controller is not None
+
+    @Property("QVariantList", notify=changed)
+    def kbsAxisData(self) -> list[dict[str, str]]:
+        xy = self._kbs_stage().get("xyTable", {})
+        return [{"axis": axis, "label": axis.upper(), "value": f"{float(xy.get(axis, 0)):.2f}"} for axis in _KBS_AXIS_KEYS]
+
+    @Property("QVariantList", constant=True)
+    def kbsJogSteps(self) -> list[float]:
+        return list(_KBS_JOG_STEPS_MM)
+
+    @Slot(float)
+    def setKbsJogStep(self, value: float) -> None:
+        self._kbs_jog_step_mm = value
+
+    @Slot(str, int)
+    def jogKbsAxis(self, axis: str, direction: int) -> None:
+        if self._kbs_controller is None or axis not in _KBS_AXIS_KEYS:
+            return
+        stage = self._kbs_controller.kinematic_brain_stage
+        xy = stage["xyTable"]
+        next_value = xy[axis] + direction * self._kbs_jog_step_mm
+        bound = xy["tableSize"]["height"] if axis == "z" else xy["tableSize"]["width" if axis == "x" else "length"]
+        xy[axis] = _clamp(next_value, 0, float(bound))
+        self._kbs_patch({"xyTable": xy})
+
+    @Property(int, notify=changed)
+    def kbsTableWidth(self) -> int:
+        return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("width", 0))
+
+    @Property(int, notify=changed)
+    def kbsTableLength(self) -> int:
+        return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("length", 0))
+
+    @Property(int, notify=changed)
+    def kbsTableHeight(self) -> int:
+        return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("height", 0))
+
+    @Slot(str, int)
+    def setKbsTableSize(self, field: str, value: int) -> None:
+        bounds = {"width": (100, 5000), "length": (100, 5000), "height": (10, 1000)}
+        if self._kbs_controller is None or field not in bounds:
+            return
+        stage = self._kbs_controller.kinematic_brain_stage
+        lo, hi = bounds[field]
+        stage["xyTable"]["tableSize"][field] = _clamp(value, lo, hi)
+        self._kbs_patch({"xyTable": stage["xyTable"]})
+
+    @Property(str, notify=changed)
+    def kbsTherm1(self) -> str:
+        return f"{float(self._kbs_stage().get('heatedBed', {}).get('currentTemp1', 0)):.1f}°C"
+
+    @Property(str, notify=changed)
+    def kbsTherm2(self) -> str:
+        return f"{float(self._kbs_stage().get('heatedBed', {}).get('currentTemp2', 0)):.1f}°C"
+
+    @Property(int, notify=changed)
+    def kbsTargetTemp(self) -> int:
+        return int(self._kbs_stage().get("heatedBed", {}).get("targetTemp", 0))
+
+    @Slot(int)
+    def setKbsTargetTemp(self, value: int) -> None:
+        if self._kbs_controller is None:
+            return
+        bed = self._kbs_controller.kinematic_brain_stage["heatedBed"]
+        bed["targetTemp"] = _clamp(value, 0, 150)
+        self._kbs_patch({"heatedBed": bed})
+
+    @Property(bool, notify=changed)
+    def kbsSsrOn(self) -> bool:
+        return bool(self._kbs_stage().get("heatedBed", {}).get("ssrActive"))
+
+    @Slot()
+    def toggleKbsSsr(self) -> None:
+        if self._kbs_controller is None:
+            return
+        bed = self._kbs_controller.kinematic_brain_stage["heatedBed"]
+        bed["ssrActive"] = not bed.get("ssrActive")
+        self._kbs_patch({"heatedBed": bed})
+
+    @Property(int, notify=changed)
+    def kbsAtcIndex(self) -> int:
+        return int(self._kbs_stage().get("atcRevolver", {}).get("currentIndex", 0)) + 1
+
+    @Property(int, notify=changed)
+    def kbsToolCount(self) -> int:
+        return int(self._kbs_stage().get("atcRevolver", {}).get("toolCount", 6))
+
+    @Property(bool, notify=changed)
+    def kbsHomed(self) -> bool:
+        return bool(self._kbs_stage().get("atcRevolver", {}).get("homed"))
+
+    @Slot(int)
+    def stepKbsAtc(self, direction: int) -> None:
+        if self._kbs_controller is None:
+            return
+        atc = self._kbs_controller.kinematic_brain_stage["atcRevolver"]
+        n = atc["toolCount"]
+        next_index = (atc["targetIndex"] + direction) % n
+        if next_index < 0:
+            next_index += n
+        atc["targetIndex"] = next_index
+        atc["currentIndex"] = next_index
+        atc["homed"] = True
+        self._kbs_patch({"atcRevolver": atc})
+
+    @Slot(int)
+    def setKbsToolCount(self, value: int) -> None:
+        if self._kbs_controller is None:
+            return
+        atc = self._kbs_controller.kinematic_brain_stage["atcRevolver"]
+        atc["toolCount"] = _clamp(value, 2, 16)
+        self._kbs_patch({"atcRevolver": atc})
+
+    @Property(bool, notify=changed)
+    def kbsConveyorInstalled(self) -> bool:
+        return bool(self._kbs_stage().get("conveyor", {}).get("installed"))
+
+    @Property(bool, notify=changed)
+    def kbsConveyorRunning(self) -> bool:
+        return bool(self._kbs_stage().get("conveyor", {}).get("running"))
+
+    @Property(int, notify=changed)
+    def kbsConveyorSpeed(self) -> int:
+        return int(self._kbs_stage().get("conveyor", {}).get("speedPercent", 0))
+
+    @Slot()
+    def installKbsConveyor(self) -> None:
+        if self._kbs_controller is None:
+            return
+        conveyor = self._kbs_controller.kinematic_brain_stage["conveyor"]
+        conveyor["installed"] = True
+        self._kbs_patch({"conveyor": conveyor})
+
+    @Slot()
+    def toggleKbsConveyorRun(self) -> None:
+        if self._kbs_controller is None:
+            return
+        conveyor = self._kbs_controller.kinematic_brain_stage["conveyor"]
+        conveyor["running"] = not conveyor.get("running")
+        self._kbs_patch({"conveyor": conveyor})
+
+    @Slot(int)
+    def setKbsConveyorSpeed(self, value: int) -> None:
+        if self._kbs_controller is None:
+            return
+        conveyor = self._kbs_controller.kinematic_brain_stage["conveyor"]
+        conveyor["speedPercent"] = value
+        self._kbs_patch({"conveyor": conveyor})
+
+    @Property("QVariantList", notify=changed)
+    def kbsEndstopData(self) -> list[dict[str, object]]:
+        endstops = self._kbs_stage().get("endstops", {})
+        return [{"key": key, "label": label, "active": bool(endstops.get(key))} for key, label in ENDSTOP_ENTRIES]
+
+    @Slot(str)
+    def toggleKbsEndstop(self, key: str) -> None:
+        if self._kbs_controller is None:
+            return
+        endstops = self._kbs_controller.kinematic_brain_stage["endstops"]
+        endstops[key] = not endstops.get(key)
+        self._kbs_patch({"endstops": endstops})
+
+    def _kbs_toggle_group(self, group_key: str, index: int) -> None:
+        if self._kbs_controller is None:
+            return
+        group = self._kbs_controller.kinematic_brain_stage[group_key]
+        if not 0 <= index < len(group):
+            return
+        group[index] = not group[index]
+        self._kbs_patch({group_key: group})
+
+    @Property("QVariantList", notify=changed)
+    def kbsFans(self) -> list[bool]:
+        return list(self._kbs_stage().get("fans", []))
+
+    @Property("QVariantList", notify=changed)
+    def kbsPumps(self) -> list[bool]:
+        return list(self._kbs_stage().get("pumps", []))
+
+    @Property("QVariantList", notify=changed)
+    def kbsValves(self) -> list[bool]:
+        return list(self._kbs_stage().get("valves", []))
+
+    @Slot(int)
+    def toggleKbsFan(self, index: int) -> None:
+        self._kbs_toggle_group("fans", index)
+
+    @Slot(int)
+    def toggleKbsPump(self, index: int) -> None:
+        self._kbs_toggle_group("pumps", index)
+
+    @Slot(int)
+    def toggleKbsValve(self, index: int) -> None:
+        self._kbs_toggle_group("valves", index)
 
     # -- Overview --------------------------------------------------------
 
