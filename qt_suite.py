@@ -45,6 +45,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import random
 import sys
 import time
 from dataclasses import dataclass
@@ -71,8 +72,10 @@ from hydra_suite.can_ota import (
     hardware_start_flash,
     has_advanced_expansion,
     hop_description,
+    mock_bus_monitor,
     mock_flash,
     mock_query_version,
+    mock_self_test,
     resolve_hardware_target,
     slot_label,
 )
@@ -120,6 +123,7 @@ from hydra_suite.ui.panels.heated_bed_panel import DEFAULT_AMBIENT_TEMP_C as _HB
 from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
 from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
 from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
+from hydra_suite.ui.panels.tester_panel import _category_for
 from hydra_suite.ui.panels.vacuum_table_panel import DEFAULT_RESET_SIZE_MM as _VACUUM_RESET_SIZE_MM
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
@@ -151,12 +155,18 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "urtc_flasher", "hydra_flasher"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "urtc_flasher", "hydra_flasher", "urtc_tester", "hydra_tester"})
 
 # Real per-instance tier set - matches main_window.py's own two separate
 # FlasherPanel(tiers=...) instances exactly (URTC_TIERS/HYDRA_BRAIN_TIERS,
 # imported, never redeclared), not one panel switching between both.
 _FLASHER_TIERS: dict[str, tuple] = {"urtc_flasher": URTC_TIERS, "hydra_flasher": HYDRA_BRAIN_TIERS}
+# main_window.py's own TesterPanel(tiers=...) instances reuse the SAME
+# real URTC_TIERS/HYDRA_BRAIN_TIERS constants Flasher does (tester_panel.py's
+# own header: it deliberately duplicates the target-selection shape rather
+# than sharing a base class with FlasherPanel, matching STUDIO's own
+# Tester.tsx/Flasher.tsx - so the Qt Quick bridge duplicates it too).
+_TESTER_TIERS: dict[str, tuple] = {"urtc_tester": URTC_TIERS, "hydra_tester": HYDRA_BRAIN_TIERS}
 _ATC_TYPE_KEYS: tuple[str, ...] = ("vertical_panel", "horizontal_panel", "revolver")
 
 # Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
@@ -538,6 +548,33 @@ class SuiteQtBridge(QObject):
         self._flasher_allow_downgrade: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
         self._flasher_erase_fram: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
         controller.active_state_changed.connect(self._on_flasher_state_changed)
+
+        # -- Tester (ported from tester_panel.py's own TesterPanel -
+        # can_ota.py's mock_self_test()/mock_bus_monitor()/CanFrame/
+        # SelfTestStep imported directly, never duplicated;
+        # _category_for() imported from tester_panel.py itself, same
+        # reasoning). Deliberately duplicates the Flasher's own target-
+        # selection shape (own _tester_* state dicts, not shared with
+        # _flasher_*) - matches that file's own header on why this is a
+        # real, faithful duplication rather than a shortcut. Two real
+        # instances (`urtc_tester`/`hydra_tester`, _TESTER_TIERS above).
+        # Global LED/OLED/F-RAM state is real-but-local here too, same as
+        # the classic panel's own plain instance attributes - none of it
+        # round-trips through push_active_state() on either side, since
+        # no real APPLICATION-level command exists yet to send it
+        # anywhere (see that file's own header). --
+        self._tester_controller: dict[str, ControllerView | None] = {k: None for k in _TESTER_TIERS}
+        self._tester_robot_id: dict[str, str | None] = {k: None for k in _TESTER_TIERS}
+        self._tester_tier: dict[str, str] = {k: tiers[0] for k, tiers in _TESTER_TIERS.items()}
+        self._tester_status_color: dict[str, str] = {k: "#00ff66" for k in _TESTER_TIERS}
+        self._tester_ring_on: dict[str, bool] = {k: False for k in _TESTER_TIERS}
+        self._tester_oled_mode: dict[str, str] = {k: "standard" for k in _TESTER_TIERS}
+        self._tester_fram_state: dict[str, bool | None] = {k: None for k in _TESTER_TIERS}
+        self._tester_testing: dict[str, bool] = {k: False for k in _TESTER_TIERS}
+        self._tester_self_test_steps: dict[str, list[dict]] = {k: [] for k in _TESTER_TIERS}
+        self._tester_monitor_task: dict[str, asyncio.Task | None] = {k: None for k in _TESTER_TIERS}
+        self._tester_frames: dict[str, list] = {k: [] for k in _TESTER_TIERS}
+        controller.active_state_changed.connect(self._on_tester_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -3600,6 +3637,373 @@ class SuiteQtBridge(QObject):
         finally:
             self._flasher_flashing[key] = False
             self.changed.emit()
+
+    # -- Tester --------------------------------------------------------------
+
+    def _tester_active_key(self) -> str | None:
+        return self._active_key if self._active_key in _TESTER_TIERS else None
+
+    def _on_tester_state_changed(self, state: HydraState) -> None:
+        self._flasher_is_hardware = state.can_ota_transport == "hardware"  # one real shared deployment setting, not per-instance
+        for key in _TESTER_TIERS:
+            ctrl = state.active_controller
+            self._tester_controller[key] = ctrl
+            robots = ctrl.robots if ctrl is not None else []
+            ids = {r.id for r in robots}
+            if self._tester_robot_id[key] not in ids:
+                self._tester_robot_id[key] = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _tester_current_robot(self, key: str) -> RobotView | None:
+        ctrl = self._tester_controller.get(key)
+        rid = self._tester_robot_id.get(key)
+        if ctrl is None or rid is None:
+            return None
+        for r in ctrl.robots:
+            if r.id == rid:
+                return r
+        return None
+
+    def _tester_target(self, key: str) -> CanOtaTarget | None:
+        ctrl = self._tester_controller.get(key)
+        if ctrl is None:
+            return None
+        tier = self._tester_tier[key]
+        if tier == "kinematicBrain":
+            return CanOtaTarget(controller_name=ctrl.name, tier=tier)
+        robot = self._tester_current_robot(key)
+        if robot is None:
+            return None
+        robots = ctrl.robots
+        index0 = next((i for i, r in enumerate(robots) if r.id == robot.id), -1)
+        if index0 < 0:
+            return None
+        return CanOtaTarget(controller_name=ctrl.name, tier=tier, robot_id=robot.id, robot_name=robot.model, robot_index0=index0)
+
+    def _tester_board_state(self, key: str) -> dict:
+        ctrl = self._tester_controller.get(key)
+        tier = self._tester_tier[key]
+        if tier == "kinematicBrain":
+            return ctrl.kinematic_brain if ctrl is not None else {}
+        robot = self._tester_current_robot(key)
+        return robot.module(tier) if robot is not None else {}
+
+    def _tester_stop_monitor(self, key: str) -> None:
+        task = self._tester_monitor_task.get(key)
+        if task is not None:
+            task.cancel()
+            self._tester_monitor_task[key] = None
+
+    def _tester_reset_for_new_target(self, key: str) -> None:
+        """Matches Tester.tsx's own resetForTargetKey effect - switching
+        tier/robot drops any in-flight self-test/monitor state for the
+        PREVIOUS target rather than leaving it displayed against a now-
+        different one."""
+        self._tester_stop_monitor(key)
+        self._tester_fram_state[key] = None
+        self._tester_testing[key] = False
+        self._tester_self_test_steps[key] = []
+        self._tester_frames[key] = []
+        self.changed.emit()
+
+    @Property("QVariantList", notify=changed)
+    def testerTierOptions(self) -> list[dict[str, object]]:
+        key = self._tester_active_key()
+        if key is None:
+            return []
+        robot = self._tester_current_robot(key)
+        expansion_available = has_advanced_expansion((robot.module("urtcHead") if robot else {}).get("expansionBoardType"))
+        result = []
+        for t in _TESTER_TIERS[key]:
+            enabled = True
+            if t == "urtcHead":
+                enabled = bool(robot and robot.urtc_connected)
+            elif t == "urtcExpansion":
+                enabled = expansion_available
+            result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
+        return result
+
+    @Property(str, notify=changed)
+    def testerTier(self) -> str:
+        key = self._tester_active_key()
+        return self._tester_tier.get(key, "") if key else ""
+
+    @Slot(str)
+    def selectTesterTier(self, tier: str) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            self._tester_tier[key] = tier
+            self._tester_reset_for_new_target(key)
+
+    @Property(bool, notify=changed)
+    def testerNeedsRobotSlot(self) -> bool:
+        key = self._tester_active_key()
+        return key is not None and self._tester_tier[key] != "kinematicBrain"
+
+    @Property("QVariantList", notify=changed)
+    def testerRobotOptions(self) -> list[dict[str, str]]:
+        key = self._tester_active_key()
+        if key is None:
+            return []
+        ctrl = self._tester_controller.get(key)
+        robots = ctrl.robots if ctrl is not None else []
+        return [{"id": r.id, "label": f"{slot_label(i)} - {r.model}"} for i, r in enumerate(robots)]
+
+    @Property(str, notify=changed)
+    def testerSelectedRobotId(self) -> str:
+        key = self._tester_active_key()
+        return (self._tester_robot_id.get(key) or "") if key else ""
+
+    @Slot(str)
+    def selectTesterRobot(self, robot_id: str) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            self._tester_robot_id[key] = robot_id or None
+            self._tester_reset_for_new_target(key)
+
+    @Property(str, notify=changed)
+    def testerHopDescription(self) -> str:
+        key = self._tester_active_key()
+        if key is None:
+            return ""
+        target = self._tester_target(key)
+        return hop_description(target) if target else ""
+
+    @Property(bool, notify=changed)
+    def testerSimulatedNoteVisible(self) -> bool:
+        return self._flasher_is_hardware
+
+    @Property(bool, notify=changed)
+    def testerQueryEnabled(self) -> bool:
+        key = self._tester_active_key()
+        return key is not None and self._tester_target(key) is not None
+
+    @Property(str, notify=changed)
+    def testerVersionLabel(self) -> str:
+        key = self._tester_active_key()
+        if key is None:
+            return _("LBL_NO_VERSION_KNOWN")
+        board = self._tester_board_state(key)
+        if board.get("firmwareVersion"):
+            return f"{_('LBL_CURRENT_VERSION')}: {board.get('firmwareVersion', '?')}"
+        return _("LBL_NO_VERSION_KNOWN")
+
+    @Slot()
+    def testerQueryVersion(self) -> None:
+        key = self._tester_active_key()
+        if key is None:
+            return
+        target = self._tester_target(key)
+        if target is None:
+            return
+        asyncio.ensure_future(self._run_tester_query(key, target))
+
+    async def _run_tester_query(self, key: str, target: CanOtaTarget) -> None:
+        if self._flasher_is_hardware:
+            conn = self._controller.active_connection
+            if conn is None:
+                return
+            result = await hardware_query_version(conn, target)
+        else:
+            result = await mock_query_version(target)
+        if not result.online:
+            return
+        patch = {"firmwareVersion": result.firmware_version, "bootloaderVersion": result.bootloader_version, "hardwareId": result.hardware_id}
+        ctrl = self._tester_controller.get(key)
+        tier = self._tester_tier[key]
+        if tier == "kinematicBrain" and ctrl is not None:
+            ctrl.set_kinematic_brain(patch)
+        elif tier == "urtcHead":
+            robot = self._tester_current_robot(key)
+            if robot is not None:
+                if result.expansion_board_type is not None:
+                    patch["expansionBoardType"] = result.expansion_board_type
+                robot.set_module("urtcHead", {**robot.module("urtcHead"), **patch})
+        else:
+            robot = self._tester_current_robot(key)
+            if robot is not None:
+                robot.set_module(tier, patch)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def testerShowGlobal(self) -> bool:
+        key = self._tester_active_key()
+        return key is not None and self._tester_tier[key] == "urtcHead"
+
+    @Property(bool, notify=changed)
+    def testerShowFram(self) -> bool:
+        key = self._tester_active_key()
+        return key is not None and self._tester_tier[key] in ("controllerBoard", "urtcHead")
+
+    @Property(bool, notify=changed)
+    def testerShowTelemetry(self) -> bool:
+        key = self._tester_active_key()
+        return key is not None and self._tester_tier[key] == "urtcHead" and self._tester_current_robot(key) is not None
+
+    @Property(str, notify=changed)
+    def testerStatusColor(self) -> str:
+        key = self._tester_active_key()
+        return self._tester_status_color.get(key, "#00ff66") if key else "#00ff66"
+
+    @Slot(str)
+    def setTesterStatusColor(self, color: str) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            self._tester_status_color[key] = color
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def testerRingOn(self) -> bool:
+        key = self._tester_active_key()
+        return self._tester_ring_on.get(key, False) if key else False
+
+    @Slot()
+    def toggleTesterRing(self) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            self._tester_ring_on[key] = not self._tester_ring_on[key]
+            self.changed.emit()
+
+    @Property(str, notify=changed)
+    def testerOledMode(self) -> str:
+        key = self._tester_active_key()
+        return self._tester_oled_mode.get(key, "standard") if key else "standard"
+
+    @Slot(str)
+    def setTesterOledMode(self, mode: str) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            self._tester_oled_mode[key] = mode
+
+    @Property(str, notify=changed)
+    def testerExpansionLabel(self) -> str:
+        key = self._tester_active_key()
+        if key is None:
+            return ""
+        robot = self._tester_current_robot(key)
+        expansion_type = (robot.module("urtcHead") if robot else {}).get("expansionBoardType")
+        if expansion_type is None:
+            return ""
+        expansion_available = has_advanced_expansion(expansion_type)
+        label = _("LBL_EXPANSION_NONE") if expansion_type == 0 else f"#{expansion_type}" + (f" ({_(_TIER_LABEL_KEYS['urtcExpansion'])})" if expansion_available else "")
+        return f"{_('LBL_EXPANSION_BOARD')}: {label}"
+
+    @Property(str, notify=changed)
+    def testerFramStateLabel(self) -> str:
+        key = self._tester_active_key()
+        state = self._tester_fram_state.get(key) if key else None
+        if state is None:
+            return _("LBL_FRAM_UNKNOWN")
+        return _("LBL_FRAM_VALID") if state else _("LBL_FRAM_EMPTY")
+
+    @Slot()
+    def testerFramQuery(self) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            asyncio.ensure_future(self._run_tester_fram_query(key))
+
+    async def _run_tester_fram_query(self, key: str) -> None:
+        await asyncio.sleep(0.15)
+        self._tester_fram_state[key] = random.random() > 0.3
+        self.changed.emit()
+
+    @Slot()
+    def testerFramErase(self) -> None:
+        key = self._tester_active_key()
+        if key is not None:
+            self._tester_fram_state[key] = False
+            self.changed.emit()
+
+    @Property(str, notify=changed)
+    def testerTelemetryTitle(self) -> str:
+        key = self._tester_active_key()
+        robot = self._tester_current_robot(key) if key else None
+        return f"{_('LBL_TOOL_TELEMETRY')} - {robot.tool}" if robot is not None else ""
+
+    @Property(str, notify=changed)
+    def testerTelemetryLabel(self) -> str:
+        key = self._tester_active_key()
+        robot = self._tester_current_robot(key) if key else None
+        return _(f"LBL_TELEMETRY_{_category_for(robot.tool).upper()}") if robot is not None else ""
+
+    @Property(bool, notify=changed)
+    def testerTesting(self) -> bool:
+        key = self._tester_active_key()
+        return self._tester_testing.get(key, False) if key else False
+
+    @Property("QVariantList", notify=changed)
+    def testerSelfTestSteps(self) -> list[dict[str, object]]:
+        key = self._tester_active_key()
+        return self._tester_self_test_steps.get(key, []) if key else []
+
+    @Slot()
+    def runTesterSelfTest(self) -> None:
+        key = self._tester_active_key()
+        if key is None:
+            return
+        target = self._tester_target(key)
+        if target is None or self._tester_testing.get(key):
+            return
+        self._tester_testing[key] = True
+        self._tester_self_test_steps[key] = []
+        self.changed.emit()
+        asyncio.ensure_future(self._run_tester_self_test(key, target))
+
+    async def _run_tester_self_test(self, key: str, target: CanOtaTarget) -> None:
+        try:
+            async for step in mock_self_test(target):
+                self._tester_self_test_steps[key] = [
+                    *self._tester_self_test_steps[key],
+                    {"label": _(f"LBL_SELFTEST_{step.label_key.upper()}"), "passed": step.passed},
+                ]
+                self.changed.emit()
+        finally:
+            self._tester_testing[key] = False
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def testerMonitorRunning(self) -> bool:
+        key = self._tester_active_key()
+        return key is not None and self._tester_monitor_task.get(key) is not None
+
+    @Property("QVariantList", notify=changed)
+    def testerFrames(self) -> list[dict[str, object]]:
+        key = self._tester_active_key()
+        frames = self._tester_frames.get(key, []) if key else []
+        return [
+            {
+                "time": time.strftime("%H:%M:%S", time.localtime(f.timestamp)),
+                "id": f"0x{f.id:X}",
+                "dlc": f.dlc,
+                "data": " ".join(f"{b:02X}" for b in f.data),
+            }
+            for f in reversed(frames)
+        ]
+
+    @Slot()
+    def toggleTesterMonitor(self) -> None:
+        key = self._tester_active_key()
+        if key is None:
+            return
+        if self._tester_monitor_task.get(key) is not None:
+            self._tester_stop_monitor(key)
+            self.changed.emit()
+            return
+        target = self._tester_target(key)
+        if target is None:
+            return
+        self._tester_frames[key] = []
+        self._tester_monitor_task[key] = asyncio.ensure_future(self._run_tester_monitor(key, target))
+        self.changed.emit()
+
+    async def _run_tester_monitor(self, key: str, target: CanOtaTarget) -> None:
+        try:
+            async for frame in mock_bus_monitor(target):
+                self._tester_frames[key] = [*self._tester_frames[key][-99:], frame]
+                self.changed.emit()
+        except asyncio.CancelledError:
+            return
 
     # -- Overview --------------------------------------------------------
 

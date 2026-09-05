@@ -890,6 +890,83 @@ def _run() -> None:
     bridge.selectFlasherTier("urtcExpansion")
     assert bridge.flasherUnreachable is True
 
+    # --- Tester: deliberately duplicates Flasher's own target-selection
+    # shape (real, separate _tester_* state) - real tier/robot gating,
+    # real global LED/OLED/F-RAM local state, real per-tool telemetry
+    # category, the real can_ota.py mock_self_test()/mock_bus_monitor()
+    # generators (not faked - both have genuine per-step randomness, so
+    # only structural/label assertions are made, never an exact pass/fail
+    # or frame content) ---
+    tester_state = HydraState({
+        "activeControllerId": "c1",
+        "controllers": [{
+            "id": "c1", "name": "Cell One",
+            "robots": [
+                {"id": "x1", "model": "AR3", "urtcConnected": True, "tool": "Drill (BL4260)"},
+                {"id": "x2", "model": "AR2", "urtcConnected": False},
+            ],
+        }],
+    })
+    controller.active_state_changed.emit(tester_state)
+
+    bridge.navigatePanel("urtc_tester")
+    t_tiers = {t["key"]: t for t in bridge.testerTierOptions}
+    assert set(t_tiers) == {"urtcHead", "urtcExpansion"}
+    assert bridge.testerSelectedRobotId == "x1"
+    assert t_tiers["urtcHead"]["enabled"] is True and t_tiers["urtcExpansion"]["enabled"] is False
+    assert bridge.testerRobotOptions[0]["label"] == "A1 - AR3", "no (unreachable) suffix here - the real classic Tester combo never adds one, unlike Flasher's own"
+    assert bridge.testerSimulatedNoteVisible is False, "transport is real mock here"
+
+    assert bridge.testerShowGlobal is True, "urtcHead is the real default tier for URTC_TIERS"
+    assert bridge.testerShowFram is True
+    assert bridge.testerShowTelemetry is True
+    assert bridge.testerTelemetryTitle == "Tool Telemetry - Drill (BL4260)"
+    assert bridge.testerTelemetryLabel != "" and "LBL_TELEMETRY" not in bridge.testerTelemetryLabel, "a real translated category label, not the raw key"
+
+    bridge.setTesterStatusColor("#ff00aa")
+    assert bridge.testerStatusColor == "#ff00aa"
+    assert bridge.testerRingOn is False
+    bridge.toggleTesterRing()
+    assert bridge.testerRingOn is True
+    bridge.setTesterOledMode("night")
+    assert bridge.testerOledMode == "night"
+
+    assert bridge.testerFramStateLabel == "Unknown - query to check"
+    loop.run_until_complete(bridge._run_tester_fram_query("urtc_tester"))
+    assert bridge.testerFramStateLabel in ("Valid saved state found", "No saved state")
+    bridge.testerFramErase()
+    assert bridge.testerFramStateLabel == "No saved state"
+
+    target = bridge._tester_target("urtc_tester")
+    assert target is not None
+    loop.run_until_complete(bridge._run_tester_self_test("urtc_tester", target))
+    steps = bridge.testerSelfTestSteps
+    assert len(steps) == 5, "real urtcHead step set: comm, version, fram, tool, telemetry"
+    assert all(s["label"] != "" for s in steps)
+    assert bridge.testerTesting is False
+
+    bridge.toggleTesterMonitor()
+    assert bridge.testerMonitorRunning is True
+    loop.run_until_complete(asyncio.sleep(0.35))  # mock_bus_monitor's own first real frame lands ~0.2s in
+    assert len(bridge.testerFrames) >= 1
+    frame = bridge.testerFrames[0]
+    assert frame["id"].startswith("0x") and frame["dlc"] in (2, 4)
+    bridge.toggleTesterMonitor()
+    assert bridge.testerMonitorRunning is False
+    loop.run_until_complete(asyncio.sleep(0))  # let the real task.cancel() above actually propagate
+
+    # Switching tier/robot must drop any in-flight self-test/monitor state
+    # for the PREVIOUS target - matches _reset_for_new_target()'s own
+    # real behavior.
+    bridge.selectTesterTier("urtcExpansion")
+    assert bridge.testerSelfTestSteps == [] and bridge.testerFrames == []
+
+    bridge.navigatePanel("hydra_tester")
+    assert bridge.testerSelectedRobotId == "x1", "hydra_tester's own robot selection is genuinely separate from urtc_tester's"
+    hydra_t_tiers = {t["key"]: t for t in bridge.testerTierOptions}
+    assert set(hydra_t_tiers) == {"kinematicBrain", "controllerBoard"}
+    assert bridge.testerNeedsRobotSlot is False, "kinematicBrain is the real default tier"
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

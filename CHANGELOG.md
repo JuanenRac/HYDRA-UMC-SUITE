@@ -215,6 +215,21 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     overlapping the label text; fixed for real by using a plain,
     text-less `CheckBox` next to an independent sibling `Text` instead,
     confirmed with a follow-up screenshot.
+  - **Tester, both real instances (URTC/HYDRA-UMC)** - real CAN-OTA
+    runtime diagnostics, matching `tester_panel.py`'s own `TesterPanel`
+    in full: global LED/OLED/F-RAM controls, real per-tool telemetry
+    category text, a real safe self-test (comms/version and tier-
+    specific checks only - never actuates anything at meaningful power,
+    matching URTC-TESTER's own philosophy), and a real raw CAN bus
+    monitor streaming real, if simulated, frames. Deliberately
+    duplicates the Flasher's own target-selection block rather than
+    sharing it with the new Flasher code above, matching this panel's
+    own header on why (STUDIO's own `Tester.tsx`/`Flasher.tsx` do the
+    same real duplication, so mirroring it here is the more faithful
+    port). One generic bridge implementation covers both real nav keys
+    (`urtc_tester`/`hydra_tester`). Rendered correctly on the first
+    real on-screen screenshot - no new bugs found, applying every
+    lesson this family's own earlier panels already paid for.
 
 ## [0.3.9]
 

@@ -364,6 +364,8 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "cameras") return camerasComponent
                     if (suiteBackend.activePanel === "urtc_flasher") return flasherComponent
                     if (suiteBackend.activePanel === "hydra_flasher") return flasherComponent
+                    if (suiteBackend.activePanel === "urtc_tester") return testerComponent
+                    if (suiteBackend.activePanel === "hydra_tester") return testerComponent
                     return notMigratedComponent
                 }
             }
@@ -2975,6 +2977,235 @@ ApplicationWindow {
                                     font.family: "Cascadia Mono"
                                     font.pixelSize: 9
                                     wrapMode: Text.WrapAnywhere
+                                }
+                            }
+                        }
+                    }
+                }
+                Item { Layout.preferredHeight: 12 }
+            }
+        }
+    }
+
+    ColorDialog {
+        id: testerColorDialog
+        title: suiteBackend.uiText("LBL_STATUS_LED")
+        onAccepted: suiteBackend.setTesterStatusColor(selectedColor.toString())
+    }
+
+    // Real CAN-OTA runtime diagnostics - mirrors tester_panel.py's own
+    // TesterPanel 1:1: global LED/OLED/F-RAM controls, per-tool
+    // telemetry, safe self-test, raw CAN bus monitor. Deliberately
+    // duplicates flasherComponent's own target-selection block rather
+    // than sharing it, matching that file's own header on why (STUDIO's
+    // own Tester.tsx/Flasher.tsx do the same real duplication). Reused
+    // for both real nav keys (`urtc_tester`/`hydra_tester`) via
+    // _TESTER_TIERS in qt_suite.py.
+    Component {
+        id: testerComponent
+        Flickable {
+            id: testerFlick
+            width: contentLoader.width
+            height: contentLoader.height
+            contentWidth: width
+            contentHeight: testerColumn.implicitHeight
+            clip: true
+            ColumnLayout {
+                id: testerColumn
+                width: testerFlick.width
+                spacing: 10
+
+                Text { text: suiteBackend.uiText("HEADING_TESTER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("LBL_TESTER_SIMULATED_NOTE"); color: window.amber; visible: suiteBackend.testerSimulatedNoteVisible; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: testerTargetColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: testerTargetColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_BOARD"); color: window.muted; font.pixelSize: 10 }
+                            ComboBox {
+                                id: testerTierCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.testerTierOptions
+                                textRole: "label"
+                                valueRole: "key"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.testerTier)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() {
+                                        var idx = testerTierCombo.indexOfValue(suiteBackend.testerTier)
+                                        if (idx !== testerTierCombo.currentIndex) testerTierCombo.currentIndex = idx
+                                    }
+                                }
+                                onActivated: suiteBackend.selectTesterTier(currentValue)
+                            }
+                        }
+                        RowLayout {
+                            visible: suiteBackend.testerNeedsRobotSlot
+                            Text { text: suiteBackend.uiText("LBL_ROBOT_SLOT"); color: window.muted; font.pixelSize: 10 }
+                            ComboBox {
+                                id: testerRobotCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.testerRobotOptions
+                                textRole: "label"
+                                valueRole: "id"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.testerSelectedRobotId)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() {
+                                        var idx = testerRobotCombo.indexOfValue(suiteBackend.testerSelectedRobotId)
+                                        if (idx !== testerRobotCombo.currentIndex) testerRobotCombo.currentIndex = idx
+                                    }
+                                }
+                                onActivated: suiteBackend.selectTesterRobot(currentValue)
+                            }
+                        }
+                        Text { text: suiteBackend.testerHopDescription; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            Text { text: suiteBackend.testerVersionLabel; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true }
+                            Button { text: suiteBackend.uiText("BTN_QUERY_VERSION"); enabled: suiteBackend.testerQueryEnabled; onClicked: suiteBackend.testerQueryVersion() }
+                        }
+                    }
+                }
+
+                Card {
+                    visible: suiteBackend.testerShowGlobal
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: testerGlobalColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: testerGlobalColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_GLOBAL_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_STATUS_LED"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                            Rectangle {
+                                width: 60; height: 26; radius: 4
+                                color: suiteBackend.testerStatusColor
+                                border.width: 1; border.color: window.panelBorder
+                                MouseArea { anchors.fill: parent; onClicked: { testerColorDialog.selectedColor = suiteBackend.testerStatusColor; testerColorDialog.open() } }
+                            }
+                        }
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_RING_LED"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                            Button { text: suiteBackend.testerRingOn ? suiteBackend.uiText("LBL_ON") : suiteBackend.uiText("LBL_OFF"); onClicked: suiteBackend.toggleTesterRing() }
+                        }
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_OLED_MODE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                            ComboBox {
+                                Layout.preferredWidth: 140
+                                model: [suiteBackend.uiText("LBL_OLED_STANDARD"), suiteBackend.uiText("LBL_OLED_NIGHT"), suiteBackend.uiText("LBL_OLED_OFF")]
+                                property var modes: ["standard", "night", "off"]
+                                currentIndex: modes.indexOf(suiteBackend.testerOledMode)
+                                onActivated: suiteBackend.setTesterOledMode(modes[currentIndex])
+                            }
+                        }
+                        Text { text: suiteBackend.testerExpansionLabel; color: window.muted; font.pixelSize: 9; visible: text.length > 0 }
+                    }
+                }
+
+                Card {
+                    visible: suiteBackend.testerShowFram
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: testerFramColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: testerFramColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_FRAM"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.testerFramStateLabel; color: window.textPrimary; font.pixelSize: 10 }
+                        RowLayout {
+                            Button { text: suiteBackend.uiText("BTN_FRAM_QUERY"); onClicked: suiteBackend.testerFramQuery() }
+                            Button { text: suiteBackend.uiText("BTN_FRAM_ERASE"); onClicked: suiteBackend.testerFramErase() }
+                        }
+                    }
+                }
+
+                Card {
+                    visible: suiteBackend.testerShowTelemetry
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: testerTelemetryColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: testerTelemetryColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 4
+                        Text { text: suiteBackend.testerTelemetryTitle; color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.testerTelemetryLabel; color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                }
+
+                Text { text: suiteBackend.uiText("LBL_SELF_TEST"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                RowLayout {
+                    Text { text: suiteBackend.uiText("LBL_SELF_TEST_NOTE"); color: window.muted; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Button {
+                        text: suiteBackend.testerTesting ? "..." : suiteBackend.uiText("BTN_RUN_SELF_TEST")
+                        enabled: suiteBackend.testerQueryEnabled && !suiteBackend.testerTesting
+                        onClicked: suiteBackend.runTesterSelfTest()
+                    }
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+                    Repeater {
+                        model: suiteBackend.testerSelfTestSteps
+                        delegate: Text {
+                            required property var modelData
+                            text: (modelData.passed ? "✅ " : "❌ ") + modelData.label
+                            color: modelData.passed ? "#34d399" : "#fb7185"
+                            font.pixelSize: 10
+                        }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: suiteBackend.uiText("LBL_BUS_MONITOR"); color: window.cyan; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true }
+                    Button {
+                        text: suiteBackend.testerMonitorRunning ? suiteBackend.uiText("BTN_MONITOR_STOP") : suiteBackend.uiText("BTN_MONITOR_START")
+                        enabled: suiteBackend.testerQueryEnabled || suiteBackend.testerMonitorRunning
+                        onClicked: suiteBackend.toggleTesterMonitor()
+                    }
+                }
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 180
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 4
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_COL_TIME"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 80 }
+                            Text { text: suiteBackend.uiText("LBL_COL_ID"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
+                            Text { text: "DLC"; color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 40 }
+                            Text { text: suiteBackend.uiText("LBL_COL_DATA"); color: window.muted; font.pixelSize: 9; Layout.fillWidth: true }
+                        }
+                        Flickable {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            contentWidth: width
+                            contentHeight: testerFramesColumn.implicitHeight
+                            clip: true
+                            ColumnLayout {
+                                id: testerFramesColumn
+                                width: parent.width
+                                spacing: 1
+                                Repeater {
+                                    model: suiteBackend.testerFrames
+                                    delegate: RowLayout {
+                                        required property var modelData
+                                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 80 }
+                                        Text { text: modelData.id; color: "#38bdf8"; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 70 }
+                                        Text { text: modelData.dlc; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 40 }
+                                        Text { text: modelData.data; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.fillWidth: true }
+                                    }
                                 }
                             }
                         }
