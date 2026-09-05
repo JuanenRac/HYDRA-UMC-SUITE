@@ -66,6 +66,7 @@ from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
     JOG_STEPS_MM as _XY_JOG_STEPS_MM,
@@ -96,7 +97,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place"})
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
@@ -307,6 +308,23 @@ class SuiteQtBridge(QObject):
         self._rack_selected_robot_id: str | None = None
         self._rack_robots_cache: list[RobotView] = []
         controller.active_state_changed.connect(self._on_rack_state_changed)
+
+        # -- Pick and Place (ported from pick_and_place_panel.py's own
+        # PickAndPlacePanel - MACHINE_TYPES/MACHINE_LABELS/PNP_AXES
+        # imported directly from there, never duplicated. Own real,
+        # independent robot selection, matching that panel's own
+        # separate QComboBox. The "size-only" branch that panel's own
+        # header documents as real-in-STUDIO-but-unreachable-through-this-
+        # Machine-combo is intentionally NOT ported here - it never
+        # renders in the classic panel either, so there is nothing a
+        # real user could compare this port against; a future 3rd
+        # Machine option would need to add it to both sides. The
+        # right-hand "3D Live View" (RobotViewport in PnP-only mode) is
+        # not ported, same as every other panel in this family. --
+        self._pnp_selected_robot_id: str | None = None
+        self._pnp_robots_cache: list[RobotView] = []
+        self._pnp_machine_type: str = MACHINE_TYPES[0]
+        controller.active_state_changed.connect(self._on_pnp_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -1672,6 +1690,133 @@ class SuiteQtBridge(QObject):
         slots[index] = not slots[index]
         rack["usableSlots"] = slots
         robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    # -- Pick and Place ----------------------------------------------------
+
+    def _on_pnp_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+        self._pnp_robots_cache = robots
+        if self._pnp_selected_robot_id not in {r.id for r in robots}:
+            self._pnp_selected_robot_id = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _pnp_selected_robot(self) -> RobotView | None:
+        for r in self._pnp_robots_cache:
+            if r.id == self._pnp_selected_robot_id:
+                return r
+        return None
+
+    @Property("QVariantList", notify=changed)
+    def pnpRobotOptions(self) -> list[dict[str, str]]:
+        return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._pnp_robots_cache]
+
+    @Property(str, notify=changed)
+    def pnpSelectedRobotId(self) -> str:
+        return self._pnp_selected_robot_id or ""
+
+    @Slot(str)
+    def selectPnpRobot(self, robot_id: str) -> None:
+        if robot_id != self._pnp_selected_robot_id:
+            self._pnp_selected_robot_id = robot_id or None
+            self.changed.emit()
+
+    @Property("QVariantList", constant=True)
+    def pnpMachineOptions(self) -> list[dict[str, str]]:
+        return [{"key": key, "label": MACHINE_LABELS[key]} for key in MACHINE_TYPES]
+
+    @Property(str, notify=changed)
+    def pnpMachineType(self) -> str:
+        return self._pnp_machine_type
+
+    @Property(str, notify=changed)
+    def pnpMachineLabel(self) -> str:
+        return MACHINE_LABELS.get(self._pnp_machine_type, self._pnp_machine_type)
+
+    @Slot(str)
+    def selectPnpMachine(self, machine_type: str) -> None:
+        if machine_type != self._pnp_machine_type and machine_type in MACHINE_TYPES:
+            self._pnp_machine_type = machine_type
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def pnpHasRobot(self) -> bool:
+        return self._pnp_selected_robot() is not None
+
+    @Property(bool, notify=changed)
+    def pnpEnabled(self) -> bool:
+        robot = self._pnp_selected_robot()
+        return robot is not None and robot.module_enabled(self._pnp_machine_type)
+
+    @Property(bool, notify=changed)
+    def pnpCanReset(self) -> bool:
+        return self.pnpHasRobot and self.pnpEnabled
+
+    @Property("QVariantList", notify=changed)
+    def pnpAxisData(self) -> list[dict[str, object]]:
+        """One row per PNP_AXES entry, spec + current value fused - same
+        real fixed hardware bounds as pick_and_place_panel.py's own
+        PNP_AXES (never re-declared here)."""
+        robot = self._pnp_selected_robot()
+        module = robot.module(self._pnp_machine_type) if robot is not None else {}
+        return [
+            {"field": field, "label": _(label_key), "min": lo, "max": hi, "value": int(module.get(field, 0) or 0)}
+            for field, label_key, lo, hi in PNP_AXES
+        ]
+
+    @Slot()
+    def enablePnp(self) -> None:
+        robot = self._pnp_selected_robot()
+        if robot is None:
+            return
+        module = robot.module(self._pnp_machine_type)
+        module["enabled"] = True
+        robot.set_module(self._pnp_machine_type, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def disablePnp(self) -> None:
+        robot = self._pnp_selected_robot()
+        if robot is None:
+            return
+        module = robot.module(self._pnp_machine_type)
+        module["enabled"] = False
+        robot.set_module(self._pnp_machine_type, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def resetPnp(self) -> None:
+        """Matches pick_and_place_panel.py's own _on_reset() exactly -
+        always seeds the real PnP axis fields, since the Machine combo
+        only ever offers juanenPnP/lumenPnP (see this class's own
+        __init__ comment on the unported size-only branch)."""
+        robot = self._pnp_selected_robot()
+        if robot is None:
+            return
+        module = {
+            "enabled": True,
+            "size": {"width": 500, "length": 500},
+            "worldPos": {"x": 0, "y": 0},
+            "worldRot": 0,
+            "renderScale": 1,
+            "axisX": 0, "axisY": 0, "axisZ": 0, "nozzle1Rotation": 0, "nozzle2Rotation": 0,
+        }
+        robot.set_module(self._pnp_machine_type, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, int)
+    def setPnpAxis(self, field: str, value: int) -> None:
+        robot = self._pnp_selected_robot()
+        if robot is None:
+            return
+        module = robot.module(self._pnp_machine_type)
+        module[field] = value
+        robot.set_module(self._pnp_machine_type, module)
         self._controller.push_active_state()
         self.changed.emit()
 

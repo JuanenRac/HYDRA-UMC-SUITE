@@ -354,6 +354,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "ecosystem_telemetry") return ecosystemTelemetryComponent
                     if (suiteBackend.activePanel === "xy_table") return xyTableComponent
                     if (suiteBackend.activePanel === "rack") return rackComponent
+                    if (suiteBackend.activePanel === "pick_and_place") return pickAndPlaceComponent
                     return notMigratedComponent
                 }
             }
@@ -1695,6 +1696,105 @@ ApplicationWindow {
                     font.pixelSize: 10
                     wrapMode: Text.WrapAnywhere
                 }
+            }
+        }
+    }
+
+    Component {
+        id: pickAndPlaceComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 12
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_PICK_AND_PLACE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                ComboBox {
+                    id: pnpMachineCombo
+                    Layout.preferredWidth: 190
+                    model: suiteBackend.pnpMachineOptions
+                    textRole: "label"
+                    valueRole: "key"
+                    Component.onCompleted: currentIndex = indexOfValue(suiteBackend.pnpMachineType)
+                    onActivated: suiteBackend.selectPnpMachine(currentValue)
+                }
+                Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.pnpCanReset; onClicked: suiteBackend.resetPnp() }
+                ComboBox {
+                    id: pnpRobotCombo
+                    Layout.preferredWidth: 200
+                    model: suiteBackend.pnpRobotOptions
+                    textRole: "label"
+                    valueRole: "id"
+                    Component.onCompleted: currentIndex = indexOfValue(suiteBackend.pnpSelectedRobotId)
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() {
+                            var idx = pnpRobotCombo.indexOfValue(suiteBackend.pnpSelectedRobotId)
+                            if (idx !== pnpRobotCombo.currentIndex) pnpRobotCombo.currentIndex = idx
+                        }
+                    }
+                    onActivated: suiteBackend.selectPnpRobot(currentValue)
+                }
+            }
+
+            ColumnLayout {
+                visible: !suiteBackend.pnpEnabled
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 40
+                spacing: 8
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_ASSIGNED").replace("{machine}", suiteBackend.pnpMachineLabel); color: window.textPrimary; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_DESC"); color: window.muted; wrapMode: Text.WordWrap; Layout.preferredWidth: 320; horizontalAlignment: Text.AlignHCenter }
+                Button { text: suiteBackend.uiText("BTN_ENABLE_MODULE").replace("{machine}", suiteBackend.pnpMachineLabel); enabled: suiteBackend.pnpHasRobot; onClicked: suiteBackend.enablePnp(); Layout.alignment: Qt.AlignHCenter }
+            }
+
+            ColumnLayout {
+                visible: suiteBackend.pnpEnabled
+                spacing: 10
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                    Button {
+                        id: pnpRemoveButton
+                        text: suiteBackend.uiText("BTN_REMOVE_MODULE")
+                        contentItem: Text { text: pnpRemoveButton.text; color: "#f43f5e" }
+                        onClicked: suiteBackend.disablePnp()
+                    }
+                }
+                Text { text: suiteBackend.uiText("LBL_PNP_POSE_PREVIEW"); color: window.muted; font.pixelSize: 10 }
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: pnpAxisColumn.implicitHeight + 24
+                    ColumnLayout {
+                        id: pnpAxisColumn
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 6
+                        Repeater {
+                            model: suiteBackend.pnpAxisData
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Text { text: modelData.label; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 120 }
+                                Slider {
+                                    Layout.fillWidth: true
+                                    from: modelData.min; to: modelData.max
+                                    value: modelData.value
+                                    onMoved: suiteBackend.setPnpAxis(modelData.field, Math.round(value))
+                                }
+                                SpinBox {
+                                    from: modelData.min; to: modelData.max
+                                    value: modelData.value
+                                    editable: true
+                                    Layout.preferredWidth: 150
+                                    onValueModified: suiteBackend.setPnpAxis(modelData.field, value)
+                                }
+                            }
+                        }
+                    }
+                }
+                Item { Layout.fillHeight: true }
             }
         }
     }

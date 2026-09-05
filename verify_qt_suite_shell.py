@@ -457,6 +457,42 @@ def _run() -> None:
     bridge.disableRackSystem()
     assert bridge.rackEnabled is False
 
+    # --- pick and place: PnP-only path (the Machine combo never offers a
+    # 3rd type in practice - see qt_suite.py's own __init__ comment on the
+    # unported size-only branch), real 5-axis mutation + reset, real
+    # per-machine-type independent module block ---
+    assert bridge.pnpSelectedRobotId == "x1"
+    assert bridge.pnpMachineType == "juanenPnP"
+    assert bridge.pnpEnabled is False, "no juanenPnP module on this robot yet"
+    bridge.enablePnp()
+    assert bridge.pnpEnabled is True
+
+    axes = {a["field"]: a for a in bridge.pnpAxisData}
+    assert axes["axisX"]["min"] == 0 and axes["axisX"]["max"] == 433, "real fixed hardware bound from PNP_AXES"
+    assert axes["nozzle1Rotation"]["min"] == -180 and axes["nozzle1Rotation"]["max"] == 180
+    assert all(a["value"] == 0 for a in bridge.pnpAxisData)
+
+    bridge.setPnpAxis("axisX", 250)
+    bridge.setPnpAxis("nozzle1Rotation", -90)
+    axes = {a["field"]: a for a in bridge.pnpAxisData}
+    assert axes["axisX"]["value"] == 250 and axes["nozzle1Rotation"]["value"] == -90
+
+    bridge.resetPnp()
+    assert bridge.pnpEnabled is True, "resetPnp force-enables, matching _on_reset()'s own module['enabled'] = True"
+    assert all(a["value"] == 0 for a in bridge.pnpAxisData), "reset must clear the axes set just above"
+
+    # Switching machine type is its own independent selection - lumenPnP
+    # has its own separate module block, untouched by juanenPnP's above.
+    bridge.selectPnpMachine("lumenPnP")
+    assert bridge.pnpMachineType == "lumenPnP"
+    assert bridge.pnpMachineLabel == "LumenPnP"
+    assert bridge.pnpEnabled is False, "lumenPnP's own module block was never enabled"
+
+    bridge.selectPnpMachine("juanenPnP")
+    assert bridge.pnpEnabled is True, "juanenPnP's own module block survived the round trip through lumenPnP"
+    bridge.disablePnp()
+    assert bridge.pnpEnabled is False
+
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
         "settings": {},

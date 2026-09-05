@@ -111,6 +111,21 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     any local changes to either. A real decimal-capable `SpinBox`
     (QML's own is integer-only by default) for the 2-decimal joint/
     table position fields.
+  - **Pick and Place** - the Machine combo (JuanenPnP/LumenPnP), real
+    Enable/Remove/Reset, and the 5 pose-preview sliders (X/Y/Z axis,
+    both nozzle rotations) bound to the classic panel's own real fixed
+    hardware bounds (433mm/487mm/90mm travel, ±180° nozzle) - each
+    machine type keeps its own independent module block, exactly like
+    the classic panel's real per-`machineType` state. Manual pose
+    preview only, same real scope as the classic panel (neither PnP
+    machine has a live firmware feed yet). The right-hand "3D Live
+    View" isn't ported, same real, separate omission as every panel in
+    this family. **Real bug caught by this panel's own on-screen
+    screenshot before shipping**: the axis `SpinBox`es' numeric field
+    was too narrow (90px) to fit the real fixed-bound values -
+    "250"/"-90" rendered as just their last digit while the paired
+    `Slider` sat at the correct position the whole time. Widened to
+    150px.
 
 ## [0.3.9]
 
