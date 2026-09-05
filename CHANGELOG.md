@@ -154,6 +154,26 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     in HYDRA-UMC-STUDIO's own source, not invented here. The right-hand
     "3D Live View" isn't ported for any of the 4, same real, separate
     omission as every panel in this family.
+  - **ATC Tools Configuration** - a genuinely fresh, purpose-built port
+    (NOT built on the generic Module Config shape above - `RobotView.atc`
+    is `None` when unconfigured with no separate `enabled` flag, unlike
+    every other tool attachment): all 3 real layout modes (vertical/
+    horizontal panel, revolver), the 25-item real URTC tool catalog per
+    slot, a real 6-joint (+ table tx/ty when this robot has one) position
+    editor per panel slot and for the revolver's own base pickup
+    position, real JSON export/import with the same validation the
+    classic panel's own `QMessageBox.warning()` does (round-tripped
+    end-to-end against a real temp file in `verify_qt_suite_shell.py`,
+    not just in-memory state), and the real 2D graphic representation
+    (grid of slots, or a circular revolver) as a hand-drawn QML `Canvas`
+    - genuinely ported this time, not the family's usual 3D-viewport
+    omission, since the classic panel's own graphic is from-scratch
+    QPainter/CSS on both sides already, not a 3D dependency. **Real bug
+    caught by this panel's own on-screen screenshot before shipping**:
+    the position-editor `SpinBox`es repeated the exact same too-narrow
+    (90px) mistake Pick and Place already found and fixed - a real value
+    of 45 rendered as "5". Widened to 150px; confirmed fixed with a
+    second screenshot, in both panel and revolver mode.
 
 ## [0.3.9]
 

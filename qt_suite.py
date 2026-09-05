@@ -65,6 +65,16 @@ from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
+from hydra_suite.ui.panels.atc_tools_panel import (
+    JOINT_FIELDS as _ATC_JOINT_FIELDS,
+    JOINT_RANGE_DEG as _ATC_JOINT_RANGE_DEG,
+    PANEL_GRIDS,
+    TABLE_FIELDS as _ATC_TABLE_FIELDS,
+    TABLE_RANGE_MM as _ATC_TABLE_RANGE_MM,
+    URTC_TOOLS,
+    _default_atc_config,
+    _default_pos,
+)
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
 from hydra_suite.ui.panels.heated_bed_panel import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
 from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
@@ -101,7 +111,8 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc"})
+_ATC_TYPE_KEYS: tuple[str, ...] = ("vertical_panel", "horizontal_panel", "revolver")
 
 # Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
 # module_config_panel.py's own ModuleConfigPanel(module_key, heading_key,
@@ -377,6 +388,22 @@ class SuiteQtBridge(QObject):
         self._module_selected_robot_id: dict[str, str | None] = {k: None for k in _MODULE_CONFIGS}
         self._module_robots_cache: dict[str, list[RobotView]] = {k: [] for k in _MODULE_CONFIGS}
         controller.active_state_changed.connect(self._on_module_state_changed)
+
+        # -- ATC Tools (ported from atc_tools_panel.py's own AtcToolsPanel -
+        # URTC_TOOLS/PANEL_GRIDS/JOINT_FIELDS/TABLE_FIELDS/*_RANGE_*/
+        # _default_atc_config/_default_pos imported directly from there,
+        # never duplicated). NOT built on the generic Module Config shape
+        # above - `RobotView.atc` is a fundamentally different shape
+        # (None vs a full ATCConfig, no separate `enabled` flag, 3 layout
+        # types), matching that file's own header. Own real, independent
+        # robot selection. `_atc_editing_slot` mirrors the classic panel's
+        # own field exactly: None, an int slot index, or the literal
+        # string "revolver" for the base pickup position editor. --
+        self._atc_selected_robot_id: str | None = None
+        self._atc_robots_cache: list[RobotView] = []
+        self._atc_editing_slot: int | str | None = None
+        self._atc_load_error: str = ""
+        controller.active_state_changed.connect(self._on_atc_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -2318,6 +2345,286 @@ class SuiteQtBridge(QObject):
     @Slot()
     def toggleModuleValve(self) -> None:
         self._set_module_extra_field("valveActive", not self.moduleValveOn)
+
+    # -- ATC Tools -----------------------------------------------------------
+
+    def _on_atc_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+        self._atc_robots_cache = robots
+        if self._atc_selected_robot_id not in {r.id for r in robots}:
+            self._atc_selected_robot_id = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _atc_selected_robot(self) -> RobotView | None:
+        for r in self._atc_robots_cache:
+            if r.id == self._atc_selected_robot_id:
+                return r
+        return None
+
+    def _atc_config(self) -> dict:
+        robot = self._atc_selected_robot()
+        return (robot.atc if robot is not None else None) or _default_atc_config()
+
+    def _atc_pos_fields(self, pos: dict, has_xy_table: bool) -> list[dict[str, object]]:
+        fields = [
+            {"field": f, "label": f"{f.upper()} (°)", "value": float(pos.get(f, 0) or 0), "min": _ATC_JOINT_RANGE_DEG[0], "max": _ATC_JOINT_RANGE_DEG[1]}
+            for f in _ATC_JOINT_FIELDS
+        ]
+        if has_xy_table:
+            fields += [
+                {"field": f, "label": f"Table {f[1].upper()} (mm)", "value": float(pos.get(f, 0) or 0), "min": _ATC_TABLE_RANGE_MM[0], "max": _ATC_TABLE_RANGE_MM[1]}
+                for f in _ATC_TABLE_FIELDS
+            ]
+        return fields
+
+    def _atc_slot_count(self, config: dict) -> int:
+        if config.get("type") in ("vertical_panel", "horizontal_panel"):
+            grid = config.get("panelGrid", "2x2")
+            try:
+                rows, cols = (int(x) for x in grid.split("x"))
+            except ValueError:
+                rows, cols = 2, 2
+            return rows * cols
+        return max(1, int(config.get("revolverSlots", 8) or 8))
+
+    @Property("QVariantList", notify=changed)
+    def atcRobotOptions(self) -> list[dict[str, str]]:
+        return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._atc_robots_cache]
+
+    @Property(str, notify=changed)
+    def atcSelectedRobotId(self) -> str:
+        return self._atc_selected_robot_id or ""
+
+    @Slot(str)
+    def selectAtcRobot(self, robot_id: str) -> None:
+        if robot_id != self._atc_selected_robot_id:
+            self._atc_selected_robot_id = robot_id or None
+            self._atc_editing_slot = None
+            self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def atcHasRobot(self) -> bool:
+        return self._atc_selected_robot() is not None
+
+    @Property(bool, notify=changed)
+    def atcConfigured(self) -> bool:
+        robot = self._atc_selected_robot()
+        return robot is not None and robot.atc is not None
+
+    @Property(str, notify=changed)
+    def atcType(self) -> str:
+        return str(self._atc_config().get("type", "vertical_panel"))
+
+    @Property("QVariantList", constant=True)
+    def atcTypeOptions(self) -> list[dict[str, str]]:
+        labels = {"vertical_panel": "LBL_ATC_VERTICAL", "horizontal_panel": "LBL_ATC_HORIZONTAL", "revolver": "LBL_ATC_REVOLVER"}
+        return [{"key": k, "labelKey": labels[k]} for k in _ATC_TYPE_KEYS]
+
+    @Property(bool, notify=changed)
+    def atcIsPanel(self) -> bool:
+        return self.atcType in ("vertical_panel", "horizontal_panel")
+
+    @Property(str, notify=changed)
+    def atcPanelGrid(self) -> str:
+        return str(self._atc_config().get("panelGrid", "2x2"))
+
+    @Property("QVariantList", constant=True)
+    def atcPanelGridOptions(self) -> list[str]:
+        return list(PANEL_GRIDS)
+
+    @Property(int, notify=changed)
+    def atcRevolverSlots(self) -> int:
+        return int(self._atc_config().get("revolverSlots", 8) or 8)
+
+    @Property("QVariantList", constant=True)
+    def atcToolOptions(self) -> list[str]:
+        return list(URTC_TOOLS)
+
+    @Property(bool, notify=changed)
+    def atcHasXyTable(self) -> bool:
+        robot = self._atc_selected_robot()
+        return bool(robot is not None and robot.has_xy_table)
+
+    @Property(str, notify=changed)
+    def atcEditingSlotKey(self) -> str:
+        return "" if self._atc_editing_slot is None else str(self._atc_editing_slot)
+
+    @Property("QVariantList", notify=changed)
+    def atcSlotsData(self) -> list[dict[str, object]]:
+        if not self.atcConfigured:
+            return []  # matches _refresh_controls()'s own real early-return before any config exists
+        config = self._atc_config()
+        is_panel = self.atcIsPanel
+        has_xy_table = self.atcHasXyTable
+        tools_by_slot = {t.get("slot"): t for t in config.get("tools", []) if isinstance(t, dict)}
+        result = []
+        for i in range(self._atc_slot_count(config)):
+            entry = tools_by_slot.get(i, {})
+            tool = entry.get("tool", "None")
+            editing = is_panel and self._atc_editing_slot == i
+            result.append({
+                "slot": i,
+                "tool": tool,
+                "toolIndex": URTC_TOOLS.index(tool) if tool in URTC_TOOLS else 0,
+                "showPosButton": is_panel,
+                "editing": editing,
+                "pos": self._atc_pos_fields(entry.get("pos") or _default_pos(), has_xy_table) if editing else [],
+            })
+        return result
+
+    @Property("QVariantList", notify=changed)
+    def atcBasePos(self) -> list[dict[str, object]]:
+        config = self._atc_config()
+        return self._atc_pos_fields(config.get("revolverPos") or _default_pos(), self.atcHasXyTable)
+
+    @Property(bool, notify=changed)
+    def atcBaseEditing(self) -> bool:
+        return self._atc_editing_slot == "revolver"
+
+    def _atc_push(self, config: dict) -> None:
+        robot = self._atc_selected_robot()
+        if robot is None:
+            return
+        robot.set_atc(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    def _atc_update(self, updates: dict) -> None:
+        self._atc_push({**self._atc_config(), **updates})
+
+    @Slot()
+    def enableAtc(self) -> None:
+        robot = self._atc_selected_robot()
+        if robot is None:
+            return
+        robot.set_atc(_default_atc_config())
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def disableAtc(self) -> None:
+        robot = self._atc_selected_robot()
+        if robot is None:
+            return
+        robot.set_atc(None)
+        self._atc_editing_slot = None
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def resetAtc(self) -> None:
+        robot = self._atc_selected_robot()
+        if robot is None:
+            return
+        robot.set_atc(_default_atc_config())
+        self._atc_editing_slot = None
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str)
+    def setAtcType(self, type_key: str) -> None:
+        if type_key in _ATC_TYPE_KEYS:
+            self._atc_update({"type": type_key})
+
+    @Slot(str)
+    def setAtcPanelGrid(self, grid: str) -> None:
+        if grid in PANEL_GRIDS:
+            self._atc_update({"panelGrid": grid, "tools": []})
+
+    @Slot(int)
+    def setAtcRevolverSlots(self, value: int) -> None:
+        self._atc_update({"revolverSlots": value, "tools": []})
+
+    @Slot(int, str)
+    def setAtcTool(self, slot: int, tool: str) -> None:
+        if self._atc_selected_robot() is None:
+            return
+        config = dict(self._atc_config())
+        tools = [dict(t) for t in config.get("tools", [])]
+        idx = next((i for i, t in enumerate(tools) if t.get("slot") == slot), None)
+        if idx is not None:
+            tools[idx]["tool"] = tool
+        else:
+            tools.append({"slot": slot, "tool": tool, "pos": _default_pos()})
+        self._atc_update({"tools": tools})
+
+    @Slot(str, str, float)
+    def setAtcPosField(self, slot_key: str, field: str, value: float) -> None:
+        if self._atc_selected_robot() is None:
+            return
+        config = dict(self._atc_config())
+        if slot_key == "revolver":
+            pos = dict(config.get("revolverPos") or _default_pos())
+            pos[field] = value
+            self._atc_update({"revolverPos": pos})
+            return
+        slot = int(slot_key)
+        tools = [dict(t) for t in config.get("tools", [])]
+        idx = next((i for i, t in enumerate(tools) if t.get("slot") == slot), None)
+        if idx is None:
+            tools.append({"slot": slot, "tool": "None", "pos": _default_pos()})
+            idx = len(tools) - 1
+        pos = dict(tools[idx].get("pos") or _default_pos())
+        pos[field] = value
+        tools[idx]["pos"] = pos
+        self._atc_update({"tools": tools})
+
+    @Slot(int)
+    def toggleAtcSlotPos(self, slot: int) -> None:
+        self._atc_editing_slot = None if self._atc_editing_slot == slot else slot
+        self.changed.emit()
+
+    @Slot()
+    def toggleAtcBasePos(self) -> None:
+        self._atc_editing_slot = None if self._atc_editing_slot == "revolver" else "revolver"
+        self.changed.emit()
+
+    @Slot(str)
+    def saveAtcConfig(self, path: str) -> None:
+        if self._atc_selected_robot() is None or not self.atcConfigured:
+            return
+        local_path = QUrl(path).toLocalFile() or path
+        if not local_path:
+            return
+        with open(local_path, "w", encoding="utf-8") as f:
+            json.dump(self._atc_config(), f, indent=2)
+
+    @Property(str, notify=changed)
+    def atcLoadError(self) -> str:
+        return self._atc_load_error
+
+    @Slot(str)
+    def loadAtcConfig(self, path: str) -> None:
+        """Sets atcLoadError to "" on success, a real error message
+        otherwise - matches _on_load_config()'s own QMessageBox.warning()
+        real validation (a non-dict payload, or one missing the required
+        "type" key, is rejected rather than accepted and silently
+        producing a broken ATC graphic). A real Property (not a Slot
+        return value) so the global FileDialog below - which has no
+        access to the per-instance panel's own ids - can still get the
+        result to the visible Text some other way, same reasoning
+        saveXyTableConfig's own global dialog never needed since it has
+        nothing to report back."""
+        if self._atc_selected_robot() is None:
+            return
+        local_path = QUrl(path).toLocalFile() or path
+        if not local_path:
+            return
+        try:
+            with open(local_path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as exc:
+            self._atc_load_error = str(exc)
+            self.changed.emit()
+            return
+        if not isinstance(data, dict) or "type" not in data:
+            self._atc_load_error = _("MSG_ATC_INVALID_CONFIG")
+            self.changed.emit()
+            return
+        self._atc_load_error = ""
+        self._atc_editing_slot = None
+        self._atc_update(data)
 
     # -- Overview --------------------------------------------------------
 

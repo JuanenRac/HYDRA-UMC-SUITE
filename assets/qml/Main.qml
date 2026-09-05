@@ -360,6 +360,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "laser") return moduleConfigComponent
                     if (suiteBackend.activePanel === "heated_bed") return moduleConfigComponent
                     if (suiteBackend.activePanel === "vacuum_table") return moduleConfigComponent
+                    if (suiteBackend.activePanel === "atc") return atcComponent
                     return notMigratedComponent
                 }
             }
@@ -2173,6 +2174,328 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
+            }
+        }
+    }
+
+    // Real 6-joint (+ optional table tx/ty) position editor, reused for
+    // both a panel slot's own position AND the revolver's base pickup
+    // position - mirrors atc_tools_panel.py's own reusable PositionEditor
+    // widget. Integer degrees/mm, matching the classic panel's own
+    // QSpinBox (not a DecimalSpinBox - ATC positions are whole numbers
+    // there too).
+    component AtcPosFields: Flow {
+        property var fields: []
+        property string slotKey: ""
+        Layout.fillWidth: true
+        spacing: 8
+        Repeater {
+            model: fields
+            delegate: ColumnLayout {
+                required property var modelData
+                spacing: 1
+                Text { text: modelData.label; color: window.muted; font.pixelSize: 8 }
+                SpinBox {
+                    from: modelData.min; to: modelData.max
+                    value: Math.round(modelData.value)
+                    editable: true
+                    // Real, previously-confirmed bug (see Pick and Place's own
+                    // CHANGELOG entry): too narrow a SpinBox clips a real
+                    // multi-digit value down to its last digit(s) - table mm
+                    // fields need up to 5 digits/sign ("-2000"), so this one
+                    // gets extra room over the joint fields' own "-180".
+                    Layout.preferredWidth: 150
+                    onValueModified: suiteBackend.setAtcPosField(slotKey, modelData.field, value)
+                }
+            }
+        }
+    }
+
+    // Real from-scratch 2D graphic (grid of tool slots, or a circular
+    // revolver layout) - a hand-drawn QML Canvas mirroring
+    // atc_tools_panel.py's own AtcGraphicsWidget (QPainter) 1:1 in
+    // structure and color, same "Canvas over a 3D/charting dependency"
+    // choice already used by ecosystem_telemetry's own chart.
+    Component {
+        id: atcGraphicsComponent
+        Canvas {
+            id: atcCanvas
+            function roundRect(ctx, x, y, w, h, r) {
+                ctx.beginPath()
+                ctx.moveTo(x + r, y)
+                ctx.arcTo(x + w, y, x + w, y + h, r)
+                ctx.arcTo(x + w, y + h, x, y + h, r)
+                ctx.arcTo(x, y + h, x, y, r)
+                ctx.arcTo(x, y, x + w, y, r)
+                ctx.closePath()
+            }
+            Connections {
+                target: suiteBackend
+                function onChanged() { atcCanvas.requestPaint() }
+            }
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.fillStyle = "#0f172a"
+                ctx.fillRect(0, 0, width, height)
+                var slots = suiteBackend.atcSlotsData
+                var hasToolAt = {}
+                for (var i = 0; i < slots.length; i++) hasToolAt[slots[i].slot] = slots[i].tool !== "None"
+
+                if (suiteBackend.atcIsPanel) {
+                    var parts = suiteBackend.atcPanelGrid.split("x")
+                    var rows = Math.max(1, parseInt(parts[0]) || 2)
+                    var cols = Math.max(1, parseInt(parts[1]) || 2)
+                    var margin = 20
+                    var cell = Math.max(1, Math.min((width - margin * 2) / cols, (height - margin * 2) / rows, 90))
+                    var gap = Math.max(2, cell / 8)
+                    var totalW = cell * cols + gap * (cols - 1)
+                    var totalH = cell * rows + gap * (rows - 1)
+                    var originX = (width - totalW) / 2
+                    var originY = (height - totalH) / 2
+                    for (var idx = 0; idx < rows * cols; idx++) {
+                        var r = Math.floor(idx / cols), c = idx % cols
+                        var x = originX + c * (cell + gap)
+                        var y = originY + r * (cell + gap)
+                        var hasTool = !!hasToolAt[idx]
+                        ctx.lineWidth = 2
+                        ctx.strokeStyle = hasTool ? "#0ea5e9" : "#334155"
+                        ctx.setLineDash(hasTool ? [] : [4, 3])
+                        ctx.fillStyle = hasTool ? "#082f49" : "#0f172a"
+                        roundRect(ctx, x, y, cell, cell, 6)
+                        ctx.fill(); ctx.stroke()
+                        ctx.setLineDash([])
+                        ctx.fillStyle = "#64748b"
+                        ctx.font = "11px sans-serif"
+                        ctx.textAlign = "left"
+                        ctx.fillText(String(idx + 1), x, y - 4)
+                        if (hasTool) {
+                            var dotR = Math.max(4, cell / 6)
+                            ctx.fillStyle = "#38bdf8"
+                            ctx.beginPath(); ctx.arc(x + cell / 2, y + cell / 2, dotR, 0, Math.PI * 2); ctx.fill()
+                        }
+                    }
+                } else {
+                    var slotsN = Math.max(1, suiteBackend.atcRevolverSlots)
+                    var radius = Math.max(70, Math.min(width, height) / 2 - 40)
+                    var cx = width / 2, cy = height / 2
+                    ctx.lineWidth = 4
+                    ctx.strokeStyle = "#334155"
+                    ctx.setLineDash([])
+                    ctx.fillStyle = "#1e293b"
+                    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+                    var hubR = Math.max(20, radius * 0.18)
+                    ctx.fillStyle = "#334155"
+                    ctx.beginPath(); ctx.arc(cx, cy, hubR, 0, Math.PI * 2); ctx.fill()
+                    for (var s = 0; s < slotsN; s++) {
+                        var angle = (s / slotsN) * Math.PI * 2 - Math.PI / 2
+                        var sx = cx + Math.cos(angle) * radius
+                        var sy = cy + Math.sin(angle) * radius
+                        var hasT = !!hasToolAt[s]
+                        var slotR = Math.max(14, radius * 0.16)
+                        ctx.lineWidth = 2
+                        ctx.strokeStyle = hasT ? "#0ea5e9" : "#334155"
+                        ctx.setLineDash(hasT ? [] : [4, 3])
+                        ctx.fillStyle = hasT ? "#082f49" : "#0f172a"
+                        ctx.beginPath(); ctx.arc(sx, sy, slotR, 0, Math.PI * 2); ctx.fill(); ctx.stroke()
+                        ctx.setLineDash([])
+                        ctx.fillStyle = "#64748b"
+                        ctx.font = "10px sans-serif"
+                        ctx.textAlign = "center"
+                        ctx.fillText(String(s + 1), sx, sy - slotR - 4)
+                        if (hasT) {
+                            var dR = Math.max(3, slotR * 0.4)
+                            ctx.fillStyle = "#38bdf8"
+                            ctx.beginPath(); ctx.arc(sx, sy, dR, 0, Math.PI * 2); ctx.fill()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    FileDialog {
+        id: atcSaveDialog
+        title: suiteBackend.uiText("BTN_SAVE_CONFIG")
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["JSON (*.json)"]
+        onAccepted: suiteBackend.saveAtcConfig(selectedFile.toString())
+    }
+    FileDialog {
+        id: atcLoadDialog
+        title: suiteBackend.uiText("BTN_LOAD_CONFIG")
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["JSON (*.json)"]
+        onAccepted: suiteBackend.loadAtcConfig(selectedFile.toString())
+    }
+
+    Component {
+        id: atcComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 12
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_ATC"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.atcConfigured; onClicked: suiteBackend.resetAtc() }
+                Button { text: suiteBackend.uiText("BTN_LOAD_CONFIG"); enabled: suiteBackend.atcHasRobot; onClicked: atcLoadDialog.open() }
+                Button { text: suiteBackend.uiText("BTN_SAVE_CONFIG"); enabled: suiteBackend.atcHasRobot && suiteBackend.atcConfigured; onClicked: atcSaveDialog.open() }
+                ComboBox {
+                    id: atcRobotCombo
+                    Layout.preferredWidth: 190
+                    model: suiteBackend.atcRobotOptions
+                    textRole: "label"
+                    valueRole: "id"
+                    Component.onCompleted: currentIndex = indexOfValue(suiteBackend.atcSelectedRobotId)
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() {
+                            var idx = atcRobotCombo.indexOfValue(suiteBackend.atcSelectedRobotId)
+                            if (idx !== atcRobotCombo.currentIndex) atcRobotCombo.currentIndex = idx
+                        }
+                    }
+                    onActivated: suiteBackend.selectAtcRobot(currentValue)
+                }
+            }
+
+            Text { text: suiteBackend.atcLoadError; color: "#ee6b80"; font.pixelSize: 10; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+
+            ColumnLayout {
+                visible: !suiteBackend.atcConfigured
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 40
+                spacing: 8
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_ASSIGNED").replace("{machine}", "ATC"); color: window.textPrimary; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+                Text { text: suiteBackend.uiText("LBL_ATC_EMPTY_DESC"); color: window.muted; wrapMode: Text.WordWrap; Layout.preferredWidth: 320; horizontalAlignment: Text.AlignHCenter }
+                Button { text: suiteBackend.uiText("BTN_ENABLE_MODULE").replace("{machine}", "ATC"); enabled: suiteBackend.atcHasRobot; onClicked: suiteBackend.enableAtc(); Layout.alignment: Qt.AlignHCenter }
+            }
+
+            RowLayout {
+                visible: suiteBackend.atcConfigured
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 10
+
+                Flickable {
+                    Layout.preferredWidth: contentLoader.width * 0.55
+                    Layout.fillHeight: true
+                    contentWidth: width
+                    contentHeight: atcLeftColumn.implicitHeight
+                    clip: true
+                    ColumnLayout {
+                        id: atcLeftColumn
+                        width: parent.width
+                        spacing: 10
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Item { Layout.fillWidth: true }
+                            Button {
+                                id: atcRemoveButton
+                                text: suiteBackend.uiText("BTN_REMOVE_MODULE")
+                                contentItem: Text { text: atcRemoveButton.text; color: "#f43f5e" }
+                                onClicked: suiteBackend.disableAtc()
+                            }
+                        }
+
+                        RowLayout {
+                            spacing: 6
+                            Repeater {
+                                model: suiteBackend.atcTypeOptions
+                                delegate: Button {
+                                    required property var modelData
+                                    text: suiteBackend.uiText(modelData.labelKey)
+                                    checkable: true
+                                    checked: suiteBackend.atcType === modelData.key
+                                    onClicked: suiteBackend.setAtcType(modelData.key)
+                                }
+                            }
+                        }
+
+                        Card {
+                            visible: suiteBackend.atcIsPanel
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 70
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 4
+                                Text { text: suiteBackend.uiText("LBL_PANEL_GRID_LAYOUT"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                                ComboBox {
+                                    Layout.preferredWidth: 120
+                                    model: suiteBackend.atcPanelGridOptions
+                                    currentIndex: suiteBackend.atcPanelGridOptions.indexOf(suiteBackend.atcPanelGrid)
+                                    onActivated: suiteBackend.setAtcPanelGrid(currentText)
+                                }
+                            }
+                        }
+
+                        Card {
+                            visible: !suiteBackend.atcIsPanel
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: atcRevolverColumn.implicitHeight + 20
+                            ColumnLayout {
+                                id: atcRevolverColumn
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 6
+                                Text { text: suiteBackend.uiText("LBL_REVOLVER_CAPACITY"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                                SpinBox { from: 1; to: 16; value: suiteBackend.atcRevolverSlots; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setAtcRevolverSlots(value) }
+                                RowLayout {
+                                    Text { text: suiteBackend.uiText("LBL_BASE_PICKUP_POS"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+                                    Button { text: suiteBackend.uiText("BTN_EDIT_POS"); checkable: true; checked: suiteBackend.atcBaseEditing; onClicked: suiteBackend.toggleAtcBasePos() }
+                                }
+                                AtcPosFields { visible: suiteBackend.atcBaseEditing; fields: suiteBackend.atcBasePos; slotKey: "revolver" }
+                            }
+                        }
+
+                        Text { text: suiteBackend.uiText("LBL_TOOL_ASSIGNMENTS"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Repeater {
+                            model: suiteBackend.atcSlotsData
+                            delegate: Card {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: atcSlotColumn.implicitHeight + 16
+                                ColumnLayout {
+                                    id: atcSlotColumn
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 4
+                                    RowLayout {
+                                        Text { text: modelData.slot + 1; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 20 }
+                                        ComboBox {
+                                            Layout.fillWidth: true
+                                            model: suiteBackend.atcToolOptions
+                                            currentIndex: modelData.toolIndex
+                                            onActivated: suiteBackend.setAtcTool(modelData.slot, currentText)
+                                        }
+                                        Button {
+                                            visible: modelData.showPosButton
+                                            text: suiteBackend.uiText("BTN_EDIT_POS")
+                                            checkable: true
+                                            checked: modelData.editing
+                                            onClicked: suiteBackend.toggleAtcSlotPos(modelData.slot)
+                                        }
+                                    }
+                                    AtcPosFields { visible: modelData.editing; fields: modelData.pos; slotKey: String(modelData.slot) }
+                                }
+                            }
+                        }
+                        Item { Layout.preferredHeight: 12 }
+                    }
+                }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Loader {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        sourceComponent: atcGraphicsComponent
+                    }
+                }
             }
         }
     }

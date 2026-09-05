@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import sys
+import tempfile
 
 import qasync
 from PySide6.QtGui import QGuiApplication
@@ -21,6 +23,7 @@ from hydra_suite.app import SuiteController
 from hydra_suite.models import RACK_MAX_CAPACITY, HydraState
 from hydra_suite.ui.nav_sidebar import ALL_DOCK_KEYS
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
+from hydra_suite.ui.panels.atc_tools_panel import URTC_TOOLS
 from qt_suite import MIGRATED_PANELS, SuiteQtBridge
 
 
@@ -54,9 +57,9 @@ def _run() -> None:
     # --- navigation ---
     assert bridge.activePanel == "overview"
     assert bridge.activePanelMigrated is True
-    bridge.navigatePanel("atc")
-    assert bridge.activePanel == "atc"
-    assert bridge.activePanelMigrated is False, "atc is not in MIGRATED_PANELS yet"
+    bridge.navigatePanel("cameras")
+    assert bridge.activePanel == "cameras"
+    assert bridge.activePanelMigrated is False, "cameras is not in MIGRATED_PANELS yet"
     bridge.navigatePanel("logs")
     assert bridge.activePanelMigrated is True
 
@@ -610,6 +613,87 @@ def _run() -> None:
     # but its own Reset writes 100mm, a genuinely different number.
     assert bridge.moduleWidth == 100 and bridge.moduleLength == 100, "VacuumTable's own real reset-vs-display mismatch"
     assert bridge.modulePumpOn is False and bridge.moduleValveOn is False, "Reset also clears the extra pump/valve state"
+
+    # --- ATC Tools: NOT built on the generic Module Config shape (real,
+    # fundamentally different shape - None vs a full ATCConfig, no
+    # separate enabled flag, 3 layout modes) - own real robot selection,
+    # real type/grid/revolver mutation, real per-slot AND base-pickup
+    # position editing, real JSON round-trip validation ---
+    bridge.navigatePanel("atc")
+    assert bridge.atcSelectedRobotId == "x1"
+    assert bridge.atcConfigured is False
+    assert bridge.atcSlotsData == [], "no ATC config yet - _default_atc_config() is a DISPLAY-only fallback, never written until Enable"
+    bridge.enableAtc()
+    assert bridge.atcConfigured is True
+    assert bridge.atcType == "vertical_panel" and bridge.atcIsPanel is True
+    assert bridge.atcPanelGrid == "2x2"
+    assert len(bridge.atcSlotsData) == 4, "2x2 grid = 4 real slots"
+    assert all(s["tool"] == "None" for s in bridge.atcSlotsData)
+
+    bridge.setAtcTool(1, "Drill (BL4260)")
+    slots = {s["slot"]: s for s in bridge.atcSlotsData}
+    assert slots[1]["tool"] == "Drill (BL4260)" and slots[1]["toolIndex"] == URTC_TOOLS.index("Drill (BL4260)")
+    assert slots[0]["tool"] == "None", "only the touched slot changed"
+
+    bridge.toggleAtcSlotPos(1)
+    slots = {s["slot"]: s for s in bridge.atcSlotsData}
+    assert slots[1]["editing"] is True and len(slots[1]["pos"]) == 6, "6 joint fields, no table fields - this robot has no XY table"
+    bridge.setAtcPosField("1", "j2", 45.0)
+    slots = {s["slot"]: s for s in bridge.atcSlotsData}
+    pos_j2 = next(f for f in slots[1]["pos"] if f["field"] == "j2")
+    assert pos_j2["value"] == 45.0
+    bridge.toggleAtcSlotPos(1)
+    assert {s["slot"]: s for s in bridge.atcSlotsData}[1]["editing"] is False
+
+    bridge.setAtcPanelGrid("3x3")
+    assert bridge.atcPanelGrid == "3x3" and len(bridge.atcSlotsData) == 9
+    assert all(s["tool"] == "None" for s in bridge.atcSlotsData), "changing the grid clears all tool assignments, matching _on_grid_changed()'s own real behavior"
+
+    bridge.setAtcType("revolver")
+    assert bridge.atcIsPanel is False
+    assert bridge.atcRevolverSlots == 8
+    assert len(bridge.atcSlotsData) == 8
+    assert all(not s["showPosButton"] for s in bridge.atcSlotsData), "no per-slot position editor in revolver mode"
+    bridge.setAtcRevolverSlots(5)
+    assert bridge.atcRevolverSlots == 5 and len(bridge.atcSlotsData) == 5
+
+    assert bridge.atcBaseEditing is False
+    bridge.toggleAtcBasePos()
+    assert bridge.atcBaseEditing is True
+    bridge.setAtcPosField("revolver", "j1", -90.0)
+    base_j1 = next(f for f in bridge.atcBasePos if f["field"] == "j1")
+    assert base_j1["value"] == -90.0
+
+    bridge.resetAtc()
+    assert bridge.atcType == "vertical_panel" and bridge.atcPanelGrid == "2x2", "Reset writes the same real _default_atc_config() Enable does"
+    assert bridge.atcConfigured is True
+
+    bridge.disableAtc()
+    assert bridge.atcConfigured is False
+    assert bridge.atcSlotsData == []
+
+    # A real, honest JSON round-trip: save what Enable wrote, then load it
+    # back on a config Reset already diverged from, confirming the file
+    # (not just in-memory state) round-trips correctly.
+    bridge.enableAtc()
+    bridge.setAtcTool(0, "Vacuum / Pneumatic Gripper")
+    atc_tmp_path = tempfile.mktemp(suffix=".json")
+    bridge.saveAtcConfig(atc_tmp_path)
+    bridge.setAtcType("revolver")
+    assert bridge.atcType == "revolver"
+    bridge.loadAtcConfig(atc_tmp_path)
+    assert bridge.atcLoadError == ""
+    assert bridge.atcType == "vertical_panel", "real file round-trip restored the saved type"
+    assert {s["slot"]: s for s in bridge.atcSlotsData}[0]["tool"] == "Vacuum / Pneumatic Gripper"
+    os.remove(atc_tmp_path)
+
+    # Real, honest validation - matches _on_load_config()'s own QMessageBox.warning()
+    bad_path = tempfile.mktemp(suffix=".json")
+    with open(bad_path, "w", encoding="utf-8") as f:
+        f.write('{"no_type_field": true}')
+    bridge.loadAtcConfig(bad_path)
+    assert bridge.atcLoadError != "", "a config missing the required type key must be rejected, not silently accepted"
+    os.remove(bad_path)
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({
