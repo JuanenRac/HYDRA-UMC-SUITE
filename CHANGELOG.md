@@ -174,6 +174,28 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     (90px) mistake Pick and Place already found and fixed - a real value
     of 45 rendered as "5". Widened to 150px; confirmed fixed with a
     second screenshot, in both panel and revolver mode.
+  - **Cameras** - the real MJPEG-fed camera grid, matching
+    `cameras_panel.py`'s own `CamerasPanel`/`CameraCard` in full: real
+    per-camera metadata (source type, IP/USB config, robot assignment),
+    real USB/RTSP discovery and PTZ against `HYDRA-UMC-SERVER`'s own
+    endpoints, and - genuinely new for this shell - a real LIVE video
+    feed per camera, not a placeholder. A new `CameraFrameProvider`
+    (`QQuickImageProvider`) feeds each real decoded MJPEG frame into QML
+    as `image://cameraFrames/<id>/<frameVersion>`, refreshed by the same
+    real reconnect-with-backoff stream loop the classic panel's own
+    `CameraCard._run_stream()` already uses (`iter_mjpeg_frames()`,
+    imported, never duplicated - that function already has its own real
+    test, `verify_mjpeg_stream.py`). The live feed and the 3s status
+    poll deliberately fire their own dedicated `_camerasChanged` signal
+    rather than the shared one every other Property here listens on -
+    otherwise a live video feed would force every other panel's own
+    bindings to re-evaluate several times a second. A real, honestly-
+    scoped limitation: that isolation only covers this panel's own two
+    background sources - any OTHER panel's own poll still shares the
+    general signal camera *config* edits still listen on, so a
+    background update elsewhere could in principle still land while a
+    user is mid-edit in a camera's own text field; fully isolating every
+    timer in this app is real, separate future work, not done here.
 
 ## [0.3.9]
 

@@ -43,6 +43,7 @@ def _run() -> None:
     # explicit loop.run_until_complete() call below.
     bridge._admin_clients_timer.stop()
     bridge._admin_logs_timer.stop()
+    bridge._camera_status_timer.stop()
 
     # --- nav taxonomy real parity with nav_sidebar.py's own real dock keys ---
     all_keys = set()
@@ -57,9 +58,9 @@ def _run() -> None:
     # --- navigation ---
     assert bridge.activePanel == "overview"
     assert bridge.activePanelMigrated is True
-    bridge.navigatePanel("cameras")
-    assert bridge.activePanel == "cameras"
-    assert bridge.activePanelMigrated is False, "cameras is not in MIGRATED_PANELS yet"
+    bridge.navigatePanel("viewport")
+    assert bridge.activePanel == "viewport"
+    assert bridge.activePanelMigrated is False, "viewport is not in MIGRATED_PANELS yet"
     bridge.navigatePanel("logs")
     assert bridge.activePanelMigrated is True
 
@@ -694,6 +695,97 @@ def _run() -> None:
     bridge.loadAtcConfig(bad_path)
     assert bridge.atcLoadError != "", "a config missing the required type key must be rejected, not silently accepted"
     os.remove(bad_path)
+
+    # --- Cameras: real metadata + type/source/robot mutation, real
+    # discovery/PTZ/status wiring against a real HydraConnection (only
+    # the network transport is stubbed - iter_mjpeg_frames() itself has
+    # its own dedicated real test, verify_mjpeg_stream.py) ---
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    cam_conn_id = bridge.serverRows[0]["connId"]
+    cam_conn = controller.connections[cam_conn_id]
+    cam_conn.state = HydraState({
+        "activeControllerId": "c1",
+        "controllers": [{
+            "id": "c1",
+            "robots": [{"id": 5, "model": "AR3", "role": "Idle"}],
+            "cameras": [
+                {"id": 1, "connected": False, "type": "USB Vision Camera", "sourceType": "usb"},
+                {"id": 2, "connected": False, "type": "IP Vision Camera Main Stream", "sourceType": "ip",
+                 "ipHost": "192.168.0.211", "rtspPort": 554, "rtspPath": "/11", "discoveredStreamPaths": ["/11", "/12"]},
+            ],
+        }],
+    })
+    cameras = {c["id"]: c for c in bridge.camerasData}
+    assert set(cameras) == {1, 2}
+    assert cameras[1]["sourceType"] == "usb" and cameras[1]["isIp"] is False
+    assert cameras[2]["isIp"] is True and cameras[2]["typeOptions"][:2] == ["IP Vision Camera Main Stream", "IP Vision Camera Sub Stream"], "real 2-path ip_stream_labels()"
+    assert cameras[2]["extraPaths"] == [{"label": "IP Vision Camera Sub Stream", "value": "/12", "index": 1}]
+    robot_opts = {r["id"]: r["label"] for r in bridge.cameraRobotOptions}
+    assert robot_opts[""] != "" and "5" in robot_opts, "the real None/Floating option plus every real robot"
+
+    bridge.setCameraAssignedRobot(1, "5")
+    assert {c["id"]: c for c in bridge.camerasData}[1]["assignedRobotId"] == "5"
+    bridge.setCameraField(1, "hardware_source", "/dev/video2")
+    assert {c["id"]: c for c in bridge.camerasData}[1]["hardwareSource"] == "/dev/video2"
+    bridge.setCameraType(2, "IP Vision Camera Sub Stream")
+    cam2 = {c["id"]: c for c in bridge.camerasData}[2]
+    assert cam2["cameraType"] == "IP Vision Camera Sub Stream"
+    assert cam2["rtspPath"] == "/12", "real re-point per _on_type_combo_changed()'s own behavior - picking Sub Stream re-points rtsp_path at its own real discovered path"
+    bridge.setCameraExtraPath(2, 1, "/13")
+    cam2 = {c["id"]: c for c in bridge.camerasData}[2]
+    assert cam2["extraPaths"][0]["value"] == "/13" and cam2["rtspPath"] == "/13", "editing the ACTIVE stream's own extra path field must also update rtsp_path itself"
+    bridge.setCameraSourceType(1, "ip")
+    cam1 = {c["id"]: c for c in bridge.camerasData}[1]
+    assert cam1["sourceType"] == "ip" and cam1["cameraType"] == "IP Vision Camera Main Stream", "auto-normalized off the stale USB type on a source-type toggle"
+
+    # Real discovery/status/PTZ - only the network transport stubbed.
+    async def _fake_discover_usb():
+        return 200, {"devices": [{"index": 0, "available": True, "width": 640, "height": 480}]}
+
+    async def _fake_discover_rtsp(host, port, username, password):
+        return 200, {"ok": True, "paths": ["/21", "/22"], "triedPaths": ["/21", "/22"]}
+
+    async def _fake_camera_status():
+        return 200, {"c1:1": {"status": "running", "lastError": None}, "c1:2": {"status": "error", "lastError": "connection refused"}}
+
+    ptz_calls = []
+
+    async def _fake_send_ptz(camera_id, host, username, password, pan, tilt, zoom):
+        ptz_calls.append((camera_id, host, username, password, pan, tilt, zoom))
+        return 200, {"ok": True}
+
+    cam_conn.discover_usb_devices = _fake_discover_usb
+    cam_conn.discover_rtsp_path = _fake_discover_rtsp
+    cam_conn.fetch_camera_status = _fake_camera_status
+    cam_conn.send_ptz = _fake_send_ptz
+
+    loop.run_until_complete(bridge._run_discover_usb(1, cam_conn))
+    assert {c["id"]: c for c in bridge.camerasData}[1]["usbDevices"] == [{"label": "/dev/video0 (640x480)", "value": 0}]
+    bridge.pickUsbDevice(1, 0)
+    assert {c["id"]: c for c in bridge.camerasData}[1]["hardwareSource"] == ("0" if sys.platform == "win32" else "/dev/video0")
+
+    loop.run_until_complete(bridge._run_discover_rtsp(2, cam_conn, "192.168.0.211", 554, "admin", "admin123456"))
+    cam2 = {c["id"]: c for c in bridge.camerasData}[2]
+    assert cam2["rtspPath"] == "/21" and cam2["cameraType"] == "IP Vision Camera Main Stream", "a fresh discovery resets to real Main"
+
+    loop.run_until_complete(bridge._poll_camera_status())
+    frames = {f["id"]: f for f in bridge.cameraFrameVersions}
+    assert frames[1]["statusText"] != "" and frames[2]["statusColor"] == "#ef4444", "real per-camera status badge, error state included"
+
+    cam2_model = cam_conn.state.active_controller.cameras[1]
+    cam2_model.set_ip_host("192.168.0.211")
+    loop.run_until_complete(bridge._run_ptz(2, 60, 0, 0))
+    assert ptz_calls == [(2, "192.168.0.211", "", "", 60, 0, 0)], "PTZ must forward THIS camera's own real host/credentials"
+    assert {c["id"]: c for c in bridge.camerasData}[2]["ptzError"] == ""
+
+    async def _fake_send_ptz_fail(camera_id, host, username, password, pan, tilt, zoom):
+        return 200, {"ok": False, "error": "no motorized PTZ hardware"}
+
+    cam_conn.send_ptz = _fake_send_ptz_fail
+    loop.run_until_complete(bridge._run_ptz(2, 0, 60, 0))
+    assert {c["id"]: c for c in bridge.camerasData}[2]["ptzError"] == "no motorized PTZ hardware"
+
+    bridge.removeServer(cam_conn_id)
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

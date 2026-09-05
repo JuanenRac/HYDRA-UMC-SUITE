@@ -50,21 +50,34 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import qasync
-from PySide6.QtCore import Property, QDateTime, QObject, QTimer, QUrl, Signal, Slot
-from PySide6.QtGui import QGuiApplication, QIcon
+from PySide6.QtCore import Property, QDateTime, QObject, QSize, QTimer, QUrl, Signal, Slot
+from PySide6.QtGui import QGuiApplication, QIcon, QImage
 from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from hydra_suite import __version__, logging_handler
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import JOINT_NAMES, RACK_MAX_CAPACITY, ControllerView, HydraState, RobotView, ServerInfo, default_rack_system
+from hydra_suite.models import (
+    CAMERA_TYPES,
+    JOINT_NAMES,
+    RACK_MAX_CAPACITY,
+    RTSP_DEFAULT_PORT,
+    CameraView,
+    ControllerView,
+    HydraState,
+    RobotView,
+    ServerInfo,
+    default_rack_system,
+    ip_stream_labels,
+)
+from hydra_suite.net.client import HydraConnection
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
 from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
 from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
-from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.atc_tools_panel import (
     JOINT_FIELDS as _ATC_JOINT_FIELDS,
     JOINT_RANGE_DEG as _ATC_JOINT_RANGE_DEG,
@@ -75,6 +88,14 @@ from hydra_suite.ui.panels.atc_tools_panel import (
     _default_atc_config,
     _default_pos,
 )
+from hydra_suite.ui.panels.cameras_panel import (
+    GRID_COLUMNS as _CAM_GRID_COLUMNS,
+    _STATUS_COLORS as _CAM_STATUS_COLORS,
+    _THERMAL_TYPE_OPTIONS as _CAM_THERMAL_TYPE_OPTIONS,
+    _USB_TYPE_OPTIONS as _CAM_USB_TYPE_OPTIONS,
+    iter_mjpeg_frames,
+)
+from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
 from hydra_suite.ui.panels.heated_bed_panel import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
 from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
@@ -111,7 +132,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras"})
 _ATC_TYPE_KEYS: tuple[str, ...] = ("vertical_panel", "horizontal_panel", "revolver")
 
 # Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
@@ -164,6 +185,38 @@ class _LogEntry:
     message: str
 
 
+class CameraFrameProvider(QQuickImageProvider):
+    """Feeds the Cameras panel's own real MJPEG frames into QML - a
+    `QImage` per camera id, refreshed by SuiteQtBridge's own real
+    `_run_camera_stream()` task every time `iter_mjpeg_frames()` yields a
+    new real frame (cameras_panel.py's own function, imported directly,
+    never duplicated). QML re-fetches on every frame by requesting
+    `image://cameraFrames/<id>/<frameVersion>` - a changing suffix per
+    frame, since QQuickImageProvider results are otherwise cached by
+    their own request id and would never refresh a live feed."""
+
+    def __init__(self) -> None:
+        super().__init__(QQuickImageProvider.ImageType.Image)
+        self._frames: dict[str, QImage] = {}
+
+    def set_frame(self, camera_id: int, image: QImage) -> None:
+        self._frames[str(camera_id)] = image
+
+    def clear_frame(self, camera_id: int) -> None:
+        self._frames.pop(str(camera_id), None)
+
+    def requestImage(self, id: str, size: QSize, requestedSize: QSize) -> QImage:  # noqa: N802 - Qt override signature
+        camera_id = id.split("/", 1)[0]
+        image = self._frames.get(camera_id)
+        if image is None:
+            image = QImage(1, 1, QImage.Format.Format_RGB32)
+            image.fill(0x0A0F14)
+        if size is not None:
+            size.setWidth(image.width())
+            size.setHeight(image.height())
+        return image
+
+
 class SuiteQtBridge(QObject):
     """Thin, UI-only bridge - real domain state stays on SuiteController
     (exposed to QML separately, unchanged, as context property
@@ -176,10 +229,16 @@ class SuiteQtBridge(QObject):
     changed = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
+    # Own dedicated signal (not the shared `changed` above) - a live MJPEG
+    # feed can update several times a SECOND per camera, and `changed` is
+    # read by dozens of unrelated Properties across every other panel;
+    # firing it that often would re-evaluate all of them for no reason.
+    _camerasChanged = Signal()
 
-    def __init__(self, controller: SuiteController) -> None:
+    def __init__(self, controller: SuiteController, frame_provider: "CameraFrameProvider | None" = None) -> None:
         super().__init__()
         self._controller = controller
+        self._frame_provider = frame_provider
         self._active_key = "overview"
         self._connection_status = "disconnected"
 
@@ -404,6 +463,32 @@ class SuiteQtBridge(QObject):
         self._atc_editing_slot: int | str | None = None
         self._atc_load_error: str = ""
         controller.active_state_changed.connect(self._on_atc_state_changed)
+
+        # -- Cameras (ported from cameras_panel.py's own CamerasPanel/
+        # CameraCard - CAMERA_TYPES/RTSP_DEFAULT_PORT/ip_stream_labels/
+        # iter_mjpeg_frames/_USB_TYPE_OPTIONS/_THERMAL_TYPE_OPTIONS/
+        # _STATUS_COLORS/GRID_COLUMNS imported directly from there, never
+        # duplicated). The real live MJPEG feed reaches QML via
+        # CameraFrameProvider above, injected here as `frame_provider` -
+        # None in this offline/test context, every frame-touching method
+        # below already no-ops safely on that. Uses its own dedicated
+        # `_camerasChanged` signal (not `changed`) for the fast-moving
+        # per-frame bits, so a live video feed never forces every OTHER
+        # panel's own Property bindings to re-evaluate several times a
+        # second - see that signal's own declaration for why. --
+        self._camera_stream_tasks: dict[int, asyncio.Task] = {}
+        self._camera_discovery_tasks: dict[int, asyncio.Task] = {}
+        self._camera_placeholder: dict[int, tuple[str, str]] = {}
+        self._camera_frame_versions: dict[int, int] = {}
+        self._camera_status: dict[str, dict] = {}
+        self._camera_usb_devices: dict[int, list[dict]] = {}
+        self._camera_discovery_status: dict[int, tuple[str, str]] = {}
+        self._camera_ptz_error: dict[int, str] = {}
+        controller.active_state_changed.connect(self._on_cameras_state_changed)
+        self._camera_status_timer = QTimer(self)
+        self._camera_status_timer.setInterval(3000)
+        self._camera_status_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
+        self._camera_status_timer.start()
 
     # -- navigation --------------------------------------------------------
 
@@ -2626,6 +2711,423 @@ class SuiteQtBridge(QObject):
         self._atc_editing_slot = None
         self._atc_update(data)
 
+    # -- Cameras ---------------------------------------------------------
+
+    def _current_camera(self, camera_id: int) -> CameraView | None:
+        state = self._controller.active_state
+        active = state.active_controller if state else None
+        if active is None:
+            return None
+        for cam in active.cameras:
+            if cam.id == camera_id:
+                return cam
+        return None
+
+    def _on_cameras_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        cameras = active.cameras if active is not None else []
+        seen_ids = {c.id for c in cameras}
+        for stale_id in set(self._camera_stream_tasks) - seen_ids:
+            self._stop_camera_stream(stale_id)
+        for camera in cameras:
+            if camera.connected:
+                self._ensure_camera_stream(camera.id)
+            else:
+                self._stop_camera_stream(camera.id)
+        self.changed.emit()
+
+    def _camera_stream_url(self, camera_id: int) -> str | None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return None
+        return f"{conn.info.base_url}/api/camera/{camera_id}/stream"
+
+    def _ensure_camera_stream(self, camera_id: int) -> None:
+        task = self._camera_stream_tasks.get(camera_id)
+        if task is not None and not task.done():
+            return  # already streaming - _on_cameras_state_changed runs on
+            # every state broadcast, not just real changes, matching
+            # CameraCard._start_stream()'s own real no-op guard.
+        url = self._camera_stream_url(camera_id)
+        if not url:
+            self._camera_placeholder[camera_id] = (_("STATUS_LIVE"), "#10b981")
+            return
+        self._camera_stream_tasks[camera_id] = asyncio.ensure_future(self._run_camera_stream(camera_id, url))
+
+    def _stop_camera_stream(self, camera_id: int) -> None:
+        task = self._camera_stream_tasks.pop(camera_id, None)
+        if task is not None:
+            task.cancel()
+        self._camera_frame_versions.pop(camera_id, None)
+        self._camera_placeholder.pop(camera_id, None)
+        if self._frame_provider is not None:
+            self._frame_provider.clear_frame(camera_id)
+
+    async def _run_camera_stream(self, camera_id: int, url: str) -> None:
+        """Matches CameraCard._run_stream() exactly - a real reconnect
+        loop (capped exponential backoff, reset the instant a real frame
+        arrives again), not a one-shot, for the same real reason that
+        file's own header documents (the server's own camera-process
+        supervisor can take up to ~30s to respawn a hung capture)."""
+        self._camera_placeholder[camera_id] = (_("LBL_CONNECTING_STREAM"), "#38bdf8")
+        self._camerasChanged.emit()
+        attempt = 0
+        try:
+            while True:
+                got_a_frame = False
+                async for frame in iter_mjpeg_frames(url):
+                    if not got_a_frame:
+                        got_a_frame = True
+                        attempt = 0
+                    image = QImage()
+                    if image.loadFromData(frame, "JPG"):
+                        if self._frame_provider is not None:
+                            self._frame_provider.set_frame(camera_id, image)
+                        self._camera_frame_versions[camera_id] = self._camera_frame_versions.get(camera_id, 0) + 1
+                        self._camera_placeholder.pop(camera_id, None)
+                        self._camerasChanged.emit()
+                self._camera_placeholder[camera_id] = (_("STATUS_NO_SIGNAL"), "#4a5563")
+                self._camerasChanged.emit()
+                attempt += 1
+                await asyncio.sleep(min(1.5 * attempt, 15.0))
+        except asyncio.CancelledError:
+            return
+
+    def _camera_status_display(self, status: dict | None) -> tuple[str, str]:
+        if not status:
+            return "", ""
+        state = str(status.get("status", ""))
+        color = _CAM_STATUS_COLORS.get(state, "#8a97a6")
+        label_keys = {"running": "STATUS_STREAM_RUNNING", "starting": "STATUS_STREAM_STARTING", "error": "STATUS_STREAM_ERROR", "stopped": "STATUS_STREAM_STOPPED"}
+        label = _(label_keys[state]) if state in label_keys else state.upper()
+        return f"● {label}", color
+
+    @Property("QVariantList", notify=changed)
+    def cameraRobotOptions(self) -> list[dict[str, str]]:
+        state = self._controller.active_state
+        active = state.active_controller if state else None
+        robots = active.robots if active is not None else []
+        options = [{"id": "", "label": _("OPT_NONE_FLOATING")}]
+        options += [{"id": str(r.id), "label": f"{r.model} (A{r.id})"} for r in robots]
+        return options
+
+    @Property("QVariantList", notify=changed)
+    def camerasData(self) -> list[dict[str, object]]:
+        state = self._controller.active_state
+        active = state.active_controller if state else None
+        cameras = active.cameras if active is not None else []
+        result = []
+        for camera in cameras:
+            is_ip = camera.source_type == "ip"
+            type_options = list((ip_stream_labels(camera.discovered_stream_paths) if is_ip else _CAM_USB_TYPE_OPTIONS) + _CAM_THERMAL_TYPE_OPTIONS)
+            type_index = type_options.index(camera.camera_type) if camera.camera_type in type_options else 0
+            paths = camera.discovered_stream_paths
+            labels = ip_stream_labels(paths)
+            extra_paths = [
+                {"label": labels[i] if i < len(labels) else f"{_('LBL_RTSP_PATH')} {i + 1}", "value": paths[i], "index": i}
+                for i in range(1, min(len(paths), 4))
+            ]
+            disc_text, disc_color = self._camera_discovery_status.get(camera.id, ("", "#8a97a6"))
+            result.append({
+                "id": camera.id,
+                "connected": camera.connected,
+                "sourceType": camera.source_type,
+                "isIp": is_ip,
+                "cameraType": camera.camera_type,
+                "typeOptions": type_options,
+                "typeIndex": type_index,
+                "assignedRobotId": str(camera.assigned_robot_id) if camera.assigned_robot_id is not None else "",
+                "hardwareSource": camera.hardware_source,
+                "ipHost": camera.ip_host,
+                "rtspPort": camera.rtsp_port,
+                "rtspPath": camera.rtsp_path,
+                "extraPaths": extra_paths,
+                "ipUsername": camera.ip_username,
+                "ipPassword": camera.ip_password,
+                "usbDevices": self._camera_usb_devices.get(camera.id, []),
+                "discoveryStatusText": disc_text,
+                "discoveryStatusColor": disc_color,
+                "ptzError": self._camera_ptz_error.get(camera.id, ""),
+            })
+        return result
+
+    @Property("QVariantList", notify=_camerasChanged)
+    def cameraFrameVersions(self) -> list[dict[str, object]]:
+        """Deliberately separate from camerasData above (own dedicated
+        `_camerasChanged` notify, not `changed`) - this is the one
+        Property that both the real 3s status poll AND every real video
+        frame touch, so it's the one place a background update could hit
+        while a user is mid-edit in some OTHER camera's own text field.
+        Isolating the fast-moving bits here means neither the status poll
+        nor a live frame ever forces camerasData's own Repeater to tear
+        down and rebuild every card - only a real config/state change
+        does that. A real, honestly-scoped limitation still applies: any
+        OTHER panel's own background poll still shares the general
+        `changed` signal camerasData listens on too (see this class's own
+        docstring) - fully isolating every timer in this app is real,
+        separate future work, not done here."""
+        state = self._controller.active_state
+        active = state.active_controller if state else None
+        cameras = active.cameras if active is not None else []
+        result = []
+        for camera in cameras:
+            if not camera.connected:
+                text, color = _("STATUS_NO_SIGNAL"), "#4a5563"
+            else:
+                text, color = self._camera_placeholder.get(camera.id, ("", ""))
+            status = self._camera_status.get(f"{active.id}:{camera.id}") if active is not None else None
+            status_text, status_color = self._camera_status_display(status)
+            result.append({
+                "id": camera.id,
+                "version": self._camera_frame_versions.get(camera.id, 0),
+                "placeholderText": text,
+                "placeholderColor": color,
+                "statusText": status_text,
+                "statusColor": status_color,
+            })
+        return result
+
+    @Slot(int)
+    def toggleCameraConnection(self, camera_id: int) -> None:
+        camera = self._current_camera(camera_id)
+        if camera is None:
+            return
+        camera.set_connected(not camera.connected)
+        self._controller.push_active_state()
+        if camera.connected:
+            self._ensure_camera_stream(camera_id)
+        else:
+            self._stop_camera_stream(camera_id)
+        self.changed.emit()
+        self._camerasChanged.emit()
+
+    @Slot(int, str)
+    def setCameraType(self, camera_id: int, camera_type: str) -> None:
+        camera = self._current_camera(camera_id)
+        if camera is None or camera.camera_type == camera_type:
+            return
+        if camera.source_type == "ip":
+            labels = ip_stream_labels(camera.discovered_stream_paths)
+            if camera_type in labels:
+                idx = labels.index(camera_type)
+                paths = camera.discovered_stream_paths
+                if idx < len(paths) and paths[idx] != camera.rtsp_path:
+                    camera.set_rtsp_path(paths[idx])
+                    # Real reconnect now - matches _on_type_combo_changed()'s
+                    # own reasoning: the server's own supervisor is about to
+                    # respawn the real capture process (rtsp_path is part of
+                    # its fingerprint), so the old MJPEG connection this
+                    # task holds is about to die anyway.
+                    if camera.connected:
+                        self._stop_camera_stream(camera_id)
+        camera.set_camera_type(camera_type)
+        self._controller.push_active_state()
+        if camera.connected:
+            self._ensure_camera_stream(camera_id)
+        self.changed.emit()
+
+    @Slot(int, str, "QVariant")
+    def setCameraField(self, camera_id: int, field: str, value) -> None:
+        """Generic dispatch, matching _on_field_changed()'s own real
+        getattr(camera, f"set_{field}") - never a per-field Slot, same
+        reasoning that file's own single handler already uses for every
+        plain text/number field this card has."""
+        camera = self._current_camera(camera_id)
+        if camera is None:
+            return
+        setter = getattr(camera, f"set_{field}", None)
+        if setter is None:
+            return
+        setter(value)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int, str)
+    def setCameraSourceType(self, camera_id: int, value: str) -> None:
+        camera = self._current_camera(camera_id)
+        if camera is None:
+            return
+        camera.set_source_type(value)
+        current_type = camera.camera_type
+        if current_type not in _CAM_THERMAL_TYPE_OPTIONS:
+            new_type = ip_stream_labels(camera.discovered_stream_paths)[0] if value == "ip" else _CAM_USB_TYPE_OPTIONS[0]
+            if current_type != new_type:
+                camera.set_camera_type(new_type)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int, str)
+    def setCameraAssignedRobot(self, camera_id: int, robot_id: str) -> None:
+        camera = self._current_camera(camera_id)
+        if camera is None:
+            return
+        camera.set_assigned_robot_id(int(robot_id) if robot_id else None)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int, int, str)
+    def setCameraExtraPath(self, camera_id: int, index: int, value: str) -> None:
+        """`index` is 1-based (0 is the primary rtsp_path field, already
+        handled by setCameraField) - matches _on_extra_path_edited()'s
+        own real bounds/active-index logic."""
+        camera = self._current_camera(camera_id)
+        if camera is None:
+            return
+        paths = list(camera.discovered_stream_paths)
+        if index >= len(paths) or paths[index] == value:
+            return
+        paths[index] = value
+        camera.set_discovered_stream_paths(paths)
+        labels = ip_stream_labels(paths)
+        active_index = labels.index(camera.camera_type) if camera.camera_type in labels else 0
+        if index == active_index:
+            camera.set_rtsp_path(value)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int)
+    def discoverUsbDevices(self, camera_id: int) -> None:
+        task = self._camera_discovery_tasks.get(camera_id)
+        if task is not None and not task.done():
+            return
+        conn = self._controller.active_connection
+        if conn is None:
+            self._camera_discovery_status[camera_id] = (_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
+            self.changed.emit()
+            return
+        self._camera_usb_devices[camera_id] = []
+        self._camera_discovery_status[camera_id] = (_("LBL_DISCOVERING"), "#8a97a6")
+        self.changed.emit()
+        self._camera_discovery_tasks[camera_id] = asyncio.ensure_future(self._run_discover_usb(camera_id, conn))
+
+    async def _run_discover_usb(self, camera_id: int, conn: HydraConnection) -> None:
+        result = await conn.discover_usb_devices()
+        if result is None:
+            self._camera_discovery_status[camera_id] = (_("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
+            self.changed.emit()
+            return
+        status, body = result
+        devices = body.get("devices") if status == 200 and isinstance(body, dict) else None
+        if status != 200 or not isinstance(devices, list):
+            message = body.get("error") if isinstance(body, dict) else None
+            self._camera_discovery_status[camera_id] = (str(message) if message else _("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
+            self.changed.emit()
+            return
+        if not devices:
+            self._camera_discovery_status[camera_id] = (_("MSG_NO_USB_DEVICES_FOUND"), "#f59e0b")
+            self.changed.emit()
+            return
+        options = []
+        for device in devices:
+            if not isinstance(device, dict):
+                continue
+            index = device.get("index")
+            width, height = device.get("width"), device.get("height")
+            label = f"/dev/video{index}" if index is not None else "?"
+            if width and height:
+                label += f" ({width}x{height})"
+            options.append({"label": label, "value": index})
+        self._camera_usb_devices[camera_id] = options
+        self._camera_discovery_status[camera_id] = ("", "#8a97a6")
+        self.changed.emit()
+
+    @Slot(int, int)
+    def pickUsbDevice(self, camera_id: int, index: int) -> None:
+        camera = self._current_camera(camera_id)
+        if camera is None:
+            return
+        # Windows/OpenCV opens by bare numeric index; Linux/V4L2 opens by
+        # /dev/videoN path - matches _on_usb_device_picked()'s own real
+        # platform split.
+        value = str(index) if sys.platform == "win32" else f"/dev/video{index}"
+        camera.set_hardware_source(value)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int, str, int, str, str)
+    def discoverRtspPath(self, camera_id: int, host: str, port: int, username: str, password: str) -> None:
+        task = self._camera_discovery_tasks.get(camera_id)
+        if task is not None and not task.done():
+            return
+        conn = self._controller.active_connection
+        if conn is None:
+            self._camera_discovery_status[camera_id] = (_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
+            self.changed.emit()
+            return
+        if not host.strip():
+            self._camera_discovery_status[camera_id] = (_("LBL_IP_HOST"), "#ef4444")
+            self.changed.emit()
+            return
+        self._camera_discovery_status[camera_id] = (_("LBL_DISCOVERING"), "#8a97a6")
+        self.changed.emit()
+        self._camera_discovery_tasks[camera_id] = asyncio.ensure_future(
+            self._run_discover_rtsp(camera_id, conn, host, port, username, password)
+        )
+
+    async def _run_discover_rtsp(self, camera_id: int, conn: HydraConnection, host: str, port: int, username: str, password: str) -> None:
+        result = await conn.discover_rtsp_path(host, port, username, password)
+        if result is None:
+            self._camera_discovery_status[camera_id] = (_("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
+            self.changed.emit()
+            return
+        status, body = result
+        found_paths = body.get("paths") if isinstance(body, dict) else None
+        camera = self._current_camera(camera_id)
+        if status == 200 and isinstance(body, dict) and body.get("ok") and isinstance(found_paths, list) and found_paths and camera is not None:
+            paths = [str(p) for p in found_paths]
+            camera.set_discovered_stream_paths(paths)
+            camera.set_rtsp_path(paths[0])
+            camera.set_camera_type(ip_stream_labels(paths)[0])
+            self._controller.push_active_state()
+            self._camera_discovery_status[camera_id] = (_("MSG_RTSP_PATH_FOUND") + f": {', '.join(paths)}", "#10b981")
+            self.changed.emit()
+            return
+        if status == 200 and isinstance(body, dict):
+            tried = body.get("triedPaths")
+            suffix = f" ({', '.join(str(t) for t in tried)})" if isinstance(tried, list) and tried else ""
+            self._camera_discovery_status[camera_id] = (_("MSG_RTSP_PATH_NOT_FOUND") + suffix, "#f59e0b")
+            self.changed.emit()
+            return
+        message = body.get("error") if isinstance(body, dict) else None
+        self._camera_discovery_status[camera_id] = (str(message) if message else _("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
+        self.changed.emit()
+
+    @Slot(int, int, int, int)
+    def sendCameraPtz(self, camera_id: int, pan: int, tilt: int, zoom: int) -> None:
+        asyncio.ensure_future(self._run_ptz(camera_id, pan, tilt, zoom))
+
+    async def _run_ptz(self, camera_id: int, pan: int, tilt: int, zoom: int) -> None:
+        camera = self._current_camera(camera_id)
+        conn = self._controller.active_connection
+        if camera is None or conn is None or not camera.ip_host:
+            return
+        result = await conn.send_ptz(camera_id, camera.ip_host, camera.ip_username, camera.ip_password, pan, tilt, zoom)
+        if result is None:
+            self._camera_ptz_error[camera_id] = _("MSG_PTZ_FAILED")
+            self.changed.emit()
+            return
+        status, body = result
+        if status == 200 and isinstance(body, dict) and body.get("ok") is True:
+            self._camera_ptz_error.pop(camera_id, None)
+            self.changed.emit()
+            return
+        error = body.get("error") if isinstance(body, dict) else None
+        self._camera_ptz_error[camera_id] = str(error) if error else _("MSG_PTZ_FAILED")
+        self.changed.emit()
+
+    async def _poll_camera_status(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        result = await conn.fetch_camera_status()
+        if result is None:
+            return
+        status, body = result
+        if status != 200 or not isinstance(body, dict):
+            return
+        self._camera_status = body
+        self._camerasChanged.emit()
+
     # -- Overview --------------------------------------------------------
 
     @Property(str, notify=changed)
@@ -2742,9 +3244,11 @@ def run_qtquick() -> int:
     asyncio.set_event_loop(loop)
 
     controller = SuiteController()
-    bridge = SuiteQtBridge(controller)
+    frame_provider = CameraFrameProvider()
+    bridge = SuiteQtBridge(controller, frame_provider=frame_provider)
 
     engine = QQmlApplicationEngine()
+    engine.addImageProvider("cameraFrames", frame_provider)
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))

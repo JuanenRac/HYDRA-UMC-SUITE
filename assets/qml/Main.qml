@@ -361,6 +361,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "heated_bed") return moduleConfigComponent
                     if (suiteBackend.activePanel === "vacuum_table") return moduleConfigComponent
                     if (suiteBackend.activePanel === "atc") return atcComponent
+                    if (suiteBackend.activePanel === "cameras") return camerasComponent
                     return notMigratedComponent
                 }
             }
@@ -2494,6 +2495,280 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 8
                         sourceComponent: atcGraphicsComponent
+                    }
+                }
+            }
+        }
+    }
+
+    // Real MJPEG-fed camera grid - mirrors cameras_panel.py's own
+    // CamerasPanel/CameraCard 1:1 (real metadata + live feed + PTZ +
+    // USB/RTSP discovery, not a placeholder). Each card's own live frame
+    // comes from CameraFrameProvider (qt_suite.py) via
+    // `image://cameraFrames/<id>/<frameVersion>` - see
+    // suiteBackend.cameraFrameVersions's own docstring for why that (and
+    // the status badge) is deliberately a SEPARATE, fast-refreshing
+    // property from the rest of this card's own config fields.
+    Component {
+        id: cameraCardComponent
+        Card {
+            id: camCard
+            required property var modelData
+            property var frameInfo: {
+                var list = suiteBackend.cameraFrameVersions
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].id === camCard.modelData.id) return list[i]
+                }
+                return {version: 0, placeholderText: "", placeholderColor: "#4a5563", statusText: "", statusColor: "#8a97a6"}
+            }
+            Layout.fillWidth: true
+            Layout.preferredHeight: camColumn.implicitHeight + 20
+            ColumnLayout {
+                id: camColumn
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 6
+
+                RowLayout {
+                    Text { text: suiteBackend.uiText("LBL_CAM") + " " + camCard.modelData.id; color: window.textPrimary; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                    Text { text: camCard.frameInfo.statusText; color: camCard.frameInfo.statusColor; font.pixelSize: 9; font.bold: true }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 140
+                    Image {
+                        id: videoImage
+                        anchors.fill: parent
+                        visible: camCard.frameInfo.placeholderText === "" && camCard.frameInfo.version > 0
+                        fillMode: Image.PreserveAspectFit
+                        cache: false
+                        asynchronous: true
+                        source: camCard.frameInfo.version > 0 ? ("image://cameraFrames/" + camCard.modelData.id + "/" + camCard.frameInfo.version) : ""
+                    }
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: !videoImage.visible
+                        color: "#0a0f14"
+                        border.width: 1
+                        border.color: "#1a2530"
+                        Text {
+                            anchors.centerIn: parent
+                            text: camCard.frameInfo.placeholderText
+                            color: camCard.frameInfo.placeholderColor
+                            font.bold: true
+                            font.pixelSize: 11
+                        }
+                    }
+                }
+
+                Button {
+                    id: ptzToggleBtn
+                    visible: camCard.modelData.isIp
+                    text: suiteBackend.uiText("BTN_PTZ_TOGGLE")
+                    checkable: true
+                    Layout.fillWidth: true
+                }
+                RowLayout {
+                    visible: ptzToggleBtn.checked && camCard.modelData.isIp
+                    spacing: 3
+                    Repeater {
+                        model: [
+                            {label: "◀", pan: -60, tilt: 0, zoom: 0},
+                            {label: "▲", pan: 0, tilt: 60, zoom: 0},
+                            {label: "▼", pan: 0, tilt: -60, zoom: 0},
+                            {label: "▶", pan: 60, tilt: 0, zoom: 0},
+                            {label: "+", pan: 0, tilt: 0, zoom: 60},
+                            {label: "−", pan: 0, tilt: 0, zoom: -60}
+                        ]
+                        delegate: Button {
+                            required property var modelData
+                            text: modelData.label
+                            Layout.fillWidth: true
+                            onPressed: suiteBackend.sendCameraPtz(camCard.modelData.id, modelData.pan, modelData.tilt, modelData.zoom)
+                            onReleased: suiteBackend.sendCameraPtz(camCard.modelData.id, 0, 0, 0)
+                        }
+                    }
+                }
+                Text {
+                    visible: ptzToggleBtn.checked && camCard.modelData.ptzError.length > 0
+                    text: camCard.modelData.ptzError
+                    color: "#ef4444"
+                    font.pixelSize: 8
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+
+                ComboBox {
+                    Layout.fillWidth: true
+                    model: camCard.modelData.typeOptions
+                    currentIndex: camCard.modelData.typeIndex
+                    onActivated: suiteBackend.setCameraType(camCard.modelData.id, currentText)
+                }
+
+                RowLayout {
+                    Text { text: suiteBackend.uiText("LBL_ASSIGNED_ROBOT"); color: window.muted; font.pixelSize: 9 }
+                    ComboBox {
+                        Layout.fillWidth: true
+                        model: suiteBackend.cameraRobotOptions
+                        textRole: "label"
+                        valueRole: "id"
+                        Component.onCompleted: currentIndex = indexOfValue(camCard.modelData.assignedRobotId)
+                        onActivated: suiteBackend.setCameraAssignedRobot(camCard.modelData.id, currentValue)
+                    }
+                }
+
+                RowLayout {
+                    spacing: 4
+                    Button { text: suiteBackend.uiText("BTN_SOURCE_USB"); checkable: true; checked: !camCard.modelData.isIp; Layout.fillWidth: true; onClicked: suiteBackend.setCameraSourceType(camCard.modelData.id, "usb") }
+                    Button { text: suiteBackend.uiText("BTN_SOURCE_IP"); checkable: true; checked: camCard.modelData.isIp; Layout.fillWidth: true; onClicked: suiteBackend.setCameraSourceType(camCard.modelData.id, "ip") }
+                }
+
+                ColumnLayout {
+                    visible: !camCard.modelData.isIp
+                    Layout.fillWidth: true
+                    spacing: 3
+                    Text { text: suiteBackend.uiText("LBL_HARDWARE_SOURCE"); color: window.muted; font.pixelSize: 9 }
+                    TextField {
+                        Layout.fillWidth: true
+                        text: camCard.modelData.hardwareSource
+                        placeholderText: "/dev/video0"
+                        onEditingFinished: suiteBackend.setCameraField(camCard.modelData.id, "hardware_source", text)
+                    }
+                    Button {
+                        text: suiteBackend.uiText("BTN_DISCOVER_USB")
+                        Layout.fillWidth: true
+                        onClicked: suiteBackend.discoverUsbDevices(camCard.modelData.id)
+                    }
+                    ComboBox {
+                        Layout.fillWidth: true
+                        visible: camCard.modelData.usbDevices.length > 0
+                        model: camCard.modelData.usbDevices
+                        textRole: "label"
+                        valueRole: "value"
+                        onActivated: suiteBackend.pickUsbDevice(camCard.modelData.id, currentValue)
+                    }
+                }
+
+                ColumnLayout {
+                    visible: camCard.modelData.isIp
+                    Layout.fillWidth: true
+                    spacing: 3
+                    Text { text: suiteBackend.uiText("LBL_IP_HOST"); color: window.muted; font.pixelSize: 9 }
+                    TextField {
+                        id: ipHostField
+                        Layout.fillWidth: true
+                        text: camCard.modelData.ipHost
+                        placeholderText: "192.168.0.210"
+                        onEditingFinished: suiteBackend.setCameraField(camCard.modelData.id, "ip_host", text)
+                    }
+                    RowLayout {
+                        ColumnLayout {
+                            Text { text: suiteBackend.uiText("LBL_RTSP_PORT"); color: window.muted; font.pixelSize: 9 }
+                            SpinBox {
+                                id: rtspPortSpin
+                                from: 1; to: 65535
+                                value: camCard.modelData.rtspPort
+                                editable: true
+                                Layout.preferredWidth: 130
+                                onValueModified: suiteBackend.setCameraField(camCard.modelData.id, "rtsp_port", value)
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("LBL_RTSP_PATH"); color: window.muted; font.pixelSize: 9 }
+                            TextField {
+                                Layout.fillWidth: true
+                                text: camCard.modelData.rtspPath
+                                placeholderText: "/11"
+                                onEditingFinished: suiteBackend.setCameraField(camCard.modelData.id, "rtsp_path", text)
+                            }
+                        }
+                    }
+                    Button {
+                        text: suiteBackend.uiText("BTN_DISCOVER_RTSP")
+                        Layout.fillWidth: true
+                        onClicked: suiteBackend.discoverRtspPath(camCard.modelData.id, ipHostField.text, rtspPortSpin.value, ipUserField.text, ipPassField.text)
+                    }
+                    Repeater {
+                        model: camCard.modelData.extraPaths
+                        delegate: ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            Text { text: modelData.label; color: window.muted; font.pixelSize: 9 }
+                            TextField {
+                                Layout.fillWidth: true
+                                text: modelData.value
+                                onEditingFinished: suiteBackend.setCameraExtraPath(camCard.modelData.id, modelData.index, text)
+                            }
+                        }
+                    }
+                    RowLayout {
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("LBL_IP_USERNAME"); color: window.muted; font.pixelSize: 9 }
+                            TextField {
+                                id: ipUserField
+                                Layout.fillWidth: true
+                                text: camCard.modelData.ipUsername
+                                placeholderText: "admin"
+                                onEditingFinished: suiteBackend.setCameraField(camCard.modelData.id, "ip_username", text)
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("LBL_IP_PASSWORD"); color: window.muted; font.pixelSize: 9 }
+                            TextField {
+                                id: ipPassField
+                                Layout.fillWidth: true
+                                echoMode: TextInput.Password
+                                text: camCard.modelData.ipPassword
+                                onEditingFinished: suiteBackend.setCameraField(camCard.modelData.id, "ip_password", text)
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    visible: camCard.modelData.discoveryStatusText.length > 0
+                    text: camCard.modelData.discoveryStatusText
+                    color: camCard.modelData.discoveryStatusColor
+                    font.pixelSize: 9
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: suiteBackend.uiText("BTN_TOGGLE_CONNECTION") + " (" + (camCard.modelData.connected ? suiteBackend.uiText("STATUS_CONNECTED") : suiteBackend.uiText("STATUS_DISCONNECTED")) + ")"
+                    onClicked: suiteBackend.toggleCameraConnection(camCard.modelData.id)
+                }
+            }
+        }
+    }
+
+    Component {
+        id: camerasComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            Text { text: suiteBackend.uiText("TAB_CAMERAS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Flickable {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                contentWidth: width
+                contentHeight: camGrid.implicitHeight
+                clip: true
+                GridLayout {
+                    id: camGrid
+                    width: parent.width
+                    columns: 4
+                    columnSpacing: 8
+                    rowSpacing: 8
+                    Repeater {
+                        model: suiteBackend.camerasData
+                        delegate: cameraCardComponent
                     }
                 }
             }
