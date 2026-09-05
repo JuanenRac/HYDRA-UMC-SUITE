@@ -54,9 +54,9 @@ def _run() -> None:
     # --- navigation ---
     assert bridge.activePanel == "overview"
     assert bridge.activePanelMigrated is True
-    bridge.navigatePanel("cnc")
-    assert bridge.activePanel == "cnc"
-    assert bridge.activePanelMigrated is False, "cnc is not in MIGRATED_PANELS yet"
+    bridge.navigatePanel("atc")
+    assert bridge.activePanel == "atc"
+    assert bridge.activePanelMigrated is False, "atc is not in MIGRATED_PANELS yet"
     bridge.navigatePanel("logs")
     assert bridge.activePanelMigrated is True
 
@@ -557,6 +557,59 @@ def _run() -> None:
     assert bridge.kbsPumps[9] is True
     bridge.toggleKbsValve(0)
     assert bridge.kbsValves[0] is True
+
+    # --- module config (CNC/Laser/HeatedBed/VacuumTable): one generic
+    # bridge implementation dispatches on activePanel, mirroring
+    # module_config_panel.py's own ModuleConfigPanel(module_key, ...)
+    # parameterization - real per-nav-key independent robot selection,
+    # real enable/disable/size/reset, real "extra" shapes ---
+    bridge.navigatePanel("cnc")
+    assert bridge.moduleSelectedRobotId == "x1"
+    assert bridge.moduleMachineName == "JuanenCNC"
+    assert bridge.moduleEnabled is False
+    assert bridge.moduleWidth == 500 and bridge.moduleLength == 500, "display fallback before any real module exists"
+    bridge.enableModuleConfig()
+    assert bridge.moduleEnabled is True
+    bridge.setModuleWidth(900)
+    bridge.setModuleLength(700)
+    assert bridge.moduleWidth == 900 and bridge.moduleLength == 700
+    bridge.resetModuleConfig()
+    assert bridge.moduleWidth == 500 and bridge.moduleLength == 500, "CNC resets to the same 500mm as its own display fallback"
+    assert bridge.moduleEnabled is True, "Reset force-enables, matching _on_reset()'s own real payload"
+
+    # A different nav key is a genuinely separate module block AND a
+    # genuinely separate robot selection cache, never shared with CNC's.
+    bridge.navigatePanel("laser")
+    assert bridge.moduleMachineName == "JuanenLaser"
+    assert bridge.moduleEnabled is False, "laser's own module block was never touched by the CNC section above"
+
+    bridge.navigatePanel("heated_bed")
+    assert bridge.moduleExtraKind == "heated_bed"
+    assert bridge.moduleEnabled is False
+    bridge.enableModuleConfig()
+    assert bridge.moduleTargetTemp == 60 and bridge.moduleTherm1 == "25.0 °C" and bridge.moduleTherm2 == "25.0 °C", "real extra defaults set on first Enable"
+    assert bridge.moduleSsrOn is False
+    bridge.setModuleTargetTemp(80)
+    bridge.toggleModuleSsr()
+    assert bridge.moduleTargetTemp == 80 and bridge.moduleSsrOn is True
+    bridge.resetModuleConfig()
+    assert bridge.moduleTargetTemp == 60 and bridge.moduleSsrOn is False, "Reset writes the same real extra defaults back"
+    assert bridge.moduleWidth == 500 and bridge.moduleLength == 500, "HeatedBed resets to 500mm too, same as CNC/Laser"
+
+    bridge.navigatePanel("vacuum_table")
+    assert bridge.moduleExtraKind == "vacuum_table"
+    assert bridge.moduleWidth == 500, "display fallback is 500mm - same as every other module, before Reset ever runs"
+    bridge.enableModuleConfig()
+    assert bridge.modulePumpOn is False and bridge.moduleValveOn is False
+    bridge.toggleModulePump()
+    bridge.toggleModuleValve()
+    assert bridge.modulePumpOn is True and bridge.moduleValveOn is True
+    bridge.resetModuleConfig()
+    # The real, if minor, inconsistency this panel's own header documents:
+    # VacuumTable DISPLAYS the same 500mm fallback as every other module
+    # but its own Reset writes 100mm, a genuinely different number.
+    assert bridge.moduleWidth == 100 and bridge.moduleLength == 100, "VacuumTable's own real reset-vs-display mismatch"
+    assert bridge.modulePumpOn is False and bridge.moduleValveOn is False, "Reset also clears the extra pump/valve state"
 
     # --- overview: real controller signals reach the bridge ---
     fake_state = HydraState({

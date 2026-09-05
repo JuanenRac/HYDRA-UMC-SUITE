@@ -66,8 +66,11 @@ from hydra_suite.ui.panels.admin_server_panel import _format_uptime
 from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
 from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.ui.panels.heated_bed_panel import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
 from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
+from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
 from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
+from hydra_suite.ui.panels.vacuum_table_panel import DEFAULT_RESET_SIZE_MM as _VACUUM_RESET_SIZE_MM
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
     JOG_STEPS_MM as _XY_JOG_STEPS_MM,
@@ -98,7 +101,32 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table"})
+
+# Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
+# module_config_panel.py's own ModuleConfigPanel(module_key, heading_key,
+# machine_name) parameterization exactly (see that file's own header for
+# why one implementation covers all 4 real panels instead of duplicating
+# the robot-selector/enable-disable/size/reset shape 4 times). "extra"
+# names which of the two extension shapes (if any) this nav key's own
+# classic subclass adds - heated_bed_panel.py's/vacuum_table_panel.py's
+# own _build_extra_settings()/_refresh_extra_controls()/
+# _extra_default_fields()/_extra_reset_fields() overrides, reproduced
+# generically in SuiteQtBridge's own _module_extra_defaults() below
+# rather than as 4 separate Python subclasses (QML has no notion of
+# those anyway - one shared Component with an `extra` gate does the
+# same job).
+_MODULE_CONFIGS: dict[str, dict[str, object]] = {
+    "cnc": {"module_key": "juanenCNC", "machine": "JuanenCNC", "heading": "HEADING_CNC", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
+    "laser": {"module_key": "juanenLaser", "machine": "JuanenLaser", "heading": "HEADING_LASER", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
+    "heated_bed": {"module_key": "heatedBed", "machine": "Heated Bed", "heading": "HEADING_HEATED_BED", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": "heated_bed"},
+    # VacuumTableConfig.tsx's own real, if minor, inconsistency reproduced
+    # faithfully: DISPLAYS the same 500mm fallback as the other 3 modules
+    # (DEFAULT_SIZE_MM, used by moduleWidth/moduleLength before any real
+    # size exists) but Reset actually WRITES 100mm (reset_size below) -
+    # see vacuum_table_panel.py's own header for the full reasoning.
+    "vacuum_table": {"module_key": "vacuumTable", "machine": "Vacuum Table", "heading": "HEADING_VACUUM_TABLE", "reset_size": (_VACUUM_RESET_SIZE_MM, _VACUUM_RESET_SIZE_MM), "extra": "vacuum_table"},
+}
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
 _ADMIN_LOGS_POLL_MS = 3000
@@ -337,6 +365,18 @@ class SuiteQtBridge(QObject):
         self._kbs_controller: ControllerView | None = None
         self._kbs_jog_step_mm: float = 10.0
         controller.active_state_changed.connect(self._on_kbs_state_changed)
+
+        # -- Module Config (CNC/Laser/HeatedBed/VacuumTable, generic over
+        # _MODULE_CONFIGS above). Each of the 4 nav keys keeps its own
+        # real, independent robot selection (matching module_config_panel.py's
+        # own separate QComboBox per panel instance) - one dict entry per
+        # key rather than 4 sets of named attributes. Properties/Slots
+        # below always operate on whichever key is `self._active_key`
+        # right now, since the QML Loader only ever shows one of the 4 at
+        # a time. --
+        self._module_selected_robot_id: dict[str, str | None] = {k: None for k in _MODULE_CONFIGS}
+        self._module_robots_cache: dict[str, list[RobotView]] = {k: [] for k in _MODULE_CONFIGS}
+        controller.active_state_changed.connect(self._on_module_state_changed)
 
     # -- navigation --------------------------------------------------------
 
@@ -2049,6 +2089,235 @@ class SuiteQtBridge(QObject):
     @Slot(int)
     def toggleKbsValve(self, index: int) -> None:
         self._kbs_toggle_group("valves", index)
+
+    # -- Module Config (CNC/Laser/HeatedBed/VacuumTable) --------------------
+
+    def _on_module_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+        ids = {r.id for r in robots}
+        for key in _MODULE_CONFIGS:
+            self._module_robots_cache[key] = robots
+            if self._module_selected_robot_id[key] not in ids:
+                self._module_selected_robot_id[key] = robots[0].id if robots else None
+        self.changed.emit()
+
+    def _active_module_key(self) -> str | None:
+        return self._active_key if self._active_key in _MODULE_CONFIGS else None
+
+    def _module_selected_robot(self, nav_key: str) -> RobotView | None:
+        rid = self._module_selected_robot_id.get(nav_key)
+        for r in self._module_robots_cache.get(nav_key, []):
+            if r.id == rid:
+                return r
+        return None
+
+    @Property("QVariantList", notify=changed)
+    def moduleRobotOptions(self) -> list[dict[str, str]]:
+        key = self._active_module_key()
+        return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._module_robots_cache.get(key, [])] if key else []
+
+    @Property(str, notify=changed)
+    def moduleSelectedRobotId(self) -> str:
+        key = self._active_module_key()
+        return (self._module_selected_robot_id.get(key) or "") if key else ""
+
+    @Slot(str)
+    def selectModuleRobot(self, robot_id: str) -> None:
+        key = self._active_module_key()
+        if key is not None and robot_id != self._module_selected_robot_id.get(key):
+            self._module_selected_robot_id[key] = robot_id or None
+            self.changed.emit()
+
+    @Property(str, notify=changed)
+    def moduleHeadingKey(self) -> str:
+        key = self._active_module_key()
+        return str(_MODULE_CONFIGS[key]["heading"]) if key else ""
+
+    @Property(str, notify=changed)
+    def moduleMachineName(self) -> str:
+        key = self._active_module_key()
+        return str(_MODULE_CONFIGS[key]["machine"]) if key else ""
+
+    @Property(str, notify=changed)
+    def moduleExtraKind(self) -> str:
+        key = self._active_module_key()
+        return str(_MODULE_CONFIGS[key]["extra"]) if key else ""
+
+    @Property(bool, notify=changed)
+    def moduleHasRobot(self) -> bool:
+        key = self._active_module_key()
+        return key is not None and self._module_selected_robot(key) is not None
+
+    @Property(bool, notify=changed)
+    def moduleEnabled(self) -> bool:
+        key = self._active_module_key()
+        if key is None:
+            return False
+        robot = self._module_selected_robot(key)
+        return robot is not None and robot.module_enabled(_MODULE_CONFIGS[key]["module_key"])
+
+    def _module_size_field(self, field: str) -> int:
+        key = self._active_module_key()
+        if key is None:
+            return DEFAULT_SIZE_MM
+        robot = self._module_selected_robot(key)
+        if robot is None:
+            return DEFAULT_SIZE_MM
+        size = robot.module(_MODULE_CONFIGS[key]["module_key"]).get("size") or {}
+        return int(size.get(field, DEFAULT_SIZE_MM))
+
+    @Property(int, notify=changed)
+    def moduleWidth(self) -> int:
+        return self._module_size_field("width")
+
+    @Property(int, notify=changed)
+    def moduleLength(self) -> int:
+        return self._module_size_field("length")
+
+    def _module_extra_defaults(self, nav_key: str) -> dict:
+        """Matches heated_bed_panel.py's/vacuum_table_panel.py's own
+        _extra_default_fields() AND _extra_reset_fields() - both real
+        subclasses happen to return the exact same dict from both, so
+        this one helper covers Enable's setdefault() and Reset's
+        overwrite alike (see _MODULE_CONFIGS's own "extra" tag)."""
+        extra = _MODULE_CONFIGS[nav_key]["extra"]
+        if extra == "heated_bed":
+            return {"targetTemp": _HB_DEFAULT_TARGET_TEMP_C, "currentTemp1": _HB_DEFAULT_AMBIENT_TEMP_C, "currentTemp2": _HB_DEFAULT_AMBIENT_TEMP_C, "ssrActive": False}
+        if extra == "vacuum_table":
+            return {"pumpActive": False, "valveActive": False}
+        return {}
+
+    @Slot()
+    def enableModuleConfig(self) -> None:
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if key is None or robot is None:
+            return
+        module_key = _MODULE_CONFIGS[key]["module_key"]
+        module = dict(robot.module(module_key))
+        module["enabled"] = True
+        for field, default in self._module_extra_defaults(key).items():
+            module.setdefault(field, default)
+        robot.set_module(module_key, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def disableModuleConfig(self) -> None:
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if key is None or robot is None:
+            return
+        module_key = _MODULE_CONFIGS[key]["module_key"]
+        module = dict(robot.module(module_key))
+        module["enabled"] = False
+        robot.set_module(module_key, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot()
+    def resetModuleConfig(self) -> None:
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if key is None or robot is None:
+            return
+        module_key = _MODULE_CONFIGS[key]["module_key"]
+        reset_w, reset_l = _MODULE_CONFIGS[key]["reset_size"]
+        payload = {
+            "enabled": True,
+            "size": {"width": reset_w, "length": reset_l},
+            "worldPos": {"x": 0, "y": 0},
+            "worldRot": 0,
+            "renderScale": 1,
+        }
+        payload.update(self._module_extra_defaults(key))
+        robot.set_module(module_key, payload)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    def _set_module_size(self, field: str, value: int) -> None:
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if key is None or robot is None:
+            return
+        module_key = _MODULE_CONFIGS[key]["module_key"]
+        module = dict(robot.module(module_key))
+        size = dict(module.get("size") or {})
+        size[field] = value
+        module["size"] = size
+        robot.set_module(module_key, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(int)
+    def setModuleWidth(self, value: int) -> None:
+        self._set_module_size("width", value)
+
+    @Slot(int)
+    def setModuleLength(self, value: int) -> None:
+        self._set_module_size("length", value)
+
+    def _module_extra_value(self, field: str, default):
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if key is None or robot is None:
+            return default
+        return robot.module(_MODULE_CONFIGS[key]["module_key"]).get(field, default)
+
+    def _set_module_extra_field(self, field: str, value) -> None:
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if key is None or robot is None:
+            return
+        module_key = _MODULE_CONFIGS[key]["module_key"]
+        module = dict(robot.module(module_key))
+        module[field] = value
+        robot.set_module(module_key, module)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    # Heated Bed's own extra fields.
+    @Property(int, notify=changed)
+    def moduleTargetTemp(self) -> int:
+        return int(self._module_extra_value("targetTemp", _HB_DEFAULT_TARGET_TEMP_C))
+
+    @Property(bool, notify=changed)
+    def moduleSsrOn(self) -> bool:
+        return bool(self._module_extra_value("ssrActive", False))
+
+    @Property(str, notify=changed)
+    def moduleTherm1(self) -> str:
+        return f"{float(self._module_extra_value('currentTemp1', _HB_DEFAULT_AMBIENT_TEMP_C)):.1f} °C"
+
+    @Property(str, notify=changed)
+    def moduleTherm2(self) -> str:
+        return f"{float(self._module_extra_value('currentTemp2', _HB_DEFAULT_AMBIENT_TEMP_C)):.1f} °C"
+
+    @Slot(int)
+    def setModuleTargetTemp(self, value: int) -> None:
+        self._set_module_extra_field("targetTemp", value)
+
+    @Slot()
+    def toggleModuleSsr(self) -> None:
+        self._set_module_extra_field("ssrActive", not self.moduleSsrOn)
+
+    # Vacuum Table's own extra fields.
+    @Property(bool, notify=changed)
+    def modulePumpOn(self) -> bool:
+        return bool(self._module_extra_value("pumpActive", False))
+
+    @Property(bool, notify=changed)
+    def moduleValveOn(self) -> bool:
+        return bool(self._module_extra_value("valveActive", False))
+
+    @Slot()
+    def toggleModulePump(self) -> None:
+        self._set_module_extra_field("pumpActive", not self.modulePumpOn)
+
+    @Slot()
+    def toggleModuleValve(self) -> None:
+        self._set_module_extra_field("valveActive", not self.moduleValveOn)
 
     # -- Overview --------------------------------------------------------
 

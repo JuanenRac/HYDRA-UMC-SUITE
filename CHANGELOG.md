@@ -138,6 +138,22 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     12-button Endstops grid, and 3 checkable toggle-button grids (Fans/
     Pumps/Valves) via one new reusable `ToggleGrid` QML component
     instead of hand-rolling the grid 3 times.
+  - **CNC, Laser, Heated Bed and Vacuum Table** - all 4 real nav keys
+    share ONE generic bridge implementation and QML `Component`,
+    mirroring `module_config_panel.py`'s own `ModuleConfigPanel(module_key,
+    heading_key, machine_name)` parameterization exactly (robot
+    selector, enable/disable, width/length, reset) instead of 4
+    near-duplicate ports - each nav key still keeps its own real,
+    independent robot selection. Heated Bed's and Vacuum Table's own
+    real "extra" shapes (SSR toggle/target temp/thermistor readouts;
+    pump/valve toggles) are gated by a real `moduleExtraKind` property
+    rather than 4 separate QML files. Reproduces Vacuum Table's own
+    real, if minor, inconsistency faithfully: it DISPLAYS the same
+    500mm fallback as the other 3 modules before anything is written,
+    but its own Reset writes 100mm - a genuine mismatch already present
+    in HYDRA-UMC-STUDIO's own source, not invented here. The right-hand
+    "3D Live View" isn't ported for any of the 4, same real, separate
+    omission as every panel in this family.
 
 ## [0.3.9]
 

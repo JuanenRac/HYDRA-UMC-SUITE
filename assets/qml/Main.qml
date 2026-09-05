@@ -356,6 +356,10 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "rack") return rackComponent
                     if (suiteBackend.activePanel === "pick_and_place") return pickAndPlaceComponent
                     if (suiteBackend.activePanel === "kinematic_brain_stage") return kinematicBrainStageComponent
+                    if (suiteBackend.activePanel === "cnc") return moduleConfigComponent
+                    if (suiteBackend.activePanel === "laser") return moduleConfigComponent
+                    if (suiteBackend.activePanel === "heated_bed") return moduleConfigComponent
+                    if (suiteBackend.activePanel === "vacuum_table") return moduleConfigComponent
                     return notMigratedComponent
                 }
             }
@@ -2031,6 +2035,144 @@ ApplicationWindow {
                     Item { Layout.fillWidth: true }
                 }
                 Item { Layout.preferredHeight: 20 }
+            }
+        }
+    }
+
+    // Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
+    // module_config_panel.py's own ModuleConfigPanel exactly (robot
+    // selector, enable/disable, width/length, reset), with the two real
+    // "extra" shapes (heated_bed/vacuum_table) gated by
+    // suiteBackend.moduleExtraKind instead of 4 separate QML files. The
+    // right-hand "3D Live View" isn't ported, same real, separate
+    // omission as every panel in this family (xy_table/pick_and_place).
+    // Reused for all 4 real nav keys via the Loader below.
+    Component {
+        id: moduleConfigComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 12
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText(suiteBackend.moduleHeadingKey); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.moduleEnabled; onClicked: suiteBackend.resetModuleConfig() }
+                ComboBox {
+                    id: moduleRobotCombo
+                    Layout.preferredWidth: 200
+                    model: suiteBackend.moduleRobotOptions
+                    textRole: "label"
+                    valueRole: "id"
+                    Component.onCompleted: currentIndex = indexOfValue(suiteBackend.moduleSelectedRobotId)
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() {
+                            var idx = moduleRobotCombo.indexOfValue(suiteBackend.moduleSelectedRobotId)
+                            if (idx !== moduleRobotCombo.currentIndex) moduleRobotCombo.currentIndex = idx
+                        }
+                    }
+                    onActivated: suiteBackend.selectModuleRobot(currentValue)
+                }
+            }
+
+            ColumnLayout {
+                visible: !suiteBackend.moduleEnabled
+                Layout.alignment: Qt.AlignHCenter
+                Layout.topMargin: 40
+                spacing: 8
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_ASSIGNED").replace("{machine}", suiteBackend.moduleMachineName); color: window.textPrimary; font.bold: true; Layout.alignment: Qt.AlignHCenter }
+                Text { text: suiteBackend.uiText("LBL_NO_MODULE_DESC"); color: window.muted; wrapMode: Text.WordWrap; Layout.preferredWidth: 320; horizontalAlignment: Text.AlignHCenter }
+                Button { text: suiteBackend.uiText("BTN_ENABLE_MODULE").replace("{machine}", suiteBackend.moduleMachineName); enabled: suiteBackend.moduleHasRobot; onClicked: suiteBackend.enableModuleConfig(); Layout.alignment: Qt.AlignHCenter }
+            }
+
+            ColumnLayout {
+                visible: suiteBackend.moduleEnabled
+                spacing: 10
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: moduleSettingsColumn.implicitHeight + 24
+                    ColumnLayout {
+                        id: moduleSettingsColumn
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                            Button {
+                                id: moduleRemoveButton
+                                text: suiteBackend.uiText("BTN_REMOVE_MODULE")
+                                contentItem: Text { text: moduleRemoveButton.text; color: "#f43f5e" }
+                                onClicked: suiteBackend.disableModuleConfig()
+                            }
+                        }
+                        RowLayout {
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleWidth(value) }
+                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleLength(value) }
+                        }
+                    }
+                }
+
+                Card {
+                    visible: suiteBackend.moduleExtraKind === "heated_bed"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: heatingColumn.implicitHeight + 24
+                    ColumnLayout {
+                        id: heatingColumn
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 8
+                        Text { text: suiteBackend.uiText("GROUP_HEATING_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        RowLayout {
+                            Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: 10 }
+                            SpinBox { from: 0; to: 300; value: suiteBackend.moduleTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setModuleTargetTemp(value) }
+                            Button { text: suiteBackend.moduleSsrOn ? suiteBackend.uiText("BTN_SSR_ON") : suiteBackend.uiText("BTN_SSR_OFF"); onClicked: suiteBackend.toggleModuleSsr() }
+                        }
+                        RowLayout {
+                            spacing: 20
+                            ColumnLayout {
+                                spacing: 2
+                                Text { text: suiteBackend.uiText("LBL_THERMISTOR_1"); color: window.muted; font.pixelSize: 9 }
+                                Text { text: suiteBackend.moduleTherm1; color: "#fb923c"; font.family: "Cascadia Mono"; font.pixelSize: 14 }
+                            }
+                            ColumnLayout {
+                                spacing: 2
+                                Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: 9 }
+                                Text { text: suiteBackend.moduleTherm2; color: "#fb923c"; font.family: "Cascadia Mono"; font.pixelSize: 14 }
+                            }
+                        }
+                    }
+                }
+
+                Card {
+                    visible: suiteBackend.moduleExtraKind === "vacuum_table"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: vacuumRow.implicitHeight + 24
+                    RowLayout {
+                        id: vacuumRow
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        spacing: 10
+                        Text { text: suiteBackend.uiText("GROUP_VACUUM_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Button {
+                            text: suiteBackend.modulePumpOn ? suiteBackend.uiText("BTN_PUMP_ON") : suiteBackend.uiText("BTN_PUMP_OFF")
+                            checkable: true
+                            checked: suiteBackend.modulePumpOn
+                            onClicked: suiteBackend.toggleModulePump()
+                        }
+                        Button {
+                            text: suiteBackend.moduleValveOn ? suiteBackend.uiText("BTN_VALVE_OPEN") : suiteBackend.uiText("BTN_VALVE_CLOSED")
+                            checkable: true
+                            checked: suiteBackend.moduleValveOn
+                            onClicked: suiteBackend.toggleModuleValve()
+                        }
+                        Item { Layout.fillWidth: true }
+                    }
+                }
+                Item { Layout.fillHeight: true }
             }
         }
     }
