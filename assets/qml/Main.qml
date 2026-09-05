@@ -366,6 +366,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "hydra_flasher") return flasherComponent
                     if (suiteBackend.activePanel === "urtc_tester") return testerComponent
                     if (suiteBackend.activePanel === "hydra_tester") return testerComponent
+                    if (suiteBackend.activePanel === "viewport") return viewportComponent
                     return notMigratedComponent
                 }
             }
@@ -3213,6 +3214,89 @@ ApplicationWindow {
                 }
                 Item { Layout.preferredHeight: 12 }
             }
+        }
+    }
+
+    // Real live 3D robot viewport - orbit camera (left-drag rotate, wheel
+    // zoom, right/middle-drag pan), any of the 24 real STL-backed models
+    // plus the primitive-built "Generic" fallback, matching
+    // viewport_panel.py's own ViewportPanel/RobotViewport 1:1. The one
+    // real 3D panel in this whole shell - see
+    // render/viewport.py's own OffscreenRobotRenderer for why this is a
+    // genuinely separate QOpenGLContext/FBO rather than Qt Quick 3D or
+    // QQuickFramebufferObject (both would force this app's whole Quick
+    // backend off Windows' own real default, Direct3D11). Reuses the
+    // SAME real robot selection Robot Control/Trajectory already share -
+    // no separate combo box here, matching the classic panel's own real
+    // behavior (it also just follows whichever robot is selected
+    // elsewhere, via set_selected_robot()).
+    Component {
+        id: viewportComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            Text { text: suiteBackend.uiText("HEADING_VIEWPORT"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+
+            Item {
+                id: viewportArea
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                Image {
+                    id: viewportImage
+                    anchors.fill: parent
+                    visible: suiteBackend.viewportHasRobot && suiteBackend.viewportSupported
+                    fillMode: Image.Stretch
+                    cache: false
+                    asynchronous: true
+                    source: visible ? ("image://viewportFrame/" + suiteBackend.viewportFrameVersion) : ""
+
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                        property real lastX: 0
+                        property real lastY: 0
+                        onPressed: function(mouse) { lastX = mouse.x; lastY = mouse.y }
+                        onPositionChanged: function(mouse) {
+                            var dx = mouse.x - lastX
+                            var dy = mouse.y - lastY
+                            lastX = mouse.x
+                            lastY = mouse.y
+                            if (mouse.buttons & Qt.LeftButton) {
+                                suiteBackend.viewportOrbit(dx, dy)
+                            } else if (mouse.buttons & (Qt.RightButton | Qt.MiddleButton)) {
+                                suiteBackend.viewportPan(dx, dy)
+                            }
+                        }
+                        onWheel: function(wheel) {
+                            suiteBackend.viewportZoom(wheel.angleDelta.y > 0 ? 0.9 : 1.1)
+                        }
+                    }
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    visible: !viewportImage.visible
+                    color: "#0a0f14"
+                    border.width: 1
+                    border.color: "#1a2530"
+                    Text {
+                        anchors.centerIn: parent
+                        anchors.margins: 20
+                        width: parent.width - 40
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        text: suiteBackend.viewportUnsupportedMessage
+                        color: window.muted
+                    }
+                }
+
+                onWidthChanged: if (viewportImage.visible) suiteBackend.viewportResize(width, height)
+                onHeightChanged: if (viewportImage.visible) suiteBackend.viewportResize(width, height)
+            }
+
+            Text { text: suiteBackend.uiText("HINT_CONTROLS"); color: "#4a5563"; font.pixelSize: 10 }
         }
     }
 }

@@ -125,6 +125,7 @@ from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
 from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
 from hydra_suite.ui.panels.tester_panel import _category_for
 from hydra_suite.ui.panels.vacuum_table_panel import DEFAULT_RESET_SIZE_MM as _VACUUM_RESET_SIZE_MM
+from hydra_suite.ui.panels.viewport_panel import SUPPORTED_MODELS as _VIEWPORT_SUPPORTED_MODELS
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
     JOG_STEPS_MM as _XY_JOG_STEPS_MM,
@@ -155,7 +156,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "urtc_flasher", "hydra_flasher", "urtc_tester", "hydra_tester"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "urtc_flasher", "hydra_flasher", "urtc_tester", "hydra_tester", "viewport"})
 
 # Real per-instance tier set - matches main_window.py's own two separate
 # FlasherPanel(tiers=...) instances exactly (URTC_TIERS/HYDRA_BRAIN_TIERS,
@@ -251,6 +252,34 @@ class CameraFrameProvider(QQuickImageProvider):
         return image
 
 
+class ViewportFrameProvider(QQuickImageProvider):
+    """Feeds the 3D Viewport panel's own real rendered frame into QML -
+    one real `QImage` (there's only ever one viewport, unlike Cameras'
+    own per-id dict), refreshed by SuiteQtBridge's own real
+    `_render_viewport_frame()` every time `render/viewport.py`'s own
+    `OffscreenRobotRenderer.render()` produces a new one. QML re-fetches
+    on every frame by requesting `image://viewportFrame/<frameVersion>` -
+    same real cache-busting reasoning as CameraFrameProvider's own
+    docstring."""
+
+    def __init__(self) -> None:
+        super().__init__(QQuickImageProvider.ImageType.Image)
+        self._image: QImage | None = None
+
+    def set_image(self, image: QImage) -> None:
+        self._image = image
+
+    def requestImage(self, id: str, size: QSize, requestedSize: QSize) -> QImage:  # noqa: N802 - Qt override signature
+        image = self._image
+        if image is None:
+            image = QImage(1, 1, QImage.Format.Format_RGB32)
+            image.fill(0xFFFFFF)
+        if size is not None:
+            size.setWidth(image.width())
+            size.setHeight(image.height())
+        return image
+
+
 class SuiteQtBridge(QObject):
     """Thin, UI-only bridge - real domain state stays on SuiteController
     (exposed to QML separately, unchanged, as context property
@@ -268,11 +297,20 @@ class SuiteQtBridge(QObject):
     # read by dozens of unrelated Properties across every other panel;
     # firing it that often would re-evaluate all of them for no reason.
     _camerasChanged = Signal()
+    # Same real reasoning as _camerasChanged above - a live 3D render can
+    # update every real joint tick.
+    _viewportChanged = Signal()
 
-    def __init__(self, controller: SuiteController, frame_provider: "CameraFrameProvider | None" = None) -> None:
+    def __init__(
+        self,
+        controller: SuiteController,
+        frame_provider: "CameraFrameProvider | None" = None,
+        viewport_frame_provider: "ViewportFrameProvider | None" = None,
+    ) -> None:
         super().__init__()
         self._controller = controller
         self._frame_provider = frame_provider
+        self._viewport_frame_provider = viewport_frame_provider
         self._active_key = "overview"
         self._connection_status = "disconnected"
 
@@ -576,6 +614,23 @@ class SuiteQtBridge(QObject):
         self._tester_frames: dict[str, list] = {k: [] for k in _TESTER_TIERS}
         controller.active_state_changed.connect(self._on_tester_state_changed)
 
+        # -- Viewport (3D, ported from viewport_panel.py's own ViewportPanel)
+        # - reuses the SAME real robot selection Robot Control/Trajectory
+        # already share (_selected_robot_id/_active_robots_cache/
+        # _selected_robot() above) rather than a third independent one -
+        # _select_robot()'s own comment already anticipated this. Real
+        # rendering happens through render/viewport.py's own
+        # OffscreenRobotRenderer, constructed lazily (real GL setup - no
+        # reason to pay for it if this panel is never opened), fed to QML
+        # through ViewportFrameProvider the same way CameraFrameProvider
+        # already feeds live camera frames. --
+        self._viewport_renderer = None  # OffscreenRobotRenderer | None, lazy
+        self._viewport_render_failed = False
+        self._viewport_render_error = ""
+        self._viewport_frame_version = 0
+        self._viewport_current_model: str | None = None
+        controller.active_state_changed.connect(self._on_viewport_state_changed)
+
     # -- navigation --------------------------------------------------------
 
     @Property(str, notify=changed)
@@ -877,12 +932,20 @@ class SuiteQtBridge(QObject):
         trajectory_panel.py's own set_selected_robot does (only on an
         actual robot-identity change, never on every swarm tick a
         continuing selection would otherwise wipe recordings within
-        moments of making them)."""
+        moments of making them). Also the one real place that needs to
+        force an immediate Viewport re-render on a selection change -
+        matches main_window.py's own real wiring exactly
+        (robot_control.robot_selected connects to BOTH
+        viewport_panel.set_selected_robot AND
+        trajectory_panel.set_selected_robot - a selection change reaches
+        the viewport right away, it doesn't wait for the next real state
+        tick's own set_joints_deg() call to happen to redraw it)."""
         if new_id == self._selected_robot_id:
             return
         self._selected_robot_id = new_id
         self._trajectory_points = []
         self._trajectoryChanged.emit()
+        self._render_viewport_frame()
 
     @Slot(str, float)
     def setJoint(self, joint_name: str, value: float) -> None:
@@ -4005,6 +4068,123 @@ class SuiteQtBridge(QObject):
         except asyncio.CancelledError:
             return
 
+    # -- Viewport (3D) -----------------------------------------------------
+
+    def _ensure_viewport_renderer(self):
+        # Real, honest degradation, not a hypothetical: constructing a
+        # genuine QOpenGLContext/QOffscreenSurface can fail for real (no
+        # OpenGL 3.3 core profile available at all - confirmed for real
+        # under this session's own headless `offscreen` QPA platform,
+        # which cannot create a real GL context here regardless of
+        # QT_OPENGL/QT_ANGLE_PLATFORM). Letting that exception propagate
+        # uncaught out of a real Qt signal handler (this is reached from
+        # _select_robot(), itself reached from a real robot_selected-
+        # style signal in production) would be a real crash risk for
+        # something a user can't do anything about - caught once, reported
+        # honestly via viewportUnsupportedMessage, never retried
+        # endlessly (a real GL capability failure doesn't fix itself
+        # between calls).
+        if self._viewport_renderer is None and not self._viewport_render_failed:
+            try:
+                from hydra_suite.render.viewport import OffscreenRobotRenderer
+
+                self._viewport_renderer = OffscreenRobotRenderer()
+            except Exception as exc:
+                self._viewport_render_failed = True
+                self._viewport_render_error = str(exc)
+        return self._viewport_renderer
+
+    def _on_viewport_state_changed(self, _state: HydraState) -> None:
+        # _on_robot_state_changed (Robot Control's own real handler,
+        # connected to the exact same signal) already refreshed
+        # self._active_robots_cache/_selected_robot_id by the time this
+        # runs - Qt delivers a signal to every connected slot in connection
+        # order, and this one was connected after that one - so
+        # _selected_robot() below already reflects the current tick.
+        self._render_viewport_frame()
+
+    def _render_viewport_frame(self) -> None:
+        robot = self._selected_robot()
+        if robot is None or robot.model not in _VIEWPORT_SUPPORTED_MODELS:
+            return  # matches ViewportPanel._apply()'s own real gate - nothing to render
+        renderer = self._ensure_viewport_renderer()
+        if renderer is None:
+            self.changed.emit()  # real GL construction just failed - let viewportUnsupportedMessage's own binding pick that up
+            return
+        if robot.model != self._viewport_current_model:
+            renderer.set_robot_model(robot.model)
+            self._viewport_current_model = robot.model
+        renderer.set_joints_deg(robot.joints)
+        self._render_viewport_frame_only(renderer)
+
+    def _render_viewport_frame_only(self, renderer=None) -> None:
+        """Re-renders with whatever pose/model/camera state the renderer
+        already has - used both by _render_viewport_frame() above (after a
+        real model/joint change) and by the orbit/pan/zoom Slots below
+        (camera-only changes, no model/joint work needed first)."""
+        renderer = renderer or self._viewport_renderer
+        if renderer is None:
+            return
+        image = renderer.render()
+        if self._viewport_frame_provider is not None:
+            self._viewport_frame_provider.set_image(image)
+        self._viewport_frame_version += 1
+        self._viewportChanged.emit()
+
+    @Property(bool, notify=changed)
+    def viewportHasRobot(self) -> bool:
+        return self._selected_robot() is not None
+
+    @Property(bool, notify=changed)
+    def viewportSupported(self) -> bool:
+        if self._viewport_render_failed:
+            return False
+        robot = self._selected_robot()
+        return robot is not None and robot.model in _VIEWPORT_SUPPORTED_MODELS
+
+    @Property(str, notify=changed)
+    def viewportUnsupportedMessage(self) -> str:
+        robot = self._selected_robot()
+        if robot is None:
+            return _("LBL_NO_ROBOT_SELECTED")
+        if self._viewport_render_failed:
+            return f"3D rendering unavailable on this machine: {self._viewport_render_error}"
+        if robot.model not in _VIEWPORT_SUPPORTED_MODELS:
+            return _("MSG_UNSUPPORTED_MODEL", model=robot.model, models=", ".join(sorted(_VIEWPORT_SUPPORTED_MODELS)))
+        return ""
+
+    @Property(int, notify=_viewportChanged)
+    def viewportFrameVersion(self) -> int:
+        return self._viewport_frame_version
+
+    @Slot(float, float)
+    def viewportOrbit(self, dx: float, dy: float) -> None:
+        if self._viewport_renderer is None:
+            return
+        self._viewport_renderer.orbit(dx, dy)
+        self._render_viewport_frame_only()
+
+    @Slot(float, float)
+    def viewportPan(self, dx: float, dy: float) -> None:
+        if self._viewport_renderer is None:
+            return
+        self._viewport_renderer.pan(dx, dy)
+        self._render_viewport_frame_only()
+
+    @Slot(float)
+    def viewportZoom(self, factor: float) -> None:
+        if self._viewport_renderer is None:
+            return
+        self._viewport_renderer.zoom(factor)
+        self._render_viewport_frame_only()
+
+    @Slot(int, int)
+    def viewportResize(self, width: int, height: int) -> None:
+        if self._viewport_renderer is None:
+            return
+        self._viewport_renderer.resize(width, height)
+        self._render_viewport_frame_only()
+
     # -- Overview --------------------------------------------------------
 
     @Property(str, notify=changed)
@@ -4122,10 +4302,12 @@ def run_qtquick() -> int:
 
     controller = SuiteController()
     frame_provider = CameraFrameProvider()
-    bridge = SuiteQtBridge(controller, frame_provider=frame_provider)
+    viewport_frame_provider = ViewportFrameProvider()
+    bridge = SuiteQtBridge(controller, frame_provider=frame_provider, viewport_frame_provider=viewport_frame_provider)
 
     engine = QQmlApplicationEngine()
     engine.addImageProvider("cameraFrames", frame_provider)
+    engine.addImageProvider("viewportFrame", viewport_frame_provider)
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))

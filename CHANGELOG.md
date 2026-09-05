@@ -230,6 +230,48 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     (`urtc_tester`/`hydra_tester`). Rendered correctly on the first
     real on-screen screenshot - no new bugs found, applying every
     lesson this family's own earlier panels already paid for.
+  - **3D Viewport - the 26th and last panel, completing this shell's own
+    "redesign from zero"**: a real, live-posed 3D robot render (any of
+    the 24 real STL-backed models, or the primitive-built "Generic"
+    fallback), with the same orbit/pan/zoom mouse controls as the
+    classic panel. Reuses the SAME real robot selection Robot Control/
+    Trajectory already share - no separate combo box here either,
+    matching the classic panel's own real behavior. Deliberately NOT
+    built on Qt Quick 3D or `QQuickFramebufferObject` - both would force
+    this whole app's Qt Quick backend off Windows' own real default
+    (Direct3D11) onto OpenGL just to support one panel, plus real
+    same-API GPU resource sharing with Quick's own render thread for the
+    FBO path. Instead: a genuinely separate `QOpenGLContext`/
+    `QOffscreenSurface`/`QOpenGLFramebufferObject`
+    (`OffscreenRobotRenderer`, `render/viewport.py`), rendering
+    synchronously on the same thread right after a real state change,
+    fed to QML as a plain `QImage` through the same real
+    `QQuickImageProvider` pattern already proven for Cameras' own live
+    feed. `render/viewport.py` itself was split first, with zero
+    behavior change to the classic `QMainWindow` app's own real
+    `RobotViewport` (used in 13 places there): every real GL call and
+    every piece of pose/camera state now lives in a new, context-
+    agnostic `RobotGLRenderer`, shared by both the classic
+    `QOpenGLWidget` and the new offscreen renderer - not a second,
+    drifting copy of the rendering code. **Two real bugs found and
+    fixed** during this panel's own work: 1) a genuinely reproducible
+    segfault in `OffscreenRobotRenderer`'s own construction, isolated
+    with a minimal file-logged repro script (a hard crash eats stdout) -
+    a nested `doneCurrent()`/`makeCurrent()` cycle on the same standalone
+    context (triggered by the real lazy mesh-load path running during
+    initialization) left it in a state where the next
+    `QOpenGLFramebufferObject` construction crashed; fixed with a real
+    reentrancy counter so only the outermost call pair ever touches the
+    context. 2) a real robustness gap this first bug's own investigation
+    surfaced: a genuine GL-context construction failure (confirmed for
+    real under this session's own headless test platform, which cannot
+    create a real GL context here at all) would have propagated
+    uncaught out of a real Qt signal handler in production; now caught
+    once and reported honestly through the same "unsupported" message
+    the classic panel already shows for an unrecognized robot model,
+    never retried endlessly. Confirmed with a real on-screen screenshot
+    (a real AR3 arm, correctly shaded, sharp at full display resolution
+    - the real per-resize re-render, not a stretched fixed-size image).
 
 ## [0.3.9]
 

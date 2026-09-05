@@ -212,35 +212,35 @@ def _run() -> None:
     # and an actual GL context - covered manually by smoke_test_viewport.py,
     # not here. ---------------------------------------------------------
     standalone_viewport = RobotViewport()
-    assert standalone_viewport._attached_module_type is None
+    assert standalone_viewport._renderer._attached_module_type is None
     standalone_viewport.set_attached_module("juanenCNC", 500.0, 500.0)
-    assert standalone_viewport._attached_module_type == "juanenCNC"
-    assert standalone_viewport._module_segments_cache == module_segments("juanenCNC", 500.0, 500.0)
-    assert len(standalone_viewport._module_segments_cache) > 0, "juanenCNC must have real ported geometry, not an empty list"
+    assert standalone_viewport._renderer._attached_module_type == "juanenCNC"
+    assert standalone_viewport._renderer._module_segments_cache == module_segments("juanenCNC", 500.0, 500.0)
+    assert len(standalone_viewport._renderer._module_segments_cache) > 0, "juanenCNC must have real ported geometry, not an empty list"
     standalone_viewport.set_attached_module(None)
-    assert standalone_viewport._attached_module_type is None
-    assert standalone_viewport._module_segments_cache == [], "clearing the attached module must clear the cached segments too"
+    assert standalone_viewport._renderer._attached_module_type is None
+    assert standalone_viewport._renderer._module_segments_cache == [], "clearing the attached module must clear the cached segments too"
     # A module key with no ported geometry yet (see module_rig.py's own
     # header - only CNC/Laser/HeatedBed/VacuumTable are ported) renders a
     # real, honest blank viewport rather than raising.
     standalone_viewport.set_attached_module("pickAndPlace", 500.0, 500.0)
-    assert standalone_viewport._attached_module_type == "pickAndPlace"
-    assert standalone_viewport._module_segments_cache == []
+    assert standalone_viewport._renderer._attached_module_type == "pickAndPlace"
+    assert standalone_viewport._renderer._module_segments_cache == []
     print("RobotViewport.set_attached_module() pending-rebuild cache path: PASS")
 
     # --- ModuleConfigPanel really drives its own embedded RobotViewport --
     cnc_panel2 = CncPanel(controller)
     controller.active_state_changed.emit(_state_with_one_robot(cnc=None))
-    assert cnc_panel2._module_viewport._attached_module_type is None, "no module enabled yet -> nothing attached"
+    assert cnc_panel2._module_viewport._renderer._attached_module_type is None, "no module enabled yet -> nothing attached"
     cnc_panel2._on_enable()
-    assert cnc_panel2._module_viewport._attached_module_type == "juanenCNC"
-    assert len(cnc_panel2._module_viewport._module_segments_cache) > 0
+    assert cnc_panel2._module_viewport._renderer._attached_module_type == "juanenCNC"
+    assert len(cnc_panel2._module_viewport._renderer._module_segments_cache) > 0
     cnc_panel2._width_spin.setValue(750)
-    assert cnc_panel2._module_viewport._module_segments_cache == module_segments("juanenCNC", 750.0, 500.0), (
+    assert cnc_panel2._module_viewport._renderer._module_segments_cache == module_segments("juanenCNC", 750.0, 500.0), (
         "a real width change must rebuild the preview at the new size, not keep showing the old one"
     )
     cnc_panel2._on_disable()
-    assert cnc_panel2._module_viewport._attached_module_type is None, "disabling the module must detach the preview too"
+    assert cnc_panel2._module_viewport._renderer._attached_module_type is None, "disabling the module must detach the preview too"
     print("ModuleConfigPanel drives its own embedded RobotViewport from real state changes: PASS")
 
     print("ALL VERIFY_MODULE_CONFIG_PANEL CHECKS PASSED")
