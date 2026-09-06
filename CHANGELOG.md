@@ -291,6 +291,14 @@ before every PyInstaller build - not on a plain `python main.py` run. See
     (a real AR3 arm, correctly shaded, sharp at full display resolution
     - the real per-resize re-render, not a stretched fixed-size image).
 
+## [0.4.0]
+
+- DOC-38 (found in an ecosystem-wide software-improvements audit): removed
+  a dangling reference to a private tracking document from this file's
+  own "mejoras_futuras.txt sweep + real mDNS" section heading - that file
+  isn't tracked in this repo, and the section's own bullet points already
+  describe the real fixes self-sufficiently.
+
 ## [0.3.9]
 
 - **Real left navigation panel, matching HYDRA-UMC-STUDIO's own structural scheme** - real user feedback: SUITE's flat top-toolbar navigation didn't match STUDIO's own left-panel menu/submenu layout ("no tiene el mismo esquema de estructura que studio... con su panel izquierdo con los menu y submenus"). New `NavSidebar` (`ui/nav_sidebar.py`) ports that same real shape - a root menu plus 3 real drill-down submenus (Industrial/URTC/HYDRA-UMC, each with its own Back-to-Root control) - onto this app's own real dock system: every button shows+raises one of the same real `QDockWidget` panels the old toolbar buttons did, nothing about the underlying dockable/floatable/tabbable panel system changed. The command deck keeps only what a flat toolbar still suits (branding, live connection status, About); its 5 former nav buttons moved into the sidebar. New real test (`tests/verify_nav_sidebar.py`) diffs the sidebar's own dock-key coverage against `main_window.py`'s real `self._docks` 1:1, so a future dock added to one file and forgotten in the other fails a real test.
@@ -892,7 +900,7 @@ rather than by version:
   UI, plus a related bug where a failed write was incorrectly marked as
   "delivered" and could never be retried.
 
-**mejoras_futuras.txt sweep + real mDNS**
+**Known-issues sweep + real mDNS**
 - Fixed a duplicate-host scan when two local IPv4 addresses share a /24,
   and an Overview panel that rebuilt its entire table on every unrelated
   state tick. Real mDNS discovery implemented with `zeroconf`
