@@ -17,7 +17,7 @@
 
 ### 🖥️ HYDRA-UMC プラットフォーム向けマルチコントローラー群制御コマンドセンター
 
-<p align="left">
+<p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Python">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="PySide6">
