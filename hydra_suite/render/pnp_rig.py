@@ -29,9 +29,23 @@
 #   base (fixed)
 #     -> y_carriage   (translates world Y,  0-487mm - openpnp/machine.xml)
 #        -> x_carriage (translates local X, 0-433mm - openpnp/machine.xml)
-#           -> z_carriage_n1 (translates local Z, rotates about Z - nozzle 1)
-#           -> z_carriage_n2 (translates local Z, rotates about Z - nozzle 2,
-#                              same Z travel as n1, independent rotation)
+#           -> z_carriage_left  (translates local Z only - the rail
+#              slider housing, does NOT rotate on the real machine)
+#              -> nozzle_left    (rotates about Z only - nozzle 1)
+#           -> z_carriage_right (translates local Z only, same Z travel
+#              as z_carriage_left)
+#              -> nozzle_right   (rotates about Z only - nozzle 2)
+#
+# Real bug fixed 2026-09-08, ported from the same fix in LumenPnPRig.tsx:
+# this used to merge each Z-carriage housing and its nozzle into ONE rigid
+# transform (z_carriage_n1/n2) that translated AND rotated together - a
+# real, visible error, since the housing's own real footprint at that
+# joint is ~44x51mm (measured off the real per-part CAD bounding box), so
+# the whole rectangular slider block would visibly swing around the Z axis
+# every time a nozzle rotated, which the physical machine never does (only
+# the ~10x10mm nozzle barrel itself spins). Splitting them into the 7
+# links above - matching this project's own formal lumenpnp_juanenpnp.urdf
+# link-for-link - fixes it: only nozzle_left/nozzle_right rotate now.
 # =============================================================================
 from __future__ import annotations
 
@@ -47,7 +61,11 @@ from hydra_suite.render.kinematics import DEG, rot_x, rot_z, translation
 PNP_ROOT = rot_x(-np.pi / 2)
 
 PNP_MESH_DIR = "lumenpnp"
-PNP_LINK_NAMES: tuple[str, ...] = ("base", "y_carriage", "x_carriage", "z_carriage_n1", "z_carriage_n2")
+PNP_LINK_NAMES: tuple[str, ...] = (
+    "base", "y_carriage", "x_carriage",
+    "z_carriage_left", "z_carriage_right",
+    "nozzle_left", "nozzle_right",
+)
 PNP_MESH_FILES: dict[str, str] = {name: f"{name}.stl" for name in PNP_LINK_NAMES}
 
 # Real fixed hardware travel bounds (openpnp/machine.xml) - same values
@@ -68,12 +86,12 @@ def pnp_world_link_transforms(
     nozzle2_deg: float,
 ) -> dict[str, np.ndarray]:
     """One 4x4 world transform per real link - base/y_carriage/x_carriage/
-    z_carriage_n1/z_carriage_n2, matching PNP_LINK_NAMES exactly. Millimeter
-    inputs (matching openpnp/machine.xml's own units and this module's
-    own PNP_AXIS_*_RANGE_MM, same convention `module.get(field, 0)` already
-    stores raw in RobotView's module() dict) are converted to meters here,
-    at the one point they're consumed - same convention every other real-
-    geometry helper in this folder uses."""
+    z_carriage_left/z_carriage_right/nozzle_left/nozzle_right, matching
+    PNP_LINK_NAMES exactly. Millimeter inputs (matching openpnp/machine.xml's
+    own units and this module's own PNP_AXIS_*_RANGE_MM, same convention
+    `module.get(field, 0)` already stores raw in RobotView's module() dict)
+    are converted to meters here, at the one point they're consumed - same
+    convention every other real-geometry helper in this folder uses."""
     x = axis_x_mm / 1000.0
     y = axis_y_mm / 1000.0
     z = axis_z_mm / 1000.0
@@ -81,13 +99,21 @@ def pnp_world_link_transforms(
     base_t = PNP_ROOT.copy()
     y_carriage_t = base_t @ translation((0.0, y, 0.0))
     x_carriage_t = y_carriage_t @ translation((x, 0.0, 0.0))
-    z_n1_t = x_carriage_t @ translation((0.0, 0.0, z)) @ rot_z(nozzle1_deg * DEG)
-    z_n2_t = x_carriage_t @ translation((0.0, 0.0, z)) @ rot_z(nozzle2_deg * DEG)
+    # Only the nozzle barrel rotates - z_carriage_left/right translate only,
+    # matching joint_c_left/right's real "0 0 0" origin in
+    # lumenpnp_juanenpnp.urdf (the nozzle rotates about the same point its
+    # z_carriage parent sits at, no extra offset).
+    z_carriage_left_t = x_carriage_t @ translation((0.0, 0.0, z))
+    z_carriage_right_t = x_carriage_t @ translation((0.0, 0.0, z))
+    nozzle_left_t = z_carriage_left_t @ rot_z(nozzle1_deg * DEG)
+    nozzle_right_t = z_carriage_right_t @ rot_z(nozzle2_deg * DEG)
 
     return {
         "base": base_t,
         "y_carriage": y_carriage_t,
         "x_carriage": x_carriage_t,
-        "z_carriage_n1": z_n1_t,
-        "z_carriage_n2": z_n2_t,
+        "z_carriage_left": z_carriage_left_t,
+        "z_carriage_right": z_carriage_right_t,
+        "nozzle_left": nozzle_left_t,
+        "nozzle_right": nozzle_right_t,
     }
