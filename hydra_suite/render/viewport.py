@@ -69,8 +69,10 @@ _PNP_LINK_COLORS: dict[str, tuple[float, float, float]] = {
     "base": _PNP_COLOR_FRAME,
     "y_carriage": _PNP_COLOR_CARRIAGE,
     "x_carriage": _PNP_COLOR_CARRIAGE,
-    "z_carriage_n1": _PNP_COLOR_NOZZLE,
-    "z_carriage_n2": _PNP_COLOR_NOZZLE,
+    "z_carriage_left": _PNP_COLOR_CARRIAGE,
+    "z_carriage_right": _PNP_COLOR_CARRIAGE,
+    "nozzle_left": _PNP_COLOR_NOZZLE,
+    "nozzle_right": _PNP_COLOR_NOZZLE,
 }
 
 VERTEX_SHADER = """

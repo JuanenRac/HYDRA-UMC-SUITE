@@ -49,9 +49,10 @@ def _run() -> None:
     assert np.allclose(posed["base"], PNP_ROOT), "base must stay fixed regardless of axis values"
 
     # y_carriage only moves along Y (world, since it's the direct child of
-    # the fixed base) - x_carriage/z_carriage_n1/z_carriage_n2 must all
-    # inherit that same Y offset (they're downstream in the chain) but
-    # y_carriage itself must show zero further X/Z offset of its own.
+    # the fixed base) - x_carriage/z_carriage_left/z_carriage_right/
+    # nozzle_left/nozzle_right must all inherit that same Y offset (they're
+    # downstream in the chain) but y_carriage itself must show zero further
+    # X/Z offset of its own.
     y_pos = (np.linalg.inv(PNP_ROOT) @ posed["y_carriage"])[:3, 3]
     assert np.allclose(y_pos, [0.0, 0.487, 0.0], atol=1e-9), "y_carriage must translate exactly (0, axisY, 0) in its own parent frame"
 
@@ -60,16 +61,32 @@ def _run() -> None:
     x_pos = (np.linalg.inv(PNP_ROOT) @ posed["x_carriage"])[:3, 3]
     assert np.allclose(x_pos, [0.433, 0.487, 0.0], atol=1e-9), "x_carriage must carry both its own X and its parent y_carriage's Y"
 
-    # z_carriage_n1/n2 share the exact same real position (same Z travel,
-    # same parent x_carriage) - they differ ONLY in rotation, matching
-    # LumenPnPRig.tsx's own two sibling groups at the same [0,0,z] offset.
-    n1_pos = (np.linalg.inv(PNP_ROOT) @ posed["z_carriage_n1"])[:3, 3]
-    n2_pos = (np.linalg.inv(PNP_ROOT) @ posed["z_carriage_n2"])[:3, 3]
-    assert np.allclose(n1_pos, [0.433, 0.487, 0.09], atol=1e-9)
-    assert np.allclose(n2_pos, n1_pos, atol=1e-9), "both nozzles share the same real position - only their rotation differs"
-    z_n1_parent = posed["x_carriage"] @ translation((0.0, 0.0, 0.09))
-    n1_rot = (np.linalg.inv(z_n1_parent) @ posed["z_carriage_n1"])[:3, :3]
-    assert np.allclose(n1_rot, rot_z(np.pi / 2)[:3, :3], atol=1e-9), "nozzle1's own local rotation must be exactly rot_z(nozzle1_deg)"
+    # z_carriage_left/right share the exact same real position (same Z
+    # travel, same parent x_carriage) and never rotate - only their
+    # nozzle_left/right children do, matching LumenPnPRig.tsx's own two
+    # sibling groups at the same [0,0,z] offset. Real bug fixed 2026-09-08:
+    # these two used to be ONE merged link (z_carriage_n1/n2) that rotated
+    # along with the nozzle - the housing's own real ~44x51mm footprint
+    # would visibly swing around Z, which the physical machine never does.
+    zl_pos = (np.linalg.inv(PNP_ROOT) @ posed["z_carriage_left"])[:3, 3]
+    zr_pos = (np.linalg.inv(PNP_ROOT) @ posed["z_carriage_right"])[:3, 3]
+    assert np.allclose(zl_pos, [0.433, 0.487, 0.09], atol=1e-9)
+    assert np.allclose(zr_pos, zl_pos, atol=1e-9), "both Z-carriages share the same real position"
+    zl_rot = (np.linalg.inv(PNP_ROOT) @ posed["z_carriage_left"])[:3, :3]
+    zr_rot = (np.linalg.inv(PNP_ROOT) @ posed["z_carriage_right"])[:3, :3]
+    identity = np.eye(3)
+    assert np.allclose(zl_rot, identity, atol=1e-9), "z_carriage_left must never rotate - only its nozzle child does"
+    assert np.allclose(zr_rot, identity, atol=1e-9), "z_carriage_right must never rotate - only its nozzle child does"
+
+    # nozzle_left/right inherit their z_carriage parent's exact position
+    # (no extra offset - joint_c_left/right's real "0 0 0" origin in
+    # lumenpnp_juanenpnp.urdf) and add ONLY their own rotation on top.
+    n1_pos = (np.linalg.inv(PNP_ROOT) @ posed["nozzle_left"])[:3, 3]
+    n2_pos = (np.linalg.inv(PNP_ROOT) @ posed["nozzle_right"])[:3, 3]
+    assert np.allclose(n1_pos, zl_pos, atol=1e-9), "nozzle_left must sit at the exact same position as its z_carriage_left parent"
+    assert np.allclose(n2_pos, zr_pos, atol=1e-9), "nozzle_right must sit at the exact same position as its z_carriage_right parent"
+    n1_rot = (np.linalg.inv(posed["z_carriage_left"]) @ posed["nozzle_left"])[:3, :3]
+    assert np.allclose(n1_rot, rot_z(np.pi / 2)[:3, :3], atol=1e-9), "nozzle_left's own local rotation must be exactly rot_z(nozzle1_deg)"
     print("pnp_rig.pnp_world_link_transforms(): real gantry chain composition PASS")
 
     # --- RobotViewport.set_attached_pnp() pending-mesh-load cache path -

@@ -14,6 +14,23 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.4.4] - LumenPnP/JuanenPnP: nozzle no longer spins its own housing
+
+`render/pnp_rig.py` merged each Z-carriage housing and its nozzle into
+one rigid transform per side (`z_carriage_n1`/`z_carriage_n2`) that
+translated *and* rotated together. Real, visible bug ported from the
+same fix in HYDRA-UMC-STUDIO's `LumenPnPRig.tsx`: the housing's own real
+footprint at that joint is ~44x51mm (measured off the real per-part CAD
+bounding box), so `pnp_world_link_transforms()` rotated the whole
+rectangular slider block around Z along with the nozzle, which the
+physical machine never does. Split into `z_carriage_left`/
+`z_carriage_right` (translate only) + `nozzle_left`/`nozzle_right`
+(rotate only, same joint origin as their carriage parent) - matching
+this ecosystem's own formal `lumenpnp_juanenpnp.urdf` link-for-link.
+`render/viewport.py`'s per-link colors and `tests/verify_pick_and_place_
+panel.py`'s real kinematics assertions updated to match; new mesh files
+under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
+
 ## [0.4.3]
 
 - Docs-only: `docs/ROADMAP.md`'s own atomic-sync entry updated with a real

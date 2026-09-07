@@ -1,5 +1,5 @@
 LumenPnP v4 mesh files (base.stl, y_carriage.stl, x_carriage.stl,
-z_carriage_n1.stl, z_carriage_n2.stl)
+z_carriage_left.stl, z_carriage_right.stl, nozzle_left.stl, nozzle_right.stl)
 
 Source: https://github.com/opulo-inc/lumenpnp
 Path:   pnp/cad/assembly.FCStd (and the linked FreeCAD sub-documents it
@@ -12,26 +12,39 @@ these are pure geometry exports, no branding/marks embedded.
 
 Copied verbatim from HYDRA-UMC-STUDIO's own public/models/lumenpnp/ -
 see that project's own ATTRIBUTION.txt (same folder) for the full real
-story of how these 5 files were generated (LumenPnP ships no STL and has
+story of how these 7 files were generated (LumenPnP ships no STL and has
 no native FreeCAD Assembly::/Joint objects at all, so they were produced
 by opening the real assembly.FCStd headless and re-grouping ~700 real CAD
-parts into 5 rigid-body merges matching the machine's own real kinematic
+parts into 7 rigid-body merges matching the machine's own real kinematic
 structure - determined by reading each leaf part's own real bounding
 box, not guessed) and the real triangle-budget tradeoffs that shape
-(base ~32.6K / y_carriage ~23.9K / x_carriage ~19.2K / z_carriage_n1+n2
-~5.5K each - a recognizable silhouette, not a bolt-for-bolt replica).
+(base ~32.6K / y_carriage ~23.9K / x_carriage ~19.2K / z_carriage_left
+~15.2K / z_carriage_right ~13.8K / nozzle_left+right ~7.9K each - a
+recognizable silhouette, not a bolt-for-bolt replica).
+
+Real bug fixed 2026-09-08, same fix ported from HYDRA-UMC-STUDIO's own
+LumenPnPRig.tsx/ATTRIBUTION.txt: the original cut merged each Z-carriage
+housing with its own nozzle into ONE rigid body per side (z_carriage_n1/
+n2) - a real visible error, since the housing's own real footprint at
+that joint is ~44x51mm (measured off the per-part CAD bounding box), so
+render/pnp_rig.py's pnp_world_link_transforms() rotated the whole
+rectangular slider block around Z along with the nozzle, which the real
+machine never does (only the ~10x10mm nozzle barrel itself spins). Split
+into z_carriage_left/right (translate only) + nozzle_left/right (rotate
+only, same joint origin as their z_carriage parent) - matching this
+project's own formal lumenpnp_juanenpnp.urdf link-for-link.
 
 UNLIKE HYDRA-UMC-STUDIO's own LumenPnPRig.tsx, which loads a separate
-pre-merged/indexed .glb export of these same 5 parts (needed there only
-because 5 synchronous Three.js mergeVertices() calls landing in the same
-React commit, right as 5 concurrent browser fetches resolved together,
-blocked the main thread long enough to trip a real WebGL context-lost
-watchdog - verified via headless Chromium against the live dev server),
-this app's own render/mesh.py loads these raw .stl files directly, same
-as every other robot mesh in this folder - a desktop PyOpenGL app has no
-browser main-thread/Suspense-concurrency equivalent to trigger that same
-failure, so the .glb-only workaround doesn't apply here; no .glb of these
-was generated for or is used by this repository.
+pre-merged/indexed .glb export of these same parts (needed there only
+because several synchronous Three.js mergeVertices() calls landing in the
+same React commit, right as several concurrent browser fetches resolved
+together, blocked the main thread long enough to trip a real WebGL
+context-lost watchdog - verified via headless Chromium against the live
+dev server), this app's own render/mesh.py loads these raw .stl files
+directly, same as every other robot mesh in this folder - a desktop
+PyOpenGL app has no browser main-thread/Suspense-concurrency equivalent
+to trigger that same failure, so the .glb-only workaround doesn't apply
+here; no .glb of these was generated for or is used by this repository.
 
 Real axis travel limits (render/pnp_rig.py's own X/Y/Z ranges, matching
 ui/panels/pick_and_place_panel.py's own PNP_AXES bounds) come from the
