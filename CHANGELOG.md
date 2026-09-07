@@ -14,6 +14,19 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.4.3]
+
+- Docs-only: `docs/ROADMAP.md`'s own atomic-sync entry updated with a real
+  clarification from the owner - the robot's own 2 generic valves/pumps
+  (`RobotView.valves`/`.pumps`) and a tool-attachment module's own
+  `pumpActive`/`valveActive` (e.g. VacuumTablePanel's) really are two
+  separate physical concepts, not a naming accident: a robot's own head/
+  tool can need one or several valves/pumps depending on which real tool
+  is attached, and a robot's own table can independently carry something
+  that needs one too (e.g. a vacuum table on top of the XY table). Fixed
+  at exactly 2 is itself a known, un-redesigned simplification - noted
+  honestly rather than silently assumed correct.
+
 ## [0.4.2]
 
 - **Atomic per-command sync extended to play/pause/stop/tool/valve/pump**
