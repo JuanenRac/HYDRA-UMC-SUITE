@@ -1,0 +1,398 @@
+# =============================================================================
+# HYDRA-UMC SUITE - ui/panels/robot_control.py
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0 - see LICENSE
+#
+# Robot selection + jog control - the desktop counterpart to
+# HYDRA-UMC-STUDIO's own RobotDetail.tsx jog panel: a rotary knob + slider
+# per joint (matching that component's own RotaryKnob+FuturisticSlider
+# pairing), speed/acceleration controls. Every real-time control here
+# (joint jog, speed, acceleration) fires the atomic, debounced
+# /api/robot/:id/command path (net/client.py's own send_command()) -
+# never push_state()'s own full-tree read-modify-write, which a
+# continuously-dragged knob/slider would otherwise call once per mouse
+# event.
+# =============================================================================
+from __future__ import annotations
+
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
+)
+
+from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
+from hydra_suite.models import HydraState, JOINT_NAMES, RobotView
+from hydra_suite.ui.panels.atc_tools_panel import URTC_TOOLS
+from hydra_suite.ui.widgets.rotary_knob import RotaryKnob
+
+TOGGLE_CHECKED_STYLE = "QPushButton:checked { background-color: #0ea5e9; color: white; font-weight: 600; }"
+
+JOINT_RANGE_DEG = (-180.0, 180.0)
+SLIDER_SCALE = 10  # QSlider only does integers - 0.1deg resolution
+
+
+class JointRow(QWidget):
+    changed = Signal(str, float)  # joint name, new value
+
+    def __init__(self, joint_name: str, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.joint_name = joint_name
+        self._updating = False
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        label = QLabel(joint_name.upper())
+        label.setFixedWidth(28)
+        label.setStyleSheet("color: #7f8ea1; font-weight: 600;")
+        layout.addWidget(label)
+
+        self.knob = RotaryKnob(*JOINT_RANGE_DEG)
+        self.knob.setFixedSize(48, 48)
+        layout.addWidget(self.knob)
+
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setRange(int(JOINT_RANGE_DEG[0] * SLIDER_SCALE), int(JOINT_RANGE_DEG[1] * SLIDER_SCALE))
+        layout.addWidget(self.slider, 1)
+
+        self.value_label = QLabel("0.0°")
+        self.value_label.setFixedWidth(50)
+        layout.addWidget(self.value_label)
+
+        self.knob.valueChanged.connect(self._on_knob_changed)
+        self.slider.valueChanged.connect(self._on_slider_changed)
+
+    def set_value(self, value: float) -> None:
+        self._updating = True
+        self.knob.setValue(value)
+        self.slider.setValue(int(value * SLIDER_SCALE))
+        self.value_label.setText(f"{value:.1f}°")
+        self._updating = False
+
+    def _on_knob_changed(self, value: float) -> None:
+        if self._updating:
+            return
+        self.set_value(value)
+        self.changed.emit(self.joint_name, value)
+
+    def _on_slider_changed(self, raw: int) -> None:
+        if self._updating:
+            return
+        value = raw / SLIDER_SCALE
+        self.set_value(value)
+        self.changed.emit(self.joint_name, value)
+
+
+class RobotControlPanel(QWidget):
+    robot_selected = Signal(object)  # RobotView | None - other panels (viewport) listen to this
+
+    def __init__(self, controller: SuiteController, parent: QWidget | None = None):
+        super().__init__(parent)
+        self._controller = controller
+        self._current_robot: RobotView | None = None
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        heading = QLabel(_("HEADING_ROBOT_CONTROL"))
+        heading.setObjectName("panelHeading")
+        layout.addWidget(heading)
+
+        self._robot_combo = QComboBox()
+        self._robot_combo.currentIndexChanged.connect(self._on_robot_combo_changed)
+        layout.addWidget(self._robot_combo)
+
+        joints_box = QGroupBox(_("GROUP_JOINTS"))
+        joints_layout = QVBoxLayout(joints_box)
+        self._joint_rows: dict[str, JointRow] = {}
+        for name in JOINT_NAMES:
+            row = JointRow(name)
+            row.changed.connect(self._on_joint_changed)
+            joints_layout.addWidget(row)
+            self._joint_rows[name] = row
+        layout.addWidget(joints_box)
+
+        speed_box = QGroupBox(_("GROUP_PLAYBACK"))
+        speed_box_layout = QVBoxLayout(speed_box)
+
+        # Play/Pause/Stop - the atomic 'play'/'pause'/'stop' commands
+        # server.ts already exposes (same real gap class as jog/speed
+        # above: this app never sent them at all before, not just via a
+        # slower full-tree write). Replays this robot's own
+        # `recordedPoints` (recorded from ANY client in the swarm, e.g.
+        # STUDIO/Android/Watch - this app has no recorder of its own for
+        # that server-synced field, only its own separate local
+        # trajectory_panel.py list), same V0 server-side playback engine
+        # every other client already relies on - this app never drives
+        # motion itself, exactly like the jog knob above.
+        transport_row = QHBoxLayout()
+        self._play_btn = QPushButton(_("BTN_PLAYBACK_PLAY"))
+        self._play_btn.clicked.connect(self._on_play_clicked)
+        transport_row.addWidget(self._play_btn)
+        self._pause_btn = QPushButton(_("BTN_PLAYBACK_PAUSE"))
+        self._pause_btn.clicked.connect(self._on_pause_clicked)
+        transport_row.addWidget(self._pause_btn)
+        self._stop_btn = QPushButton(_("BTN_PLAYBACK_STOP"))
+        self._stop_btn.clicked.connect(self._on_stop_clicked)
+        transport_row.addWidget(self._stop_btn)
+        speed_box_layout.addLayout(transport_row)
+
+        speed_layout = QGridLayout()
+        speed_layout.addWidget(QLabel(_("LBL_SPEED")), 0, 0)
+        self._speed_slider = QSlider(Qt.Orientation.Horizontal)
+        self._speed_slider.setRange(1, 200)
+        self._speed_slider.valueChanged.connect(self._on_speed_changed)
+        speed_layout.addWidget(self._speed_slider, 0, 1)
+        self._speed_label = QLabel("100%")
+        speed_layout.addWidget(self._speed_label, 0, 2)
+
+        speed_layout.addWidget(QLabel(_("LBL_ACCELERATION")), 1, 0)
+        self._accel_slider = QSlider(Qt.Orientation.Horizontal)
+        self._accel_slider.setRange(1, 200)
+        self._accel_slider.valueChanged.connect(self._on_accel_changed)
+        speed_layout.addWidget(self._accel_slider, 1, 1)
+        self._accel_label = QLabel("100%")
+        speed_layout.addWidget(self._accel_label, 1, 2)
+        speed_box_layout.addLayout(speed_layout)
+        layout.addWidget(speed_box)
+
+        # Tool + the robot's own 2 generic valves/pumps (RobotDetail.tsx's
+        # manual-control I/O tab) - NOT a tool-attachment module's own
+        # pump/valve (e.g. VacuumTablePanel's), a genuinely separate field
+        # keyed by robot instead of by module. See models.py's own
+        # RobotView.valves/pumps for the full distinction.
+        tool_box = QGroupBox(_("GROUP_TOOL_ACCESSORIES"))
+        tool_layout = QVBoxLayout(tool_box)
+
+        tool_row = QHBoxLayout()
+        tool_row.addWidget(QLabel(_("LBL_URTC_TOOL")))
+        self._tool_combo = QComboBox()
+        self._tool_combo.addItems(list(URTC_TOOLS))
+        self._tool_combo.currentTextChanged.connect(self._on_tool_changed)
+        tool_row.addWidget(self._tool_combo, 1)
+        tool_layout.addLayout(tool_row)
+
+        valves_row = QHBoxLayout()
+        self._valve_btns: list[QPushButton] = []
+        for index, label_key in enumerate(("LBL_VALVE_1", "LBL_VALVE_2")):
+            btn = QPushButton(_(label_key))
+            btn.setCheckable(True)
+            btn.setStyleSheet(TOGGLE_CHECKED_STYLE)
+            btn.toggled.connect(lambda checked, i=index: self._on_valve_toggled(i, checked))
+            valves_row.addWidget(btn)
+            self._valve_btns.append(btn)
+        tool_layout.addLayout(valves_row)
+
+        pumps_row = QHBoxLayout()
+        self._pump_btns: list[QPushButton] = []
+        for index, label_key in enumerate(("LBL_PUMP_1", "LBL_PUMP_2")):
+            btn = QPushButton(_(label_key))
+            btn.setCheckable(True)
+            btn.setStyleSheet(TOGGLE_CHECKED_STYLE)
+            btn.toggled.connect(lambda checked, i=index: self._on_pump_toggled(i, checked))
+            pumps_row.addWidget(btn)
+            self._pump_btns.append(btn)
+        tool_layout.addLayout(pumps_row)
+
+        layout.addWidget(tool_box)
+
+        layout.addStretch(1)
+
+        controller.active_state_changed.connect(self._on_state_changed)
+
+    def _on_state_changed(self, state: HydraState) -> None:
+        active = state.active_controller
+        robots = active.robots if active is not None else []
+
+        previously_selected_id = self._current_robot.id if self._current_robot else None
+        self._robot_combo.blockSignals(True)
+        self._robot_combo.clear()
+        for r in robots:
+            self._robot_combo.addItem(f"{r.id} — {r.model}", r.id)
+        restore_index = 0
+        if previously_selected_id is not None:
+            for i in range(self._robot_combo.count()):
+                if self._robot_combo.itemData(i) == previously_selected_id:
+                    restore_index = i
+                    break
+        if robots:
+            self._robot_combo.setCurrentIndex(restore_index)
+        self._robot_combo.blockSignals(False)
+
+        self._current_robot = robots[restore_index] if robots else None
+        self._refresh_controls()
+        self.robot_selected.emit(self._current_robot)
+
+    def _on_robot_combo_changed(self, index: int) -> None:
+        active = self._controller.active_state.active_controller if self._controller.active_state else None
+        robots = active.robots if active is not None else []
+        self._current_robot = robots[index] if 0 <= index < len(robots) else None
+        self._refresh_controls()
+        self.robot_selected.emit(self._current_robot)
+
+    def _refresh_controls(self) -> None:
+        robot = self._current_robot
+        for name, row in self._joint_rows.items():
+            row.blockSignals(True)
+            row.set_value(robot.joints[name] if robot else 0.0)
+            row.blockSignals(False)
+        self._speed_slider.blockSignals(True)
+        self._accel_slider.blockSignals(True)
+        self._speed_slider.setValue(int(robot.speed) if robot else 100)
+        self._accel_slider.setValue(int(robot.acceleration) if robot else 100)
+        self._speed_label.setText(f"{self._speed_slider.value()}%")
+        self._accel_label.setText(f"{self._accel_slider.value()}%")
+        self._speed_slider.blockSignals(False)
+        self._accel_slider.blockSignals(False)
+        enabled = robot is not None
+        for row in self._joint_rows.values():
+            row.setEnabled(enabled)
+        self._speed_slider.setEnabled(enabled)
+        self._accel_slider.setEnabled(enabled)
+
+        is_playing = robot.is_playing if robot else False
+        # Play only makes sense with something real to replay - same
+        # `recordedPoints.length === 0` guard RobotDetail.tsx's own
+        # handlePlay() applies before ever sending the atomic command.
+        self._play_btn.setEnabled(enabled and not is_playing and (robot.recorded_point_count > 0 if robot else False))
+        self._pause_btn.setEnabled(enabled and is_playing)
+        self._pause_btn.setText(_("BTN_PLAYBACK_CONTINUE") if (robot and robot.is_paused) else _("BTN_PLAYBACK_PAUSE"))
+        self._stop_btn.setEnabled(enabled and is_playing)
+
+        self._tool_combo.blockSignals(True)
+        self._tool_combo.setCurrentText(robot.tool if robot else "None")
+        self._tool_combo.blockSignals(False)
+        self._tool_combo.setEnabled(enabled)
+
+        valves = robot.valves if robot else [False, False]
+        pumps = robot.pumps if robot else [False, False]
+        for btn, state in zip(self._valve_btns, valves):
+            btn.blockSignals(True)
+            btn.setChecked(state)
+            btn.blockSignals(False)
+            btn.setEnabled(enabled)
+        for btn, state in zip(self._pump_btns, pumps):
+            btn.blockSignals(True)
+            btn.setChecked(state)
+            btn.blockSignals(False)
+            btn.setEnabled(enabled)
+
+    def _on_joint_changed(self, joint_name: str, value: float) -> None:
+        if self._current_robot is None:
+            return
+        robot = self._current_robot
+        # Atomic 'jog' command instead of mutating state + a full-tree
+        # push_active_state() - same real gap class as the speed/
+        # acceleration sliders below (DISEÑO_SYNC_DELTAS.txt CAUSA A),
+        # just never fixed for the joint knob/slider until now. Sends the
+        # real joints override contract server.ts's own "jog" case
+        # accepts (axis:'x'/amount:0/target:'robot' + an explicit 6-joint
+        # override) - the same mechanism HYDRA-UMC-STUDIO's
+        # handleJ1Jog()/HYDRA-UMC-ANDROID-CONTROL's jogJ1() already use
+        # for a single-joint absolute set. Built from robot.joints (which
+        # already reflects every earlier local mutation in this drag, one
+        # joint at a time) with just this one axis overridden, so a later
+        # call's full snapshot always supersedes an earlier one - safe to
+        # debounce (below) without losing an intermediate joint's value.
+        new_joints = dict(robot.joints)
+        new_joints[joint_name] = value
+
+        def local_mutate(r: RobotView, joints=new_joints) -> None:
+            for name, joint_value in joints.items():
+                r.set_joint(name, joint_value)
+
+        # Debounced (50ms) - RotaryKnob.mouseMoveEvent()/QSlider.valueChanged
+        # both emit continuously during a drag, unlike a discrete jog
+        # button click; short enough to feel immediate, long enough to
+        # collapse a fast drag's burst into a handful of real POSTs
+        # instead of one per pixel of mouse movement.
+        self._controller.send_robot_command(
+            robot.id, "jog",
+            {"axis": "x", "amount": 0, "target": "robot", "joints": new_joints},
+            local_mutate,
+            debounce_ms=50,
+        )
+
+    def _on_speed_changed(self, value: int) -> None:
+        self._speed_label.setText(f"{value}%")
+        if self._current_robot is None:
+            return
+        # Atomic 'speed' command instead of mutating state + a full-tree
+        # push_active_state() - see net/client.py's own send_command()
+        # comment / DISEÑO_SYNC_DELTAS.txt CAUSA A. local_mutate gives
+        # instant optimistic feedback (rolled back if the request fails);
+        # every other client's state updates via the WS delta round-trip,
+        # same as before. Debounced (300ms, matching
+        # HYDRA-UMC-ANDROID-CONTROL's own setSpeed()) - QSlider.valueChanged
+        # fires on every step during a drag, not just on release.
+        self._controller.send_robot_command(
+            self._current_robot.id, "speed", {"speed": value}, lambda r: r.set_speed(value), debounce_ms=300
+        )
+
+    def _on_accel_changed(self, value: int) -> None:
+        self._accel_label.setText(f"{value}%")
+        if self._current_robot is None:
+            return
+        self._controller.send_robot_command(
+            self._current_robot.id, "speed", {"acceleration": value}, lambda r: r.set_acceleration(value), debounce_ms=300
+        )
+
+    def _on_play_clicked(self) -> None:
+        if self._current_robot is None:
+            return
+        # No params, matching server.ts's own 'play' case and
+        # RobotDetail.tsx's handlePlay() - the server's V0 playback engine
+        # replays this robot's own recordedPoints on its own, this app
+        # never drives the motion itself. No explicit _refresh_controls()
+        # call here - local_mutate runs inside send_command() itself
+        # (before the network round-trip even starts) and emits
+        # state_changed there, which _on_state_changed() above already
+        # turns back into a _refresh_controls() call reactively, same as
+        # every other client's own state ever arriving reactively. Calling
+        # it synchronously right here would read stale data - local_mutate
+        # hasn't run yet at this exact point, since send_robot_command()
+        # only schedules the coroutine (asyncio.ensure_future), it doesn't
+        # run any of it inline.
+        self._controller.send_robot_command(self._current_robot.id, "play", None, lambda r: r.start_playing())
+
+    def _on_pause_clicked(self) -> None:
+        if self._current_robot is None:
+            return
+        new_paused = not self._current_robot.is_paused
+        self._controller.send_robot_command(
+            self._current_robot.id, "pause", {"paused": new_paused}, lambda r: r.set_paused(new_paused)
+        )
+
+    def _on_stop_clicked(self) -> None:
+        if self._current_robot is None:
+            return
+        self._controller.send_robot_command(self._current_robot.id, "stop", None, lambda r: r.stop_playing())
+
+    def _on_tool_changed(self, value: str) -> None:
+        if self._current_robot is None:
+            return
+        self._controller.send_robot_command(self._current_robot.id, "tool", {"tool": value}, lambda r: r.set_tool(value))
+
+    def _on_valve_toggled(self, index: int, checked: bool) -> None:
+        if self._current_robot is None:
+            return
+        self._controller.send_robot_command(
+            self._current_robot.id, "valve", {"index": index, "state": checked}, lambda r: r.set_valve(index, checked)
+        )
+
+    def _on_pump_toggled(self, index: int, checked: bool) -> None:
+        if self._current_robot is None:
+            return
+        self._controller.send_robot_command(
+            self._current_robot.id, "pump", {"index": index, "state": checked}, lambda r: r.set_pump(index, checked)
+        )

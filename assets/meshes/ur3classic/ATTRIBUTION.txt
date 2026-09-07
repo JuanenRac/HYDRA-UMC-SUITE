@@ -1,0 +1,9 @@
+Universal Robots UR3 (classic, pre-e-Series) mesh files - same source/
+license/reasoning as public/models/ur5classic/ATTRIBUTION.txt, just
+ur_description/meshes/ur3/collision/ and ur_description/urdf/
+ur3.urdf.xacro's own DH parameters (d1=0.1519, a2=-0.24365,
+a3=-0.21325, d4=0.11235, d5=0.08535, d6=0.0819,
+shoulder_offset=0.1198, elbow_offset=-0.0925).
+
+Same quaternion-family FK engine as UR5 classic - see
+src/examples/ur3ClassicKinematics.ts.

@@ -1,0 +1,20 @@
+AR4 mesh files (base_link.STL, link_1.STL - link_6.STL)
+
+Source: https://github.com/Annin-Robotics/ar4_ros_driver
+Path:   annin_ar4_description/meshes/ar4_mk3/
+License: MIT License, per that repository's own LICENSE file. Official
+Annin Robotics repository (unlike AR3, which has no official upstream repo
+- see public/models/ar3/ATTRIBUTION.txt).
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's AR4Arm.tsx
+3D view. The "mk3" hardware revision was chosen (matching the joint limits
+in annin_ar4_description/config/mk3.yaml, whose own mesh_dir points at
+this same folder) - this simple one-mesh-per-link set, not the more
+detailed multi-part (separate aluminum/motor/cover/logo STL per link) set
+ar_macro.xacro's default visual macro references, which would need several
+meshes composited per link instead of one.
+
+Joint kinematic chain (origin xyz/rpy, axis) comes from
+annin_ar4_description/urdf/ar_macro.xacro directly - those numbers are
+shared across all AR4 hardware revisions (mk1-mk5), only the mesh files
+and joint limits differ per revision.

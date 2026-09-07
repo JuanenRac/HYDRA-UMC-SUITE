@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "ecosystem": "HYDRA-UMC",
+  "name": "HYDRA-UMC-SUITE",
+  "version": "0.4.2",
+  "role": "ui",
+  "stack": "python",
+  "technologies": [
+    "Python 3.12",
+    "PySide6"
+  ],
+  "deployment_target": "user-pc",
+  "maturity": "established",
+  "family": "Core Backend & Clients",
+  "parent": "HYDRA-UMC-SERVER",
+  "build": "No pyproject.toml. __init__.py's __version__ is the real source. Packaged as standalone .exe using build_exe.bat/.sh.",
+  "notes": "Desktop swarm command center, packaged as a standalone executable. Real server discovery (net/discovery.py): concurrent subnet /24 scan plus real mDNS (_hydra._tcp, matching what server.ts publishes and HYDRA-UMC-IOS-CONTROL already queries), deduplicated by (host, port). Every real-time robot control (joint jog, speed, acceleration) now fires the atomic, debounced /api/robot/:id/command path (net/client.py's HydraConnection.send_command(), debounce_ms) instead of the full-tree push_state() a continuously-dragged knob/slider used to call once per mouse event. tests/verify_discovery.py and tests/verify_send_command_debounce.py give the pure logic real, deterministic, no-network coverage (this repo has no pytest suite - verify_*.py scripts are its own real testing convention). tools/run_offline_verifiers.py now runs all 21 of them headlessly (QT_QPA_PLATFORM=offscreen), wired into both tools/build_test.py and this repository's own CI workflow (REV-019) - a broken control no longer reaches main with a green CI.",
+  "native_version": {
+    "file": "hydra_suite/__init__.py",
+    "pattern": "__version__\\s*=\\s*\"(\\d+)\\.(\\d+)\\.(\\d+)\""
+  }
+}

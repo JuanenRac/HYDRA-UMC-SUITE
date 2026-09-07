@@ -1,0 +1,9 @@
+Universal Robots UR10 (classic, pre-e-Series) mesh files - same source/
+license/reasoning as public/models/ur5classic/ATTRIBUTION.txt, just
+ur_description/meshes/ur10/collision/ and ur_description/urdf/
+ur10.urdf.xacro's own DH parameters (d1=0.1273, a2=-0.612, a3=-0.5723,
+d4=0.163941, d5=0.1157, d6=0.0922, shoulder_offset=0.220941,
+elbow_offset=-0.1719).
+
+Same quaternion-family FK engine as UR5 classic - see
+src/examples/ur10ClassicKinematics.ts.

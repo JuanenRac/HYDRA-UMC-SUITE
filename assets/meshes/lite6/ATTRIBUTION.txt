@@ -1,0 +1,18 @@
+Lite 6 mesh files (base.stl, link1.stl, link2.stl, link3.stl, link4.stl,
+link5.stl, link6.stl)
+
+Source: https://github.com/xArm-Developer/xarm_ros2
+Path:   xarm_description/meshes/lite6/visual/
+License: BSD-3-Clause, per that repository's own LICENSE file. Official
+UFACTORY repository.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's Lite6Arm.tsx
+3D view.
+
+Joint kinematic chain (origin xyz/rpy, axis) comes from that repository's
+own xarm_description/urdf/lite6/lite6.urdf.xacro directly - see
+src/examples/lite6Kinematics.ts for where those exact numbers were
+transcribed to. Every Lite 6 joint rotates about its own local Z axis
+(the xacro's own <axis xyz="0 0 1"/>, no exceptions, same convention as
+the UR family), so the FK/IK engine is shared with the UR models - see
+src/examples/urKinematicsShared.ts's own header comment.

@@ -1,0 +1,20 @@
+e.DO mesh files (base_link.STL, link_1.STL, link_2.STL, link_3.STL,
+link_4.STL, link_5.STL, link_6.STL)
+
+Source: https://github.com/ianathompson/eDO_description
+Path:   meshes/
+License: BSD-3-Clause, Copyright (c) 2018 Comau S.p.A, per that
+repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's EdoArm.tsx
+3D view.
+
+Joint kinematic chain (origin xyz/rpy, axis) comes from that repository's
+own robots/edo_sim.urdf directly - see src/examples/edoKinematics.ts for
+where those exact numbers were transcribed to. Unlike the UR family, e.DO's
+joints do NOT all rotate about a shared local axis - each <axis> in the
+source URDF is genuinely arbitrary (e.g. joint_2's own axis is
+(-0.88847, 0.2908, 0.35504), not a cardinal direction) - so this robot
+uses the same "quaternion family" FK engine as Parol6/Faze4/AR3/AR4 (see
+src/examples/parol6Kinematics.ts's own header for why that engine exists),
+not the UR family's shared-Z-axis engine.

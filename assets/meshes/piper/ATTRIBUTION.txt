@@ -1,0 +1,27 @@
+AgileX PiPER mesh files (base_link.STL, link1.STL, link2.STL, link3.STL,
+link4.STL, link5.STL, link6.STL)
+
+Source: https://github.com/renesas-rdk/agilex_piper_arm_description
+Path:   meshes/ (fetched via media.githubusercontent.com - this repo
+        stores its mesh files with Git LFS, so a plain raw.githubusercontent.com
+        fetch returns an LFS pointer file, not the real binary content)
+License: Apache-2.0, per that repository's own package.xml
+<license>Apache-2.0</license> tag (no separate top-level LICENSE file
+exists in that repo, but the license is explicitly declared there).
+That repository's own README states it is derived from AgileX Robotics'
+official https://github.com/agilexrobotics/piper_ros (MIT).
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+PiperArm.tsx 3D view. NOTE: an earlier attempt used mujoco_menagerie's
+own agilex_piper folder, which ships this same robot as .obj meshes
+split into dozens of sub-parts per link (e.g. link2_0.obj through
+link2_26.obj+) - neither the format nor that per-link structure fit this
+project's "one .stl file per link" mesh pipeline, so this single-file-
+per-link .STL source was used instead.
+
+Joint kinematic chain (origin xyz/rpy, axis "0 0 1" on every joint) comes
+from that repository's own urdf/reference/agilex_piper_arm_ref.urdf
+directly - see src/examples/piperKinematics.ts for where those exact
+numbers were transcribed to. Every joint rotates about local Z once its
+own <origin rpy> is applied, the same convention the UR family shares,
+so this reuses urKinematicsShared.ts's engine.
