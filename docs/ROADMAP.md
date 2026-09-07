@@ -161,9 +161,20 @@ just moves where it breaks.
   (`RobotView.valves`/`.pumps`, the manual-control I/O tab) - a
   genuinely separate field from a tool-attachment module's own
   `pumpActive`/`valveActive` (e.g. VacuumTablePanel's), which still
-  writes via `push_active_state()` and is not part of this item. Real
-  coverage: `tests/verify_robot_control_panel.py` (a real
-  `HydraConnection` with `httpx.AsyncClient.post` monkeypatched,
+  writes via `push_active_state()` and is not part of this item.
+  Confirmed with the owner (2026-09-07): these really are two separate
+  real concepts, not a naming accident - a robot's own head/tool can
+  need one or several valves/pumps depending on which real tool is
+  attached, and a robot's own table can independently carry (or not)
+  something that needs one too, like a vacuum table sitting on top of
+  the XY table. `RobotView.valves`/`.pumps` being fixed at exactly 2
+  is itself a real, known simplification of "however many the actual
+  attached head needs" - not redesigned here; a real per-tool-head
+  valve/pump count (server.ts's own `robot.valves[]`/`robot.pumps[]`
+  arrays included, not just this app) is separate, larger, unscoped
+  work for whenever a real head that needs more than 2 shows up. Real
+  coverage of what IS built today: `tests/verify_robot_control_panel.py`
+  (a real `HydraConnection` with `httpx.AsyncClient.post` monkeypatched,
   asserting the exact command name and params each control sends).
   "Enable"/"disable" from earlier drafts of this item was never really
   an atomic-endpoint concept - server.ts has no such case; every
