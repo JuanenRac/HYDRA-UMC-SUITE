@@ -1,0 +1,30 @@
+SO-ARM100 mesh files (Base.stl, Rotation_Pitch.stl, Upper_Arm.stl,
+Lower_Arm.stl, Wrist_Pitch_Roll.stl, Fixed_Jaw.stl)
+
+Source: https://github.com/TheRobotStudio/SO-ARM100
+Path:   Simulation/SO100/assets/
+License: Apache License 2.0, per that repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+SoArm100Arm.tsx 3D view. Each real link's own URDF declares TWO <visual>
+meshes (a body part + a matching "_Motor" part, e.g. Base.stl +
+Base_Motor.stl) - only the primary body mesh is used here, the same
+scope boundary this project already applies to gripper/finger detail on
+other robots (see Toolhead.tsx).
+
+IMPORTANT - this robot is 5-DOF for positioning, not 6: the source URDF
+(Simulation/SO100/so100.urdf) has 5 real arm joints (shoulder_pan,
+shoulder_lift, elbow_flex, wrist_flex, wrist_roll) plus a 6th joint that
+is the GRIPPER JAW (open/close), not a wrist orientation axis - unlike
+every other robot in this project's own j1..j6 convention. j6 is left
+unused here rather than repurposed as a gripper control, to avoid a
+silent one-off redefinition of what j6 means for just this robot; the
+jaw's own open/close motion is out of scope, same as other robots'
+gripper actuation.
+
+Joint kinematic chain (origin xyz/rpy, axis) comes from that repository's
+own Simulation/SO100/so100.urdf directly - see
+src/examples/soArm100Kinematics.ts for where those exact numbers were
+transcribed to. Uses the same "quaternion family" FK engine as Parol6/
+Faze4/AR3/AR4/e.DO/M-710iC (arbitrary per-joint axes), truncated to 5
+real joints instead of 6.

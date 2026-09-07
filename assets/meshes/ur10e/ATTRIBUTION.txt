@@ -1,0 +1,28 @@
+UR10e mesh files (base.stl, shoulder.stl, upperarm.stl, forearm.stl,
+wrist1.stl, wrist2.stl, wrist3.stl)
+
+Source: https://github.com/UniversalRobots/Universal_Robots_ROS2_Description
+Path:   meshes/ur10e/collision/
+License: BSD-3-Clause, per that repository's own LICENSE file. Official
+Universal Robots repository.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+UR10eArm.tsx 3D view. The COLLISION mesh set was used (not the higher-poly
+VISUAL .dae set in the same repo, meshes/ur10e/visual/) to keep bundle
+size down - same STLLoader-based loading pipeline every other robot in
+this folder already uses, so no new mesh format/loader was introduced.
+
+Also the SOURCE of public/models/ur16e/'s own base.stl, shoulder.stl,
+wrist1.stl, wrist2.stl, wrist3.stl (UR16e's own visual_parameters.yaml
+explicitly reuses these UR10e files verbatim - "UR16e uses the same parts
+as UR10e except the upper and lower arm are shortened" - see that
+folder's own ATTRIBUTION.txt).
+
+Joint kinematic chain (origin xyz/rpy) and per-link mesh_offset come from
+that repository's own config/ur10e/default_kinematics.yaml and
+config/ur10e/visual_parameters.yaml directly - see
+src/examples/ur10eKinematics.ts for where those exact numbers were
+transcribed to. Every UR e-Series joint rotates about its own local Z axis
+(ur_macro.xacro's own <axis xyz="0 0 1"/>, no exceptions), so the FK/IK
+engine is shared with every other UR model in this project - see
+src/examples/urKinematicsShared.ts's own header comment.

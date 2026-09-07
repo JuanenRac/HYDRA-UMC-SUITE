@@ -1,0 +1,30 @@
+Universal Robots UR5 (classic, pre-e-Series) mesh files (base.stl,
+shoulder.stl, upperarm.stl, forearm.stl, wrist1.stl, wrist2.stl,
+wrist3.stl)
+
+Source: https://github.com/ros-industrial/universal_robot
+Path:   ur_description/meshes/ur5/collision/
+License: BSD-3-Clause, per that package's own LICENSE file
+(ur_description/LICENSE) and package.xml <license>BSD</license> tag.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+Ur5ClassicArm.tsx 3D view. The COLLISION mesh set was used (not the
+higher-poly VISUAL .dae set in the same repo, meshes/ur5/visual/) to
+keep bundle size down - same reasoning UR5e's own ATTRIBUTION.txt
+already documents for the same tradeoff on the e-Series mesh set.
+
+IMPORTANT - unlike the e-Series (UR3e/5e/10e/16e/20), where every joint
+rotates about local Z (urKinematicsShared.ts's own shared engine), this
+CLASSIC generation's own DH-parameter-based URDF (ur_description/urdf/
+ur5.urdf.xacro) uses a MIX of axes per joint - shoulder_pan/wrist_2
+rotate about Z, but shoulder_lift/elbow/wrist_1/wrist_3 rotate about Y.
+This robot therefore uses the same "quaternion family" FK engine as
+Parol6/Faze4/AR3/AR4/e.DO/M-710iC/Z1/Koch, NOT the UR family's shared
+engine, despite being a Universal Robots product.
+
+Joint kinematic chain (origin xyz/rpy, axis) comes from that repository's
+own real DH parameters (d1=0.089159, a2=-0.42500, a3=-0.39225,
+d4=0.10915, d5=0.09465, d6=0.0823, shoulder_offset=0.13585,
+elbow_offset=-0.1197 for UR5 specifically) - see
+src/examples/ur5ClassicKinematics.ts for where those exact numbers were
+transcribed to.

@@ -1,0 +1,474 @@
+# HYDRA-UMC SUITE - fichier de langue français
+# CLÉ=Valeur, une par ligne. Les lignes commençant par # et les lignes
+# vides sont ignorées. Un \n littéral dans une valeur devient un vrai
+# retour à la ligne.
+
+MENU_FILE=&Fichier
+MENU_QUIT=Quitter
+MENU_VIEW=&Affichage
+MENU_HELP=Aid&e
+MENU_ABOUT=À propos de HYDRA-UMC SUITE
+MENU_LANGUAGE=&Langue
+TITLE_ABOUT=À propos de HYDRA-UMC SUITE
+ABOUT_TAGLINE=Centre de commande multi-contrôleurs pour la plateforme HYDRA-UMC.
+ABOUT_DESCRIPTION=Analysez le réseau local, connectez-vous à chaque contrôleur trouvé, et pilotez, surveillez et reconfigurez n'importe lequel d'entre eux en direct, côte à côte, depuis un tableau de bord industriel plein écran.
+ABOUT_VERSION=Version
+ABOUT_AUTHOR=Auteur
+ABOUT_EMAIL=E-mail
+ABOUT_LICENSE=Licence
+BTN_CLOSE=Fermer
+TITLE_RESTART_NEEDED=Redémarrage nécessaire
+MSG_RESTART_NEEDED=Langue modifiée - redémarrez HYDRA-UMC SUITE pour appliquer le changement.
+TITLE_COULDNT_SAVE=Échec de l'enregistrement
+MSG_LANGUAGE_NOT_SAVED=Impossible d'enregistrer la préférence de langue dans {path}.
+STATUS_READY=Prêt - scannez le réseau ou ajoutez un serveur HYDRA-UMC pour commencer.
+STATUS_ACTIVE_CONNECTION=État de la connexion active : {status}
+
+DOCK_SERVERS=Serveurs
+DOCK_OVERVIEW=Aperçu
+DOCK_VIEWPORT=Vue 3D
+DOCK_ROBOT_CONTROL=Contrôle du robot
+DOCK_TRAJECTORY=Trajectoire
+DOCK_LOGS=Journaux
+HEADING_LOGS=Journaux
+LBL_LOG_LEVEL=Niveau
+LOG_LEVEL_ALL=Tous
+LOG_SEARCH_PLACEHOLDER=Rechercher...
+BTN_CLEAR_LOGS=Effacer
+
+HEADING_SERVERS=SERVEURS HYDRA-UMC
+BTN_SCAN_NETWORK=Scanner le réseau
+PLACEHOLDER_HOST=IP ou nom d'hôte (fonctionne aussi via un tunnel VPN)
+BTN_ADD=Ajouter
+COL_SERVER=Serveur
+COL_HOST=Hôte
+COL_ROBOTS=Robots
+COL_STATUS=État
+BTN_REMOVE_SELECTED=Supprimer la sélection
+BTN_EDIT_CREDENTIALS=Modifier les identifiants
+BTN_SET_ACTIVE=Définir comme actif
+STATUS_SCANNING=Analyse du/des sous-réseau(x) local/locaux...
+STATUS_SCANNING_PROGRESS=Analyse en cours... {found} serveur(s) trouvé(s) jusqu'à présent
+STATUS_SCAN_COMPLETE=Analyse terminée - {found} serveur(s) trouvé(s)
+STATUS_SCAN_COMPLETE_NONE=Analyse terminée - aucun trouvé. Essayez 'Ajouter' avec une IP connue.
+TITLE_EDIT_CREDENTIALS=Modifier les identifiants du serveur
+LBL_USERNAME=Nom d'utilisateur
+LBL_PASSWORD=Mot de passe
+
+HEADING_OVERVIEW=APERÇU
+GROUP_ACTIVE_CONTROLLER=Contrôleur actif
+LBL_NAME=Nom
+LBL_IP=IP
+LBL_ROBOTS=Robots
+LBL_ONLINE=En ligne
+GROUP_SYSTEM_METRICS=Métriques Système
+LBL_CPU_LOAD=Charge CPU
+LBL_MEMORY=Mémoire
+LBL_TEMP=Température
+LBL_UPTIME=Temps de Fonctionnement
+COL_ROBOT=Robot
+COL_MODEL=Modèle
+COL_ROLE=Rôle
+COL_SPEED_ACCEL=Vitesse / Accélération
+STATUS_ONLINE=En ligne
+STATUS_OFFLINE=Hors ligne
+
+HEADING_ROBOT_CONTROL=CONTRÔLE DU ROBOT
+GROUP_JOINTS=Articulations
+GROUP_PLAYBACK=Lecture
+LBL_SPEED=Vitesse
+LBL_ACCELERATION=Accélération
+BTN_PLAYBACK_PLAY=Lecture
+BTN_PLAYBACK_PAUSE=Pause
+BTN_PLAYBACK_CONTINUE=Continuer
+BTN_PLAYBACK_STOP=Arrêter
+GROUP_TOOL_ACCESSORIES=Outil et accessoires
+LBL_URTC_TOOL=Outil URTC
+LBL_VALVE_1=Vanne 1
+LBL_VALVE_2=Vanne 2
+LBL_PUMP_1=Pompe 1
+LBL_PUMP_2=Pompe 2
+
+HEADING_TRAJECTORY=POINTS DE TRAJECTOIRE
+LBL_NO_ROBOT_SELECTED=Aucun robot sélectionné
+LBL_ROBOT_SELECTED=Robot : {id} ({model})
+COL_TIME=Heure
+BTN_RECORD_POSE=Enregistrer la pose actuelle
+BTN_JOG_TO_POINT=Déplacer le robot au point sélectionné
+BTN_DELETE_POINT=Supprimer le point
+
+HEADING_VIEWPORT=VUE 3D
+MSG_UNSUPPORTED_MODEL='{model}' n'a pas encore de maillage 3D/cinématique réelle dans HYDRA-UMC SUITE.\n\nSeul {models} est intégré dans cette version (les mêmes données STL réelles et de cinématique directe que l'interface web de HYDRA-UMC-STUDIO) - voir docs/ROADMAP.md pour l'étendre aux autres modèles.
+HINT_CONTROLS=Glisser bouton gauche : orbiter   •   Glisser bouton droit/central : déplacer   •   Molette : zoom
+
+TAB_CAMERAS=Caméras
+LBL_CAM=Cam
+STATUS_LIVE=EN DIRECT
+STATUS_NO_SIGNAL=AUCUN SIGNAL
+STATUS_CONNECTING=CONNEXION...
+BTN_TOGGLE_CONNECTION=Basculer la connexion
+LBL_ASSIGNED_ROBOT=Robot assigné
+OPT_NONE_FLOATING=Aucun (libre)
+LBL_SOURCE_TYPE=Type de source
+BTN_SOURCE_USB=USB
+BTN_SOURCE_IP=Caméra IP
+LBL_HARDWARE_SOURCE=Source matérielle
+LBL_IP_HOST=Hôte / Adresse IP
+LBL_RTSP_PORT=Port RTSP
+LBL_RTSP_PATH=Chemin RTSP
+LBL_IP_USERNAME=Nom d'utilisateur
+LBL_IP_PASSWORD=Mot de passe
+BTN_DISCOVER_USB=Découvrir les périphériques USB
+BTN_DISCOVER_RTSP=Découvrir le chemin
+BTN_PTZ_TOGGLE=Panoramique / Inclinaison / Zoom
+MSG_PTZ_FAILED=La commande PTZ a échoué
+LBL_DISCOVERING=Découverte en cours...
+MSG_USB_DISCOVERY_FAILED=Échec de la découverte des périphériques USB - impossible de joindre le serveur.
+MSG_NO_USB_DEVICES_FOUND=Aucun périphérique USB trouvé.
+MSG_RTSP_PATH_FOUND=Trouvé
+MSG_RTSP_PATH_NOT_FOUND=Aucun des chemins testés n'a répondu
+MSG_RTSP_DISCOVERY_FAILED=Échec de la découverte RTSP - impossible de joindre le serveur.
+STATUS_STREAM_RUNNING=EN DIRECT
+STATUS_STREAM_STARTING=DÉMARRAGE
+STATUS_STREAM_ERROR=ERREUR
+STATUS_STREAM_STOPPED=ARRÊTÉE
+
+STATUS_CONNECTED=Connecté
+STATUS_DISCONNECTED=Déconnecté
+STATUS_ERROR=Erreur
+STATUS_LOGIN_FAILED=Échec de connexion
+
+# Ecosystem/Admin panels - HYDRA-UMC menu (STUDIO parity)
+DOCK_ECOSYSTEM_SERVICES=Services de l'écosystème
+DOCK_ECOSYSTEM_TELEMETRY=Télémétrie de l'écosystème
+DOCK_ADMIN_CLIENTS=Apps connectées
+DOCK_ADMIN_LOGS=Logs du serveur
+DOCK_ADMIN_SERVER=Admin serveur
+HEADING_ECOSYSTEM_SERVICES=SERVICES DE L'ÉCOSYSTÈME
+BTN_REFRESH=Actualiser
+LBL_ES_NOT_LOADED=Pas encore chargé - cliquez sur Actualiser.
+LBL_ES_NO_ACTIVE_SERVER=Aucun serveur actif - ajoutez ou sélectionnez-en un dans Serveurs.
+LBL_ES_SCANNED_AT=Scanné à {time}
+MSG_ES_UNAVAILABLE=Ce serveur n'a trouvé aucun projet HYDRA-UMC-* voisin - rien à scanner.
+MSG_ES_LOAD_ERROR=Impossible de charger l'état de l'écosystème.
+MSG_ES_NO_CONTROL=Les contrôles Démarrer/Arrêter/Redémarrer (admin uniquement) apparaissent sur la carte de chaque projet déclarant service.systemd_unit - voir le README de HYDRA-UMC-SERVER pour la règle polkit à installer d'abord sur l'hôte.
+COL_ES_NAME=Nom
+COL_ES_ROLE=Rôle
+COL_ES_STACK=Stack
+COL_ES_FAMILY=Famille
+COL_ES_VERSION=Version
+COL_ES_MATURITY=Maturité
+COL_ES_PORT=Port
+STATUS_ES_LIVE=Actif
+STATUS_ES_DEAD=Arrêté
+STATUS_ES_NA=N/A
+HEADING_ECOSYSTEM_TELEMETRY=TÉLÉMÉTRIE DE L'ÉCOSYSTÈME
+LBL_TELEMETRY_MODE=Mode
+TELEMETRY_MODE_QUERY=Points bruts
+TELEMETRY_MODE_AGGREGATE=Agrégat
+LBL_TELEMETRY_SOURCE_ID=ID source
+LBL_TELEMETRY_KIND=Type
+LBL_TELEMETRY_FIELD=Champ
+LBL_TELEMETRY_START=Début (unix ms)
+LBL_TELEMETRY_END=Fin (unix ms)
+LBL_TELEMETRY_BUCKET_MS=Taille du bucket (ms)
+LBL_TELEMETRY_AGG=Fonction d'agrégation
+BTN_RUN_QUERY=Lancer la requête
+MSG_TELEMETRY_AGGREGATE_MISSING_FIELDS=Type, champ, début et fin sont requis pour une requête agrégée.
+MSG_TELEMETRY_LOAD_ERROR=Impossible de joindre le service de télémétrie.
+MSG_TELEMETRY_NOT_CONFIGURED=HYDRA-UMC-DATALAKE n'est pas encore configuré sur ce serveur.
+MSG_TELEMETRY_NO_DATA=Pas encore de données pour cette requête.
+COL_TELEMETRY_TIMESTAMP=Horodatage
+COL_TELEMETRY_VALUE=Valeur
+COL_TELEMETRY_BUCKET_START=Début du bucket
+COL_TELEMETRY_COUNT=Nombre
+MSG_ADMIN_ONLY=Seuls les comptes administrateurs peuvent voir ce panneau.
+MSG_ADMIN_LOAD_ERROR=Impossible de joindre l'API d'administration du serveur.
+HEADING_ADMIN_CLIENTS=APPS CONNECTÉES
+COL_CLIENT_USER=Utilisateur
+COL_CLIENT_ROLE=Rôle
+COL_CLIENT_ADDRESS=Adresse
+COL_CLIENT_SCHEMA=Schéma
+LBL_CLIENT_UNKNOWN=Inconnu
+CLIENT_OPEN=Ouverte
+CLIENT_CLOSING=Fermeture
+LBL_CLIENTS_REFRESH_NOTE=Actualisation toutes les {seconds}s.
+HEADING_ADMIN_LOGS=LOG DU SERVEUR
+BTN_CLEAR=Effacer
+BTN_PAUSE=Pause
+BTN_RESUME=Reprendre
+MSG_LOGS_NONE=Pas encore d'entrées de log.
+LBL_LOGS_FOOTER_LIVE={lines} dernières lignes du log du serveur, actualisation toutes les {seconds}s.
+HEADING_ADMIN_SERVER=CONFIGURATION DU SERVEUR
+LBL_ADMIN_SERVER_PORT=Port d'écoute
+LBL_ADMIN_SERVER_PORT_CURRENT=Port d'écoute (actuellement {port})
+BTN_SAVE=Enregistrer
+MSG_ADMIN_SERVER_PORT_NOTE=Enregistrer NE change PAS le serveur en cours d'exécution - ce processus ne peut pas réattribuer son propre socket d'écoute sans couper toutes les connexions ouvertes. Prend effet au prochain redémarrage.
+MSG_ADMIN_SERVER_PORT_INVALID=Le port doit être un nombre entre 1 et 65535.
+MSG_ADMIN_SERVER_PORT_SAVED=Port enregistré - redémarrez ce serveur pour que cela prenne effet.
+BTN_RESTART_SERVER=Redémarrer le serveur maintenant
+TITLE_RESTART_SERVER=Redémarrer le serveur
+MSG_ADMIN_SERVER_RESTART_CONFIRM=Redémarrer ce serveur maintenant ? Chaque appareil connecté se déconnectera et se reconnectera brièvement. Ne redémarre réellement que si ce processus tourne sous un superviseur (systemd/pm2/Docker) configuré pour redémarrer automatiquement en cas d'arrêt.
+MSG_ADMIN_SERVER_RESTART_REQUESTED=Redémarrage demandé.
+
+# AI Family panel + Ecosystem redesign (STUDIO 0.2.9 parity)
+DOCK_AI_FAMILY=Famille IA
+HEADING_AI_FAMILY=FAMILLE IA
+LBL_AI_FAMILY_VISION=Vision AI Node ({device} aujourd'hui)
+LBL_AI_FAMILY_COGNITIVE=Cognitive AI Node ({device} prévu)
+LBL_AI_FAMILY_LIVE_COUNT={live} / {total} actifs
+LBL_NONE_DEVICE=Aucun
+MSG_AI_FAMILY_DEVICE_MISMATCH={family} a des nœuds actifs, mais son périphérique Hailo est réglé sur Aucun - réglez-le sur {device} pour correspondre à ce qui tourne réellement.
+MSG_ES_NONE=Aucun projet trouvé.
+LBL_SERVICES_LIVE=En ligne
+LBL_SERVICES_DEAD=Hors ligne
+LBL_SERVICES_RUNNING=En cours
+LBL_SERVICES_STOPPED=Arrêtés
+LBL_SERVICES_ERROR=Erreur
+LBL_SERVICES_NOT_A_SERVICE=N/D
+LBL_SERVICES_STAT_RUNNING=En cours
+LBL_SERVICES_STAT_STOPPED=Arrêtés
+LBL_SERVICES_STAT_ERROR=Erreur
+LBL_SERVICES_STAT_NA=N/D
+LBL_SERVICES_PID=PID
+LBL_SERVICES_ACTION_PENDING=En cours...
+BTN_SERVICES_START=Démarrer
+BTN_SERVICES_STOP=Arrêter
+BTN_SERVICES_RESTART=Redémarrer
+TITLE_SERVICES_CONFIRM_STOP=Arrêter le service ?
+TITLE_SERVICES_CONFIRM_RESTART=Redémarrer le service ?
+MSG_SERVICES_CONFIRM_STOP=Ceci arrête {name} sur la CM5 immédiatement. Il ne redémarrera pas tout seul.
+MSG_SERVICES_CONFIRM_RESTART=Ceci redémarre {name} sur la CM5 immédiatement - il sera brièvement indisponible.
+MSG_SERVICES_ACTION_ERROR=Échec de l'action - vérifiez votre connexion et réessayez.
+LBL_SERVICES_STAT_TOTAL=Total
+LBL_SERVICES_STAT_LIVE=Actifs
+LBL_SERVICES_STAT_FAMILIES=Familles
+SERVICES_SEARCH_PLACEHOLDER=Rechercher par nom...
+SERVICES_ALL_FAMILIES=Tous
+SERVICES_NO_FAMILY=Autres
+LBL_TELEMETRY_RANGE=Plage de temps
+LBL_TELEMETRY_STAT_MIN=Min
+LBL_TELEMETRY_STAT_MAX=Max
+LBL_TELEMETRY_STAT_AVG=Moy
+LBL_TELEMETRY_STAT_COUNT=Points
+LBL_CLIENTS_STAT_CONNECTED=Connectés
+LBL_CLIENTS_STAT_ADMINS=Admins
+MSG_CLIENTS_NONE=Aucune app connectée pour le moment.
+LOGS_SEARCH_PLACEHOLDER=Rechercher dans le texte du log...
+LOGS_ALL_TAGS=Tous
+LOGS_NO_MATCH=Aucune ligne de log ne correspond à ce filtre.
+LBL_ADMIN_SERVER_STAT_UPTIME=Disponibilité
+LBL_ADMIN_SERVER_STAT_CONTROLLERS=Contrôleurs
+LBL_ADMIN_SERVER_STAT_ROBOTS=Robots
+LBL_ADMIN_SERVER_STAT_HOST=Hôte
+
+# Visual command deck
+TOPBAR_PRODUCT=HYDRA-UMC SUITE
+TOPBAR_SYSTEM_STATE=ETAT DU SYSTEME
+TOPBAR_ACTIVE_TARGET=CIBLE ACTIVE
+TOPBAR_NO_TARGET=AUCUNE CIBLE ACTIVE
+TOPBAR_UTC=HEURE (UTC)
+TOPBAR_STATUS_CONNECTED=CONNECTE
+TOPBAR_STATUS_CONNECTING=CONNEXION
+TOPBAR_STATUS_DISCONNECTED=DECONNECTE
+TOPBAR_STATUS_ERROR=ERREUR
+
+# Tool-attachment config panels (CNC/Laser and future module panels)
+HEADING_CNC=CNC
+HEADING_LASER=Laser
+HEADING_HEATED_BED=Plateau chauffant
+GROUP_MODULE_SETTINGS=Réglages du module
+BTN_RESET_MODULE=Réinitialiser
+BTN_ENABLE_MODULE=Activer {machine}
+BTN_REMOVE_MODULE=Retirer le module
+LBL_NO_MODULE_ASSIGNED=Aucun {machine} assigné
+LBL_NO_MODULE_DESC=Ce robot n'a pas encore ce module configuré. Ajoutez-en un pour activer ses fonctionnalités.
+LBL_WIDTH_X=Largeur (X mm)
+LBL_LENGTH_Y=Longueur (Y mm)
+
+# Panneau Plateau chauffant - contrôles de chauffe (consigne réelle réglable
+# par l'utilisateur + télémétrie des thermistances en lecture seule, pas des champs éditables)
+GROUP_HEATING_CONTROLS=Contrôles de chauffe
+LBL_TARGET_TEMP=Temp. consigne (°C)
+LBL_THERMISTOR_1=Thermistance 1
+LBL_THERMISTOR_2=Thermistance 2
+BTN_SSR_ON=SSR ON
+BTN_SSR_OFF=SSR OFF
+
+# Panneau Table à vide - contrôles pompe/vanne
+HEADING_VACUUM_TABLE=Table à vide
+GROUP_VACUUM_CONTROLS=Contrôles du vide
+BTN_PUMP_ON=Pompe ON
+BTN_PUMP_OFF=Pompe OFF
+BTN_VALVE_OPEN=Vanne OUVERTE
+BTN_VALVE_CLOSED=Vanne FERMÉE
+
+# ATC Tools panel - configurateur du Changeur d'Outil Automatique
+HEADING_ATC=Configuration des Outils ATC
+LBL_ATC_EMPTY_DESC=Ce robot n'a actuellement aucun Changeur d'Outil Automatique (ATC) configuré. Ajoutez-en un pour activer le changement d'outil automatique.
+LBL_ATC_VERTICAL=Vertical
+LBL_ATC_HORIZONTAL=Horizontal
+LBL_ATC_REVOLVER=Revolver
+LBL_PANEL_GRID_LAYOUT=Disposition de la Grille du Panneau
+LBL_REVOLVER_CAPACITY=Capacité du Revolver
+LBL_BASE_PICKUP_POS=Position de Prise de Base
+
+# Panneau Pick & Place
+HEADING_PICK_AND_PLACE=Pick & Place
+LBL_MACHINE=Machine
+LBL_PNP_POSE_PREVIEW=Aperçu de pose (manuel - pas encore de flux en direct)
+LBL_PNP_AXIS_X=Axe X (mm)
+LBL_PNP_AXIS_Y=Axe Y (mm)
+LBL_PNP_AXIS_Z=Axe Z, les deux buses (mm)
+LBL_PNP_NOZZLE1=Rotation buse 1 (degrés)
+LBL_PNP_NOZZLE2=Rotation buse 2 (degrés)
+
+# Panneau Kinematic Brain Stage (niveau contrôleur, étage local STM32H745)
+HEADING_KINEMATIC_BRAIN_STAGE=Kinematic Brain Stage
+LBL_GANTRY=Portique XY (X, Y1, Y2, Z)
+LBL_HEIGHT_Z=Hauteur (Z mm)
+LBL_ATC_REVOLVER_E0=Barillet ATC (E0)
+LBL_TOOL_COUNT=Emplacements d'outils
+LBL_HOMED=Origine effectuée
+LBL_NOT_HOMED=Origine non effectuée
+LBL_CONVEYOR=Convoyeur (E1)
+LBL_CONVEYOR_NOT_INSTALLED=Aucun convoyeur installé sur cette machine
+BTN_MARK_INSTALLED=Marquer comme installé
+LBL_RUNNING=En marche
+LBL_STOPPED=Arrêté
+LBL_ENDSTOPS=Fins de course (2 par axe)
+LBL_FANS=Ventilateurs (3x)
+LBL_PUMPS=Pompes (8+2)
+LBL_VALVES=Vannes (8+2)
+
+# Flasher panel (CAN-OTA firmware flashing)
+HEADING_FLASHER=Flasher
+LBL_HARDWARE_TARGET_UNREACHABLE=Cible matérielle inaccessible
+LBL_BOARD=Carte
+LBL_TARGET_KINEMATIC_BRAIN=Kinematic Brain
+LBL_TARGET_CONTROLLER_BOARD=Carte contrôleur du robot
+LBL_TARGET_URTC_HEAD=Tête d'outil URTC
+LBL_TARGET_URTC_EXPANSION=Extension avancée URTC
+LBL_ROBOT_SLOT=Emplacement du robot
+LBL_URTC_UNREACHABLE=URTC inaccessible
+LBL_NO_VERSION_KNOWN=Aucune version connue
+BTN_QUERY_VERSION=Interroger la version
+LBL_CURRENT_VERSION=Version actuelle
+LBL_BOOTLOADER=bootloader
+LBL_FIRMWARE_FILE=Fichier micrologiciel
+BTN_BROWSE_BIN=Parcourir .bin
+BTN_DOWNLOAD_GITHUB=Télécharger depuis GitHub
+LBL_NO_FILE=Aucun fichier sélectionné
+LBL_NO_RELEASES=Rien n'a encore été publié sur GitHub pour cette cible
+LBL_ALLOW_DOWNGRADE=Autoriser la rétrogradation (contourner l'anti-rollback)
+LBL_ERASE_FRAM=Effacer la F-RAM après le flashage
+BTN_FLASH_NOW=Flasher maintenant
+LBL_LOG_TITLE=Journal
+LBL_QUERYING=Interrogation en cours
+LBL_NO_RESPONSE=Aucune réponse
+LBL_VERSION_FOUND=Version trouvée
+LBL_FILE_LOADED=Fichier chargé
+LBL_GITHUB_FOUND=Trouvé sur GitHub
+LBL_GITHUB_ERROR=Erreur GitHub
+LBL_GITHUB_DOWNLOADING=Téléchargement depuis GitHub
+MSG_CONFIRM_FLASH=Flasher {target} sur {robot} ? Cela écrasera son micrologiciel actuel.
+LBL_FLASH_START=Démarrage du flashage
+LBL_FLASH_DONE=Flashage terminé
+LBL_FLASH_HARDWARE_FAILED=Échec du flashage matériel
+FLASHER_PROGRESS_CONNECTING=Connexion en cours
+FLASHER_PROGRESS_ENTERING_BOOTLOADER=Entrée dans le bootloader
+FLASHER_PROGRESS_ERASING_FRAM=Effacement de la F-RAM
+FLASHER_PROGRESS_TRANSFERRING=Transfert en cours
+FLASHER_PROGRESS_VERIFYING=Vérification en cours
+FLASHER_PROGRESS_REBOOTING=Redémarrage
+FLASHER_PROGRESS_DONE=Terminé
+FLASHER_PROGRESS_ERROR=Erreur
+
+# Tester panel (CAN-OTA diagnostics)
+HEADING_TESTER=Tester
+LBL_TESTER_SIMULATED_NOTE=L'auto-test, la F-RAM, les LED et le moniteur de bus restent simulés quel que soit le transport - le micrologiciel réel n'a pas encore de commandes de niveau applicatif pour cela.
+LBL_GLOBAL_CONTROLS=Commandes globales
+LBL_STATUS_LED=LED d'état
+LBL_RING_LED=LED anneau
+LBL_ON=ON
+LBL_OFF=OFF
+LBL_OLED_MODE=Mode OLED
+LBL_OLED_STANDARD=Standard
+LBL_OLED_NIGHT=Nuit
+LBL_OLED_OFF=Éteint
+LBL_EXPANSION_BOARD=Carte d'extension
+LBL_EXPANSION_NONE=Aucune
+LBL_FRAM=Persistance (F-RAM)
+LBL_FRAM_UNKNOWN=Inconnu - interroger pour vérifier
+LBL_FRAM_VALID=État sauvegardé valide trouvé
+LBL_FRAM_EMPTY=Aucun état sauvegardé
+BTN_FRAM_QUERY=Interroger
+BTN_FRAM_ERASE=Effacer
+LBL_TOOL_TELEMETRY=Télémétrie de l'outil
+LBL_TELEMETRY_THERMAL=Télémétrie de température (simulée)
+LBL_TELEMETRY_MOTOR=Télémétrie RPM + fin de course (simulée)
+LBL_TELEMETRY_VACUUM=Télémétrie analogique + détection de pièce (simulée)
+LBL_TELEMETRY_BINARY=Télémétrie d'état de l'actionneur (simulée)
+LBL_TELEMETRY_GENERIC=Panneau générique - télémétrie de communication + version uniquement pour ce profil d'outil.
+LBL_SELF_TEST=Auto-test
+LBL_SELF_TEST_NOTE=Vérifications sûres uniquement - communication et allers-retours à consigne nulle. N'actionne jamais à puissance significative.
+BTN_RUN_SELF_TEST=Lancer l'auto-test
+LBL_SELFTEST_COMM=Communication
+LBL_SELFTEST_VERSION=Requête de version
+LBL_SELFTEST_SPI=Liaison SPI
+LBL_SELFTEST_FDCAN=FDCAN1 (STACK A)
+LBL_SELFTEST_FRAM=F-RAM
+LBL_SELFTEST_AXES=Axes (consigne nulle)
+LBL_SELFTEST_ENDSTOPS=Fins de course
+LBL_SELFTEST_TOOL=Communication de l'outil
+LBL_SELFTEST_TELEMETRY=Flux de télémétrie
+LBL_SELFTEST_I2C=Relais I2C
+LBL_BUS_MONITOR=Moniteur de bus brut
+BTN_MONITOR_START=Démarrer
+BTN_MONITOR_STOP=Arrêter
+LBL_COL_TIME=Heure
+LBL_COL_ID=ID
+LBL_COL_DATA=Données
+BTN_EDIT_POS=Modifier la Position
+LBL_TOOL_ASSIGNMENTS=Attribution des Outils
+BTN_LOAD_CONFIG=Charger la Configuration
+BTN_SAVE_CONFIG=Enregistrer la Configuration
+MSG_ATC_INVALID_CONFIG=Fichier de configuration ATC invalide
+
+# Panneau table XY - contrôle de jog manuel
+HEADING_XY_TABLE=Table XY
+GROUP_JOG_CONTROL=Contrôle de jog manuel
+LBL_STEP=Pas :
+
+# Panneau Gestionnaire de racks
+HEADING_RACK_MANAGER=Gestionnaire de racks
+LBL_RACK1=Rack 1 (Entrée par défaut)
+LBL_RACK2=Rack 2 (Sortie par défaut)
+LBL_RACK_TYPE=Type de rack
+LBL_DISABLED=Désactivé
+LBL_INPUT_RACK=Rack d'entrée
+LBL_OUTPUT_RACK=Rack de sortie
+LBL_CAPACITY=Capacité (plateaux)
+LBL_USABLE_SLOTS=Configuration des emplacements utilisables
+LBL_BASE_PICKUP_POS=Position de prise de base
+
+NAV_FLASHER_STUDIO=Flasher Studio
+NAV_FIRMWARE_UPDATE=Mise à jour du micrologiciel
+
+NAV_TESTER_CENTER=Centre de test
+NAV_HARDWARE_TESTER=Testeur matériel
+
+NAV_SECTION_RESOURCES=Ressources
+NAV_CATEGORY_INDUSTRIAL=Industriel
+NAV_CATEGORY_URTC=URTC
+NAV_CATEGORY_HYDRA_UMC=HYDRA-UMC
+NAV_BACK_TO_ROOT=Retour à la racine
+NAV_SECTION_ECOSYSTEM=Écosystème
+
+LBL_CONNECTING_STREAM=CONNEXION...
+
+# Qt Quick command deck (qt_suite.py) - real, new keys only;
+# every panel label/help text reuses existing keys above verbatim.
+QT_NOT_YET_MIGRATED_TITLE=Pas encore migre
+QT_NOT_YET_MIGRATED_BODY=Le contenu reel de ce panneau n'est pas encore porte vers Qt Quick. Lancez sans --qtquick pour la vue classique, qui l'a.
+QT_SUITE_TAGLINE=POSTE DE COMMANDE DE L'ESSAIM

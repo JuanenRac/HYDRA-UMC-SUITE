@@ -1,0 +1,14 @@
+Faze4 mesh files (base_link.STL, rotary_base.STL, nadlaktica.STL,
+lakat.STL, podlaktica.STL, saka.STL, hvataljka.STL)
+
+Source: https://github.com/Source-Robotics/Faze4-Robotic-arm
+Path:   URDF_FAZE4/meshes/
+License: MIT License, per that repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's Faze4Arm.tsx
+3D view. Redistributed here under the same MIT terms as the upstream
+project.
+
+Link names are the upstream project's own Croatian naming: rotary_base
+(base turntable), nadlaktica (upper arm), lakat (elbow), podlaktica
+(forearm), saka (wrist/hand), hvataljka (gripper).

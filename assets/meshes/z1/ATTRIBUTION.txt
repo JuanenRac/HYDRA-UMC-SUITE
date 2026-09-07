@@ -1,0 +1,23 @@
+Unitree Z1 mesh files (z1_Link00.stl through z1_Link06.stl)
+
+Source: https://github.com/google-deepmind/mujoco_menagerie
+Path:   unitree_z1/assets/
+License: BSD-3-Clause, Copyright (c) 2016-2022 HangZhou YuShu
+TECHNOLOGY CO.,LTD ("Unitree Robotics"), per that folder's own LICENSE
+file (mujoco_menagerie's own top-level license does not apply uniformly
+to every robot folder it bundles - each has its own).
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+Z1Arm.tsx 3D view. NOTE: an earlier attempt used unitreerobotics'
+own unitree_ros repo, which ships this same robot's meshes as .dae
+(COLLADA) - this project's mesh pipeline only supports STL, so this
+mujoco_menagerie folder (which happens to use real .stl, unlike some of
+its other robot folders that use .obj) was used instead.
+
+Joint kinematic chain (origin xyz, axis - every <origin rpy> is
+effectively (0,0,0), pure translation between joints, but the axis
+varies: joint2/3/4 rotate about Y, joint5 about Z, joint6 about X) comes
+from that folder's own z1.xml MJCF directly - see
+src/examples/z1Kinematics.ts for where those exact numbers were
+transcribed to. Uses the same "quaternion family" FK engine as Parol6/
+Faze4/AR3/AR4/e.DO/M-710iC (arbitrary per-joint axes).

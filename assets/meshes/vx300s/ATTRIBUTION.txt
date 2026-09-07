@@ -1,0 +1,28 @@
+Trossen Robotics ViperX 300 (vx300s) mesh files (vx300s_1_base.stl
+through vx300s_7_gripper.stl)
+
+Source: https://github.com/Interbotix/interbotix_ros_manipulators
+Path:   interbotix_ros_xsarms/interbotix_xsarm_descriptions/meshes/vx300s_meshes/
+License: BSD-3-Clause, Copyright (c) 2023 Trossen Robotics, per that
+repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+Vx300sArm.tsx 3D view.
+
+Joint kinematic chain (origin xyz, axis - every <origin rpy> is (0,0,0),
+pure translation between joints, axis varies per joint) comes from that
+repository's own urdf/vx300s.urdf.xacro directly - see
+src/examples/vx300sKinematics.ts for where those exact numbers were
+transcribed to. Uses the same "quaternion family" FK engine as Parol6/
+Faze4/AR3/AR4/e.DO/M-710iC/Z1.
+
+UNLIKE those robots, though, every real link's own <visual><origin> here
+is NOT identity (e.g. the base/shoulder/upper_arm/wrist/gripper meshes
+each have their own 90-degree-about-Z visual correction, and the
+shoulder/lower_forearm links have additional position/rotation
+corrections) - the same kind of per-link mesh recentering the UR family
+already needed (see urKinematicsShared.ts's own mesh_offset concept),
+just needed here for a quaternion-family robot for the first time. See
+Vx300sArm.tsx's own header for the exact values and how they're applied
+(as an extra transform on top of the joint chain, not folded into it -
+so a mesh's own recentering never shifts where the NEXT joint attaches).

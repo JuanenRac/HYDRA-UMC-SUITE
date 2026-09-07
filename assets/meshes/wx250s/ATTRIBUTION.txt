@@ -1,0 +1,16 @@
+Trossen Robotics WidowX 250 (wx250s) mesh files (wx250s_1_base.stl
+through wx250s_7_gripper.stl)
+
+Source: https://github.com/Interbotix/interbotix_ros_manipulators
+Path:   interbotix_ros_xsarms/interbotix_xsarm_descriptions/meshes/wx250s_meshes/
+License: BSD-3-Clause, Copyright (c) 2023 Trossen Robotics, per that
+repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+Wx250sArm.tsx 3D view. Shares the exact same rig design/mesh-offset
+pattern as ViperX 300 (vx300s) - Trossen's smaller sibling product in
+the same arm family - see public/models/vx300s/ATTRIBUTION.txt for the
+full explanation of why the per-link mesh offsets are needed here.
+
+Joint kinematic chain comes from that repository's own
+urdf/wx250s.urdf.xacro directly - see src/examples/wx250sKinematics.ts.

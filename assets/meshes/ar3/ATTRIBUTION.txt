@@ -1,0 +1,14 @@
+AR3 mesh files (base_link.STL, link_1.STL - link_6.STL)
+
+Source: https://github.com/gabrielggg/ar3_gui
+Path:   urdf/
+License: MIT License, per that repository's own LICENSE file.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's AR3Arm.tsx
+3D view. That repo's own README states these URDF/STL files were
+"contributed by the AR3 Core project" (the AR3 is Chris Annin's original
+open-source 6-axis desktop arm design, predating Annin Robotics' own AR4).
+No separate official AR3 mesh repository was found under the
+Annin-Robotics GitHub organization (which only hosts AR4-related repos) -
+this MIT-licensed community GUI repo was the clearest available source
+with both the URDF and matching STL files together.

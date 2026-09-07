@@ -1,0 +1,25 @@
+Kinova Gen2 (j2s6s200) mesh files (base.STL, shoulder.STL, arm.STL,
+forearm.STL, wrist_spherical_1.STL, wrist_spherical_2.STL,
+hand_2finger.STL)
+
+Source: https://github.com/Kinovarobotics/kinova-ros
+Path:   kinova_description/meshes/
+License: BSD-3-Clause, per that repository's own LICENSE file. Official
+Kinova Robotics repository.
+
+Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
+Gen2Arm.tsx 3D view. NOTE: an earlier attempt used
+Gepetto/example-robot-data's own kinova_description mirror, which only
+ships this same geometry as .dae (COLLADA) - this project's mesh
+pipeline only supports STL, so kinova-ros's own official repo (which
+ships the identical parts as real .STL alongside .dae) was used instead.
+The joint kinematic chain itself was already extracted from the
+Gepetto-hosted expanded URDF (both describe the same real Kinova
+hardware, and Gepetto's own repo doesn't claim to modify robot
+geometry - only the mesh source changed).
+
+Joint kinematic chain (origin xyz/rpy) - see
+src/examples/gen2Kinematics.ts for where those exact numbers were
+transcribed to. Every joint's own <axis> is "0 0 1" (rotates about local
+Z once its own <origin rpy> is applied), the same convention the UR
+family shares, so this reuses urKinematicsShared.ts's engine.

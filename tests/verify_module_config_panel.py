@@ -1,0 +1,250 @@
+"""Real assertion-based coverage for RobotView's new generic module
+accessors (models.py) and ModuleConfigPanel (ui/panels/module_config_panel.py,
+the shared implementation behind CncPanel/LaserPanel/HeatedBedPanel - see
+that file's own header for why one class covers all three). Headless: a
+real QApplication + qasync loop, no network connection, feeding a real
+HydraState through SuiteController.active_state_changed the same way a
+real WS/REST update would - not mocked at the Qt layer, only the network
+is never actually opened."""
+import asyncio
+import sys
+
+import qasync
+from PySide6.QtWidgets import QApplication
+
+sys.path.insert(0, ".")
+from hydra_suite.app import SuiteController
+from hydra_suite.models import HydraState, RobotView
+from hydra_suite.render.module_rig import module_segments
+from hydra_suite.render.viewport import RobotViewport
+from hydra_suite.ui.panels.cnc_panel import CncPanel
+from hydra_suite.ui.panels.heated_bed_panel import HeatedBedPanel
+from hydra_suite.ui.panels.laser_panel import LaserPanel
+from hydra_suite.ui.panels.vacuum_table_panel import VacuumTablePanel
+
+
+def _state_with_one_robot(cnc: dict | None = None) -> HydraState:
+    robot: dict = {"id": 1, "model": "Generic (6-DOF)", "role": "Idle"}
+    if cnc is not None:
+        robot["juanenCNC"] = cnc
+    return HydraState(
+        {
+            "activeControllerId": "c1",
+            "controllers": [{"id": "c1", "robots": [robot]}],
+        }
+    )
+
+
+def _state_with_heated_bed(heated_bed: dict | None = None) -> HydraState:
+    robot: dict = {"id": 1, "model": "Generic (6-DOF)", "role": "Idle"}
+    if heated_bed is not None:
+        robot["heatedBed"] = heated_bed
+    return HydraState(
+        {
+            "activeControllerId": "c1",
+            "controllers": [{"id": "c1", "robots": [robot]}],
+        }
+    )
+
+
+def _state_with_vacuum_table(vacuum_table: dict | None = None) -> HydraState:
+    robot: dict = {"id": 1, "model": "Generic (6-DOF)", "role": "Idle"}
+    if vacuum_table is not None:
+        robot["vacuumTable"] = vacuum_table
+    return HydraState(
+        {
+            "activeControllerId": "c1",
+            "controllers": [{"id": "c1", "robots": [robot]}],
+        }
+    )
+
+
+def _run() -> None:
+    # --- RobotView.module()/module_enabled()/set_module() -----------------
+    robot = RobotView({"id": 1})
+    assert robot.module("juanenCNC") == {}, "module() must return {} when absent, never None/KeyError"
+    assert robot.module_enabled("juanenCNC") is False
+
+    robot.set_module("juanenCNC", {"enabled": True, "size": {"width": 500, "length": 500}})
+    assert robot.module_enabled("juanenCNC") is True
+    assert robot.module("juanenCNC")["size"]["width"] == 500
+    print("RobotView.module()/module_enabled()/set_module(): PASS")
+
+    # --- ModuleConfigPanel, headless, real Qt widgets ----------------------
+    app = QApplication(sys.argv)
+    loop = qasync.QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
+    controller = SuiteController()
+    panel = CncPanel(controller)
+
+    # No robots at all yet - the empty-state page, nothing enabled.
+    controller.active_state_changed.emit(_state_with_one_robot(cnc=None))
+    assert panel._stack.currentIndex() == 0, "no juanenCNC block yet -> empty-state page"
+    assert panel._current_robot is not None
+
+    # Real enable click - mutates the robot's own raw dict and switches page.
+    panel._on_enable()
+    assert panel._current_robot.module_enabled("juanenCNC") is True
+    assert panel._stack.currentIndex() == 1, "enabling must switch to the settings page"
+    assert panel._width_spin.value() == 500
+    assert panel._length_spin.value() == 500
+
+    # A real width change writes back into the same robot's raw dict.
+    panel._width_spin.setValue(750)
+    assert panel._current_robot.module("juanenCNC")["size"]["width"] == 750
+
+    # Remove Module really disables it and switches back to the empty page.
+    panel._on_disable()
+    assert panel._current_robot.module_enabled("juanenCNC") is False
+    assert panel._stack.currentIndex() == 0
+
+    # Reset re-enables with the documented defaults (matches CNC.tsx's own
+    # handleReset()).
+    panel._on_reset()
+    module = panel._current_robot.module("juanenCNC")
+    assert module["enabled"] is True
+    assert module["size"] == {"width": 500, "length": 500}
+    assert module["worldPos"] == {"x": 0, "y": 0}
+    print("CncPanel enable/size-change/disable/reset round-trip: PASS")
+
+    # A state that already has the module enabled loads straight into the
+    # settings page - not the empty state first.
+    laser_panel = LaserPanel(controller)
+    controller.active_state_changed.emit(
+        _state_with_one_robot(cnc={"enabled": True, "size": {"width": 300, "length": 400}})
+    )
+    # laser_panel reads juanenLaser, not juanenCNC - still absent, so it
+    # must stay on the empty-state page even though juanenCNC is present.
+    assert laser_panel._stack.currentIndex() == 0, "juanenLaser is absent - must not react to juanenCNC's own data"
+    print("LaserPanel reads its own module key independently of CncPanel: PASS")
+
+    # --- HeatedBedPanel - extra heating controls beyond shared size/reset --
+    heated_bed_panel = HeatedBedPanel(controller)
+    controller.active_state_changed.emit(_state_with_heated_bed(heated_bed=None))
+    assert heated_bed_panel._stack.currentIndex() == 0, "no heatedBed block yet -> empty-state page"
+
+    # Enable sets the documented extra defaults (matches HeatedBedConfig.tsx's
+    # own handleReset() values, applied here via setdefault on first enable).
+    heated_bed_panel._on_enable()
+    module = heated_bed_panel._current_robot.module("heatedBed")
+    assert module["targetTemp"] == 60
+    assert module["currentTemp1"] == 25.0
+    assert module["currentTemp2"] == 25.0
+    assert module["ssrActive"] is False
+    assert heated_bed_panel._target_spin.value() == 60
+    assert heated_bed_panel._ssr_btn.isChecked() is False
+    assert heated_bed_panel._temp1_label.text() == "25.0 °C"
+    print("HeatedBedPanel enable defaults: PASS")
+
+    # A real target-temp change writes back into the module dict.
+    heated_bed_panel._target_spin.setValue(85)
+    assert heated_bed_panel._current_robot.module("heatedBed")["targetTemp"] == 85
+
+    # A real SSR toggle writes back too, and the label follows the state.
+    heated_bed_panel._ssr_btn.setChecked(True)
+    assert heated_bed_panel._current_robot.module("heatedBed")["ssrActive"] is True
+    assert heated_bed_panel._ssr_btn.text() == "SSR ON"
+    print("HeatedBedPanel target-temp/SSR write-back: PASS")
+
+    # Reset re-enables with the documented defaults, including the extra
+    # heating fields (matches HeatedBedConfig.tsx's own handleReset()).
+    heated_bed_panel._on_reset()
+    module = heated_bed_panel._current_robot.module("heatedBed")
+    assert module["enabled"] is True
+    assert module["targetTemp"] == 60
+    assert module["currentTemp1"] == 25.0
+    assert module["ssrActive"] is False
+    print("HeatedBedPanel reset includes extra heating fields: PASS")
+
+    # A state that already has real live telemetry (a value NOT among the
+    # defaults) renders the real numbers, not the fallback.
+    controller.active_state_changed.emit(
+        _state_with_heated_bed(heated_bed={"enabled": True, "size": {"width": 500, "length": 500}, "targetTemp": 70, "currentTemp1": 68.3, "currentTemp2": 67.9, "ssrActive": True})
+    )
+    assert heated_bed_panel._target_spin.value() == 70
+    assert heated_bed_panel._temp1_label.text() == "68.3 °C"
+    assert heated_bed_panel._temp2_label.text() == "67.9 °C"
+    assert heated_bed_panel._ssr_btn.isChecked() is True
+    print("HeatedBedPanel renders real live telemetry from state: PASS")
+
+    # --- VacuumTablePanel - pump/valve toggles + the real 500-vs-100 size
+    # quirk (STUDIO's own enable-time display fallback disagrees with its
+    # own handleReset() write for this one module) ------------------------
+    vacuum_panel = VacuumTablePanel(controller)
+    controller.active_state_changed.emit(_state_with_vacuum_table(vacuum_table=None))
+    assert vacuum_panel._stack.currentIndex() == 0, "no vacuumTable block yet -> empty-state page"
+
+    # Enable writes no size at all - the spinboxes must still DISPLAY the
+    # shared 500 fallback (matching STUDIO's own `|| 500`), not 100.
+    vacuum_panel._on_enable()
+    assert "size" not in vacuum_panel._current_robot.module("vacuumTable"), "enable must not persist a size default"
+    assert vacuum_panel._width_spin.value() == 500, "display fallback must be 500, same as CNC/Laser/HeatedBed"
+    assert vacuum_panel._pump_btn.isChecked() is False
+    print("VacuumTablePanel enable: no persisted size, 500 display fallback: PASS")
+
+    # Pump/valve toggles write back for real.
+    vacuum_panel._pump_btn.setChecked(True)
+    assert vacuum_panel._current_robot.module("vacuumTable")["pumpActive"] is True
+    assert vacuum_panel._pump_btn.text() == "Pump ON"
+    vacuum_panel._valve_btn.setChecked(True)
+    assert vacuum_panel._current_robot.module("vacuumTable")["valveActive"] is True
+    print("VacuumTablePanel pump/valve write-back: PASS")
+
+    # Reset writes the module's OWN real default (100), not the shared 500
+    # every other module resets to - the real STUDIO-side inconsistency
+    # this panel exists to reproduce faithfully.
+    vacuum_panel._on_reset()
+    module = vacuum_panel._current_robot.module("vacuumTable")
+    assert module["size"] == {"width": 100, "length": 100}, "VacuumTable resets to 100mm, not the shared 500mm default"
+    assert module["pumpActive"] is False
+    assert module["valveActive"] is False
+    assert vacuum_panel._width_spin.value() == 100
+    print("VacuumTablePanel reset writes its own 100mm default, not the shared 500mm one: PASS")
+
+    # --- RobotViewport module-only mode (render/module_rig.py + the new
+    # set_attached_module() in render/viewport.py) - headless, so _gl_ready
+    # is never True here and no real GL buffer gets built; this exercises
+    # the pending-rebuild cache path (_module_segments_cache/
+    # _attached_module_type), which is exactly what a freshly-constructed,
+    # not-yet-shown ModuleConfigPanel relies on. The real GL buffer build
+    # path (the `if self._gl_ready:` branch) needs an actual shown window
+    # and an actual GL context - covered manually by smoke_test_viewport.py,
+    # not here. ---------------------------------------------------------
+    standalone_viewport = RobotViewport()
+    assert standalone_viewport._renderer._attached_module_type is None
+    standalone_viewport.set_attached_module("juanenCNC", 500.0, 500.0)
+    assert standalone_viewport._renderer._attached_module_type == "juanenCNC"
+    assert standalone_viewport._renderer._module_segments_cache == module_segments("juanenCNC", 500.0, 500.0)
+    assert len(standalone_viewport._renderer._module_segments_cache) > 0, "juanenCNC must have real ported geometry, not an empty list"
+    standalone_viewport.set_attached_module(None)
+    assert standalone_viewport._renderer._attached_module_type is None
+    assert standalone_viewport._renderer._module_segments_cache == [], "clearing the attached module must clear the cached segments too"
+    # A module key with no ported geometry yet (see module_rig.py's own
+    # header - only CNC/Laser/HeatedBed/VacuumTable are ported) renders a
+    # real, honest blank viewport rather than raising.
+    standalone_viewport.set_attached_module("pickAndPlace", 500.0, 500.0)
+    assert standalone_viewport._renderer._attached_module_type == "pickAndPlace"
+    assert standalone_viewport._renderer._module_segments_cache == []
+    print("RobotViewport.set_attached_module() pending-rebuild cache path: PASS")
+
+    # --- ModuleConfigPanel really drives its own embedded RobotViewport --
+    cnc_panel2 = CncPanel(controller)
+    controller.active_state_changed.emit(_state_with_one_robot(cnc=None))
+    assert cnc_panel2._module_viewport._renderer._attached_module_type is None, "no module enabled yet -> nothing attached"
+    cnc_panel2._on_enable()
+    assert cnc_panel2._module_viewport._renderer._attached_module_type == "juanenCNC"
+    assert len(cnc_panel2._module_viewport._renderer._module_segments_cache) > 0
+    cnc_panel2._width_spin.setValue(750)
+    assert cnc_panel2._module_viewport._renderer._module_segments_cache == module_segments("juanenCNC", 750.0, 500.0), (
+        "a real width change must rebuild the preview at the new size, not keep showing the old one"
+    )
+    cnc_panel2._on_disable()
+    assert cnc_panel2._module_viewport._renderer._attached_module_type is None, "disabling the module must detach the preview too"
+    print("ModuleConfigPanel drives its own embedded RobotViewport from real state changes: PASS")
+
+    print("ALL VERIFY_MODULE_CONFIG_PANEL CHECKS PASSED")
+
+
+if __name__ == "__main__":
+    _run()
