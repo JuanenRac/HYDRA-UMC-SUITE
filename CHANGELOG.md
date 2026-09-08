@@ -14,6 +14,16 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.4.7] - LumenPnP: 26 more real parts as data (160 total)
+
+Mirrors STUDIO's own batch 5: nozzle-rotation motors, a 2nd
+blade-dispenser pair, a 2nd pump/valve pair, spare nozzle tips, the
+real X-axis drag chain, a 3rd Z-rail carriage, generic frame hardware
+(`assets/meshes/lumenpnp/parts/`). 160 real parts total now. Also
+carries the `nozzle-camera-mask_001` bucketing fix from STUDIO's own
+manifest (base_link -> x_carriage). `render/pnp_rig.py` still does not
+load any of the 160 (unchanged open item, see the 0.4.5 entry below).
+
 ## [0.4.6] - LumenPnP: ground-offset fix + 87 more real parts as data + Pick & Place resizable split
 
 - **Ground-offset fix**: `render/pnp_rig.py`'s `PNP_ROOT` now composes a

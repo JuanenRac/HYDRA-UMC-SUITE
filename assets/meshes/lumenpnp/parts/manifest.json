@@ -634,7 +634,7 @@
    "label": "nozzle-camera-mask_001",
    "object_name": "b_cp40_nozzle_camera_mask_001_",
    "stl": "nozzle-camera-mask_001.stl",
-   "group": "base_link",
+   "group": "x_carriage",
    "bbox_min": [
     398.44,
     130.83,
@@ -2437,6 +2437,474 @@
     584.98,
     176.42,
     39.28
+   ],
+   "triangles": 624,
+   "bytes": 31284,
+   "group": "base_link"
+  },
+  {
+   "label": "NEMA11-hollow-shaft-stepper002",
+   "object_name": "b_NEMA11_hollow_shaft_stepper1_001_002",
+   "stl": "NEMA11-hollow-shaft-stepper002.stl",
+   "bbox_min": [
+    399.58,
+    137.88,
+    116.59
+   ],
+   "bbox_max": [
+    434.25,
+    166.23,
+    166.59
+   ],
+   "triangles": 5554,
+   "bytes": 277784,
+   "group": "x_carriage"
+  },
+  {
+   "label": "NEMA11-hollow-shaft-stepper003",
+   "object_name": "b_NEMA11_hollow_shaft_stepper1_001_003",
+   "stl": "NEMA11-hollow-shaft-stepper003.stl",
+   "bbox_min": [
+    453.32,
+    137.88,
+    116.59
+   ],
+   "bbox_max": [
+    487.99,
+    166.23,
+    166.59
+   ],
+   "triangles": 5554,
+   "bytes": 277784,
+   "group": "x_carriage"
+  },
+  {
+   "label": "blade12_005",
+   "object_name": "b_blade13_001_012",
+   "stl": "blade12_005.stl",
+   "bbox_min": [
+    307.83,
+    424.58,
+    -24.64
+   ],
+   "bbox_max": [
+    497.43,
+    457.65,
+    19.85
+   ],
+   "triangles": 8354,
+   "bytes": 417784,
+   "group": "base_link"
+  },
+  {
+   "label": "blade13_004",
+   "object_name": "b_blade13_001_013",
+   "stl": "blade13_004.stl",
+   "bbox_min": [
+    102.38,
+    424.58,
+    -24.64
+   ],
+   "bbox_max": [
+    307.78,
+    457.65,
+    19.85
+   ],
+   "triangles": 8326,
+   "bytes": 416384,
+   "group": "base_link"
+  },
+  {
+   "label": "vacuum-pump003",
+   "object_name": "b_OTS_0003_00_vacuum_pump_001_004",
+   "stl": "vacuum-pump003.stl",
+   "bbox_min": [
+    -38.26,
+    143.29,
+    -61.11
+   ],
+   "bbox_max": [
+    -5.51,
+    214.79,
+    -28.36
+   ],
+   "triangles": 494,
+   "bytes": 24784,
+   "group": "base_link"
+  },
+  {
+   "label": "solenoid-valve004",
+   "object_name": "b_24v_3_Way_Solenoid_Valve_0526T_www_fspump_cn_001_006",
+   "stl": "solenoid-valve004.stl",
+   "bbox_min": [
+    -19.32,
+    35.0,
+    -70.62
+   ],
+   "bbox_max": [
+    -3.32,
+    92.7,
+    -42.6
+   ],
+   "triangles": 3200,
+   "bytes": 160084,
+   "group": "base_link"
+  },
+  {
+   "label": "nozzle-camera-mask_002",
+   "object_name": "b_cp40_nozzle_camera_mask_001_001",
+   "stl": "nozzle-camera-mask_002.stl",
+   "bbox_min": [
+    446.44,
+    130.83,
+    106.68
+   ],
+   "bbox_max": [
+    488.44,
+    172.83,
+    116.68
+   ],
+   "triangles": 1758,
+   "bytes": 87984,
+   "group": "x_carriage"
+  },
+  {
+   "label": "n40-nozzle",
+   "object_name": "b_n40_nozzle_001_",
+   "stl": "n40-nozzle.stl",
+   "bbox_min": [
+    124.9,
+    147.75,
+    58.35
+   ],
+   "bbox_max": [
+    135.4,
+    158.25,
+    72.85
+   ],
+   "triangles": 1040,
+   "bytes": 52084,
+   "group": "base_link"
+  },
+  {
+   "label": "n08-nozzle",
+   "object_name": "b_n08_nozzle_001_002",
+   "stl": "n08-nozzle.stl",
+   "bbox_min": [
+    124.9,
+    111.75,
+    58.35
+   ],
+   "bbox_max": [
+    135.4,
+    122.25,
+    72.85
+   ],
+   "triangles": 1014,
+   "bytes": 50784,
+   "group": "base_link"
+  },
+  {
+   "label": "MGN12H001_002",
+   "object_name": "MGN12H001_002",
+   "stl": "MGN12H001_002.stl",
+   "bbox_min": [
+    420.78,
+    195.63,
+    154.82
+   ],
+   "bbox_max": [
+    466.78,
+    222.63,
+    167.82
+   ],
+   "triangles": 6040,
+   "bytes": 302084,
+   "group": "x_carriage"
+  },
+  {
+   "label": "cable-splay",
+   "object_name": "b_cable_splay_001_001",
+   "stl": "cable-splay.stl",
+   "bbox_min": [
+    419.77,
+    229.12,
+    168.08
+   ],
+   "bbox_max": [
+    488.78,
+    284.13,
+    240.91
+   ],
+   "triangles": 2092,
+   "bytes": 104684,
+   "group": "x_carriage"
+  },
+  {
+   "label": "drag-chain-link_001",
+   "object_name": "b_drag_chain_link_001_",
+   "stl": "drag-chain-link_001.stl",
+   "bbox_min": [
+    23.16,
+    244.87,
+    141.81
+   ],
+   "bbox_max": [
+    60.97,
+    285.3,
+    157.12
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage"
+  },
+  {
+   "label": "drag-chain-link_002",
+   "object_name": "b_drag_chain_link_001_001",
+   "stl": "drag-chain-link_002.stl",
+   "bbox_min": [
+    491.39,
+    244.87,
+    199.45
+   ],
+   "bbox_max": [
+    529.21,
+    285.3,
+    214.76
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage"
+  },
+  {
+   "label": "drag-chain-link_003",
+   "object_name": "b_drag_chain_link_001_002",
+   "stl": "drag-chain-link_003.stl",
+   "bbox_min": [
+    490.61,
+    244.87,
+    198.17
+   ],
+   "bbox_max": [
+    528.87,
+    285.3,
+    218.74
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage"
+  },
+  {
+   "label": "drag-chain-link_004",
+   "object_name": "b_drag_chain_link_001_003",
+   "stl": "drag-chain-link_004.stl",
+   "bbox_min": [
+    510.6,
+    244.87,
+    202.12
+   ],
+   "bbox_max": [
+    548.83,
+    285.3,
+    223.13
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage"
+  },
+  {
+   "label": "reducing-union-tee-4-6-4",
+   "object_name": "b_reducing_union_tee_4_6_61_001_002",
+   "stl": "reducing-union-tee-4-6-4.stl",
+   "bbox_min": [
+    -53.73,
+    28.95,
+    -39.46
+   ],
+   "bbox_max": [
+    -26.48,
+    70.45,
+    -26.96
+   ],
+   "triangles": 4636,
+   "bytes": 231884,
+   "group": "base_link"
+  },
+  {
+   "label": "reducing-union-tee-4-6-4_01",
+   "object_name": "b_reducing_union_tee_4_6_61_001_",
+   "stl": "reducing-union-tee-4-6-4_01.stl",
+   "bbox_min": [
+    -53.97,
+    28.84,
+    -24.96
+   ],
+   "bbox_max": [
+    -26.53,
+    70.41,
+    -12.46
+   ],
+   "triangles": 4636,
+   "bytes": 231884,
+   "group": "base_link"
+  },
+  {
+   "label": "rotary-pneumatic-adapter_001",
+   "object_name": "b_rotary_pneumatic_adapter_001_",
+   "stl": "rotary-pneumatic-adapter_001.stl",
+   "bbox_min": [
+    413.68,
+    145.65,
+    162.68
+   ],
+   "bbox_max": [
+    426.48,
+    158.45,
+    207.18
+   ],
+   "triangles": 2454,
+   "bytes": 122784,
+   "group": "x_carriage"
+  },
+  {
+   "label": "rotary-pneumatic-adapter_002",
+   "object_name": "b_rotary_pneumatic_adapter_001_001",
+   "stl": "rotary-pneumatic-adapter_002.stl",
+   "bbox_min": [
+    461.09,
+    145.65,
+    162.69
+   ],
+   "bbox_max": [
+    473.89,
+    158.45,
+    207.19
+   ],
+   "triangles": 2454,
+   "bytes": 122784,
+   "group": "x_carriage"
+  },
+  {
+   "label": "corner-bracket006",
+   "object_name": "b_2020CornerBracket1_001_006",
+   "stl": "corner-bracket006.stl",
+   "bbox_min": [
+    -0.0,
+    0.0,
+    0.0
+   ],
+   "bbox_max": [
+    20.0,
+    20.0,
+    20.0
+   ],
+   "triangles": 244,
+   "bytes": 12284,
+   "group": "base_link"
+  },
+  {
+   "label": "corner-bracket007",
+   "object_name": "b_2020CornerBracket1_001_007",
+   "stl": "corner-bracket007.stl",
+   "bbox_min": [
+    580.0,
+    0.0,
+    -0.0
+   ],
+   "bbox_max": [
+    600.0,
+    20.0,
+    20.0
+   ],
+   "triangles": 244,
+   "bytes": 12284,
+   "group": "base_link"
+  },
+  {
+   "label": "board-mount-static_001",
+   "object_name": "b_board_mount_static_001_",
+   "stl": "board-mount-static_001.stl",
+   "bbox_min": [
+    405.38,
+    148.86,
+    43.01
+   ],
+   "bbox_max": [
+    435.38,
+    196.86,
+    53.01
+   ],
+   "triangles": 422,
+   "bytes": 21184,
+   "group": "base_link"
+  },
+  {
+   "label": "board-mount-dynamic_001",
+   "object_name": "b_board_mount_dynamic_001_",
+   "stl": "board-mount-dynamic_001.stl",
+   "bbox_min": [
+    415.38,
+    75.79,
+    43.01
+   ],
+   "bbox_max": [
+    425.38,
+    128.76,
+    58.82
+   ],
+   "triangles": 280,
+   "bytes": 14084,
+   "group": "base_link"
+  },
+  {
+   "label": "board-support_001",
+   "object_name": "b_board_support_001_",
+   "stl": "board-support_001.stl",
+   "bbox_min": [
+    367.88,
+    112.56,
+    38.01
+   ],
+   "bbox_max": [
+    382.88,
+    127.56,
+    51.41
+   ],
+   "triangles": 386,
+   "bytes": 19384,
+   "group": "base_link"
+  },
+  {
+   "label": "extrusion-cable-clip004",
+   "object_name": "b_FDM_0016_cable_clip_001_004",
+   "stl": "extrusion-cable-clip004.stl",
+   "bbox_min": [
+    15.24,
+    339.73,
+    21.11
+   ],
+   "bbox_max": [
+    27.74,
+    367.79,
+    39.64
+   ],
+   "triangles": 624,
+   "bytes": 31284,
+   "group": "base_link"
+  },
+  {
+   "label": "extrusion-cable-clip005",
+   "object_name": "b_FDM_0016_cable_clip_001_005",
+   "stl": "extrusion-cable-clip005.stl",
+   "bbox_min": [
+    14.88,
+    180.36,
+    21.03
+   ],
+   "bbox_max": [
+    27.38,
+    208.42,
+    39.56
    ],
    "triangles": 624,
    "bytes": 31284,
