@@ -14,6 +14,28 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.4.6] - LumenPnP: ground-offset fix + 87 more real parts as data + Pick & Place resizable split
+
+- **Ground-offset fix**: `render/pnp_rig.py`'s `PNP_ROOT` now composes a
+  `GROUND_OFFSET_M` lift, ported from the same real fix in
+  HYDRA-UMC-STUDIO's `LumenPnPRig.tsx` - the real legs (once wired into
+  this app's own mesh set, see the 0.4.5 entry below) reach Z=-100.81mm,
+  below CAD Z=0 (the machine's own work surface, not its feet). Applied
+  ahead of that wiring so the offset is already correct the day it
+  lands, rather than reintroducing the same "half the machine hidden
+  below the floor" bug found live on STUDIO.
+- **87 more real CAD parts as data** (`assets/meshes/lumenpnp/parts/`,
+  mirroring STUDIO's own batches 2-4 - motors/pulleys/idlers/the real
+  30-link Y drag chain, GT2 belts/tension-arms/belt-clamps, rails/
+  carriages/staging plates/fiducial board/blade mechanisms/cable clips)
+  - 134 total now. `render/pnp_rig.py` still does not load any of them
+  (unchanged from 0.4.5 - real open work, not silently dropped).
+- **Pick & Place panel resizable split**: `pick_and_place_panel.py`'s
+  Module Settings + 3D viewer now sit in a `QSplitter` (default 40/60,
+  same ratio as STUDIO's own PickAndPlace.tsx) instead of a fixed
+  1:1 `QHBoxLayout` - this toolkit's own native drag-handle widget, no
+  hand-rolled pointer-drag math needed like the web side.
+
 ## [0.4.5] - LumenPnP: 47 real CAD parts added as data (legs, control box, frame, cameras, feeders, gantry hardware)
 
 Adds `assets/meshes/lumenpnp/parts/*.stl` (47 individually-exported real

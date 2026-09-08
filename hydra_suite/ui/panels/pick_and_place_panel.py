@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSlider,
     QSpinBox,
+    QSplitter,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -127,10 +128,18 @@ class PickAndPlacePanel(QWidget):
         # own PickAndPlace.tsx two-column layout (settings form on the
         # left, its own <Canvas> on the right), same pattern
         # module_config_panel.py's own settings_page now uses too.
+        #
+        # Resizable split (2026-09-08), ported from PickAndPlace.tsx's own
+        # pointer-drag divider between these same two panels - QSplitter
+        # is this toolkit's own native equivalent (drag handle included),
+        # no need to hand-roll pointer-drag math like the web side does.
+        # Default 40/60 (viewer 1.5x the settings panel's own width),
+        # same ratio STUDIO's own default uses.
         settings_page = QWidget()
-        settings_page_layout = QHBoxLayout(settings_page)
+        settings_page_layout = QVBoxLayout(settings_page)
         settings_page_layout.setContentsMargins(0, 0, 0, 0)
-        settings_page_layout.setSpacing(8)
+        self._split = QSplitter(Qt.Orientation.Horizontal)
+        settings_page_layout.addWidget(self._split, 1)
 
         settings_column = QWidget()
         settings_layout = QVBoxLayout(settings_column)
@@ -195,11 +204,14 @@ class PickAndPlacePanel(QWidget):
 
         settings_layout.addWidget(settings_box)
         settings_layout.addStretch(1)
-        settings_page_layout.addWidget(settings_column, 1)
+        self._split.addWidget(settings_column)
 
         self._pnp_viewport = RobotViewport()
         self._pnp_viewport.setMinimumWidth(220)
-        settings_page_layout.addWidget(self._pnp_viewport, 1)
+        self._split.addWidget(self._pnp_viewport)
+        self._split.setStretchFactor(0, 2)
+        self._split.setStretchFactor(1, 3)
+        self._split.setSizes([400, 600])
 
         self._stack.addWidget(settings_page)
 

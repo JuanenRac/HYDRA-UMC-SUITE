@@ -845,12 +845,1616 @@
    ],
    "triangles": 8094,
    "bytes": 404784
+  },
+  {
+   "label": "NEMA17-stepper003",
+   "object_name": "b_Nema_17_42A02C_v21_001_002",
+   "stl": "NEMA17-stepper003.stl",
+   "bbox_min": [
+    -11.16,
+    520.04,
+    43.25
+   ],
+   "bbox_max": [
+    30.84,
+    567.54,
+    104.25
+   ],
+   "triangles": 1528,
+   "bytes": 76484,
+   "group": "base_link"
+  },
+  {
+   "label": "NEMA17-stepper004",
+   "object_name": "b_Nema_17_42A02C_v21_001_003",
+   "stl": "NEMA17-stepper004.stl",
+   "bbox_min": [
+    569.08,
+    520.04,
+    43.25
+   ],
+   "bbox_max": [
+    611.08,
+    567.54,
+    104.25
+   ],
+   "triangles": 1528,
+   "bytes": 76484,
+   "group": "base_link"
+  },
+  {
+   "label": "NEMA17-stepper005",
+   "object_name": "b_Nema_17_42A02C_v21_001_004",
+   "stl": "NEMA17-stepper005.stl",
+   "bbox_min": [
+    416.9,
+    170.14,
+    185.31
+   ],
+   "bbox_max": [
+    470.65,
+    231.14,
+    239.05
+   ],
+   "triangles": 1528,
+   "bytes": 76484,
+   "group": "x_carriage"
+  },
+  {
+   "label": "NEMA17-stepper006",
+   "object_name": "b_Nema_17_42A02C_v21_001_005",
+   "stl": "NEMA17-stepper006.stl",
+   "bbox_min": [
+    -64.48,
+    188.12,
+    140.88
+   ],
+   "bbox_max": [
+    -22.47,
+    235.63,
+    201.88
+   ],
+   "triangles": 1528,
+   "bytes": 76484,
+   "group": "y_carriage"
+  },
+  {
+   "label": "GT2-pulley002",
+   "object_name": "b_Gates_2GT_20T_Toothed_Pulley1_001_002",
+   "stl": "GT2-pulley002.stl",
+   "bbox_min": [
+    2.32,
+    539.02,
+    88.82
+   ],
+   "bbox_max": [
+    17.32,
+    554.02,
+    104.82
+   ],
+   "triangles": 3828,
+   "bytes": 191484,
+   "group": "base_link"
+  },
+  {
+   "label": "GT2-pulley003",
+   "object_name": "b_Gates_2GT_20T_Toothed_Pulley1_001_003",
+   "stl": "GT2-pulley003.stl",
+   "bbox_min": [
+    582.52,
+    539.02,
+    88.82
+   ],
+   "bbox_max": [
+    597.52,
+    554.02,
+    104.82
+   ],
+   "triangles": 3828,
+   "bytes": 191484,
+   "group": "base_link"
+  },
+  {
+   "label": "GT2-pulley004",
+   "object_name": "b_Gates_2GT_20T_Toothed_Pulley1_001_004",
+   "stl": "GT2-pulley004.stl",
+   "bbox_min": [
+    436.24,
+    172.24,
+    204.66
+   ],
+   "bbox_max": [
+    451.29,
+    188.24,
+    219.71
+   ],
+   "triangles": 3828,
+   "bytes": 191484,
+   "group": "x_carriage"
+  },
+  {
+   "label": "GT2-pulley005",
+   "object_name": "b_Gates_2GT_20T_Toothed_Pulley1_001_005",
+   "stl": "GT2-pulley005.stl",
+   "bbox_min": [
+    -50.98,
+    201.62,
+    139.4
+   ],
+   "bbox_max": [
+    -35.98,
+    216.63,
+    155.4
+   ],
+   "triangles": 3828,
+   "bytes": 191484,
+   "group": "y_carriage"
+  },
+  {
+   "label": "GT2-idler002",
+   "object_name": "b_Gates_2GT_20T_Toothed_Idler1_001_001",
+   "stl": "GT2-idler002.stl",
+   "bbox_min": [
+    2.56,
+    -105.22,
+    95.0
+   ],
+   "bbox_max": [
+    17.56,
+    -90.22,
+    105.0
+   ],
+   "triangles": 11084,
+   "bytes": 554284,
+   "group": "base_link"
+  },
+  {
+   "label": "GT2-idler003",
+   "object_name": "b_Gates_2GT_20T_Toothed_Idler1_001_003",
+   "stl": "GT2-idler003.stl",
+   "bbox_min": [
+    582.56,
+    -105.22,
+    95.0
+   ],
+   "bbox_max": [
+    597.56,
+    -90.22,
+    105.0
+   ],
+   "triangles": 11084,
+   "bytes": 554284,
+   "group": "base_link"
+  },
+  {
+   "label": "GT2-idler004",
+   "object_name": "b_Gates_2GT_20T_Toothed_Idler1_001_004",
+   "stl": "GT2-idler004.stl",
+   "bbox_min": [
+    436.28,
+    171.94,
+    91.48
+   ],
+   "bbox_max": [
+    451.28,
+    181.94,
+    106.48
+   ],
+   "triangles": 11084,
+   "bytes": 554284,
+   "group": "x_carriage"
+  },
+  {
+   "label": "GT2-idler005",
+   "object_name": "b_Gates_2GT_20T_Toothed_Idler1_001_005",
+   "stl": "GT2-idler005.stl",
+   "bbox_min": [
+    626.68,
+    201.79,
+    139.1
+   ],
+   "bbox_max": [
+    641.68,
+    216.79,
+    149.1
+   ],
+   "triangles": 11084,
+   "bytes": 554284,
+   "group": "y_carriage"
+  },
+  {
+   "label": "y-drag-chain-link-#001",
+   "object_name": "Part__Feature039",
+   "stl": "y-drag-chain-link-001.stl",
+   "bbox_min": [
+    -55.69,
+    140.76,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    178.57,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-001"
+  },
+  {
+   "label": "y-drag-chain-link-#002",
+   "object_name": "Part__Feature040",
+   "stl": "y-drag-chain-link-002.stl",
+   "bbox_min": [
+    -55.69,
+    120.19,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    158.0,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-002"
+  },
+  {
+   "label": "y-drag-chain-link-#003",
+   "object_name": "Part__Feature041",
+   "stl": "y-drag-chain-link-003.stl",
+   "bbox_min": [
+    -55.69,
+    79.05,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    116.86,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-003"
+  },
+  {
+   "label": "y-drag-chain-link-#004",
+   "object_name": "Part__Feature042",
+   "stl": "y-drag-chain-link-004.stl",
+   "bbox_min": [
+    -55.69,
+    161.33,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    199.14,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-004"
+  },
+  {
+   "label": "y-drag-chain-link-#005",
+   "object_name": "Part__Feature043",
+   "stl": "y-drag-chain-link-005.stl",
+   "bbox_min": [
+    -55.69,
+    99.62,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    137.43,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-005"
+  },
+  {
+   "label": "y-drag-chain-link-#006",
+   "object_name": "Part__Feature044",
+   "stl": "y-drag-chain-link-006.stl",
+   "bbox_min": [
+    -55.69,
+    305.19,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    343.0,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-006"
+  },
+  {
+   "label": "y-drag-chain-link-#007",
+   "object_name": "Part__Feature045",
+   "stl": "y-drag-chain-link-007.stl",
+   "bbox_min": [
+    -57.32,
+    432.66,
+    69.77
+   ],
+   "bbox_max": [
+    -16.89,
+    454.45,
+    109.43
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-007"
+  },
+  {
+   "label": "y-drag-chain-link-#008",
+   "object_name": "Part__Feature046",
+   "stl": "y-drag-chain-link-008.stl",
+   "bbox_min": [
+    -55.84,
+    283.34,
+    139.49
+   ],
+   "bbox_max": [
+    -15.41,
+    321.15,
+    154.8
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-008"
+  },
+  {
+   "label": "y-drag-chain-link-#009",
+   "object_name": "Part__Feature047",
+   "stl": "y-drag-chain-link-009.stl",
+   "bbox_min": [
+    -55.84,
+    303.91,
+    139.49
+   ],
+   "bbox_max": [
+    -15.41,
+    341.72,
+    154.8
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-009"
+  },
+  {
+   "label": "y-drag-chain-link-#010",
+   "object_name": "Part__Feature048",
+   "stl": "y-drag-chain-link-010.stl",
+   "bbox_min": [
+    -55.85,
+    344.86,
+    139.39
+   ],
+   "bbox_max": [
+    -15.42,
+    382.8,
+    155.03
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-010"
+  },
+  {
+   "label": "y-drag-chain-link-#011",
+   "object_name": "Part__Feature049",
+   "stl": "y-drag-chain-link-011.stl",
+   "bbox_min": [
+    -55.84,
+    324.48,
+    139.49
+   ],
+   "bbox_max": [
+    -15.41,
+    362.29,
+    154.8
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-011"
+  },
+  {
+   "label": "y-drag-chain-link-#012",
+   "object_name": "Part__Feature050",
+   "stl": "y-drag-chain-link-012.stl",
+   "bbox_min": [
+    -55.69,
+    181.9,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    219.71,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-012"
+  },
+  {
+   "label": "y-drag-chain-link-#013",
+   "object_name": "Part__Feature051",
+   "stl": "y-drag-chain-link-013.stl",
+   "bbox_min": [
+    -55.69,
+    243.48,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    281.29,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-013"
+  },
+  {
+   "label": "y-drag-chain-link-#014",
+   "object_name": "Part__Feature052",
+   "stl": "y-drag-chain-link-014.stl",
+   "bbox_min": [
+    -56.85,
+    421.28,
+    109.51
+   ],
+   "bbox_max": [
+    -16.42,
+    458.56,
+    143.94
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-014"
+  },
+  {
+   "label": "y-drag-chain-link-#015",
+   "object_name": "Part__Feature053",
+   "stl": "y-drag-chain-link-015.stl",
+   "bbox_min": [
+    -56.85,
+    383.56,
+    130.94
+   ],
+   "bbox_max": [
+    -16.42,
+    422.38,
+    156.43
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-015"
+  },
+  {
+   "label": "y-drag-chain-link-#016",
+   "object_name": "Part__Feature054",
+   "stl": "y-drag-chain-link-016.stl",
+   "bbox_min": [
+    -55.69,
+    366.9,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    404.71,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-016"
+  },
+  {
+   "label": "y-drag-chain-link-#017",
+   "object_name": "Part__Feature055",
+   "stl": "y-drag-chain-link-017.stl",
+   "bbox_min": [
+    -55.84,
+    262.77,
+    139.49
+   ],
+   "bbox_max": [
+    -15.41,
+    300.58,
+    154.8
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-017"
+  },
+  {
+   "label": "y-drag-chain-link-#018",
+   "object_name": "Part__Feature056",
+   "stl": "y-drag-chain-link-018.stl",
+   "bbox_min": [
+    -55.69,
+    425.11,
+    49.85
+   ],
+   "bbox_max": [
+    -15.26,
+    451.39,
+    89.96
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-018"
+  },
+  {
+   "label": "y-drag-chain-link-#019",
+   "object_name": "Part__Feature057",
+   "stl": "y-drag-chain-link-019.stl",
+   "bbox_min": [
+    -55.69,
+    387.47,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    425.28,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-019"
+  },
+  {
+   "label": "y-drag-chain-link-#020",
+   "object_name": "Part__Feature058",
+   "stl": "y-drag-chain-link-020.stl",
+   "bbox_min": [
+    -55.69,
+    325.76,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    363.57,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-020"
+  },
+  {
+   "label": "y-drag-chain-link-#021",
+   "object_name": "Part__Feature059",
+   "stl": "y-drag-chain-link-021.stl",
+   "bbox_min": [
+    -55.69,
+    222.91,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    260.72,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-021"
+  },
+  {
+   "label": "y-drag-chain-link-#022",
+   "object_name": "Part__Feature060",
+   "stl": "y-drag-chain-link-022.stl",
+   "bbox_min": [
+    -55.69,
+    346.33,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    384.14,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-022"
+  },
+  {
+   "label": "y-drag-chain-link-#023",
+   "object_name": "Part__Feature061",
+   "stl": "y-drag-chain-link-023.stl",
+   "bbox_min": [
+    -55.69,
+    365.04,
+    138.66
+   ],
+   "bbox_max": [
+    -15.26,
+    403.3,
+    155.21
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-023"
+  },
+  {
+   "label": "y-drag-chain-link-#024",
+   "object_name": "Part__Feature062",
+   "stl": "y-drag-chain-link-024.stl",
+   "bbox_min": [
+    -56.85,
+    403.0,
+    124.67
+   ],
+   "bbox_max": [
+    -16.42,
+    441.75,
+    149.35
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-024"
+  },
+  {
+   "label": "y-drag-chain-link-#025",
+   "object_name": "Part__Feature063",
+   "stl": "y-drag-chain-link-025.stl",
+   "bbox_min": [
+    -55.69,
+    407.01,
+    39.7
+   ],
+   "bbox_max": [
+    -15.26,
+    445.32,
+    71.5
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-025"
+  },
+  {
+   "label": "y-drag-chain-link-#026",
+   "object_name": "Part__Feature064",
+   "stl": "y-drag-chain-link-026.stl",
+   "bbox_min": [
+    -55.69,
+    264.05,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    301.86,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-026"
+  },
+  {
+   "label": "y-drag-chain-link-#027",
+   "object_name": "Part__Feature065",
+   "stl": "y-drag-chain-link-027.stl",
+   "bbox_min": [
+    -55.69,
+    284.62,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    322.43,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-027"
+  },
+  {
+   "label": "y-drag-chain-link-#028",
+   "object_name": "Part__Feature068",
+   "stl": "y-drag-chain-link-028.stl",
+   "bbox_min": [
+    -55.69,
+    58.69,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    96.5,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-028"
+  },
+  {
+   "label": "y-drag-chain-link-#029",
+   "object_name": "Part__Feature038",
+   "stl": "y-drag-chain-link-029.stl",
+   "bbox_min": [
+    -55.69,
+    202.47,
+    42.09
+   ],
+   "bbox_max": [
+    -15.26,
+    240.28,
+    57.4
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-029"
+  },
+  {
+   "label": "y-drag-chain-link-#030",
+   "object_name": "Part__Feature069",
+   "stl": "y-drag-chain-link-030.stl",
+   "bbox_min": [
+    -57.32,
+    436.85,
+    89.49
+   ],
+   "bbox_max": [
+    -16.89,
+    456.34,
+    128.64
+   ],
+   "triangles": 1586,
+   "bytes": 79384,
+   "group": "y_carriage",
+   "file_slug": "y-drag-chain-link-030"
+  },
+  {
+   "label": "ldo-drag-chain-end_Body_001",
+   "object_name": "b_ldo_drag_chain_end_001_",
+   "stl": "ldo-drag-chain-end_Body_001.stl",
+   "bbox_min": [
+    1.9,
+    245.57,
+    137.76
+   ],
+   "bbox_max": [
+    40.9,
+    284.57,
+    157.26
+   ],
+   "triangles": 612,
+   "bytes": 30684,
+   "group": "y_carriage"
+  },
+  {
+   "label": "ldo-drag-chain-end_Body_003",
+   "object_name": "b_ldo_drag_chain_end_001_002",
+   "stl": "ldo-drag-chain-end_Body_003.stl",
+   "bbox_min": [
+    469.8,
+    245.57,
+    197.36
+   ],
+   "bbox_max": [
+    508.8,
+    284.57,
+    216.86
+   ],
+   "triangles": 612,
+   "bytes": 30684,
+   "group": "y_carriage"
+  },
+  {
+   "label": "ldo-drag-chain-end_Body_005",
+   "object_name": "b_ldo_drag_chain_end_001_004",
+   "stl": "ldo-drag-chain-end_Body_005.stl",
+   "bbox_min": [
+    -55.0,
+    236.32,
+    137.76
+   ],
+   "bbox_max": [
+    -16.0,
+    275.32,
+    157.26
+   ],
+   "triangles": 612,
+   "bytes": 30684,
+   "group": "y_carriage"
+  },
+  {
+   "label": "ldo-drag-chain-end_Body_006",
+   "object_name": "b_ldo_drag_chain_end_001_005",
+   "stl": "ldo-drag-chain-end_Body_006.stl",
+   "bbox_min": [
+    -54.96,
+    37.27,
+    40.02
+   ],
+   "bbox_max": [
+    -15.96,
+    76.27,
+    59.52
+   ],
+   "triangles": 612,
+   "bytes": 30684,
+   "group": "y_carriage"
+  },
+  {
+   "label": "x-gantry-gt2-belt",
+   "object_name": "b_x_gantry_gt2_belt_001_",
+   "stl": "x-gantry-gt2-belt.stl",
+   "bbox_min": [
+    -51.48,
+    202.0,
+    141.5
+   ],
+   "bbox_max": [
+    641.27,
+    236.0,
+    147.5
+   ],
+   "triangles": 524,
+   "bytes": 26284,
+   "group": "y_carriage"
+  },
+  {
+   "label": "y-gantry-gt2-belt_left",
+   "object_name": "b_y_gantry_gt2_belt_001_",
+   "stl": "y-gantry-gt2-belt_left.stl",
+   "bbox_min": [
+    -14.09,
+    -105.0,
+    97.0
+   ],
+   "bbox_max": [
+    17.0,
+    552.94,
+    103.0
+   ],
+   "triangles": 524,
+   "bytes": 26284,
+   "group": "base_link"
+  },
+  {
+   "label": "y-gantry-gt2-belt_right",
+   "object_name": "b_y_gantry_gt2_belt_001_001",
+   "stl": "y-gantry-gt2-belt_right.stl",
+   "bbox_min": [
+    583.32,
+    -105.0,
+    97.0
+   ],
+   "bbox_max": [
+    614.42,
+    552.94,
+    103.0
+   ],
+   "triangles": 524,
+   "bytes": 26284,
+   "group": "base_link"
+  },
+  {
+   "label": "z-belt-loop",
+   "object_name": "b_z_belt_loop_001_",
+   "stl": "z-belt-loop.stl",
+   "bbox_min": [
+    437.19,
+    173.7,
+    92.11
+   ],
+   "bbox_max": [
+    450.39,
+    179.7,
+    218.81
+   ],
+   "triangles": 224,
+   "bytes": 11284,
+   "group": "x_carriage"
+  },
+  {
+   "label": "x-belt-tension-arm",
+   "object_name": "b_belt_tension_arm_001_003",
+   "stl": "x-belt-tension-arm.stl",
+   "bbox_min": [
+    627.16,
+    189.23,
+    128.68
+   ],
+   "bbox_max": [
+    641.16,
+    229.23,
+    159.68
+   ],
+   "triangles": 1774,
+   "bytes": 88784,
+   "group": "y_carriage"
+  },
+  {
+   "label": "y1-belt-tension-arm",
+   "object_name": "b_belt_tension_arm_001_002",
+   "stl": "y1-belt-tension-arm.stl",
+   "bbox_min": [
+    -10.04,
+    -104.59,
+    84.48
+   ],
+   "bbox_max": [
+    29.96,
+    -90.59,
+    115.48
+   ],
+   "triangles": 1774,
+   "bytes": 88784,
+   "group": "base_link"
+  },
+  {
+   "label": "y2-belt-tension-arm",
+   "object_name": "b_belt_tension_arm_001_001",
+   "stl": "y2-belt-tension-arm.stl",
+   "bbox_min": [
+    570.04,
+    -104.5,
+    84.57
+   ],
+   "bbox_max": [
+    610.04,
+    -90.5,
+    115.57
+   ],
+   "triangles": 1774,
+   "bytes": 88784,
+   "group": "base_link"
+  },
+  {
+   "label": "belt-clamp007",
+   "object_name": "b_FDM_0027_belt_clamp_001_006",
+   "stl": "belt-clamp007.stl",
+   "bbox_min": [
+    399.77,
+    234.14,
+    129.83
+   ],
+   "bbox_max": [
+    415.78,
+    241.14,
+    159.83
+   ],
+   "triangles": 1336,
+   "bytes": 66884,
+   "group": "x_carriage"
+  },
+  {
+   "label": "belt-clamp008",
+   "object_name": "b_FDM_0027_belt_clamp_001_007",
+   "stl": "belt-clamp008.stl",
+   "bbox_min": [
+    471.77,
+    234.14,
+    129.83
+   ],
+   "bbox_max": [
+    487.78,
+    241.14,
+    159.83
+   ],
+   "triangles": 1336,
+   "bytes": 66884,
+   "group": "x_carriage"
+  },
+  {
+   "label": "belt-clamp009",
+   "object_name": "b_FDM_0027_belt_clamp_001_008",
+   "stl": "belt-clamp009.stl",
+   "bbox_min": [
+    -18.98,
+    228.12,
+    84.77
+   ],
+   "bbox_max": [
+    -11.98,
+    244.12,
+    114.77
+   ],
+   "triangles": 1336,
+   "bytes": 66884,
+   "group": "y_carriage"
+  },
+  {
+   "label": "belt-clamp010",
+   "object_name": "b_FDM_0027_belt_clamp_001_009",
+   "stl": "belt-clamp010.stl",
+   "bbox_min": [
+    -18.98,
+    174.12,
+    84.77
+   ],
+   "bbox_max": [
+    -11.97,
+    190.13,
+    114.77
+   ],
+   "triangles": 1336,
+   "bytes": 66884,
+   "group": "y_carriage"
+  },
+  {
+   "label": "belt-clamp013",
+   "object_name": "b_FDM_0027_belt_clamp_001_012",
+   "stl": "belt-clamp013.stl",
+   "bbox_min": [
+    612.19,
+    174.13,
+    84.77
+   ],
+   "bbox_max": [
+    619.19,
+    190.13,
+    114.77
+   ],
+   "triangles": 1336,
+   "bytes": 66884,
+   "group": "y_carriage"
+  },
+  {
+   "label": "belt-clamp014",
+   "object_name": "b_FDM_0027_belt_clamp_001_013",
+   "stl": "belt-clamp014.stl",
+   "bbox_min": [
+    612.19,
+    228.12,
+    84.77
+   ],
+   "bbox_max": [
+    619.19,
+    244.13,
+    114.77
+   ],
+   "triangles": 1336,
+   "bytes": 66884,
+   "group": "y_carriage"
+  },
+  {
+   "label": "datum-board",
+   "object_name": "b_PCB_0002_00_Datum_OpenPNPcalibration1_001_",
+   "stl": "datum-board.stl",
+   "bbox_min": [
+    260.47,
+    155.38,
+    51.39
+   ],
+   "bbox_max": [
+    340.47,
+    190.38,
+    52.99
+   ],
+   "triangles": 3932,
+   "bytes": 196684,
+   "group": "base_link"
+  },
+  {
+   "label": "datum-board-mount",
+   "object_name": "b_FDM_0055_datum_board_mount_001_",
+   "stl": "datum-board-mount.stl",
+   "bbox_min": [
+    260.39,
+    155.03,
+    42.9
+   ],
+   "bbox_max": [
+    340.39,
+    190.03,
+    51.3
+   ],
+   "triangles": 748,
+   "bytes": 37484,
+   "group": "base_link"
+  },
+  {
+   "label": "secondary-fid-mount_001",
+   "object_name": "b_secondary_fid_mount_001_",
+   "stl": "secondary-fid-mount_001.stl",
+   "bbox_min": [
+    279.46,
+    84.59,
+    42.99
+   ],
+   "bbox_max": [
+    321.46,
+    95.59,
+    50.79
+   ],
+   "triangles": 492,
+   "bytes": 24684,
+   "group": "base_link"
+  },
+  {
+   "label": "blade12_004",
+   "object_name": "b_blade13_001_009",
+   "stl": "blade12_004.stl",
+   "bbox_min": [
+    102.58,
+    -27.68,
+    -24.64
+   ],
+   "bbox_max": [
+    292.18,
+    5.4,
+    19.85
+   ],
+   "triangles": 8378,
+   "bytes": 418984,
+   "group": "base_link"
+  },
+  {
+   "label": "blade13_003",
+   "object_name": "b_blade13_001_010",
+   "stl": "blade13_003.stl",
+   "bbox_min": [
+    292.18,
+    -27.68,
+    -24.64
+   ],
+   "bbox_max": [
+    497.58,
+    5.4,
+    19.85
+   ],
+   "triangles": 8342,
+   "bytes": 417184,
+   "group": "base_link"
+  },
+  {
+   "label": "pcb-staging-plate",
+   "object_name": "b_CSM_0001_staging_plate_001_",
+   "stl": "pcb-staging-plate.stl",
+   "bbox_min": [
+    0.41,
+    75.0,
+    39.97
+   ],
+   "bbox_max": [
+    600.41,
+    195.0,
+    42.97
+   ],
+   "triangles": 14400,
+   "bytes": 720084,
+   "group": "base_link"
+  },
+  {
+   "label": "pcb-staging-plate-aux",
+   "object_name": "b_staging_plate1_001_",
+   "stl": "pcb-staging-plate-aux.stl",
+   "bbox_min": [
+    0.45,
+    195.05,
+    39.97
+   ],
+   "bbox_max": [
+    600.45,
+    315.05,
+    42.97
+   ],
+   "triangles": 20456,
+   "bytes": 1022884,
+   "group": "base_link"
+  },
+  {
+   "label": "peek-cable-clamp",
+   "object_name": "b_FDM_0023_peek_cable_guide_001_",
+   "stl": "peek-cable-clamp.stl",
+   "bbox_min": [
+    551.35,
+    85.94,
+    30.62
+   ],
+   "bbox_max": [
+    559.35,
+    109.94,
+    36.62
+   ],
+   "triangles": 304,
+   "bytes": 15284,
+   "group": "base_link"
+  },
+  {
+   "label": "peek-cable-clamp004",
+   "object_name": "b_FDM_0023_peek_cable_guide_001_004",
+   "stl": "peek-cable-clamp004.stl",
+   "bbox_min": [
+    41.45,
+    159.94,
+    33.62
+   ],
+   "bbox_max": [
+    49.45,
+    183.94,
+    39.62
+   ],
+   "triangles": 304,
+   "bytes": 15284,
+   "group": "base_link"
+  },
+  {
+   "label": "peek-cable-2",
+   "object_name": "b_FDM_0023_peek_cable_guide_001_002",
+   "stl": "peek-cable-2.stl",
+   "bbox_min": [
+    41.05,
+    85.94,
+    30.62
+   ],
+   "bbox_max": [
+    49.05,
+    109.94,
+    36.62
+   ],
+   "triangles": 304,
+   "bytes": 15284,
+   "group": "base_link"
+  },
+  {
+   "label": "x-cable-chain-support",
+   "object_name": "b_x_cable_chain_support1_001_",
+   "stl": "x-cable-chain-support.stl",
+   "bbox_min": [
+    -64.1,
+    235.63,
+    134.77
+   ],
+   "bbox_max": [
+    599.9,
+    280.13,
+    137.77
+   ],
+   "triangles": 748,
+   "bytes": 37484,
+   "group": "y_carriage"
+  },
+  {
+   "label": "mgn9-linear-rail-carriage",
+   "object_name": "b_linear_rail_carriage_001_",
+   "stl": "mgn9-linear-rail-carriage.stl",
+   "bbox_min": [
+    413.77,
+    174.15,
+    130.59
+   ],
+   "bbox_max": [
+    433.77,
+    182.15,
+    160.59
+   ],
+   "triangles": 868,
+   "bytes": 43484,
+   "group": "x_carriage"
+  },
+  {
+   "label": "mgn9-linear-rail-carriage001",
+   "object_name": "b_linear_rail_carriage_001_001",
+   "stl": "mgn9-linear-rail-carriage001.stl",
+   "bbox_min": [
+    453.77,
+    174.15,
+    130.59
+   ],
+   "bbox_max": [
+    473.77,
+    182.15,
+    160.59
+   ],
+   "triangles": 868,
+   "bytes": 43484,
+   "group": "x_carriage"
+  },
+  {
+   "label": "525mm-MGN12H",
+   "object_name": "b_525mm_MGN12H_001_",
+   "stl": "525mm-MGN12H.stl",
+   "bbox_min": [
+    37.63,
+    203.13,
+    154.82
+   ],
+   "bbox_max": [
+    562.63,
+    215.13,
+    162.82
+   ],
+   "triangles": 5004,
+   "bytes": 250284,
+   "group": "y_carriage"
+  },
+  {
+   "label": "550mm-MGN12H001_001",
+   "object_name": "b_550mm_MGN12H001_001_",
+   "stl": "550mm-MGN12H001_001.stl",
+   "bbox_min": [
+    3.9,
+    -55.88,
+    110.02
+   ],
+   "bbox_max": [
+    15.9,
+    494.12,
+    118.02
+   ],
+   "triangles": 5224,
+   "bytes": 261284,
+   "group": "base_link"
+  },
+  {
+   "label": "550mm-MGN12H001_002",
+   "object_name": "b_550mm_MGN12H001_001_001",
+   "stl": "550mm-MGN12H001_002.stl",
+   "bbox_min": [
+    584.0,
+    -55.88,
+    110.02
+   ],
+   "bbox_max": [
+    596.0,
+    494.12,
+    118.02
+   ],
+   "triangles": 5224,
+   "bytes": 261284,
+   "group": "base_link"
+  },
+  {
+   "label": "MGN12H-linear-rail-carriage",
+   "object_name": "MGN12H001_001",
+   "stl": "MGN12H-linear-rail-carriage.stl",
+   "bbox_min": [
+    -3.6,
+    186.12,
+    110.02
+   ],
+   "bbox_max": [
+    23.4,
+    232.12,
+    123.02
+   ],
+   "triangles": 6040,
+   "bytes": 302084,
+   "group": "y_carriage"
+  },
+  {
+   "label": "MGN12H-linear-rail-carriage001",
+   "object_name": "MGN12H001_004",
+   "stl": "MGN12H-linear-rail-carriage001.stl",
+   "bbox_min": [
+    576.5,
+    186.12,
+    110.02
+   ],
+   "bbox_max": [
+    603.5,
+    232.12,
+    123.02
+   ],
+   "triangles": 6040,
+   "bytes": 302084,
+   "group": "y_carriage"
+  },
+  {
+   "label": "linear-rail-100mm_001",
+   "object_name": "b_linear_rail_100mm_001_",
+   "stl": "linear-rail-100mm_001.stl",
+   "bbox_min": [
+    419.27,
+    177.65,
+    96.58
+   ],
+   "bbox_max": [
+    428.27,
+    184.15,
+    191.58
+   ],
+   "triangles": 1452,
+   "bytes": 72684,
+   "group": "x_carriage"
+  },
+  {
+   "label": "linear-rail-100mm_002",
+   "object_name": "b_linear_rail_100mm_001_001",
+   "stl": "linear-rail-100mm_002.stl",
+   "bbox_min": [
+    459.27,
+    177.65,
+    96.58
+   ],
+   "bbox_max": [
+    468.27,
+    184.15,
+    191.58
+   ],
+   "triangles": 1452,
+   "bytes": 72684,
+   "group": "x_carriage"
+  },
+  {
+   "label": "z-gantry-backplate-left001",
+   "object_name": "b_FDM_0040_z_gantry_backplate_left_001_001",
+   "stl": "z-gantry-backplate-left001.stl",
+   "bbox_min": [
+    412.78,
+    171.15,
+    130.59
+   ],
+   "bbox_max": [
+    442.77,
+    181.15,
+    165.59
+   ],
+   "triangles": 4392,
+   "bytes": 219684,
+   "group": "x_carriage"
+  },
+  {
+   "label": "z-gantry-backplate-right002",
+   "object_name": "b_FDM_0041_z_gantry_backplate_right_001_002",
+   "stl": "z-gantry-backplate-right002.stl",
+   "bbox_min": [
+    444.88,
+    171.15,
+    130.59
+   ],
+   "bbox_max": [
+    481.99,
+    182.15,
+    165.59
+   ],
+   "triangles": 2030,
+   "bytes": 101584,
+   "group": "x_carriage"
+  },
+  {
+   "label": "z-gantry-left001",
+   "object_name": "b_z_gantry_shorter_001_003",
+   "stl": "z-gantry-left001.stl",
+   "bbox_min": [
+    400.58,
+    137.95,
+    118.09
+   ],
+   "bbox_max": [
+    439.58,
+    171.15,
+    160.59
+   ],
+   "triangles": 3246,
+   "bytes": 162384,
+   "group": "x_carriage"
+  },
+  {
+   "label": "z-gantry-right001",
+   "object_name": "b_z_gantry_shorter_001_002",
+   "stl": "z-gantry-right001.stl",
+   "bbox_min": [
+    447.99,
+    137.95,
+    118.09
+   ],
+   "bbox_max": [
+    486.99,
+    171.15,
+    160.59
+   ],
+   "triangles": 3246,
+   "bytes": 162384,
+   "group": "x_carriage"
+  },
+  {
+   "label": "z-limit_001",
+   "object_name": "b_z_limit_001_",
+   "stl": "z-limit_001.stl",
+   "bbox_min": [
+    468.96,
+    176.63,
+    188.26
+   ],
+   "bbox_max": [
+    488.77,
+    190.73,
+    223.39
+   ],
+   "triangles": 6844,
+   "bytes": 342284,
+   "group": "x_carriage"
+  },
+  {
+   "label": "extrusion-cable-clip",
+   "object_name": "b_FDM_0016_cable_clip_001_",
+   "stl": "extrusion-cable-clip.stl",
+   "bbox_min": [
+    572.11,
+    307.73,
+    20.67
+   ],
+   "bbox_max": [
+    584.61,
+    335.79,
+    39.2
+   ],
+   "triangles": 624,
+   "bytes": 31284,
+   "group": "base_link"
+  },
+  {
+   "label": "extrusion-cable-clip002",
+   "object_name": "b_FDM_0016_cable_clip_001_002",
+   "stl": "extrusion-cable-clip002.stl",
+   "bbox_min": [
+    573.12,
+    226.47,
+    20.74
+   ],
+   "bbox_max": [
+    585.62,
+    254.53,
+    39.28
+   ],
+   "triangles": 624,
+   "bytes": 31284,
+   "group": "base_link"
+  },
+  {
+   "label": "extrusion-cable-clip003",
+   "object_name": "b_FDM_0016_cable_clip_001_003",
+   "stl": "extrusion-cable-clip003.stl",
+   "bbox_min": [
+    572.48,
+    148.36,
+    20.74
+   ],
+   "bbox_max": [
+    584.98,
+    176.42,
+    39.28
+   ],
+   "triangles": 624,
+   "bytes": 31284,
+   "group": "base_link"
   }
  ],
  "skipped": [
   [
    "static-camera-foot",
    "dropped: FreeCAD LinearDeflection had no effect on this pre-tessellated part (71896 tris regardless), 5MB+ GLB, not worth the payload for a decorative foot bracket"
+  ],
+  [
+   "blade12-PCB_003",
+   "dropped: 161173 tris / 8MB, fine copper-trace PCB geometry, same class of problem as control-box mobo exclusion"
+  ],
+  [
+   "blade13_PCB002",
+   "dropped: 65606 tris / 3.3MB, same reason"
   ]
  ]
 }
