@@ -80,6 +80,90 @@ PNP_LINK_NAMES: tuple[str, ...] = (
 )
 PNP_MESH_FILES: dict[str, str] = {name: f"{name}.stl" for name in PNP_LINK_NAMES}
 
+# 160 real, individually-named CAD parts (assets/meshes/lumenpnp/parts/ -
+# legs, control box, frame extrusions, cameras/lights, feeders, motors,
+# pulleys, belts, the real drag chains, and more) mirroring HYDRA-UMC-
+# STUDIO's own LumenPnPRig.tsx batches 1-5 (2026-09-08) - wired in here
+# now for real, closing the "SUITE has the data but pnp_rig.py never
+# loads it" gap those STUDIO commits explicitly flagged as open. Each
+# part is already in real assembled world-space (no per-part offset
+# needed) and is attached to whichever of base/y_carriage/x_carriage
+# matches its own real mechanical role - see
+# assets/meshes/lumenpnp/ATTRIBUTION.txt and parts/manifest.json for the
+# full per-part reasoning (STUDIO's own commit messages document it
+# batch by batch; not re-derived independently here).
+PNP_BASE_STATIC_PARTS: tuple[str, ...] = (
+    'back-leg', 'back-leg001', 'back-leg-extension_001', 'back-leg-extension_002', 'front-left-leg',
+    'front-right-leg', 'front-leg-extension_001', 'front-leg-extension_002', 'control-box_001', 'control-box-lid',
+    'vslot-extrusion-20mmx20mmx600mm', 'vslot-extrusion-20mmx20mmx600mm001', 'vslot-extrusion-20mmx20mmx600mm002',
+    'vslot-extrusion-20mmx20mmx600mm003', 'vslot-extrusion-20mmx20mmx600mm007',
+    'vslot-extrusion-20mmx20mmx600mm008', 'vslot-extrusion-20mmx20mmx600mm009', 'bottom-camera-cover',
+    'bottom-camera-mount', 'bottom-camera_001', 'top-camera001', 'bottom-light-mount', 'top-light-mount',
+    'bottom-ring-light', 'top-ring-light', 'aux-staging-plate-foot', '8mm-strip-feeder', '12mm-strip-feeder',
+    '16mm-strip-feeder', '24mm-strip-feeder', '32mm-strip-feeder', 'adj-strip-feeder', 'vacuum-pump002',
+    'solenoid-valve003', 'nozzle-rack', 'nozzle-holder_001', 'nozzle-holder_002', 'xy-limit_001',
+    'NEMA17-stepper003', 'NEMA17-stepper004', 'GT2-pulley002', 'GT2-pulley003', 'GT2-idler002', 'GT2-idler003',
+    'y-gantry-gt2-belt_left', 'y-gantry-gt2-belt_right', 'y1-belt-tension-arm', 'y2-belt-tension-arm',
+    'datum-board', 'datum-board-mount', 'secondary-fid-mount_001', 'blade12_004', 'blade13_003',
+    'pcb-staging-plate', 'pcb-staging-plate-aux', 'peek-cable-clamp', 'peek-cable-clamp004', 'peek-cable-2',
+    '550mm-MGN12H001_001', '550mm-MGN12H001_002', 'extrusion-cable-clip', 'extrusion-cable-clip002',
+    'extrusion-cable-clip003', 'blade12_005', 'blade13_004', 'vacuum-pump003', 'solenoid-valve004', 'n40-nozzle',
+    'n08-nozzle', 'reducing-union-tee-4-6-4', 'reducing-union-tee-4-6-4_01', 'corner-bracket006',
+    'corner-bracket007', 'board-mount-static_001', 'board-mount-dynamic_001', 'board-support_001',
+    'extrusion-cable-clip004', 'extrusion-cable-clip005',
+)
+
+# Fixed to the Y-bridge's own ends (moves with y_carriage in Y, not with
+# x_carriage in X) - same real precedent as X-Motor above (a fixed-to-
+# the-bridge part, not carried by the toolhead). Includes the real Y
+# drag chain (30 links + 4 end connectors), rendered as one rigid
+# attachment to the bridge - this rig has no cable-chain physics.
+PNP_Y_CARRIAGE_STATIC_PARTS: tuple[str, ...] = (
+    'x-idler-mount', 'x-motor-mount', 'y-gantry-left002', 'y-gantry-right002', 'y-limit-striker_Body_001',
+    'squaring-bracket', 'NEMA17-stepper006', 'GT2-pulley005', 'GT2-idler005', 'y-drag-chain-link-001',
+    'y-drag-chain-link-002', 'y-drag-chain-link-003', 'y-drag-chain-link-004', 'y-drag-chain-link-005',
+    'y-drag-chain-link-006', 'y-drag-chain-link-007', 'y-drag-chain-link-008', 'y-drag-chain-link-009',
+    'y-drag-chain-link-010', 'y-drag-chain-link-011', 'y-drag-chain-link-012', 'y-drag-chain-link-013',
+    'y-drag-chain-link-014', 'y-drag-chain-link-015', 'y-drag-chain-link-016', 'y-drag-chain-link-017',
+    'y-drag-chain-link-018', 'y-drag-chain-link-019', 'y-drag-chain-link-020', 'y-drag-chain-link-021',
+    'y-drag-chain-link-022', 'y-drag-chain-link-023', 'y-drag-chain-link-024', 'y-drag-chain-link-025',
+    'y-drag-chain-link-026', 'y-drag-chain-link-027', 'y-drag-chain-link-028', 'y-drag-chain-link-029',
+    'y-drag-chain-link-030', 'ldo-drag-chain-end_Body_001', 'ldo-drag-chain-end_Body_003',
+    'ldo-drag-chain-end_Body_005', 'ldo-drag-chain-end_Body_006', 'x-gantry-gt2-belt', 'x-belt-tension-arm',
+    'belt-clamp009', 'belt-clamp010', 'belt-clamp013', 'belt-clamp014', 'x-cable-chain-support', '525mm-MGN12H',
+    'MGN12H-linear-rail-carriage', 'MGN12H-linear-rail-carriage001', 'drag-chain-link_001', 'drag-chain-link_002',
+    'drag-chain-link_003', 'drag-chain-link_004',
+)
+
+# The toolhead's own front/back gantry plates and everything else that
+# rides with it in X (its own rotation motors, rails, belt/limit
+# hardware).
+PNP_X_CARRIAGE_STATIC_PARTS: tuple[str, ...] = (
+    'nozzle-camera-mask_001', 'x-gantry-back', 'x-gantry-front', 'NEMA17-stepper005', 'GT2-pulley004',
+    'GT2-idler004', 'z-belt-loop', 'belt-clamp007', 'belt-clamp008', 'mgn9-linear-rail-carriage',
+    'mgn9-linear-rail-carriage001', 'linear-rail-100mm_001', 'linear-rail-100mm_002', 'z-gantry-backplate-left001',
+    'z-gantry-backplate-right002', 'z-gantry-left001', 'z-gantry-right001', 'z-limit_001',
+    'NEMA11-hollow-shaft-stepper002', 'NEMA11-hollow-shaft-stepper003', 'nozzle-camera-mask_002', 'MGN12H001_002',
+    'cable-splay', 'rotary-pneumatic-adapter_001', 'rotary-pneumatic-adapter_002',
+)
+
+# Real link a static part attaches to, for every one of the 160 parts
+# above - used both to load them under a common mesh-buffer namespace
+# (PNP_STATIC_PART_FILES below) and to know which of the 7 real
+# transforms pnp_world_link_transforms() returns applies to each one.
+PNP_STATIC_PART_OWNER: dict[str, str] = {
+    **{name: "base" for name in PNP_BASE_STATIC_PARTS},
+    **{name: "y_carriage" for name in PNP_Y_CARRIAGE_STATIC_PARTS},
+    **{name: "x_carriage" for name in PNP_X_CARRIAGE_STATIC_PARTS},
+}
+PNP_STATIC_PART_FILES: dict[str, str] = {name: f"parts/{name}.stl" for name in PNP_STATIC_PART_OWNER}
+
+# What viewport.py's own _load_mesh_set() actually needs to load every
+# real mesh (the 7 kinematic links + all 160 static parts) into ONE
+# buffer set, keyed by name.
+PNP_ALL_MESH_NAMES: tuple[str, ...] = PNP_LINK_NAMES + tuple(PNP_STATIC_PART_OWNER)
+PNP_ALL_MESH_FILES: dict[str, str] = {**PNP_MESH_FILES, **PNP_STATIC_PART_FILES}
+
 # Real fixed hardware travel bounds (openpnp/machine.xml) - same values
 # ui/panels/pick_and_place_panel.py's own PNP_AXES sliders already clamp
 # to; kept here too since a caller driving this module directly (rather

@@ -193,6 +193,14 @@ if [ -f README.md ]; then
     cp README.md dist/README.md
     echo "      Copied README.md into dist/"
 fi
+if [ -f CHANGELOG.md ]; then
+    # A07 (found in an ecosystem-wide software-preparation pass, real gap):
+    # README.md's own [CHANGELOG.md](CHANGELOG.md) link is correct in the
+    # canonical repo, but dist/ never carried CHANGELOG.md alongside its
+    # own copied README.md - a dangling link in the distributed copy only.
+    cp CHANGELOG.md dist/CHANGELOG.md
+    echo "      Copied CHANGELOG.md into dist/"
+fi
 if [ -f LICENSE ]; then
     cp LICENSE dist/LICENSE
     echo "      Copied LICENSE into dist/"

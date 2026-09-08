@@ -14,6 +14,28 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.4.8] - LumenPnP: 160 real parts wired into pnp_rig.py/viewport.py + A07 dist/ CHANGELOG fix
+
+- **LumenPnP fully wired**: `render/pnp_rig.py` and `render/viewport.py`
+  now load and render all 160 real static CAD parts (legs, control box,
+  frame extrusions, cameras/lights, feeders, motors, pulleys, belts, the
+  real drag chains, and more) alongside the 7 kinematic links - mirrors
+  HYDRA-UMC-STUDIO's own `LumenPnPRig.tsx` batches 1-5. Each part is
+  attached to whichever of `base`/`y_carriage`/`x_carriage` matches its
+  own real mechanical role and drawn with that link's own real transform
+  and color. Closes the "SUITE has the data but `pnp_rig.py` never loads
+  it" gap those STUDIO commits explicitly flagged as open. New
+  `tests/verify_pnp_static_parts.py`: real part-list/owner consistency
+  checks plus a real load of all 167 meshes (no GL context needed).
+- **A07**: `build_exe.sh`/`build_exe.bat` now also copy `CHANGELOG.md`
+  into `dist/` alongside `README.md` - the canonical README's own
+  `[CHANGELOG.md](CHANGELOG.md)` link was correct in the repo, but
+  `dist/` never carried the file it points to, a dangling link in the
+  distributed copy only.
+
+Verified: `tools/build_test.py` (23 offline verifiers incl. the new one
++ Python compile), `tools/ci_validate.py` PASS.
+
 ## [0.4.7] - LumenPnP: 26 more real parts as data (160 total)
 
 Mirrors STUDIO's own batch 5: nozzle-rotation motors, a 2nd
