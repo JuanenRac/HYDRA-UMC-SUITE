@@ -175,6 +175,14 @@ if exist README.md (
     copy /Y README.md dist\README.md >nul
     echo       Copied README.md into dist\
 )
+if exist CHANGELOG.md (
+    REM A07: README.md's own CHANGELOG.md link is correct in the
+    REM canonical repo, but dist/ never carried CHANGELOG.md alongside
+    REM its own copied README.md - a dangling link in the distributed
+    REM copy only.
+    copy /Y CHANGELOG.md dist\CHANGELOG.md >nul
+    echo       Copied CHANGELOG.md into dist\
+)
 if exist LICENSE (
     copy /Y LICENSE dist\LICENSE >nul
     echo       Copied LICENSE into dist\

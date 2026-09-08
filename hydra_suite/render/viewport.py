@@ -52,7 +52,14 @@ from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
 from hydra_suite.render.module_rig import module_segments
 from hydra_suite.render.module_rig import segment_world_transform as module_segment_world_transform
-from hydra_suite.render.pnp_rig import PNP_LINK_NAMES, PNP_MESH_DIR, PNP_MESH_FILES, pnp_world_link_transforms
+from hydra_suite.render.pnp_rig import (
+    PNP_ALL_MESH_FILES,
+    PNP_ALL_MESH_NAMES,
+    PNP_LINK_NAMES,
+    PNP_MESH_DIR,
+    PNP_STATIC_PART_OWNER,
+    pnp_world_link_transforms,
+)
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "meshes"
 
@@ -341,7 +348,7 @@ class RobotGLRenderer:
         self._pnp_pose = (axis_x_mm, axis_y_mm, axis_z_mm, nozzle1_deg, nozzle2_deg)
         if machine_type is not None and PNP_MESH_DIR not in self._mesh_buffers_by_dir:
             if self._gl_ready:
-                self._load_mesh_set(PNP_MESH_DIR, PNP_LINK_NAMES, PNP_MESH_FILES)
+                self._load_mesh_set(PNP_MESH_DIR, PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
             else:
                 # Same real-world timing gap set_attached_module() already
                 # guards against: a freshly-constructed, not-yet-rendered
@@ -414,7 +421,7 @@ class RobotGLRenderer:
             ]
             self._pending_module_rebuild = False
         if self._pending_pnp_mesh_load:
-            self._load_mesh_set(PNP_MESH_DIR, PNP_LINK_NAMES, PNP_MESH_FILES)
+            self._load_mesh_set(PNP_MESH_DIR, PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
             self._pending_pnp_mesh_load = False
         entry = ROBOT_REGISTRY[self._model_name]
         if entry.family in ("ur", "quat"):
@@ -485,6 +492,13 @@ class RobotGLRenderer:
         for name in PNP_LINK_NAMES:
             gl.glUniform3f(self._uniforms["uBaseColor"], *_PNP_LINK_COLORS[name])
             self._draw_model(transforms[name], buffers[name])
+        # 160 real static CAD parts (legs, control box, motors, belts,
+        # the real drag chains, ...) - each one drawn with its owning
+        # link's own real transform (base/y_carriage/x_carriage) and that
+        # link's own color, matching HYDRA-UMC-STUDIO's own LumenPnPRig.tsx.
+        for part_name, owner in PNP_STATIC_PART_OWNER.items():
+            gl.glUniform3f(self._uniforms["uBaseColor"], *_PNP_LINK_COLORS[owner])
+            self._draw_model(transforms[owner], buffers[part_name])
 
     def _draw_generic(self) -> None:
         frames = generic_frame_transforms(self._joints_deg)
