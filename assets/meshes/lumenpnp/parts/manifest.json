@@ -1,0 +1,856 @@
+{
+ "parts": [
+  {
+   "label": "back-leg",
+   "object_name": "b_back_leg_cleaned_001_",
+   "stl": "back-leg.stl",
+   "group": "base_link",
+   "bbox_min": [
+    568.02,
+    499.75,
+    -49.9
+   ],
+   "bbox_max": [
+    611.98,
+    568.72,
+    120.41
+   ],
+   "triangles": 5708,
+   "bytes": 285484
+  },
+  {
+   "label": "back-leg001",
+   "object_name": "b_back_leg_cleaned_001_001",
+   "stl": "back-leg001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -12.07,
+    499.76,
+    -49.89
+   ],
+   "bbox_max": [
+    31.89,
+    568.73,
+    120.42
+   ],
+   "triangles": 5708,
+   "bytes": 285484
+  },
+  {
+   "label": "back-leg-extension_001",
+   "object_name": "b_back_leg_extension_001_",
+   "stl": "back-leg-extension_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    568.5,
+    499.33,
+    -99.9
+   ],
+   "bbox_max": [
+    611.5,
+    568.52,
+    -37.07
+   ],
+   "triangles": 1636,
+   "bytes": 81884
+  },
+  {
+   "label": "back-leg-extension_002",
+   "object_name": "b_back_leg_extension_001_001",
+   "stl": "back-leg-extension_002.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -11.59,
+    499.33,
+    -99.9
+   ],
+   "bbox_max": [
+    31.41,
+    568.52,
+    -37.07
+   ],
+   "triangles": 1636,
+   "bytes": 81884
+  },
+  {
+   "label": "front-left-leg",
+   "object_name": "b_FDM_0001_front_left_leg_001_",
+   "stl": "front-left-leg.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -10.02,
+    -104.36,
+    -50.01
+   ],
+   "bbox_max": [
+    29.98,
+    -0.05,
+    119.99
+   ],
+   "triangles": 3018,
+   "bytes": 150984
+  },
+  {
+   "label": "front-right-leg",
+   "object_name": "b_front_right_leg_001_",
+   "stl": "front-right-leg.stl",
+   "group": "base_link",
+   "bbox_min": [
+    570.0,
+    -104.31,
+    -50.0
+   ],
+   "bbox_max": [
+    610.0,
+    0.0,
+    120.0
+   ],
+   "triangles": 2828,
+   "bytes": 141484
+  },
+  {
+   "label": "front-leg-extension_001",
+   "object_name": "b_front_leg_extension_001_",
+   "stl": "front-leg-extension_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    580.0,
+    -85.05,
+    -100.81
+   ],
+   "bbox_max": [
+    610.0,
+    -28.9,
+    -50.01
+   ],
+   "triangles": 864,
+   "bytes": 43284
+  },
+  {
+   "label": "front-leg-extension_002",
+   "object_name": "b_front_leg_extension_001_001",
+   "stl": "front-leg-extension_002.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -10.02,
+    -85.05,
+    -100.81
+   ],
+   "bbox_max": [
+    19.98,
+    -28.9,
+    -50.01
+   ],
+   "triangles": 864,
+   "bytes": 43284
+  },
+  {
+   "label": "control-box_001",
+   "object_name": "b_mobo_mount_001_001",
+   "stl": "control-box_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -63.0,
+    29.95,
+    -79.96
+   ],
+   "bbox_max": [
+    0.76,
+    243.95,
+    40.04
+   ],
+   "triangles": 11792,
+   "bytes": 589684
+  },
+  {
+   "label": "control-box-lid",
+   "object_name": "b_mobo_cover_001_",
+   "stl": "control-box-lid.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -65.08,
+    28.31,
+    -79.96
+   ],
+   "bbox_max": [
+    -37.46,
+    245.61,
+    40.04
+   ],
+   "triangles": 11124,
+   "bytes": 556284
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_002",
+   "stl": "vslot-extrusion-20mmx20mmx600mm.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -0.01,
+    -79.97,
+    90.02
+   ],
+   "bbox_max": [
+    19.99,
+    520.03,
+    110.02
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm001",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_004",
+   "stl": "vslot-extrusion-20mmx20mmx600mm001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    580.07,
+    -79.98,
+    20.0
+   ],
+   "bbox_max": [
+    600.07,
+    520.02,
+    40.0
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm002",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_005",
+   "stl": "vslot-extrusion-20mmx20mmx600mm002.stl",
+   "group": "base_link",
+   "bbox_min": [
+    580.09,
+    -79.95,
+    90.05
+   ],
+   "bbox_max": [
+    600.09,
+    520.05,
+    110.05
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm003",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_001",
+   "stl": "vslot-extrusion-20mmx20mmx600mm003.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -0.06,
+    -80.09,
+    20.07
+   ],
+   "bbox_max": [
+    19.94,
+    519.91,
+    40.07
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm007",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_007",
+   "stl": "vslot-extrusion-20mmx20mmx600mm007.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -0.06,
+    199.12,
+    134.82
+   ],
+   "bbox_max": [
+    599.94,
+    219.12,
+    154.82
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm008",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_008",
+   "stl": "vslot-extrusion-20mmx20mmx600mm008.stl",
+   "group": "base_link",
+   "bbox_min": [
+    0.0,
+    -20.0,
+    -0.0
+   ],
+   "bbox_max": [
+    600.0,
+    0.0,
+    20.0
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "vslot-extrusion-20mmx20mmx600mm009",
+   "object_name": "b_OTS_0009_20x20_v_slot_600mm1_001_009",
+   "stl": "vslot-extrusion-20mmx20mmx600mm009.stl",
+   "group": "base_link",
+   "bbox_min": [
+    0.0,
+    430.07,
+    -0.0
+   ],
+   "bbox_max": [
+    600.0,
+    450.07,
+    20.0
+   ],
+   "triangles": 840,
+   "bytes": 42084
+  },
+  {
+   "label": "bottom-camera-cover",
+   "object_name": "b_bottom_camera_cover_001_",
+   "stl": "bottom-camera-cover.stl",
+   "group": "base_link",
+   "bbox_min": [
+    279.89,
+    114.53,
+    8.77
+   ],
+   "bbox_max": [
+    320.82,
+    155.46,
+    10.62
+   ],
+   "triangles": 884,
+   "bytes": 44284
+  },
+  {
+   "label": "bottom-camera-mount",
+   "object_name": "b_FDM_0020_up_camera_mount_001_001",
+   "stl": "bottom-camera-mount.stl",
+   "group": "base_link",
+   "bbox_min": [
+    264.87,
+    99.56,
+    8.75
+   ],
+   "bbox_max": [
+    335.87,
+    170.56,
+    32.25
+   ],
+   "triangles": 8574,
+   "bytes": 428784
+  },
+  {
+   "label": "bottom-camera_001",
+   "object_name": "b_bottom_camera_001_",
+   "stl": "bottom-camera_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    281.31,
+    115.94,
+    4.35
+   ],
+   "bbox_max": [
+    319.41,
+    154.04,
+    34.43
+   ],
+   "triangles": 5068,
+   "bytes": 253484
+  },
+  {
+   "label": "top-camera001",
+   "object_name": "b_top_camera_001_001",
+   "stl": "top-camera001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    424.73,
+    196.12,
+    100.49
+   ],
+   "bbox_max": [
+    462.83,
+    234.22,
+    134.74
+   ],
+   "triangles": 7768,
+   "bytes": 388484
+  },
+  {
+   "label": "bottom-light-mount",
+   "object_name": "b_FDM_0019_up_light_mount_001_001",
+   "stl": "bottom-light-mount.stl",
+   "group": "base_link",
+   "bbox_min": [
+    264.31,
+    98.94,
+    32.24
+   ],
+   "bbox_max": [
+    336.48,
+    171.11,
+    40.24
+   ],
+   "triangles": 1302,
+   "bytes": 65184
+  },
+  {
+   "label": "top-light-mount",
+   "object_name": "b_top_light_mount_001_",
+   "stl": "top-light-mount.stl",
+   "group": "base_link",
+   "bbox_min": [
+    408.06,
+    194.13,
+    103.08
+   ],
+   "bbox_max": [
+    479.4,
+    248.38,
+    133.79
+   ],
+   "triangles": 1914,
+   "bytes": 95784
+  },
+  {
+   "label": "bottom-ring-light",
+   "object_name": "b_PCB_0003_00_RingLight1_001_",
+   "stl": "bottom-ring-light.stl",
+   "group": "base_link",
+   "bbox_min": [
+    275.08,
+    115.03,
+    30.75
+   ],
+   "bbox_max": [
+    320.4,
+    160.35,
+    40.25
+   ],
+   "triangles": 6710,
+   "bytes": 335584
+  },
+  {
+   "label": "top-ring-light",
+   "object_name": "b_PCB_0003_00_RingLight1_001_002",
+   "stl": "top-ring-light.stl",
+   "group": "base_link",
+   "bbox_min": [
+    423.77,
+    195.0,
+    105.73
+   ],
+   "bbox_max": [
+    463.77,
+    245.25,
+    116.13
+   ],
+   "triangles": 6540,
+   "bytes": 327084
+  },
+  {
+   "label": "aux-staging-plate-foot",
+   "object_name": "b_aux_staging_plate_foot_001_",
+   "stl": "aux-staging-plate-foot.stl",
+   "group": "base_link",
+   "bbox_min": [
+    287.93,
+    242.55,
+    -99.75
+   ],
+   "bbox_max": [
+    311.43,
+    267.55,
+    39.97
+   ],
+   "triangles": 1172,
+   "bytes": 58684
+  },
+  {
+   "label": "8mm-strip-feeder",
+   "object_name": "b_8mm_strip_feeder_001_",
+   "stl": "8mm-strip-feeder.stl",
+   "group": "base_link",
+   "bbox_min": [
+    175.01,
+    195.0,
+    42.97
+   ],
+   "bbox_max": [
+    215.41,
+    315.0,
+    54.98
+   ],
+   "triangles": 6958,
+   "bytes": 347984
+  },
+  {
+   "label": "12mm-strip-feeder",
+   "object_name": "b_12mm_strip_feeder_001_",
+   "stl": "12mm-strip-feeder.stl",
+   "group": "base_link",
+   "bbox_min": [
+    218.01,
+    195.0,
+    42.98
+   ],
+   "bbox_max": [
+    262.41,
+    315.0,
+    54.98
+   ],
+   "triangles": 5350,
+   "bytes": 267584
+  },
+  {
+   "label": "16mm-strip-feeder",
+   "object_name": "b_16mm_strip_feeder_001_",
+   "stl": "16mm-strip-feeder.stl",
+   "group": "base_link",
+   "bbox_min": [
+    263.05,
+    195.05,
+    42.97
+   ],
+   "bbox_max": [
+    307.45,
+    315.05,
+    54.97
+   ],
+   "triangles": 5428,
+   "bytes": 271484
+  },
+  {
+   "label": "24mm-strip-feeder",
+   "object_name": "b_24mm_strip_feeder_001_",
+   "stl": "24mm-strip-feeder.stl",
+   "group": "base_link",
+   "bbox_min": [
+    309.55,
+    195.05,
+    42.97
+   ],
+   "bbox_max": [
+    335.95,
+    315.05,
+    54.98
+   ],
+   "triangles": 4000,
+   "bytes": 200084
+  },
+  {
+   "label": "32mm-strip-feeder",
+   "object_name": "b_32mm_strip_feeder_001_",
+   "stl": "32mm-strip-feeder.stl",
+   "group": "base_link",
+   "bbox_min": [
+    337.6,
+    195.05,
+    42.97
+   ],
+   "bbox_max": [
+    372.0,
+    315.05,
+    54.98
+   ],
+   "triangles": 3778,
+   "bytes": 188984
+  },
+  {
+   "label": "adj-strip-feeder",
+   "object_name": "b_adj_strip_feeder_001_006",
+   "stl": "adj-strip-feeder.stl",
+   "group": "base_link",
+   "bbox_min": [
+    372.09,
+    194.98,
+    42.97
+   ],
+   "bbox_max": [
+    418.09,
+    314.98,
+    54.97
+   ],
+   "triangles": 4232,
+   "bytes": 211684
+  },
+  {
+   "label": "vacuum-pump002",
+   "object_name": "b_OTS_0003_00_vacuum_pump_001_003",
+   "stl": "vacuum-pump002.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -38.26,
+    143.29,
+    -12.48
+   ],
+   "bbox_max": [
+    -5.51,
+    214.79,
+    20.27
+   ],
+   "triangles": 494,
+   "bytes": 24784
+  },
+  {
+   "label": "solenoid-valve003",
+   "object_name": "b_24v_3_Way_Solenoid_Valve_0526T_www_fspump_cn_001_005",
+   "stl": "solenoid-valve003.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -19.14,
+    34.98,
+    -10.44
+   ],
+   "bbox_max": [
+    -3.14,
+    92.68,
+    17.59
+   ],
+   "triangles": 3204,
+   "bytes": 160284
+  },
+  {
+   "label": "nozzle-rack",
+   "object_name": "b_FDM_0024_nozzle_holder_001_",
+   "stl": "nozzle-rack.stl",
+   "group": "base_link",
+   "bbox_min": [
+    115.15,
+    97.0,
+    42.95
+   ],
+   "bbox_max": [
+    135.15,
+    173.0,
+    72.95
+   ],
+   "triangles": 7476,
+   "bytes": 373884
+  },
+  {
+   "label": "nozzle-camera-mask_001",
+   "object_name": "b_cp40_nozzle_camera_mask_001_",
+   "stl": "nozzle-camera-mask_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    398.44,
+    130.83,
+    106.68
+   ],
+   "bbox_max": [
+    440.44,
+    172.83,
+    116.68
+   ],
+   "triangles": 1742,
+   "bytes": 87184
+  },
+  {
+   "label": "nozzle-holder_001",
+   "object_name": "b_nozzle_holder_001_",
+   "stl": "nozzle-holder_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    415.08,
+    146.98,
+    88.32
+   ],
+   "bbox_max": [
+    425.08,
+    157.05,
+    124.26
+   ],
+   "triangles": 10114,
+   "bytes": 505784
+  },
+  {
+   "label": "nozzle-holder_002",
+   "object_name": "b_nozzle_holder_001_001",
+   "stl": "nozzle-holder_002.stl",
+   "group": "base_link",
+   "bbox_min": [
+    462.49,
+    146.98,
+    88.32
+   ],
+   "bbox_max": [
+    472.49,
+    157.05,
+    124.26
+   ],
+   "triangles": 10114,
+   "bytes": 505784
+  },
+  {
+   "label": "x-gantry-back",
+   "object_name": "b_x_gantry_back_001_002",
+   "stl": "x-gantry-back.stl",
+   "group": "x_carriage",
+   "bbox_min": [
+    398.76,
+    194.13,
+    103.08
+   ],
+   "bbox_max": [
+    488.79,
+    234.13,
+    183.64
+   ],
+   "triangles": 7102,
+   "bytes": 355184
+  },
+  {
+   "label": "x-gantry-front",
+   "object_name": "b_FDM_0011_x_gantry_front_001_001",
+   "stl": "x-gantry-front.stl",
+   "group": "x_carriage",
+   "bbox_min": [
+    398.77,
+    179.13,
+    93.33
+   ],
+   "bbox_max": [
+    488.78,
+    194.74,
+    240.41
+   ],
+   "triangles": 5516,
+   "bytes": 275884
+  },
+  {
+   "label": "x-idler-mount",
+   "object_name": "b_x_idler_mount_001_001",
+   "stl": "x-idler-mount.stl",
+   "group": "y_carriage",
+   "bbox_min": [
+    564.24,
+    188.12,
+    91.92
+   ],
+   "bbox_max": [
+    641.77,
+    230.12,
+    164.77
+   ],
+   "triangles": 2848,
+   "bytes": 142484
+  },
+  {
+   "label": "x-motor-mount",
+   "object_name": "b_x_motor_mount_001_001",
+   "stl": "x-motor-mount.stl",
+   "group": "y_carriage",
+   "bbox_min": [
+    -64.98,
+    175.1,
+    91.89
+   ],
+   "bbox_max": [
+    36.02,
+    230.63,
+    164.77
+   ],
+   "triangles": 3610,
+   "bytes": 180584
+  },
+  {
+   "label": "y-gantry-left002",
+   "object_name": "b_y_gantry_001_002",
+   "stl": "y-gantry-left002.stl",
+   "group": "y_carriage",
+   "bbox_min": [
+    -11.98,
+    174.13,
+    84.65
+   ],
+   "bbox_max": [
+    26.9,
+    287.19,
+    136.33
+   ],
+   "triangles": 2664,
+   "bytes": 133284
+  },
+  {
+   "label": "y-gantry-right002",
+   "object_name": "b_y_gantry_right_001_",
+   "stl": "y-gantry-right002.stl",
+   "group": "y_carriage",
+   "bbox_min": [
+    573.32,
+    174.12,
+    84.65
+   ],
+   "bbox_max": [
+    612.19,
+    287.19,
+    136.33
+   ],
+   "triangles": 2664,
+   "bytes": 133284
+  },
+  {
+   "label": "y-limit-striker_Body_001",
+   "object_name": "b_y_limit_striker_001_",
+   "stl": "y-limit-striker_Body_001.stl",
+   "group": "y_carriage",
+   "bbox_min": [
+    -16.03,
+    -85.05,
+    73.24
+   ],
+   "bbox_max": [
+    10.98,
+    -60.05,
+    149.8
+   ],
+   "triangles": 716,
+   "bytes": 35884
+  },
+  {
+   "label": "squaring-bracket",
+   "object_name": "b_squaring_bracket_001_",
+   "stl": "squaring-bracket.stl",
+   "group": "y_carriage",
+   "bbox_min": [
+    -60.66,
+    234.37,
+    84.36
+   ],
+   "bbox_max": [
+    -20.66,
+    309.37,
+    134.36
+   ],
+   "triangles": 3394,
+   "bytes": 169784
+  },
+  {
+   "label": "xy-limit_001",
+   "object_name": "b_xy_limit_001_",
+   "stl": "xy-limit_001.stl",
+   "group": "base_link",
+   "bbox_min": [
+    -62.97,
+    175.75,
+    135.77
+   ],
+   "bbox_max": [
+    39.6,
+    195.82,
+    162.77
+   ],
+   "triangles": 8094,
+   "bytes": 404784
+  }
+ ],
+ "skipped": [
+  [
+   "static-camera-foot",
+   "dropped: FreeCAD LinearDeflection had no effect on this pre-tessellated part (71896 tris regardless), 5MB+ GLB, not worth the payload for a decorative foot bracket"
+  ]
+ ]
+}

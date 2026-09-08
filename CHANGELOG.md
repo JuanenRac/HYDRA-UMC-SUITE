@@ -14,6 +14,21 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 (nothing yet)
 
+## [0.4.5] - LumenPnP: 47 real CAD parts added as data (legs, control box, frame, cameras, feeders, gantry hardware)
+
+Adds `assets/meshes/lumenpnp/parts/*.stl` (47 individually-exported real
+CAD parts, ~6.6MB combined - the machine's own 4 legs, control box+lid,
+7 frame extrusion segments, both cameras+ring lights+light mounts, all 6
+strip-feeder sizes, the vacuum pump, a solenoid valve, the nozzle rack,
+2 nozzle holders and the X/Y gantry brackets), mirroring HYDRA-UMC
+STUDIO's own `LumenPnPRig.tsx` expansion - same real source
+(`assembly.FCStd`), same per-part selection and link assignment, see
+`assets/meshes/lumenpnp/ATTRIBUTION.txt` and `parts/manifest.json` for
+the full methodology. **`render/pnp_rig.py` is NOT yet wired to load
+these** - this commit ships the data only, so a future session can add
+them to the render/viewport pipeline without re-running the CAD export.
+Tracked as open work, not a finished parity item.
+
 ## [0.4.4] - LumenPnP/JuanenPnP: nozzle no longer spins its own housing
 
 `render/pnp_rig.py` merged each Z-carriage housing and its nozzle into
