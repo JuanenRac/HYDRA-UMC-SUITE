@@ -225,3 +225,33 @@ the blade mechanisms' own mechanical bodies (blade12_004/blade13_003,
 134 parts total across all 4 batches, ~20.7MB combined .stl (smaller
 as .glb - see parts/manifest.json for every part's own real CAD source
 label, assigned link, assembled bounding box and triangle count).
+
+
+---
+
+parts/ batch 5 (2026-09-08, same day - user explicitly asked to keep
+extracting real mechanical parts, screws/fasteners excluded)
+
+26 more real parts: the 2 real nozzle-rotation motors (hollow-shaft
+NEMA11 - vacuum tubing passes through the center while the shaft spins
+the nozzle; the motor body moves with the toolhead in X, only the
+nozzle barrel itself rotates), a real 2nd pair of blade-dispenser units
+(the machine has 2, front and back), a real 2nd pump/valve pair with
+their own pneumatic fittings, 2 spare nozzle tips sitting in the rack,
+the real X-axis drag chain (4 links, same rigid-attachment
+simplification as the Y chain), a 3rd Z-rail carriage, and generic
+frame hardware (corner brackets, board mounts/supports, cable clips).
+
+Real bucketing correction found and fixed in the same pass:
+nozzle-camera-mask_001 (added in batch 1) was mis-bucketed under
+base_link - its own real bbox sits at the toolhead's own height/X
+range (matching z_carriage_left/nozzle_left), not the static frame.
+Moved to x_carriage alongside its new _002 sibling.
+
+160 parts total across all 5 batches, ~23.9MB combined .stl (smaller as
+.glb - see parts/manifest.json for every part's own real CAD source
+label, assigned link, assembled bounding box and triangle count).
+Explicitly excluded throughout, by the user's own instruction: all
+fasteners (screws/nuts/washers/wing-nuts/cap-nuts/binders) - ~2400
+real instances counted in the source CAD, zero of them worth a
+separate mesh file at this viewport's scale.
