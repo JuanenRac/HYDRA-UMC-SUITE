@@ -175,3 +175,53 @@ alongside every part's own real CAD source label, assembled bounding box
 and triangle count) and converted to .glb the same Node-side way
 documented above (binary STL parsed by hand, vertices welded, a minimal
 hand-written spec-valid GLB written directly - no browser-only globals).
+
+
+---
+
+parts/ batches 2-4 (2026-09-08, same day as the batch above - added after
+the user looked at the live rig and named specific real gaps: motors,
+pulleys, the drag chain, belts, then asked for more individualized
+mechanical parts beyond fasteners)
+
+Batch 2 (motors/pulleys/idlers/drag chain, 46 parts): the 2 real Y
+motors (NEMA17-stepper) are bolted to the fixed frame at the rear -
+they drive belts, they don't ride the bridge - same for their own
+rear pulleys and the front idlers that close each belt loop. The X
+motor is mounted ON the Y-bridge (same real precedent already used
+above for x-motor-mount itself), and the toolhead carries its own
+small stepper for the nozzle/blade drive. The real Y-axis drag chain
+(30 individually-numbered links + 4 end connectors, all ~1.5-2K
+triangles each - cheap) is rendered as one rigid attachment to the
+bridge rather than a procedurally-folding chain; this rig has no
+cable-chain physics anywhere, same simplification already accepted
+for every other static part here. One real tessellation problem found
+and fixed: the 4 GT2-idler parts hit 20,284 triangles / ~1MB each at
+this file's own default deflection (0.25) - a bearing-like curved
+part, not flat brackets like everything else - re-exported at a
+coarser 0.9/0.7 deflection, down to 11,084 triangles / ~554KB each.
+
+Batch 3 (belts/tension-arms/belt-clamps, 13 parts): the Y belt loops
+(both sides) run frame-pulley to frame-idler and are fixed; their own
+tension arms sit right next to those same frame idlers. The X belt
+loop and its tension arm are on the bridge; the Z belt loop and its
+belt-clamps are on the toolhead.
+
+Batch 4 (rails/carriages/staging plates/fiducial board/blade
+mechanisms/cable clips, 28 parts - 30 exported, 2 dropped): the fixed
+Y-axis side rails (550mm-MGN12H) don't move, only their carriages
+(MGN12H-linear-rail-carriage, mounted on the bridge) do; the moving
+X-axis rail (525mm-MGN12H) is mounted ON the bridge, unlike the fixed
+Y rails. The toolhead carries its own Z-axis rails/carriages
+(mgn9-linear-rail-carriage, linear-rail-100mm) and side plates. Two
+real parts were tried and dropped for the same reason Group027 (the
+control-box's own mobo) was dropped in the very first cut above:
+blade12-PCB_003 and blade13-PCB002 (the 2 blade-feeder mechanisms' own
+PCBs) hit 161,173 and 65,606 triangles respectively - 8MB and 3.3MB -
+fine copper-trace geometry with no payoff at this viewport's scale;
+the blade mechanisms' own mechanical bodies (blade12_004/blade13_003,
+~8.3K triangles each) were kept.
+
+134 parts total across all 4 batches, ~20.7MB combined .stl (smaller
+as .glb - see parts/manifest.json for every part's own real CAD source
+label, assigned link, assembled bounding box and triangle count).

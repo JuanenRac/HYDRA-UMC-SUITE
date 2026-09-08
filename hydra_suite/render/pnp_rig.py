@@ -58,7 +58,19 @@ from hydra_suite.render.kinematics import DEG, rot_x, rot_z, translation
 # rotation LumenPnPRig.tsx's own outer <group rotation={[-Math.PI/2,0,0]}>
 # applies, and the same convention kinematics.py's own UR_ROOT already
 # uses for the same reason.
-PNP_ROOT = rot_x(-np.pi / 2)
+#
+# GROUND_OFFSET_M ported from the same real fix in LumenPnPRig.tsx
+# (2026-09-08): CAD Z=0 is the machine's own WORK surface (where
+# openpnp's real 0-90mm Z-axis travel starts), not its feet - the real
+# legs (once wired into this app's own PNP_MESH_FILES, still pending,
+# see this repo's own CHANGELOG) reach down to Z=-100.81mm
+# (front-leg-extension's own real bbox min - HYDRA-UMC-STUDIO's
+# public/models/lumenpnp/parts/manifest.json). Composed here now, ahead
+# of that wiring, so the offset is already correct the day it lands
+# instead of reintroducing the same "half the machine hidden below the
+# floor" bug found live on STUDIO.
+GROUND_OFFSET_M = 0.10081
+PNP_ROOT = translation((0.0, GROUND_OFFSET_M, 0.0)) @ rot_x(-np.pi / 2)
 
 PNP_MESH_DIR = "lumenpnp"
 PNP_LINK_NAMES: tuple[str, ...] = (
