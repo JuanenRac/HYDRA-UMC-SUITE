@@ -149,7 +149,7 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
   asserts the exact command name and params each control sends. See
   `docs/ROADMAP.md`'s own "Atomic per-command sync" entry, moved from
   "deliberately out of scope" now that this is real.
-- **REV-019 (found in an independent revalidation audit, P2): neither
+- **REV-019 (found while re-checking the code, P2): neither
   `tools/build_test.py` nor `.github/workflows/ci.yml` ever ran the real
   Qt/backend control verifiers under `tests/verify_*.py` - both only
   ever compiled Python sources.** A broken button connection, a control
@@ -468,7 +468,7 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
 
 ## [0.4.0]
 
-- DOC-38 (found in an ecosystem-wide software-improvements audit): removed
+- DOC-38 (found while reviewing the code for improvements): removed
   a dangling reference to a private tracking document's filename from one
   of this file's own section headings - that file isn't tracked in this
   repo, and the section's own bullet points already describe the real
@@ -1020,7 +1020,7 @@ rather than by version:
   real STL meshes (`render/viewport.py`, `render/mesh.py`).
 - A new remote API (`GET /api/hydra-info` + WebSocket `/ws`) was designed
   and added directly to the HYDRA-UMC STUDIO server to support this app -
-  see that project's own changelog/audit log for the server-side half.
+  see that project's own changelog for the server-side half.
 
 **All 24 robot models + Generic fallback**
 - Progressively ported and numerically verified (0.000000mm error against
@@ -1039,8 +1039,8 @@ rather than by version:
   feed itself an honestly-labeled placeholder, matching STUDIO's own
   `CamerasView.tsx`).
 
-**Reconnaissance audit + live-verified fixes**
-- Audit found SUITE had fallen behind the server's now-mandatory JWT auth
+**Reconnaissance pass + live-verified fixes**
+- Investigation found SUITE had fallen behind the server's now-mandatory JWT auth
   (WebSocket/REST writes were silently broken against a real server) and
   wasn't handling `"delta"` WebSocket messages. Both fixed and verified
   live against the owner's real server, along with an independently

@@ -165,7 +165,7 @@ just moves where it breaks.
   genuinely separate field from a tool-attachment module's own
   `pumpActive`/`valveActive` (e.g. VacuumTablePanel's), which still
   writes via `push_active_state()` and is not part of this item.
-  Confirmed with the owner (2026-09-07): these really are two separate
+  Confirmed with the owner: these really are two separate
   real concepts, not a naming accident - a robot's own head/tool can
   need one or several valves/pumps depending on which real tool is
   attached, and a robot's own table can independently carry (or not)

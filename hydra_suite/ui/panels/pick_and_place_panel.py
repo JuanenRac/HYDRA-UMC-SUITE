@@ -129,7 +129,7 @@ class PickAndPlacePanel(QWidget):
         # left, its own <Canvas> on the right), same pattern
         # module_config_panel.py's own settings_page now uses too.
         #
-        # Resizable split (2026-09-08), ported from PickAndPlace.tsx's own
+        # Resizable split, ported from PickAndPlace.tsx's own
         # pointer-drag divider between these same two panels - QSplitter
         # is this toolkit's own native equivalent (drag handle included),
         # no need to hand-roll pointer-drag math like the web side does.

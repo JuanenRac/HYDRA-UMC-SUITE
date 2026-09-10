@@ -64,7 +64,7 @@ def _run() -> None:
     # z_carriage_left/right share the exact same real position (same Z
     # travel, same parent x_carriage) and never rotate - only their
     # nozzle_left/right children do, matching LumenPnPRig.tsx's own two
-    # sibling groups at the same [0,0,z] offset. Real bug fixed 2026-09-08:
+    # sibling groups at the same [0,0,z] offset. Real bug fixed here:
     # these two used to be ONE merged link (z_carriage_n1/n2) that rotated
     # along with the nozzle - the housing's own real ~44x51mm footprint
     # would visibly swing around Z, which the physical machine never does.
