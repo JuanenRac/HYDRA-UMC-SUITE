@@ -296,6 +296,9 @@ BTN_SSR_OFF=SSR 关
 
 # 真空吸附台面板——泵/阀门控制
 HEADING_VACUUM_TABLE=真空吸附台
+LBL_VACUUM_MODEL=真空台型号
+LBL_VACUUM_MODEL_NOTE=STL尺寸固定。旧配置或未知型号显示为160 × 120 × 15 mm。选择型号不会改变泵或阀门的状态。
+LBL_VACUUM_MODEL_ERROR=无法加载真空台模型。
 GROUP_VACUUM_CONTROLS=真空控制
 BTN_PUMP_ON=泵 开
 BTN_PUMP_OFF=泵 关

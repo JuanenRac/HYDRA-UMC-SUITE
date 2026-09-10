@@ -297,6 +297,9 @@ BTN_SSR_OFF=SSR OFF
 
 # Panel de mesa de vacío - controles de bomba/válvula
 HEADING_VACUUM_TABLE=Mesa de vacío
+LBL_VACUUM_MODEL=Modelo de mesa
+LBL_VACUUM_MODEL_NOTE=Dimensiones fijas del STL. Las selecciones antiguas o desconocidas muestran 160 × 120 × 15 mm. Elegir modelo no cambia la bomba ni la válvula.
+LBL_VACUUM_MODEL_ERROR=No se ha podido cargar el modelo de mesa de vacío.
 GROUP_VACUUM_CONTROLS=Controles de vacío
 BTN_PUMP_ON=Bomba ON
 BTN_PUMP_OFF=Bomba OFF

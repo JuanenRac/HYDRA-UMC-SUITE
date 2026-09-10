@@ -62,9 +62,17 @@ python main.py --qtquick
 - **🪟 类 Photoshop 的可停靠工作区** —— 每个面板都是一个真正的 `QDockWidget`：可拖动使其自由浮动，拖回停靠或合并为选项卡组，拆分工作区，关闭，并从 View 菜单重新显示。将面板浮动化会使其成为一个真正独立的顶层窗口，因此将它拖到第二个（或第三个）物理显示器上并留在那里开箱即可使用——Qt/操作系统窗口管理器会像对待任何其他窗口一样放置它，无需额外的“多显示器模式”。
 - **🌐 7 种语言** —— 英语、西班牙语、意大利语、法语、德语、简体中文、日语（与 URTC-FLASHER/URTC-TESTER 相同的 `language/*.lng` 惯例），从“语言”菜单切换（重启后生效）。
 - **📷 摄像头** —— 每个控制器的真实摄像头名册（存在哪些摄像头、其类型、连接状态，以及一个真实的 USB/IP（RTSP）来源类型切换，配有通用、不限品牌的主机/端口/路径/凭证字段），与真实服务器同步，方式与此处的其他每个面板相同，还带有真实的实时视频：元数据自始至终都是真实的，每张摄像头卡片都会渲染真实的 MJPEG 视频流本身（HYDRA-UMC-VISION-STREAMER 自身的 `stream serve`，通过 HYDRA-UMC-SERVER 的 `GET /api/camera/:id/stream` 中继）。通过一个真实的 JPEG SOI/EOI 标记扫描客户端（与 HYDRA-UMC-ANDROID-CONTROL 自身的 `MjpegStreamParser.kt` 已经使用的真实方法相同）实现，已对真实 USB 和 IP 硬件验证。
-- **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `ModuleConfigPanel` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。在 STUDIO 那边具备实时 3D 预览的全部 5 个模块，现在这里也都具备了：CNC/激光/加热床/真空吸附台（`render/module_rig.py`——真实移植自 STUDIO 自身的方块/圆柱几何体）以及 Pick & Place（`render/pnp_rig.py`——真实移植自 STUDIO 自身的 `LumenPnPRig.tsx`：`assets/meshes/lumenpnp/` 中的 5 个真实 `.stl` 网格，通过真实的笛卡尔龙门运动链定位，而非基本几何体）。两者都由切换到各自仅模块模式的 `RobotViewport` 负责绘制。
+- **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `ModuleConfigPanel` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。在 STUDIO 那边具备实时 3D 预览的全部 5 个模块，现在这里也都具备了：CNC/激光/加热床/真空吸附台（`render/module_rig.py`, 与STUDIO一致的几何体：真空台使用真实STL，其他模块使用方块/圆柱）以及 Pick & Place（`render/pnp_rig.py`——真实移植自 STUDIO 自身的 `LumenPnPRig.tsx`：`assets/meshes/lumenpnp/` 中的 5 个真实 `.stl` 网格，通过真实的笛卡尔龙门运动链定位，而非基本几何体）。两者都由切换到各自仅模块模式的 `RobotViewport` 负责绘制。
 
 ---
+
+### 🧩 可选真空台模型
+
+在真空台菜单中选择六种真实STL模型之一：160 × 120、230 × 210、230 × 250、232 × 217、240 × 240或250 × 250 mm。底座厚15 mm，含定位壁的总高度为16.2 mm。尺寸固定。切换型号保留位置、泵和阀门状态；重置选择160 × 120 mm并关闭泵和阀门。旧型号或未知型号ID显示第一个模型。STUDIO和SUITE的两种界面使用相同目录以及机器人配置中的modelId。
+
+[型号、配置与重新生成指南](docs/VACUUM_TABLE_MODELS.md).
+
+这些原创JuanenPNP / HYDRA-UMC模型及其SCAD源文件采用GPL-3.0；它们不是Opulo机器的CAD文件。
 
 ## 📸 照片
 
@@ -76,6 +84,10 @@ python main.py --qtquick
 
 ```text
 HYDRA-UMC-SUITE/
+├── docs/VACUUM_TABLE_MODELS.md
+├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
+├── hydra_suite/vacuum_tables.py
+├── tests/test_vacuum_tables.py
 ├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
 ├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
 ├── requirements.txt

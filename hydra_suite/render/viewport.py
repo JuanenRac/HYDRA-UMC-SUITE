@@ -50,7 +50,7 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
 from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
-from hydra_suite.render.module_rig import module_segments
+from hydra_suite.render.module_rig import module_segments, module_segment_mesh
 from hydra_suite.render.module_rig import segment_world_transform as module_segment_world_transform
 from hydra_suite.render.pnp_rig import (
     PNP_ALL_MESH_FILES,
@@ -188,6 +188,11 @@ class GLMeshBuffer:
         gl.glDrawArrays(gl.GL_TRIANGLES, 0, self.vertex_count)
         gl.glBindVertexArray(0)
 
+    def release(self) -> None:
+        """Release a replaced module mesh while its owning GL context is current."""
+        gl.glDeleteBuffers(1, [self.vbo])
+        gl.glDeleteVertexArrays(1, [self.vao])
+
 
 class RobotGLRenderer:
     """Every real GL call and every piece of pose/camera state for the 3D
@@ -299,18 +304,25 @@ class RobotGLRenderer:
             self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
         return True
 
-    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0) -> None:
+    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None) -> None:
         """Switches this renderer into module-only mode (render/module_rig.py)
         - a real live 3D preview of a tool-attachment module's own real
         geometry, matching HYDRA-UMC-STUDIO's own SharedModule3DView.tsx.
         `module_type=None` returns to normal robot-viewport mode."""
         self._attached_module_type = module_type
-        segs = module_segments(module_type, width_mm, length_mm) if module_type else []
+        segs = module_segments(module_type, width_mm, length_mm, model_id) if module_type else []
+        if segs == self._module_segments_cache:
+            return
+        if module_type == "vacuumTable":
+            self._target = np.array([0.0, 0.008, 0.0], dtype=np.float32)
+            self._distance = 0.55
         if self._gl_ready:
             self._make_current()
             try:
+                for buffer in self._module_buffers:
+                    buffer.release()
                 self._module_buffers = [
-                    GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
+                    GLMeshBuffer(module_segment_mesh(seg))
                     for seg in segs
                 ]
             finally:
@@ -416,7 +428,7 @@ class RobotGLRenderer:
         self._gl_ready = True
         if self._pending_module_rebuild:
             self._module_buffers = [
-                GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
+                GLMeshBuffer(module_segment_mesh(seg))
                 for seg in self._module_segments_cache
             ]
             self._pending_module_rebuild = False
@@ -576,8 +588,8 @@ class RobotViewport(QOpenGLWidget):
         if self._renderer.set_robot_model(model_name):
             self.update()
 
-    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0) -> None:
-        self._renderer.set_attached_module(module_type, width_mm, length_mm)
+    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None) -> None:
+        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id)
         self.update()
 
     def set_attached_pnp(
@@ -722,6 +734,9 @@ class OffscreenRobotRenderer:
             self._ensure_fbo()
         finally:
             self._done_current()
+
+    def set_attached_module(self, module_type, width_mm=500.0, length_mm=500.0, model_id=None) -> None:
+        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id)
 
     def render(self) -> QImage:
         """Real, synchronous render - bind the FBO, run the exact same

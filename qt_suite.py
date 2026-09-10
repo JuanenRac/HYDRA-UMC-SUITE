@@ -124,7 +124,7 @@ from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_
 from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
 from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
 from hydra_suite.ui.panels.tester_panel import _category_for
-from hydra_suite.ui.panels.vacuum_table_panel import DEFAULT_RESET_SIZE_MM as _VACUUM_RESET_SIZE_MM
+from hydra_suite.vacuum_tables import VACUUM_TABLE_MODELS, vacuum_table_model, select_vacuum_table
 from hydra_suite.ui.panels.viewport_panel import SUPPORTED_MODELS as _VIEWPORT_SUPPORTED_MODELS
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
@@ -187,12 +187,8 @@ _MODULE_CONFIGS: dict[str, dict[str, object]] = {
     "cnc": {"module_key": "juanenCNC", "machine": "JuanenCNC", "heading": "HEADING_CNC", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
     "laser": {"module_key": "juanenLaser", "machine": "JuanenLaser", "heading": "HEADING_LASER", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
     "heated_bed": {"module_key": "heatedBed", "machine": "Heated Bed", "heading": "HEADING_HEATED_BED", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": "heated_bed"},
-    # VacuumTableConfig.tsx's own real, if minor, inconsistency reproduced
-    # faithfully: DISPLAYS the same 500mm fallback as the other 3 modules
-    # (DEFAULT_SIZE_MM, used by moduleWidth/moduleLength before any real
-    # size exists) but Reset actually WRITES 100mm (reset_size below) -
-    # see vacuum_table_panel.py's own header for the full reasoning.
-    "vacuum_table": {"module_key": "vacuumTable", "machine": "Vacuum Table", "heading": "HEADING_VACUUM_TABLE", "reset_size": (_VACUUM_RESET_SIZE_MM, _VACUUM_RESET_SIZE_MM), "extra": "vacuum_table"},
+    # Fixed STL dimensions; the first catalog model is also the reset default.
+    "vacuum_table": {"module_key": "vacuumTable", "machine": "Vacuum Table", "heading": "HEADING_VACUUM_TABLE", "reset_size": (160, 120), "extra": "vacuum_table"},
 }
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
@@ -311,6 +307,12 @@ class SuiteQtBridge(QObject):
         self._controller = controller
         self._frame_provider = frame_provider
         self._viewport_frame_provider = viewport_frame_provider
+        self._vacuum_frame_provider = ViewportFrameProvider()
+        self._vacuum_renderer = None
+        self._vacuum_preview_version = 0
+        self._vacuum_preview_error = ""
+        self._vacuum_preview_model = None
+
         self._active_key = "overview"
         self._connection_status = "disconnected"
 
@@ -2425,6 +2427,8 @@ class SuiteQtBridge(QObject):
         robot = self._module_selected_robot(key)
         if robot is None:
             return DEFAULT_SIZE_MM
+        if key == "vacuum_table":
+            return int(vacuum_table_model(robot.module("vacuumTable").get("modelId"))[field])
         size = robot.module(_MODULE_CONFIGS[key]["module_key"]).get("size") or {}
         return int(size.get(field, DEFAULT_SIZE_MM))
 
@@ -2446,7 +2450,7 @@ class SuiteQtBridge(QObject):
         if extra == "heated_bed":
             return {"targetTemp": _HB_DEFAULT_TARGET_TEMP_C, "currentTemp1": _HB_DEFAULT_AMBIENT_TEMP_C, "currentTemp2": _HB_DEFAULT_AMBIENT_TEMP_C, "ssrActive": False}
         if extra == "vacuum_table":
-            return {"pumpActive": False, "valveActive": False}
+            return {"pumpActive": False, "valveActive": False, "modelId": VACUUM_TABLE_MODELS[0]["id"]}
         return {}
 
     @Slot()
@@ -2460,6 +2464,8 @@ class SuiteQtBridge(QObject):
         module["enabled"] = True
         for field, default in self._module_extra_defaults(key).items():
             module.setdefault(field, default)
+        if key == "vacuum_table":
+            module = select_vacuum_table(module, vacuum_table_model(module.get("modelId"))["id"])
         robot.set_module(module_key, module)
         self._controller.push_active_state()
         self.changed.emit()
@@ -2504,6 +2510,8 @@ class SuiteQtBridge(QObject):
             return
         module_key = _MODULE_CONFIGS[key]["module_key"]
         module = dict(robot.module(module_key))
+        if key == "vacuum_table":
+            return  # Catalog geometry is fixed-size; never distort the STL.
         size = dict(module.get("size") or {})
         size[field] = value
         module["size"] = size
@@ -2562,6 +2570,69 @@ class SuiteQtBridge(QObject):
     @Slot()
     def toggleModuleSsr(self) -> None:
         self._set_module_extra_field("ssrActive", not self.moduleSsrOn)
+
+    # Vacuum table model selection and a dedicated Qt Quick STL preview.
+    @Property("QVariantList", constant=True)
+    def vacuumModelOptions(self):
+        return [{"id": model["id"], "label": model["label"]} for model in VACUUM_TABLE_MODELS]
+
+    @Property(str, notify=changed)
+    def vacuumModelId(self):
+        return vacuum_table_model(self._module_extra_value("modelId", None))["id"]
+
+    @Slot(str)
+    def selectVacuumModel(self, model_id):
+        if self._active_module_key() != "vacuum_table":
+            return
+        robot = self._module_selected_robot("vacuum_table")
+        if robot is None or not any(m["id"] == model_id for m in VACUUM_TABLE_MODELS):
+            return
+        robot.set_module("vacuumTable", select_vacuum_table(robot.module("vacuumTable"), model_id))
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Property(int, notify=_viewportChanged)
+    def vacuumPreviewVersion(self):
+        return self._vacuum_preview_version
+
+    @Property(str, notify=_viewportChanged)
+    def vacuumPreviewError(self):
+        return self._vacuum_preview_error
+
+    @Slot()
+    def refreshVacuumPreview(self):
+        if self._active_module_key() != "vacuum_table" or not self.moduleEnabled:
+            return
+        if self._vacuum_preview_model == self.vacuumModelId and not self._vacuum_preview_error:
+            return  # Unrelated telemetry must not redraw an unchanged static mesh.
+        try:
+            if self._vacuum_renderer is None:
+                from hydra_suite.render.viewport import OffscreenRobotRenderer
+                self._vacuum_renderer = OffscreenRobotRenderer()
+                self._vacuum_renderer.resize(640, 400)
+            model = vacuum_table_model(self.vacuumModelId)
+            self._vacuum_renderer.set_attached_module("vacuumTable", model["width"], model["length"], model["id"])
+            self._vacuum_frame_provider.set_image(self._vacuum_renderer.render())
+            self._vacuum_preview_error = ""
+            self._vacuum_preview_model = model["id"]
+            self._vacuum_preview_version += 1
+        except Exception:
+            self._vacuum_preview_error = _("LBL_VACUUM_MODEL_ERROR")
+        self._viewportChanged.emit()
+
+    @Slot(float, float)
+    def vacuumPreviewOrbit(self, dx, dy):
+        if self._vacuum_renderer is not None:
+            self._vacuum_renderer.orbit(dx, dy)
+            self._vacuum_preview_model = None
+            self.refreshVacuumPreview()
+
+    @Slot(float)
+    def vacuumPreviewZoom(self, factor):
+        if self._vacuum_renderer is not None:
+            self._vacuum_renderer.zoom(factor)
+            self._vacuum_preview_model = None
+            self.refreshVacuumPreview()
 
     # Vacuum Table's own extra fields.
     @Property(bool, notify=changed)
@@ -4308,6 +4379,7 @@ def run_qtquick() -> int:
     engine = QQmlApplicationEngine()
     engine.addImageProvider("cameraFrames", frame_provider)
     engine.addImageProvider("viewportFrame", viewport_frame_provider)
+    engine.addImageProvider("vacuumFrame", bridge._vacuum_frame_provider)
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))

@@ -135,8 +135,7 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   salvo por la clave del módulo); los otros 7 necesitaron cada uno su
   propio panel real, construido a medida. Los 5 módulos que tienen vista
   previa 3D en vivo en STUDIO ahora también la tienen aquí: CNC/Láser/
-  Cama Caliente/Mesa de Vacío (`render/module_rig.py`, un port real de
-  la geometría de cajas/cilindros de STUDIO) y Pick & Place
+  Cama Caliente/Mesa de Vacío (`render/module_rig.py`, la geometría de STUDIO: STL reales para las mesas de vacío y cajas/cilindros para los demás módulos) y Pick & Place
   (`render/pnp_rig.py`, un port real del propio `LumenPnPRig.tsx` de
   STUDIO - las 5 mallas `.stl` reales en `assets/meshes/lumenpnp/`,
   posicionadas mediante una cadena real de pórtico cartesiano, no
@@ -144,6 +143,14 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   propio modo exclusivo de módulo.
 
 ---
+
+### 🧩 Mesas de vacío seleccionables
+
+Elige uno de seis modelos STL reales en Mesa de Vacío: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 o 250 × 250 mm. La base tiene 15 mm de grosor; con las paredes de alineación, la altura total es 16,2 mm. Las dimensiones son fijas. Elegir modelo conserva posición, bomba y válvula; reiniciar selecciona 160 × 120 mm y apaga bomba y válvula. Los identificadores antiguos o desconocidos muestran el primer modelo. STUDIO y las dos interfaces de SUITE usan el mismo catálogo y modelId en la configuración del robot.
+
+[Guía de modelos, configuración y regeneración](docs/VACUUM_TABLE_MODELS.md).
+
+Estos diseños originales JuanenPNP / HYDRA-UMC y sus fuentes SCAD usan GPL-3.0; no son el CAD de la máquina de Opulo.
 
 ## 📸 Fotos
 
@@ -157,6 +164,10 @@ aquí más adelante.
 
 ```text
 HYDRA-UMC-SUITE/
+├── docs/VACUUM_TABLE_MODELS.md
+├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
+├── hydra_suite/vacuum_tables.py
+├── tests/test_vacuum_tables.py
 ├── main.py                        # Punto de entrada - pantalla completa 1920x1080 min, F11 alterna pantalla completa/ventana; --qtquick cambia al panel de abajo
 ├── qt_suite.py                     # Interfaz Qt Quick - panel de comandos `--qtquick` independiente (los 26 paneles), conecta el SuiteController sin tocar con QML
 ├── requirements.txt

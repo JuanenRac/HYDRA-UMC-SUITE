@@ -140,8 +140,7 @@ Une vraie `ApplicationWindow` QML - pas du tout intégrée dans la fenêtre clas
   clé du module) ; les 7 autres ont chacun nécessité leur propre panneau
   réel, construit sur mesure. Les 5 modules qui ont un aperçu 3D en
   direct côté STUDIO l'ont désormais aussi ici : CNC/Laser/Lit chauffant/
-  Table à vide (`render/module_rig.py`, un portage réel de la géométrie
-  en boîtes/cylindres de STUDIO) et Pick & Place (`render/pnp_rig.py`,
+  Table à vide (`render/module_rig.py`, la géométrie de STUDIO : STL réels pour les tables à vide, boîtes/cylindres pour les autres modules) et Pick & Place (`render/pnp_rig.py`,
   un portage réel du propre `LumenPnPRig.tsx` de STUDIO - les 5 vrais
   maillages `.stl` dans `assets/meshes/lumenpnp/`, positionnés via une
   vraie chaîne de portique cartésien, pas des primitives), chacun
@@ -149,6 +148,14 @@ Une vraie `ApplicationWindow` QML - pas du tout intégrée dans la fenêtre clas
   dédié au module.
 
 ---
+
+### 🧩 Tables à vide sélectionnables
+
+Choisissez un des six modèles STL réels dans Table à Vide : 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 ou 250 × 250 mm. La base mesure 15 mm ; la hauteur totale avec les parois d’alignement est de 16,2 mm. Les dimensions sont fixes. Le choix conserve la position et les états de la pompe et de la vanne ; la réinitialisation sélectionne 160 × 120 mm et les désactive. Les identifiants anciens ou inconnus affichent le premier modèle. STUDIO et les deux interfaces de SUITE partagent le catalogue et modelId dans la configuration du robot.
+
+[Guide des modèles, configuration et régénération](docs/VACUUM_TABLE_MODELS.md).
+
+Ces modèles originaux JuanenPNP / HYDRA-UMC et leurs sources SCAD sont sous GPL-3.0 ; ce ne sont pas les fichiers CAO de la machine Opulo.
 
 ## 📸 Photos
 
@@ -162,6 +169,10 @@ que de vous fier ici plus tard à une image obsolète.
 
 ```text
 HYDRA-UMC-SUITE/
+├── docs/VACUUM_TABLE_MODELS.md
+├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
+├── hydra_suite/vacuum_tables.py
+├── tests/test_vacuum_tables.py
 ├── main.py                        # Point d'entrée - plein écran 1920x1080 min, F11 bascule plein écran/fenêtré ; --qtquick bascule vers le panneau ci-dessous
 ├── qt_suite.py                     # Interface Qt Quick - panneau de commandes `--qtquick` autonome (les 26 panneaux), relie le SuiteController inchangé à QML
 ├── requirements.txt

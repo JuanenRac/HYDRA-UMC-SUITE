@@ -1333,6 +1333,25 @@ ApplicationWindow {
                                 onClicked: suiteBackend.disableXyTable()
                             }
                         }
+                        ColumnLayout {
+                            visible: suiteBackend.moduleExtraKind === "vacuum_table"
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("LBL_VACUUM_MODEL"); color: window.textPrimary }
+                            ComboBox {
+                                id: vacuumModelCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.vacuumModelOptions
+                                textRole: "label"
+                                valueRole: "id"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.vacuumModelId)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() { vacuumModelCombo.currentIndex = vacuumModelCombo.indexOfValue(suiteBackend.vacuumModelId) }
+                                }
+                                onActivated: suiteBackend.selectVacuumModel(currentValue)
+                            }
+                            Text { text: suiteBackend.uiText("LBL_VACUUM_MODEL_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        }
                         RowLayout {
                             spacing: 8
                             Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
@@ -2127,9 +2146,9 @@ ApplicationWindow {
                         RowLayout {
                             spacing: 8
                             Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
-                            SpinBox { from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleWidth(value) }
+                            SpinBox { enabled: suiteBackend.moduleExtraKind !== "vacuum_table"; from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleWidth(value) }
                             Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
-                            SpinBox { from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleLength(value) }
+                            SpinBox { enabled: suiteBackend.moduleExtraKind !== "vacuum_table"; from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleLength(value) }
                         }
                     }
                 }
@@ -2189,6 +2208,37 @@ ApplicationWindow {
                         }
                         Item { Layout.fillWidth: true }
                     }
+                }
+                Rectangle {
+                    id: vacuumPreview
+                    visible: suiteBackend.moduleExtraKind === "vacuum_table"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 320
+                    color: "#ffffff"
+                    Component.onCompleted: if (visible) suiteBackend.refreshVacuumPreview()
+                    onVisibleChanged: if (visible) suiteBackend.refreshVacuumPreview()
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() { if (vacuumPreview.visible) suiteBackend.refreshVacuumPreview() }
+                    }
+                    Image {
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectFit
+                        cache: false
+                        source: vacuumPreview.visible && suiteBackend.vacuumPreviewVersion > 0 && suiteBackend.vacuumPreviewError === "" ? "image://vacuumFrame/" + suiteBackend.vacuumPreviewVersion : ""
+                        MouseArea {
+                            anchors.fill: parent
+                            property real lastX: 0
+                            property real lastY: 0
+                            onPressed: function(mouse) { lastX = mouse.x; lastY = mouse.y }
+                            onPositionChanged: function(mouse) {
+                                if (pressed) suiteBackend.vacuumPreviewOrbit(mouse.x-lastX, mouse.y-lastY)
+                                lastX = mouse.x; lastY = mouse.y
+                            }
+                            onWheel: function(wheel) { suiteBackend.vacuumPreviewZoom(wheel.angleDelta.y > 0 ? 0.9 : 1.1) }
+                        }
+                    }
+                    Text { anchors.centerIn: parent; width: parent.width-32; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.vacuumPreviewError; color: "#991b1b" }
                 }
                 Item { Layout.fillHeight: true }
             }
