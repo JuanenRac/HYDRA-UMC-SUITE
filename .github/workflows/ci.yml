@@ -44,7 +44,7 @@ jobs:
           PYTHONPATH: clients/python/src
         run: python -m unittest discover -s clients/python/tests -v
       - name: Install system libraries for headless Qt (offscreen platform)
-        # REV-019 (found in an independent revalidation audit, P2): this
+        # REV-019 (P2): this
         # baseline never ran the real tests/verify_*.py Qt/backend control
         # verifiers - only a bare Python-syntax compile - so a broken
         # button connection or a control that stopped reflecting real
