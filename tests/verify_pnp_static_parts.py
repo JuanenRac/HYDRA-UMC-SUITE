@@ -1,5 +1,5 @@
 """LumenPnP: 160 real static CAD parts wired into render/pnp_rig.py +
-render/viewport.py (2026-09-08) - mirrors HYDRA-UMC-STUDIO's own
+render/viewport.py - mirrors HYDRA-UMC-STUDIO's own
 LumenPnPRig.tsx batches 1-5, closing the "SUITE has the data but
 pnp_rig.py never loads it" gap those STUDIO commits explicitly flagged
 as open. This is pure mesh-loading coverage (no GL context needed -

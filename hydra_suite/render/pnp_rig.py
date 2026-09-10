@@ -36,7 +36,7 @@
 #              as z_carriage_left)
 #              -> nozzle_right   (rotates about Z only - nozzle 2)
 #
-# Real bug fixed 2026-09-08, ported from the same fix in LumenPnPRig.tsx:
+# Real bug fixed, ported from the same fix in LumenPnPRig.tsx:
 # this used to merge each Z-carriage housing and its nozzle into ONE rigid
 # transform (z_carriage_n1/n2) that translated AND rotated together - a
 # real, visible error, since the housing's own real footprint at that
@@ -59,8 +59,8 @@ from hydra_suite.render.kinematics import DEG, rot_x, rot_z, translation
 # applies, and the same convention kinematics.py's own UR_ROOT already
 # uses for the same reason.
 #
-# GROUND_OFFSET_M ported from the same real fix in LumenPnPRig.tsx
-# (2026-09-08): CAD Z=0 is the machine's own WORK surface (where
+# GROUND_OFFSET_M ported from the same real fix in LumenPnPRig.tsx:
+# CAD Z=0 is the machine's own WORK surface (where
 # openpnp's real 0-90mm Z-axis travel starts), not its feet - the real
 # legs (once wired into this app's own PNP_MESH_FILES, still pending,
 # see this repo's own CHANGELOG) reach down to Z=-100.81mm
@@ -83,7 +83,7 @@ PNP_MESH_FILES: dict[str, str] = {name: f"{name}.stl" for name in PNP_LINK_NAMES
 # 160 real, individually-named CAD parts (assets/meshes/lumenpnp/parts/ -
 # legs, control box, frame extrusions, cameras/lights, feeders, motors,
 # pulleys, belts, the real drag chains, and more) mirroring HYDRA-UMC-
-# STUDIO's own LumenPnPRig.tsx batches 1-5 (2026-09-08) - wired in here
+# STUDIO's own LumenPnPRig.tsx batches 1-5 - wired in here
 # now for real, closing the "SUITE has the data but pnp_rig.py never
 # loads it" gap those STUDIO commits explicitly flagged as open. Each
 # part is already in real assembled world-space (no per-part offset
