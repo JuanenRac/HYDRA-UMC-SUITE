@@ -59,7 +59,7 @@ def main() -> int:
 
     if stack in {"python", "python-bare"}:
         compile_python_sources()
-        # REV-019 (found in an independent revalidation audit, P2): this
+        # REV-019 (P2): this
         # branch used to only compile Python sources - the real
         # tests/verify_*.py Qt/backend control verifiers never ran here
         # (or in CI), so a broken button connection or a control that
