@@ -4,7 +4,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# REV-019 (found in an independent revalidation audit, P2): neither this
+# REV-019 (P2): neither this
 # repository's own tools/build_test.py nor .github/workflows/ci.yml ever
 # ran the real Qt/backend control verifiers under tests/verify_*.py -
 # both only ever compiled Python sources. A real, deterministic
@@ -20,7 +20,7 @@
 # discovers tests/test_net_manual.py - that script needs a real,
 # already-running HYDRA-UMC-SERVER on localhost:3000 (see its own
 # header) and is exactly the kind of "manual test with a real server"
-# the audit's own finding says must stay clearly excluded from this
+# the review's own finding says must stay clearly excluded from this
 # automatic, offline gate.
 #
 # None of the tests/verify_*.py scripts open a real network connection
