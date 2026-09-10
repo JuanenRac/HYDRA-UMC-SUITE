@@ -135,8 +135,7 @@ Ein echtes QML-`ApplicationWindow` - anders als das obige Command Deck überhaup
   identische Komponenten); die übrigen 7 brauchten jeweils ein eigenes,
   eigens gebautes Panel. Alle 5 Module, die auf STUDIOs Seite eine
   Live-3D-Vorschau haben, haben sie jetzt auch hier: CNC/Laser/Heizbett/
-  Vakuumtisch (`render/module_rig.py`, ein echter Port von STUDIOs
-  eigener Box-/Zylinder-Geometrie) und Pick & Place
+  Vakuumtisch (`render/module_rig.py`, STUDIOs Geometrie: echte STL für Vakuumtische, Boxen/Zylinder für die anderen Module) und Pick & Place
   (`render/pnp_rig.py`, ein echter Port von STUDIOs eigenem
   `LumenPnPRig.tsx` - die 5 echten `.stl`-Meshes in
   `assets/meshes/lumenpnp/`, positioniert über eine echte kartesische
@@ -144,6 +143,14 @@ Ein echtes QML-`ApplicationWindow` - anders als das obige Command Deck überhaup
   `RobotViewport` im eigenen modul-only-Modus.
 
 ---
+
+### 🧩 Auswählbare Vakuumtische
+
+Wähle im Vakuumtisch-Menü eines von sechs echten STL-Modellen: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 oder 250 × 250 mm. Die Basis ist 15 mm dick; die Gesamthöhe mit Ausrichtungswänden beträgt 16,2 mm. Die Abmessungen sind fest. Die Auswahl erhält Position, Pumpen- und Ventilzustand; Zurücksetzen wählt 160 × 120 mm und schaltet Pumpe und Ventil aus. Alte oder unbekannte Modell-IDs zeigen das erste Modell. STUDIO und beide SUITE-Oberflächen verwenden denselben Katalog und modelId in den Robotereinstellungen.
+
+[Modellhandbuch, Konfiguration und Neugenerierung](docs/VACUUM_TABLE_MODELS.md).
+
+Diese originalen JuanenPNP-/HYDRA-UMC-Modelle und ihre SCAD-Quellen stehen unter GPL-3.0; sie sind nicht die Maschinen-CAD-Dateien von Opulo.
 
 ## 📸 Fotos
 
@@ -157,6 +164,10 @@ veralteten Bild zu vertrauen.
 
 ```text
 HYDRA-UMC-SUITE/
+├── docs/VACUUM_TABLE_MODELS.md
+├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
+├── hydra_suite/vacuum_tables.py
+├── tests/test_vacuum_tables.py
 ├── main.py                        # Einstiegspunkt - Vollbild min. 1920x1080, F11 schaltet zwischen Vollbild/Fenster um; --qtquick wechselt zum Panel unten
 ├── qt_suite.py                     # Qt-Quick-Frontend - eigenständiges `--qtquick`-Kommandopult (alle 26 Panels), verbindet den unveränderten SuiteController mit QML
 ├── requirements.txt

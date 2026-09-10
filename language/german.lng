@@ -297,6 +297,9 @@ BTN_SSR_OFF=SSR AUS
 
 # Vakuumtisch-Panel - Pumpen-/Ventilsteuerung
 HEADING_VACUUM_TABLE=Vakuumtisch
+LBL_VACUUM_MODEL=Tischmodell
+LBL_VACUUM_MODEL_NOTE=Feste STL-Abmessungen. Alte oder unbekannte Auswahlen zeigen 160 × 120 × 15 mm. Die Modellauswahl ändert weder Pumpe noch Ventil.
+LBL_VACUUM_MODEL_ERROR=Das Vakuumtischmodell konnte nicht geladen werden.
 GROUP_VACUUM_CONTROLS=Vakuumsteuerung
 BTN_PUMP_ON=Pumpe EIN
 BTN_PUMP_OFF=Pumpe AUS

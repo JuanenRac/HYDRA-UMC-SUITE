@@ -5,7 +5,8 @@
 #
 # Live 3D preview geometry for the 4 tool-attachment modules that get one
 # in HYDRA-UMC-STUDIO's own source (CNC/Laser/Heated Bed/Vacuum Table via
-# src/components/3d/SharedModule3DView.tsx) - ported 1:1 (same shapes,
+# src/components/3d/SharedModule3DView.tsx). Vacuum tables load real STL;
+# the other modules retain their matching primitive geometry (same shapes,
 # same positions, same hex colors, same real world/mm-to-meter scale)
 # rather than invented fresh, so this app's own module preview looks
 # like the one the web UI shows for the same module.
@@ -22,6 +23,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
+
+from hydra_suite.vacuum_tables import CATALOG_DIR, vacuum_table_model
+from hydra_suite.render.mesh import Mesh, load_stl, make_box_mesh, make_cylinder_mesh
 
 import numpy as np
 
@@ -44,22 +49,37 @@ MODULE_TYPES: tuple[str, ...] = ("juanenCNC", "juanenLaser", "heatedBed", "vacuu
 
 @dataclass(frozen=True)
 class Segment:
-    kind: str  # "cylinder" or "box"
+    kind: str  # "cylinder", "box" or "vacuum_stl"
     size: tuple[float, float, float]  # cylinder: (radius_top, radius_bottom, height) ; box: (width, height, depth)
     pos: tuple[float, float, float] = (0.0, 0.0, 0.0)
     rpy: tuple[float, float, float] = (0.0, 0.0, 0.0)
     color: tuple[float, float, float] = _C_1E293B
+    model_id: str | None = None
 
 
 def segment_world_transform(seg: Segment) -> np.ndarray:
     return translation(seg.pos) @ rot_x(seg.rpy[0]) @ rot_y(seg.rpy[1]) @ rot_z(seg.rpy[2])
 
 
-def _vacuum_table_segments(w: float, length: float) -> list[Segment]:
-    return [
-        Segment("box", (w, 0.05, length), pos=(0, 0.025, 0), color=_C_1E293B),
-        Segment("box", (max(0.01, w - 0.05), 0.01, max(0.01, length - 0.05)), pos=(0, 0.055, 0), color=_C_0F172A),
-    ]
+@lru_cache(maxsize=6)
+def _vacuum_table_mesh(model_id: str) -> Mesh:
+    model = vacuum_table_model(model_id)
+    mesh = load_stl(CATALOG_DIR / model["file"])
+    # STL is authored in mm; load_stl converts to meters. Center XY, rotate
+    # CAD Z-up to world Y-up. Match STUDIO exactly; never scale to legacy size.
+    vertices = mesh.vertices.copy()
+    vertices[:, 0] -= model["width"] / 2000.0
+    vertices[:, 1] -= model["length"] / 2000.0
+    rotation = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]], dtype=np.float32)
+    return Mesh(vertices @ rotation.T, mesh.normals @ rotation.T)
+
+
+def module_segment_mesh(segment: Segment) -> Mesh:
+    if segment.kind == "vacuum_stl":
+        return _vacuum_table_mesh(vacuum_table_model(segment.model_id)["id"])
+    if segment.kind == "cylinder":
+        return make_cylinder_mesh(*segment.size)
+    return make_box_mesh(*segment.size)
 
 
 def _heated_bed_segments(w: float, length: float) -> list[Segment]:
@@ -110,18 +130,15 @@ def _lumen_style_frame_segments(w: float, length: float, is_cnc: bool) -> list[S
     return segs
 
 
-def module_segments(module_type: str, width_mm: float, length_mm: float) -> list[Segment]:
+def module_segments(module_type: str, width_mm: float, length_mm: float, model_id: str | None = None) -> list[Segment]:
     """Real, world-space segment list for one of the 4 supported module
-    types - matches SharedModule3DView.tsx's own `width = module.size.width
-    / 1000` (mm -> m) real-scale convention exactly. Returns an empty
-    list for any other module type (ATC/XY Table/Rack/PickAndPlace/
-    Kinematic Brain Stage/Flasher/Tester - none of these have a live 3D
-    preview on STUDIO's own side either, so an empty list here is
-    faithful, not a gap introduced by this port)."""
+    types, matching STUDIO's mm-to-meter convention. Vacuum tables use
+    their fixed modelId geometry and ignore legacy width/length values.
+    Other module types are handled by their dedicated renderers, not here."""
     w = max(0.001, width_mm / 1000.0)
     length = max(0.001, length_mm / 1000.0)
     if module_type == "vacuumTable":
-        return _vacuum_table_segments(w, length)
+        return [Segment("vacuum_stl", (0, 0, 0), color=_C_94A3B8, model_id=vacuum_table_model(model_id)["id"])]
     if module_type == "heatedBed":
         return _heated_bed_segments(w, length)
     if module_type == "juanenCNC":

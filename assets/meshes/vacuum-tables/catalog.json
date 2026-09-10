@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "units": "mm",
+  "models": [
+    {
+      "id": "160x120x15",
+      "label": "160 × 120 × 15 mm",
+      "file": "VacuumTable160x120x15mm.stl",
+      "width": 160,
+      "length": 120,
+      "baseHeight": 15,
+      "totalHeight": 16.2
+    },
+    {
+      "id": "230x210x15",
+      "label": "230 × 210 × 15 mm",
+      "file": "VacuumTable230x210x15mm.stl",
+      "width": 230,
+      "length": 210,
+      "baseHeight": 15,
+      "totalHeight": 16.2
+    },
+    {
+      "id": "230x250x15",
+      "label": "230 × 250 × 15 mm",
+      "file": "VacuumTable230x250x15mm.stl",
+      "width": 230,
+      "length": 250,
+      "baseHeight": 15,
+      "totalHeight": 16.2
+    },
+    {
+      "id": "232x217x15",
+      "label": "232 × 217 × 15 mm",
+      "file": "VacuumTable232x217x15mm.stl",
+      "width": 232,
+      "length": 217,
+      "baseHeight": 15,
+      "totalHeight": 16.2
+    },
+    {
+      "id": "240x240x15",
+      "label": "240 × 240 × 15 mm",
+      "file": "VacuumTable240x240x15mm.stl",
+      "width": 240,
+      "length": 240,
+      "baseHeight": 15,
+      "totalHeight": 16.2
+    },
+    {
+      "id": "250x250x15",
+      "label": "250 × 250 × 15 mm",
+      "file": "VacuumTable250x250x15mm.stl",
+      "width": 250,
+      "length": 250,
+      "baseHeight": 15,
+      "totalHeight": 16.2
+    }
+  ]
+}

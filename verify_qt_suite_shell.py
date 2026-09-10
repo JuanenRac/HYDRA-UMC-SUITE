@@ -610,18 +610,24 @@ def _run() -> None:
 
     bridge.navigatePanel("vacuum_table")
     assert bridge.moduleExtraKind == "vacuum_table"
-    assert bridge.moduleWidth == 500, "display fallback is 500mm - same as every other module, before Reset ever runs"
+    assert (bridge.moduleWidth, bridge.moduleLength) == (160, 120)
     bridge.enableModuleConfig()
     assert bridge.modulePumpOn is False and bridge.moduleValveOn is False
     bridge.toggleModulePump()
     bridge.toggleModuleValve()
-    assert bridge.modulePumpOn is True and bridge.moduleValveOn is True
+    for model in bridge.vacuumModelOptions:
+        bridge.selectVacuumModel(model["id"])
+        assert bridge.vacuumModelId == model["id"]
+        assert bridge.modulePumpOn and bridge.moduleValveOn
+    bridge.selectVacuumModel("232x217x15")
+    assert (bridge.moduleWidth, bridge.moduleLength) == (232, 217)
+    bridge.setModuleWidth(999)
+    bridge.selectVacuumModel("../../invalid.stl")
+    assert bridge.vacuumModelId == "232x217x15" and bridge.moduleWidth == 232
     bridge.resetModuleConfig()
-    # The real, if minor, inconsistency this panel's own header documents:
-    # VacuumTable DISPLAYS the same 500mm fallback as every other module
-    # but its own Reset writes 100mm, a genuinely different number.
-    assert bridge.moduleWidth == 100 and bridge.moduleLength == 100, "VacuumTable's own real reset-vs-display mismatch"
-    assert bridge.modulePumpOn is False and bridge.moduleValveOn is False, "Reset also clears the extra pump/valve state"
+    assert (bridge.moduleWidth, bridge.moduleLength) == (160, 120)
+    assert bridge.vacuumModelId == "160x120x15"
+    assert not bridge.modulePumpOn and not bridge.moduleValveOn
 
     # --- ATC Tools: NOT built on the generic Module Config shape (real,
     # fundamentally different shape - None vs a full ATCConfig, no
@@ -1149,11 +1155,34 @@ def _run() -> None:
     qml_bridge = SuiteQtBridge(qml_controller)
     engine.rootContext().setContextProperty("suiteBackend", qml_bridge)
     engine.rootContext().setContextProperty("controller", qml_controller)
+    engine.addImageProvider("vacuumFrame", qml_bridge._vacuum_frame_provider)
     warnings: list[str] = []
     engine.warnings.connect(lambda ws: warnings.extend(str(w) for w in ws))
     engine.load("assets/qml/Main.qml")
     assert engine.rootObjects(), "Main.qml must load with the real bridge"
     assert not warnings, f"QML must load with zero warnings, got: {warnings}"
+
+    # Exercise the lazy-loaded Vacuum Table panel, not only the overview.
+    from PySide6.QtCore import QTimer
+    for owner in (bridge, qml_bridge):
+        for timer in owner.findChildren(QTimer):
+            timer.stop()
+    qml_state = HydraState({"activeControllerId": "preview", "controllers": [
+        {"id": "preview", "robots": [{"id": "A1", "model": "Generic (6-DOF)",
+         "vacuumTable": {"enabled": True, "modelId": "160x120x15",
+                         "pumpActive": False, "valveActive": False}}]}]})
+    qml_bridge._on_module_state_changed(qml_state)
+    qml_bridge.navigatePanel("vacuum_table")
+    for _tick in range(3):
+        app.processEvents()
+    assert not warnings, f"Vacuum Table QML warnings: {warnings}"
+
+    # Drain/cancel background tasks scheduled by earlier signals before exit.
+    pending = list(asyncio.all_tasks(loop))
+    for task in pending:
+        task.cancel()
+    if pending:
+        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
 
     print("verify_qt_suite_shell: all real assertions passed")
 

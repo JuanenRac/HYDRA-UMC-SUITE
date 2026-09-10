@@ -130,14 +130,21 @@ A genuine QML `ApplicationWindow` - not embedded in the classic window at all, u
   are identical components apart from the module key); the other 7 each
   needed their own real, purpose-built panel. All 5 modules that have a
   live 3D preview on STUDIO's own side now have one here too: CNC/Laser/
-  Heated Bed/Vacuum Table (`render/module_rig.py`, a real port of
-  STUDIO's own box/cylinder geometry) and Pick & Place
+  Heated Bed/Vacuum Table (`render/module_rig.py`, matching STUDIO geometry: real STL for vacuum tables, boxes/cylinders for the other modules) and Pick & Place
   (`render/pnp_rig.py`, a real port of STUDIO's own `LumenPnPRig.tsx` -
   the 5 real `.stl` meshes in `assets/meshes/lumenpnp/`, posed through a
   real Cartesian-gantry chain, not primitives), each drawn by a
   `RobotViewport` switched into its own module-only mode.
 
 ---
+
+### 🧩 Selectable vacuum tables
+
+Choose one of six real STL models in Vacuum Table: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 or 250 × 250 mm. Base thickness is 15 mm; total height with alignment walls is 16.2 mm. Dimensions are fixed. Selection preserves placement, pump and valve state; reset selects 160 × 120 mm and switches pump and valve off. Legacy/unknown model IDs display the first model. STUDIO and both SUITE interfaces use the same catalog and modelId in robot settings.
+
+[Model guide, configuration and regeneration](docs/VACUUM_TABLE_MODELS.md).
+
+These original JuanenPNP / HYDRA-UMC assets and their SCAD sources use GPL-3.0; they are not Opulo machine CAD.
 
 ## 📸 Photos
 
@@ -150,6 +157,10 @@ below) to see the real thing rather than trust a stale image here later.
 
 ```text
 HYDRA-UMC-SUITE/
+├── docs/VACUUM_TABLE_MODELS.md
+├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
+├── hydra_suite/vacuum_tables.py
+├── tests/test_vacuum_tables.py
 ├── main.py                        # Entry point - fullscreen 1920x1080 min, F11 toggles fullscreen/windowed; --qtquick switches to the deck below
 ├── qt_suite.py                     # Qt Quick front end - standalone `--qtquick` command deck (all 26 panels), bridges the unchanged SuiteController to QML
 ├── requirements.txt

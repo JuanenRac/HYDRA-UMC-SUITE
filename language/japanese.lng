@@ -296,6 +296,9 @@ BTN_SSR_OFF=SSR オフ
 
 # 真空テーブルパネル - ポンプ/バルブ制御
 HEADING_VACUUM_TABLE=真空テーブル
+LBL_VACUUM_MODEL=テーブルモデル
+LBL_VACUUM_MODEL_NOTE=STLの寸法は固定です。旧設定または不明なモデルは160 × 120 × 15 mmで表示されます。モデルの選択はポンプやバルブの状態を変更しません。
+LBL_VACUUM_MODEL_ERROR=真空テーブルのモデルを読み込めませんでした。
 GROUP_VACUUM_CONTROLS=真空制御
 BTN_PUMP_ON=ポンプ オン
 BTN_PUMP_OFF=ポンプ オフ

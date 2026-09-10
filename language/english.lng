@@ -296,6 +296,9 @@ BTN_SSR_OFF=SSR OFF
 
 # Vacuum Table panel - pump/valve controls
 HEADING_VACUUM_TABLE=Vacuum Table
+LBL_VACUUM_MODEL=Table model
+LBL_VACUUM_MODEL_NOTE=Fixed STL dimensions. Legacy or unknown selections display 160 × 120 × 15 mm. Model selection does not change pump or valve state.
+LBL_VACUUM_MODEL_ERROR=The vacuum table model could not be loaded.
 GROUP_VACUUM_CONTROLS=Vacuum Controls
 BTN_PUMP_ON=Pump ON
 BTN_PUMP_OFF=Pump OFF

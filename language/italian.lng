@@ -297,6 +297,9 @@ BTN_SSR_OFF=SSR OFF
 
 # Pannello Tavolo a vuoto - controlli pompa/valvola
 HEADING_VACUUM_TABLE=Tavolo a vuoto
+LBL_VACUUM_MODEL=Modello del tavolo
+LBL_VACUUM_MODEL_NOTE=Dimensioni STL fisse. Le selezioni precedenti o sconosciute mostrano 160 × 120 × 15 mm. La scelta del modello non cambia lo stato della pompa o della valvola.
+LBL_VACUUM_MODEL_ERROR=Impossibile caricare il modello del tavolo a vuoto.
 GROUP_VACUUM_CONTROLS=Controlli del vuoto
 BTN_PUMP_ON=Pompa ON
 BTN_PUMP_OFF=Pompa OFF

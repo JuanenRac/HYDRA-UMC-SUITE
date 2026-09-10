@@ -216,6 +216,10 @@ class ModuleConfigPanel(QWidget):
         module = robot.module(self._module_key)
         size = module.get("size") or {}
         default_width, default_length = self._display_default_size_mm()
+        if self._module_key == "vacuumTable":
+            from hydra_suite.vacuum_tables import vacuum_table_model
+            selected = vacuum_table_model(module.get("modelId"))
+            size = {"width": selected["width"], "length": selected["length"]}
         width_mm = size.get("width", default_width)
         length_mm = size.get("length", default_length)
         self._updating = True
@@ -223,7 +227,7 @@ class ModuleConfigPanel(QWidget):
         self._length_spin.setValue(int(length_mm))
         self._updating = False
         self._refresh_extra_controls(module)
-        self._module_viewport.set_attached_module(self._module_key, float(width_mm), float(length_mm))
+        self._module_viewport.set_attached_module(self._module_key, float(width_mm), float(length_mm), module.get("modelId"))
 
     # --- extension points for a module with more than size (e.g.
     # heated_bed_panel.py's own heating controls) - no-op by default so
@@ -238,22 +242,12 @@ class ModuleConfigPanel(QWidget):
         return
 
     def _display_default_size_mm(self) -> tuple[int, int]:
-        """(width, length) mm shown when no "size" has been written yet -
-        mirrors STUDIO's own `moduleData?.size?.width || 500` UI-only
-        fallback, which is 500 for every module including VacuumTable
-        (see _reset_size_mm() for why that one still needs its own
-        override elsewhere)."""
+        """Display fallback for generic modules. VacuumTablePanel overrides
+        this with catalog dimensions instead of an arbitrary editable size."""
         return (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM)
 
     def _reset_size_mm(self) -> tuple[int, int]:
-        """(width, length) mm actually WRITTEN by Reset. STUDIO's own
-        per-module handleReset()s don't all agree with their own
-        enable-time display fallback above: CNC/Laser/HeatedBed reset to
-        500 (same as the display fallback), VacuumTable resets to 100
-        (while still DISPLAYING 500 before that first reset) - a real,
-        if minor, inconsistency in STUDIO itself, reproduced faithfully
-        here via two separate hooks rather than collapsing them into one
-        number."""
+        """Dimensions written by Reset; vacuum tables use their catalog default."""
         return self._display_default_size_mm()
 
     def _extra_default_fields(self) -> dict[str, Any]:
@@ -280,11 +274,8 @@ class ModuleConfigPanel(QWidget):
         # spinboxes fall back to _display_default_size_mm() purely for
         # DISPLAY (see _refresh_controls()) until something actually
         # writes a size - a real size change, or Reset (_reset_size_mm()).
-        # This split matters because STUDIO's own per-module
-        # handleReset()s don't all agree with their own enable-time
-        # display fallback (VacuumTable shows 500 on enable but resets to
-        # 100) - persisting a default here would silently pick one of
-        # those two numbers for every module.
+        # VacuumTablePanel normalizes its fixed catalog size in its own
+        # enable override; other modules keep this generic display behavior.
         for key, default in self._extra_default_fields().items():
             module.setdefault(key, default)
         self._current_robot.set_module(self._module_key, module)

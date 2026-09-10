@@ -168,39 +168,29 @@ def _run() -> None:
     assert heated_bed_panel._ssr_btn.isChecked() is True
     print("HeatedBedPanel renders real live telemetry from state: PASS")
 
-    # --- VacuumTablePanel - pump/valve toggles + the real 500-vs-100 size
-    # quirk (STUDIO's own enable-time display fallback disagrees with its
-    # own handleReset() write for this one module) ------------------------
+    # Vacuum table: fixed real-size models, no pump/valve changes on selection.
     vacuum_panel = VacuumTablePanel(controller)
     controller.active_state_changed.emit(_state_with_vacuum_table(vacuum_table=None))
-    assert vacuum_panel._stack.currentIndex() == 0, "no vacuumTable block yet -> empty-state page"
-
-    # Enable writes no size at all - the spinboxes must still DISPLAY the
-    # shared 500 fallback (matching STUDIO's own `|| 500`), not 100.
+    assert vacuum_panel._stack.currentIndex() == 0
     vacuum_panel._on_enable()
-    assert "size" not in vacuum_panel._current_robot.module("vacuumTable"), "enable must not persist a size default"
-    assert vacuum_panel._width_spin.value() == 500, "display fallback must be 500, same as CNC/Laser/HeatedBed"
-    assert vacuum_panel._pump_btn.isChecked() is False
-    print("VacuumTablePanel enable: no persisted size, 500 display fallback: PASS")
-
-    # Pump/valve toggles write back for real.
+    assert vacuum_panel._current_robot.module("vacuumTable")["size"] == {"width": 160, "length": 120}
+    assert vacuum_panel._width_spin.value() == 160
+    assert not vacuum_panel._width_spin.isEnabled()
     vacuum_panel._pump_btn.setChecked(True)
-    assert vacuum_panel._current_robot.module("vacuumTable")["pumpActive"] is True
-    assert vacuum_panel._pump_btn.text() == "Pump ON"
     vacuum_panel._valve_btn.setChecked(True)
-    assert vacuum_panel._current_robot.module("vacuumTable")["valveActive"] is True
-    print("VacuumTablePanel pump/valve write-back: PASS")
-
-    # Reset writes the module's OWN real default (100), not the shared 500
-    # every other module resets to - the real STUDIO-side inconsistency
-    # this panel exists to reproduce faithfully.
+    for index in range(6):
+        vacuum_panel._model_combo.setCurrentIndex(index)
+        module = vacuum_panel._current_robot.module("vacuumTable")
+        assert module["modelId"] == vacuum_panel._model_combo.currentData()
+        assert module["pumpActive"] and module["valveActive"]
+    vacuum_panel._model_combo.setCurrentIndex(3)
+    assert vacuum_panel._width_spin.value() == 232 and vacuum_panel._length_spin.value() == 217
     vacuum_panel._on_reset()
     module = vacuum_panel._current_robot.module("vacuumTable")
-    assert module["size"] == {"width": 100, "length": 100}, "VacuumTable resets to 100mm, not the shared 500mm default"
-    assert module["pumpActive"] is False
-    assert module["valveActive"] is False
-    assert vacuum_panel._width_spin.value() == 100
-    print("VacuumTablePanel reset writes its own 100mm default, not the shared 500mm one: PASS")
+    assert module["size"] == {"width": 160, "length": 120}
+    assert module["modelId"] == "160x120x15"
+    assert not module["pumpActive"] and not module["valveActive"]
+    print("VacuumTablePanel six-model selection, state preservation and reset: PASS")
 
     # --- RobotViewport module-only mode (render/module_rig.py + the new
     # set_attached_module() in render/viewport.py) - headless, so _gl_ready

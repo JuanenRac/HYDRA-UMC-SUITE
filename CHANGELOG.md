@@ -10,9 +10,25 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Unreleased" below for the change that introduced this.
 
-## [Unreleased]
+## [0.4.9] - Real selectable vacuum table models replace the primitive one
 
-(nothing yet)
+- Ports HYDRA-UMC-STUDIO's vacuum-table catalog to this app: six real
+  vacuum tables (`assets/meshes/vacuum-tables/`), each with its OpenSCAD
+  source and a binary STL - byte-for-byte the same asset set STUDIO ships,
+  same `catalog.json`, same `modelId` values in robot settings.
+- Model selectors in both the classic and Qt Quick vacuum-table panels;
+  the selected STL renders in each panel's own embedded preview. Selecting a
+  model keeps pump/valve state and placement intact - only geometry and the
+  fixed physical dimensions change (`select_vacuum_table()` in
+  `hydra_suite/vacuum_tables.py`). Reset/enable use the 160x120 mm catalog
+  default and switch pump and valve off.
+- Seven-language selector/help/error strings, README updates,
+  `docs/VACUUM_TABLE_MODELS.md`. `tests/verify_vacuum_tables.py` (new,
+  discovered by `run_offline_verifiers.py`) validates every STL's real
+  triangle count and byte length, the world-metre bounding box against each
+  catalog entry, and the whitelist-and-preserve contract of
+  `select_vacuum_table()`/`vacuum_table_model()`; `verify_module_config_panel.py`
+  gains the panel-level six-model selection / state-preservation / reset checks.
 
 ## [0.4.8] - LumenPnP: 160 real parts wired into pnp_rig.py/viewport.py + A07 dist/ CHANGELOG fix
 

@@ -297,6 +297,9 @@ BTN_SSR_OFF=SSR OFF
 
 # Panneau Table à vide - contrôles pompe/vanne
 HEADING_VACUUM_TABLE=Table à vide
+LBL_VACUUM_MODEL=Modèle de table
+LBL_VACUUM_MODEL_NOTE=Dimensions STL fixes. Les sélections anciennes ou inconnues affichent 160 × 120 × 15 mm. Le choix du modèle ne modifie ni la pompe ni la vanne.
+LBL_VACUUM_MODEL_ERROR=Impossible de charger le modèle de table à vide.
 GROUP_VACUUM_CONTROLS=Contrôles du vide
 BTN_PUMP_ON=Pompe ON
 BTN_PUMP_OFF=Pompe OFF
