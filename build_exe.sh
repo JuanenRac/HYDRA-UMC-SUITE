@@ -194,7 +194,7 @@ if [ -f README.md ]; then
     echo "      Copied README.md into dist/"
 fi
 if [ -f CHANGELOG.md ]; then
-    # A07 (found in an ecosystem-wide software-preparation pass, real gap):
+    # A07 (real gap):
     # README.md's own [CHANGELOG.md](CHANGELOG.md) link is correct in the
     # canonical repo, but dist/ never carried CHANGELOG.md alongside its
     # own copied README.md - a dangling link in the distributed copy only.
