@@ -25,6 +25,8 @@
 </p>
 
 
+**Ehrlichkeitscheck - was heute wirklich läuft:** die Netzwerkerkennung (gleichzeitiger Subnetz-Scan + echtes mDNS/Bonjour, `hydra_suite/net/discovery.py`), die Live-REST+WebSocket-Verbindung und Schwarm-Unterstützung (`hydra_suite/net/client.py`, `hydra_suite/app.py`), die echte Vorwärtskinematik der 3D-Ansicht für alle 24 echten Robotermodelle plus einen primitiven "Generic"-Fallback (`hydra_suite/render/`, numerisch bitgenau gegen HYDRA-UMC STUDIOs eigene TypeScript-FK verifiziert), alle 11 von 11 Werkzeug-Konfigurationspanels, das CAN-OTA/SPI-OTA-Flashen und das echte MJPEG-Kamera-Rendering sind real und getestet - 24 Offline-Verify-/Smoke-Skripte unter `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), alle bestanden, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py`, ausgeführt gegen einen echten, laufenden HYDRA-UMC SERVER und einen echten GPU-/OpenGL-Kontext auf dieser Maschine. Die Qt-Quick-Shell (`--qtquick`, alle 26 klassischen Panels portiert, einschließlich der 3D-Ansicht über einen eigenen `OffscreenRobotRenderer`) ist echter, funktionierender Code, der neben dem unveränderten klassischen Einstiegspunkt gestartet wird. Was ausdrücklich NOCH NICHT erledigt ist, gemäß der eigenen Ehrlichkeitskonvention dieses Repos: `trajectory_panel.py` ist ein rein lokaler Punktrekorder, der das eigene `data/WORKS/*.json`-Format von HYDRA-UMC STUDIO nicht liest/schreibt; die URTC-Tool-Head-/Advanced-Expansion-Stufen des CAN-OTA haben noch keinen echten Hardware-Relay-Tunnel; und `combinedWith` (kombinierter Robotermodus) ist in der UI dieser App nicht freigelegt, obwohl es im eigenen Datenmodell von STUDIO existiert. Siehe [`docs/ROADMAP.md`](docs/ROADMAP.md) für die vollständige, punktweise Aufschlüsselung von real gegenüber verschoben, die dieser Absatz zusammenfasst, und `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde.
+
 ---
 
 ## 🎯 Überblick
@@ -171,6 +173,7 @@ HYDRA-UMC-SUITE/
 ├── tests/test_vacuum_tables.py
 ├── main.py                        # Einstiegspunkt - Vollbild min. 1920x1080, F11 schaltet zwischen Vollbild/Fenster um; --qtquick wechselt zum Panel unten
 ├── qt_suite.py                     # Qt-Quick-Frontend - eigenständiges `--qtquick`-Kommandopult (alle 26 Panels), verbindet den unveränderten SuiteController mit QML
+├── verify_qt_suite_shell.py        # Echter, hardware-/netzwerkfreier Check der Qt-Quick-Shell - bewusst außerhalb von tests/ (gleicher Grund wie bei URTC-TESTER/URTC-FLASHERs eigenen verify_qt_*.py), ausgeführt mit `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Ökosystem-Manifest - Version/Familie/Elternteil, die Quelle, die Dashboard/Updater/OS-REBUILDER lesen
 ├── bump_version.py                # Odometer-Versionserhöhung für das eigene __version__ von hydra_suite/__init__.py, ausgeführt von build_exe.bat/.sh vor jedem echten PyInstaller-Build

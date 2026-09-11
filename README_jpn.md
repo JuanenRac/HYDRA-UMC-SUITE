@@ -25,6 +25,8 @@
 </p>
 
 
+**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の24件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており、さらに `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` が実際に稼働中のHYDRA-UMC SERVERとこのマシンの実際のGPU/OpenGLコンテキストに対して検証されています。Qt Quickシェル(`--qtquick`、専用の `OffscreenRobotRenderer` による3Dビューポートを含む全26の従来パネルが移植済み)は本物の、実際に動くコードであり、変更されていない従来のエントリポイントと並行して起動されます。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: `trajectory_panel.py` はローカル限定のポイントレコーダーであり、HYDRA-UMC STUDIO自身の `data/WORKS/*.json` 形式を読み書きしません。CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして `combinedWith`(結合ロボットモード)は、STUDIO自身のデータモデルに存在するにもかかわらず、このアプリのUIには公開されていません。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
+
 ---
 
 ## 🎯 概要
@@ -90,6 +92,7 @@ HYDRA-UMC-SUITE/
 ├── tests/test_vacuum_tables.py
 ├── main.py                        # エントリーポイント - 最小1920x1080のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替。--qtquickで下記のデッキに切り替え
 ├── qt_suite.py                     # Qt Quick フロントエンド —— 独立した `--qtquick` コマンドデッキ(全26パネル)、変更を加えていないSuiteControllerをQMLに接続
+├── verify_qt_suite_shell.py        # ハードウェア/ネットワーク不要の本物のQt Quickシェルチェック —— tests/ の外に意図的に配置(URTC-TESTER/URTC-FLASHER自身のverify_qt_*.pyと同じ理由)、`QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` で実行
 ├── requirements.txt
 ├── hydra-umc.project.json         # エコシステムマニフェスト - バージョン/ファミリー/親、dashboard/updater/OS-REBUILDERが読み取る実際の情報源
 ├── bump_version.py                # hydra_suite/__init__.py自身の__version__に対するオドメーター式バージョン増分、実際のPyInstallerビルドの前にbuild_exe.bat/.shが実行する

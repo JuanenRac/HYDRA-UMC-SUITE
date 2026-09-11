@@ -25,6 +25,8 @@
 </p>
 
 
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 24 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，全部 26 个经典面板均已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：`trajectory_panel.py` 只是一个纯本地的点位记录器，不会读写 HYDRA-UMC STUDIO 自身的 `data/WORKS/*.json` 格式；CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+
 ---
 
 ## 🎯 概述
@@ -90,6 +92,7 @@ HYDRA-UMC-SUITE/
 ├── tests/test_vacuum_tables.py
 ├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
 ├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
+├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行
 ├── requirements.txt
 ├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
 ├── bump_version.py                # 为 hydra_suite/__init__.py 自身的 __version__ 做里程表式版本递增，在每次真实的 PyInstaller 构建前由 build_exe.bat/.sh 运行
