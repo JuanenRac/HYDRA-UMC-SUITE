@@ -2,7 +2,7 @@
 # HYDRA-UMC-SUITE - Vacuum table model selector and pump/valve controls
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
-# Real STL geometry, fixed catalog dimensions; selection preserves other state.
+# Real STL geometry with editable footprint; selection preserves other state.
 # =============================================================================
 from __future__ import annotations
 
@@ -35,8 +35,8 @@ class VacuumTablePanel(ModuleConfigPanel):
         return (160, 120)
 
     def _build_extra_settings(self, settings_layout: QVBoxLayout) -> None:
-        self._width_spin.setEnabled(False)
-        self._length_spin.setEnabled(False)
+        self._width_spin.setSingleStep(5)
+        self._length_spin.setSingleStep(5)
         settings_layout.addWidget(QLabel(_("LBL_VACUUM_MODEL")))
         self._model_combo = QComboBox()
         for model in VACUUM_TABLE_MODELS:
@@ -84,7 +84,8 @@ class VacuumTablePanel(ModuleConfigPanel):
     def _on_enable(self) -> None:
         if self._current_robot is not None:
             module = self._current_robot.module(self._module_key)
-            module = select_vacuum_table(module, vacuum_table_model(module.get("modelId"))["id"])
+            if module.get("customSize") is not True:
+                module = select_vacuum_table(module, vacuum_table_model(module.get("modelId"))["id"])
             self._current_robot.set_module(self._module_key, module)
         super()._on_enable()
 

@@ -154,6 +154,10 @@ class ModuleConfigPanel(QWidget):
         self._length_spin.valueChanged.connect(self._on_length_changed)
         size_row.addWidget(self._length_spin)
         settings_box_layout.addLayout(size_row)
+        if self._module_key in ("juanenCNC", "juanenLaser"):
+            note = QLabel(_("LBL_MACHINE_ASSETS_NOTE"))
+            note.setWordWrap(True)
+            settings_box_layout.addWidget(note)
 
         settings_layout.addWidget(settings_box)
         self._build_extra_settings(settings_layout)
@@ -217,9 +221,11 @@ class ModuleConfigPanel(QWidget):
         size = module.get("size") or {}
         default_width, default_length = self._display_default_size_mm()
         if self._module_key == "vacuumTable":
-            from hydra_suite.vacuum_tables import vacuum_table_model
-            selected = vacuum_table_model(module.get("modelId"))
-            size = {"width": selected["width"], "length": selected["length"]}
+            from hydra_suite.vacuum_tables import vacuum_table_size
+            size = vacuum_table_size(module)
+        elif self._module_key == "heatedBed":
+            from hydra_suite.heated_beds import heated_bed_size
+            size = heated_bed_size(module)
         width_mm = size.get("width", default_width)
         length_mm = size.get("length", default_length)
         self._updating = True
@@ -320,6 +326,12 @@ class ModuleConfigPanel(QWidget):
         size = dict(module.get("size") or {})
         size[axis] = value
         module["size"] = size
+        if self._module_key == "vacuumTable":
+            from hydra_suite.vacuum_tables import resize_vacuum_table
+            module = resize_vacuum_table(self._current_robot.module(self._module_key), axis, value)
+        elif self._module_key == "heatedBed":
+            from hydra_suite.heated_beds import resize_heated_bed
+            module = resize_heated_bed(self._current_robot.module(self._module_key), axis, value)
         self._current_robot.set_module(self._module_key, module)
         # Updates the live 3D preview immediately, matching STUDIO's own
         # reactive <Canvas> (it re-renders on every keystroke, not only

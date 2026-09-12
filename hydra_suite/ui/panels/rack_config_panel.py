@@ -21,17 +21,19 @@
 # resets BOTH racks to their real defaults (and force-sets `enabled: true`
 # even if it was already true). See _on_reset() below.
 #
-# Deliberately does NOT port a live 3D preview - RackConfigView.tsx itself
-# has none either (no <Canvas> anywhere in that file), unlike the
-# CNC/Laser/HeatedBed/VacuumTable/XYTable family - nothing omitted here.
+# Each rack now includes a modular STL preview, editable footprint and color.
+# Geometry edits preserve pickup coordinates and the other rack's settings.
 #
 # Writes via push_active_state(), matching STUDIO's own updateRobot().
 # =============================================================================
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
+    QColorDialog,
+    QSpinBox,
     QDoubleSpinBox,
     QGridLayout,
     QGroupBox,
@@ -48,6 +50,8 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import RACK_MAX_CAPACITY, HydraState, RobotView, default_rack_system
+from hydra_suite.racks import rack_geometry, valid_dimension, valid_color
+from hydra_suite.render.viewport import RobotViewport
 
 RACK_TYPES: tuple[str, ...] = ("None", "Input", "Output")
 SLOT_GRID_COLUMNS = 6
@@ -79,6 +83,28 @@ class RackGroupWidget(QGroupBox):
         self._body = QWidget()
         body_layout = QVBoxLayout(self._body)
         body_layout.setContentsMargins(0, 0, 0, 0)
+        note = QLabel(_("LBL_RACK_GEOMETRY_NOTE"))
+        note.setWordWrap(True)
+        body_layout.addWidget(note)
+        self._dimension_spins = {}
+        for axis in ("width", "depth"):
+            row = QHBoxLayout()
+            row.addWidget(QLabel(_("LBL_RACK_" + axis.upper())))
+            spin = QSpinBox()
+            spin.setRange(40, 1000)
+            spin.setSingleStep(1)
+            spin.setSuffix(" mm")
+            spin.valueChanged.connect(lambda value, field=axis: self._on_field_changed(self._rack_id, field, value))
+            self._dimension_spins[axis] = spin
+            row.addWidget(spin)
+            body_layout.addLayout(row)
+        self._color = "#0ea5e9"
+        self._color_button = QPushButton(_("LBL_RACK_COLOR"))
+        self._color_button.clicked.connect(self._choose_color)
+        body_layout.addWidget(self._color_button)
+        self._preview = RobotViewport()
+        self._preview.setMinimumHeight(240)
+        body_layout.addWidget(self._preview)
 
         cap_row = QHBoxLayout()
         cap_row.addWidget(QLabel(_("LBL_CAPACITY")))
@@ -131,6 +157,14 @@ class RackGroupWidget(QGroupBox):
         layout.addWidget(self._body)
 
     def refresh(self, rack: dict, has_xy_table: bool) -> None:
+        spec = rack_geometry(rack)
+        for axis, spin in self._dimension_spins.items():
+            spin.blockSignals(True)
+            spin.setValue(spec[axis])
+            spin.blockSignals(False)
+        self._color = spec["color"]
+        self._color_button.setText(_("LBL_RACK_COLOR") + " " + self._color)
+        self._preview.set_attached_module("rack", rack_config=rack)
         self._type_combo.blockSignals(True)
         idx = self._type_combo.findData(rack.get("type", "None"))
         self._type_combo.setCurrentIndex(idx if idx >= 0 else 0)
@@ -170,6 +204,11 @@ class RackGroupWidget(QGroupBox):
 
     def _on_type_changed(self, index: int) -> None:
         self._on_field_changed(self._rack_id, "type", self._type_combo.itemData(index))
+
+    def _choose_color(self) -> None:
+        color = QColorDialog.getColor(QColor(self._color), self, _("LBL_RACK_COLOR"))
+        if color.isValid():
+            self._on_field_changed(self._rack_id, "color", color.name())
 
     def _on_capacity_changed(self, value: int) -> None:
         self._capacity_label.setText(str(value))
@@ -330,6 +369,12 @@ class RackConfigPanel(QWidget):
 
     def _on_field_changed(self, rack_id: str, field: str, value) -> None:
         if self._current_robot is None:
+            return
+        if rack_id not in ("rack1", "rack2"):
+            return
+        if field in ("width", "depth") and not valid_dimension(value):
+            return
+        if field == "color" and not valid_color(value):
             return
         config = self._current_robot.rack_system
         rack = config[rack_id]

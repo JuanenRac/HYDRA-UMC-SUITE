@@ -99,17 +99,19 @@ just moves where it breaks.
   (`render/module_rig.py` + `render/viewport.py`'s
   `set_attached_module()`, a real port of STUDIO's own per-panel
   `SharedModule3DView.tsx`: real STL for the six vacuum table models;
-  matching box/cylinder shapes for CNC/Laser/Heated Bed, at real scale)
+  detailed STL for heated beds; independent CNC/Laser STL assemblies)
   and Pick & Place
   (`render/pnp_rig.py` + `set_attached_pnp()`, a real port of STUDIO's
-  own `LumenPnPRig.tsx`: the 5 real `.stl` meshes in
-  `assets/meshes/lumenpnp/`, posed through a real Cartesian-gantry chain,
+  own `LumenPnPRig.tsx`: 7 articulated groups plus 160 individual STL parts
+  in independent `lumenpnp/` and `juanenpnp/` directories, posed through a Cartesian-gantry chain,
   not primitives). Both modes are drawn by a `RobotViewport` instance
   embedded directly in the owning panel's own layout, live-updating on
-  enable/disable and on every real edit (width/length for the three primitive
-  modules; modelId for Vacuum Table; X/Y/Z/nozzle1/nozzle2 for Pick & Place).
+  enable/disable and on relevant edits (footprint/model for heated beds and
+  vacuum tables; X/Y/Z/nozzle1/nozzle2 for Pick & Place). CNC/Laser now retain
+  authored CAD dimensions; legacy size settings do not stretch these assemblies.
   Vacuum Table also has a dedicated real STL preview in the Qt Quick panel.
   See [Vacuum table models](VACUUM_TABLE_MODELS.md).
+  See [Independent machine models](MACHINE_ASSETS.md) for editing the variants.
 - **Jog controls, Overview, Server Browser, local trajectory point
   recorder** - all read/write against the real live state of whichever
   server is active.

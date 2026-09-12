@@ -124,7 +124,9 @@ from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_
 from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
 from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
 from hydra_suite.ui.panels.tester_panel import _category_for
-from hydra_suite.vacuum_tables import VACUUM_TABLE_MODELS, vacuum_table_model, select_vacuum_table
+from hydra_suite.vacuum_tables import VACUUM_TABLE_MODELS, vacuum_table_model, select_vacuum_table, vacuum_table_size, resize_vacuum_table
+from hydra_suite.heated_beds import HEATED_BED_MODELS, heated_bed_model, heated_bed_size, select_heated_bed, resize_heated_bed
+from hydra_suite.racks import rack_geometry, valid_dimension, valid_color
 from hydra_suite.ui.panels.viewport_panel import SUPPORTED_MODELS as _VIEWPORT_SUPPORTED_MODELS
 from hydra_suite.ui.panels.xy_table_panel import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
@@ -186,7 +188,7 @@ _ATC_TYPE_KEYS: tuple[str, ...] = ("vertical_panel", "horizontal_panel", "revolv
 _MODULE_CONFIGS: dict[str, dict[str, object]] = {
     "cnc": {"module_key": "juanenCNC", "machine": "JuanenCNC", "heading": "HEADING_CNC", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
     "laser": {"module_key": "juanenLaser", "machine": "JuanenLaser", "heading": "HEADING_LASER", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
-    "heated_bed": {"module_key": "heatedBed", "machine": "Heated Bed", "heading": "HEADING_HEATED_BED", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": "heated_bed"},
+    "heated_bed": {"module_key": "heatedBed", "machine": "Heated Bed", "heading": "HEADING_HEATED_BED", "reset_size": (200, 200), "extra": "heated_bed"},
     # Fixed STL dimensions; the first catalog model is also the reset default.
     "vacuum_table": {"module_key": "vacuumTable", "machine": "Vacuum Table", "heading": "HEADING_VACUUM_TABLE", "reset_size": (160, 120), "extra": "vacuum_table"},
 }
@@ -312,6 +314,7 @@ class SuiteQtBridge(QObject):
         self._vacuum_preview_version = 0
         self._vacuum_preview_error = ""
         self._vacuum_preview_model = None
+        self._rack_preview_id = "rack1"
 
         self._active_key = "overview"
         self._connection_status = "disconnected"
@@ -1910,6 +1913,9 @@ class SuiteQtBridge(QObject):
             pos = rack.get("basePickupPos", {})
             result.append({
                 "rackId": rack_id,
+                "width": rack_geometry(rack)["width"],
+                "depth": rack_geometry(rack)["depth"],
+                "color": rack_geometry(rack)["color"],
                 "title": _(title_key),
                 "type": rack_type,
                 "active": active,
@@ -1969,6 +1975,36 @@ class SuiteQtBridge(QObject):
         robot.set_rack_system(config)
         self._controller.push_active_state()
         self.changed.emit()
+
+    @Slot(str, str, float)
+    def setRackDimension(self, rack_id, axis, value):
+        robot = self._rack_selected_robot()
+        if robot is None or rack_id not in ("rack1", "rack2") or axis not in ("width", "depth") or not valid_dimension(value):
+            return
+        config = robot.rack_system
+        config[rack_id][axis] = int(value)
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str, str)
+    def setRackColor(self, rack_id, color):
+        robot = self._rack_selected_robot()
+        if robot is None or rack_id not in ("rack1", "rack2") or not valid_color(color):
+            return
+        config = robot.rack_system
+        config[rack_id]["color"] = color
+        robot.set_rack_system(config)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Slot(str)
+    def previewRack(self, rack_id):
+        if rack_id not in ("rack1", "rack2"):
+            return
+        self._rack_preview_id = rack_id
+        self._vacuum_preview_model = None
+        self.refreshVacuumPreview()
 
     @Slot(str, int)
     def setRackCapacity(self, rack_id: str, value: int) -> None:
@@ -2428,7 +2464,9 @@ class SuiteQtBridge(QObject):
         if robot is None:
             return DEFAULT_SIZE_MM
         if key == "vacuum_table":
-            return int(vacuum_table_model(robot.module("vacuumTable").get("modelId"))[field])
+            return int(vacuum_table_size(robot.module("vacuumTable"))[field])
+        if key == "heated_bed":
+            return int(heated_bed_size(robot.module("heatedBed"))[field])
         size = robot.module(_MODULE_CONFIGS[key]["module_key"]).get("size") or {}
         return int(size.get(field, DEFAULT_SIZE_MM))
 
@@ -2448,7 +2486,7 @@ class SuiteQtBridge(QObject):
         overwrite alike (see _MODULE_CONFIGS's own "extra" tag)."""
         extra = _MODULE_CONFIGS[nav_key]["extra"]
         if extra == "heated_bed":
-            return {"targetTemp": _HB_DEFAULT_TARGET_TEMP_C, "currentTemp1": _HB_DEFAULT_AMBIENT_TEMP_C, "currentTemp2": _HB_DEFAULT_AMBIENT_TEMP_C, "ssrActive": False}
+            return {"modelId": "200x200x5", "targetTemp": _HB_DEFAULT_TARGET_TEMP_C, "currentTemp1": _HB_DEFAULT_AMBIENT_TEMP_C, "currentTemp2": _HB_DEFAULT_AMBIENT_TEMP_C, "ssrActive": False}
         if extra == "vacuum_table":
             return {"pumpActive": False, "valveActive": False, "modelId": VACUUM_TABLE_MODELS[0]["id"]}
         return {}
@@ -2464,7 +2502,7 @@ class SuiteQtBridge(QObject):
         module["enabled"] = True
         for field, default in self._module_extra_defaults(key).items():
             module.setdefault(field, default)
-        if key == "vacuum_table":
+        if key == "vacuum_table" and module.get("customSize") is not True:
             module = select_vacuum_table(module, vacuum_table_model(module.get("modelId"))["id"])
         robot.set_module(module_key, module)
         self._controller.push_active_state()
@@ -2510,11 +2548,13 @@ class SuiteQtBridge(QObject):
             return
         module_key = _MODULE_CONFIGS[key]["module_key"]
         module = dict(robot.module(module_key))
-        if key == "vacuum_table":
-            return  # Catalog geometry is fixed-size; never distort the STL.
         size = dict(module.get("size") or {})
         size[field] = value
         module["size"] = size
+        if key == "vacuum_table":
+            module = resize_vacuum_table(robot.module(module_key), field, value)
+        elif key == "heated_bed":
+            module = resize_heated_bed(robot.module(module_key), field, value)
         robot.set_module(module_key, module)
         self._controller.push_active_state()
         self.changed.emit()
@@ -2571,7 +2611,26 @@ class SuiteQtBridge(QObject):
     def toggleModuleSsr(self) -> None:
         self._set_module_extra_field("ssrActive", not self.moduleSsrOn)
 
-    # Vacuum table model selection and a dedicated Qt Quick STL preview.
+    # Table model selection; the existing preview serves both STL catalogs.
+    @Property("QVariantList", constant=True)
+    def heatedModelOptions(self):
+        return [{"id": m["id"], "label": m["label"]} for m in HEATED_BED_MODELS]
+
+    @Property(str, notify=changed)
+    def heatedModelId(self):
+        return heated_bed_model(self._module_extra_value("modelId", None))["id"]
+
+    @Slot(str)
+    def selectHeatedModel(self, model_id):
+        if self._active_module_key() != "heated_bed":
+            return
+        robot = self._module_selected_robot("heated_bed")
+        if robot is None or not any(m["id"] == model_id for m in HEATED_BED_MODELS):
+            return
+        robot.set_module("heatedBed", select_heated_bed(robot.module("heatedBed"), model_id))
+        self._controller.push_active_state()
+        self.changed.emit()
+
     @Property("QVariantList", constant=True)
     def vacuumModelOptions(self):
         return [{"id": model["id"], "label": model["label"]} for model in VACUUM_TABLE_MODELS]
@@ -2601,23 +2660,74 @@ class SuiteQtBridge(QObject):
 
     @Slot()
     def refreshVacuumPreview(self):
-        if self._active_module_key() != "vacuum_table" or not self.moduleEnabled:
+        if self.activePanel == "pick_and_place":
+            robot = self._pnp_selected_robot()
+            if robot is None or not self.pnpEnabled:
+                return
+            module = robot.module(self._pnp_machine_type)
+            pose = tuple(float(module.get(k, 0) or 0) for k in ("axisX", "axisY", "axisZ", "nozzle1Rotation", "nozzle2Rotation"))
+            preview_key = ("pnp", self._pnp_machine_type, pose)
+            if self._vacuum_preview_model == preview_key and not self._vacuum_preview_error:
+                return
+            try:
+                if self._vacuum_renderer is None:
+                    from hydra_suite.render.viewport import OffscreenRobotRenderer
+                    self._vacuum_renderer = OffscreenRobotRenderer()
+                    self._vacuum_renderer.resize(640, 400)
+                self._vacuum_renderer.set_attached_pnp(self._pnp_machine_type, *pose)
+                self._vacuum_frame_provider.set_image(self._vacuum_renderer.render())
+                self._vacuum_preview_error = ""
+                self._vacuum_preview_model = preview_key
+                self._vacuum_preview_version += 1
+            except Exception:
+                self._vacuum_preview_error = _("LBL_MACHINE_MESH_ERROR")
+            self._viewportChanged.emit()
             return
-        if self._vacuum_preview_model == self.vacuumModelId and not self._vacuum_preview_error:
+        if self.activePanel == "rack":
+            robot = self._rack_selected_robot()
+            if robot is None or not self.rackEnabled:
+                return
+            rack = robot.rack_system[self._rack_preview_id]
+            spec = rack_geometry(rack)
+            preview_key = ("rack", robot.id, self._rack_preview_id, rack.get("type"),
+                           tuple(spec.values()), tuple(rack.get("usableSlots", [])))
+            if self._vacuum_preview_model == preview_key and not self._vacuum_preview_error:
+                return
+            try:
+                if self._vacuum_renderer is None:
+                    from hydra_suite.render.viewport import OffscreenRobotRenderer
+                    self._vacuum_renderer = OffscreenRobotRenderer()
+                    self._vacuum_renderer.resize(640, 400)
+                self._vacuum_renderer.set_attached_module("rack", rack_config=rack)
+                self._vacuum_frame_provider.set_image(self._vacuum_renderer.render())
+                self._vacuum_preview_error = ""
+                self._vacuum_preview_model = preview_key
+                self._vacuum_preview_version += 1
+            except Exception:
+                self._vacuum_preview_error = _("LBL_RACK_MESH_ERROR")
+            self._viewportChanged.emit()
+            return
+        key = self._active_module_key()
+        if key not in ("vacuum_table", "heated_bed", "cnc", "laser") or not self.moduleEnabled:
+            return
+        machine_type = {"cnc": "juanenCNC", "laser": "juanenLaser"}.get(key)
+        heated = key == "heated_bed"
+        model = heated_bed_model(self.heatedModelId) if heated else vacuum_table_model(self.vacuumModelId)
+        preview_key = (key, model["id"], self.moduleWidth, self.moduleLength)
+        if self._vacuum_preview_model == preview_key and not self._vacuum_preview_error:
             return  # Unrelated telemetry must not redraw an unchanged static mesh.
         try:
             if self._vacuum_renderer is None:
                 from hydra_suite.render.viewport import OffscreenRobotRenderer
                 self._vacuum_renderer = OffscreenRobotRenderer()
                 self._vacuum_renderer.resize(640, 400)
-            model = vacuum_table_model(self.vacuumModelId)
-            self._vacuum_renderer.set_attached_module("vacuumTable", model["width"], model["length"], model["id"])
+            self._vacuum_renderer.set_attached_module(machine_type or ("heatedBed" if heated else "vacuumTable"), self.moduleWidth, self.moduleLength, model["id"])
             self._vacuum_frame_provider.set_image(self._vacuum_renderer.render())
             self._vacuum_preview_error = ""
-            self._vacuum_preview_model = model["id"]
+            self._vacuum_preview_model = preview_key
             self._vacuum_preview_version += 1
         except Exception:
-            self._vacuum_preview_error = _("LBL_VACUUM_MODEL_ERROR")
+            self._vacuum_preview_error = _("LBL_MACHINE_MESH_ERROR" if machine_type else ("LBL_HEATED_MODEL_ERROR" if heated else "LBL_VACUUM_MODEL_ERROR"))
         self._viewportChanged.emit()
 
     @Slot(float, float)

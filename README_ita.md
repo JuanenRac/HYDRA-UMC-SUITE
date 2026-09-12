@@ -137,23 +137,34 @@ Una vera `ApplicationWindow` QML - per nulla incorporata nella finestra classica
   condividono un'unica implementazione `ModuleConfigPanel` (i propri
   `CNC.tsx`/`Laser.tsx` di STUDIO sono componenti identici a parte la
   chiave del modulo); gli altri 7 hanno richiesto ciascuno un proprio
-  pannello reale, costruito su misura. Tutti e 5 i moduli che hanno
-  un'anteprima 3D dal vivo su STUDIO ora ce l'hanno anche qui:
-  CNC/Laser/Piano Riscaldato/Tavolo a Vuoto (`render/module_rig.py`, la geometria di STUDIO: STL reali per i tavoli a vuoto, scatole/cilindri per gli altri moduli) e Pick &
-  Place (`render/pnp_rig.py`, un porting reale del proprio
-  `LumenPnPRig.tsx` di STUDIO - le 5 mesh `.stl` reali in
-  `assets/meshes/lumenpnp/`, posizionate tramite una vera catena
-  cinematica a portale cartesiano, non primitive), ciascuno disegnato da
-  un `RobotViewport` messo nella propria modalità esclusiva per il
-  modulo.
+  pannello reale, costruito su misura. Il piano riscaldato e il tavolo a vuoto usano STL in `render/module_rig.py`. PnP, CNC e laser usano `render/pnp_rig.py`: 7 mesh articolate e 160 parti individuali per cartella indipendente. `RobotViewport` mostra ogni assieme. Vedi [i modelli](docs/MACHINE_ASSETS.md).
 
 ---
 
 ### 🧩 Tavoli a vuoto selezionabili
 
-Scegli uno dei sei modelli STL reali in Tavolo a Vuoto: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 o 250 × 250 mm. La base è spessa 15 mm; l’altezza totale con le pareti di allineamento è 16,2 mm. Le dimensioni sono fisse. La selezione conserva posizione, pompa e valvola; il ripristino seleziona 160 × 120 mm e spegne pompa e valvola. Gli identificatori precedenti o sconosciuti mostrano il primo modello. STUDIO e le due interfacce di SUITE condividono catalogo e modelId nella configurazione del robot.
+Scegli uno dei sei modelli STL reali in Tavolo a Vuoto: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 o 250 × 250 mm. La base è spessa 15 mm; l’altezza totale con le pareti di allineamento è 16,2 mm. Larghezza e lunghezza sono modificabili a passi di 5 mm (10–5000 mm). La superficie viene ridimensionata, lo spessore resta invariato. Scegliere un modello ripristina le misure originali. Le dimensioni personalizzate si sincronizzano tramite SERVER; fori e canali scalati sono una rappresentazione visiva, non uno STL rigenerato per la fabbricazione. La selezione conserva posizione, pompa e valvola; il ripristino seleziona 160 × 120 mm e spegne pompa e valvola. Gli identificatori precedenti o sconosciuti mostrano il primo modello. STUDIO e le due interfacce di SUITE condividono catalogo e modelId nella configurazione del robot.
 
 [Guida ai modelli, configurazione e rigenerazione](docs/VACUUM_TABLE_MODELS.md).
+
+### 🔥 Modello del piano riscaldato
+
+Quattro modelli STL: 100×100, 200×100, 200×200 e 255×255 mm, tutti spessi 5 mm. Larghezza/lunghezza regolabili a passi di 5 mm (25–5000 mm); selezionare un modello ripristina le dimensioni senza cambiare il riscaldamento. Modello visivo, non un progetto elettrico o di fabbricazione.
+
+[Modello del piano riscaldato — STL / OpenSCAD](docs/HEATED_BED_MODELS.md).
+
+### 🗄️ Rack STL configurabili
+
+Rack STL: larghezza e profondità da 40 a 1000 mm a passi di 1 mm; da 1 a 24 schede con passo fisso di 10 mm. Sono impostazioni visive, non una calibrazione del robot.
+
+[Rack STL configurabili — STL / OpenSCAD](docs/RACK_MODELS.md).
+
+### 🛠️ Modelli macchina indipendenti
+
+Copie STL indipendenti per JuanenPnP, JuanenCNC e JuanenLaser; LumenPnP mantiene l’originale. Modifica ogni modello nella propria cartella. Si usano le dimensioni CAD; le vecchie impostazioni di misura non deformano il modello.
+
+[Modelli macchina indipendenti — STL](docs/MACHINE_ASSETS.md).
+
 
 Questi modelli originali JuanenPNP / HYDRA-UMC e i sorgenti SCAD sono sotto GPL-3.0; non sono il CAD della macchina Opulo.
 
@@ -170,6 +181,17 @@ avanti di un'immagine ormai superata.
 ```text
 HYDRA-UMC-SUITE/
 ├── docs/VACUUM_TABLE_MODELS.md
+├── docs/HEATED_BED_MODELS.md
+├── docs/RACK_MODELS.md
+├── docs/MACHINE_ASSETS.md
+├── assets/meshes/{juanenpnp,juanencnc,juanenlaser}/  # STL + ATTRIBUTION + VARIANT.md
+├── tests/verify_machine_assets.py
+├── assets/meshes/racks/        # Rack.scad + base/wall/guide/assembly STL
+├── hydra_suite/racks.py
+├── tests/verify_rack_geometry.py
+├── assets/meshes/heated-beds/  # catalog.json + HeatedBed.scad + 4 STL
+├── hydra_suite/heated_beds.py
+├── tests/verify_heated_beds.py
 ├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/test_vacuum_tables.py

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "units": "mm",
+  "defaultModelId": "200x200x5",
+  "models": [
+    {
+      "id": "100x100x5",
+      "label": "100 × 100 × 5 mm",
+      "width": 100,
+      "length": 100,
+      "totalHeight": 5,
+      "file": "HeatedBed100x100x5mm.stl"
+    },
+    {
+      "id": "200x100x5",
+      "label": "200 × 100 × 5 mm",
+      "width": 200,
+      "length": 100,
+      "totalHeight": 5,
+      "file": "HeatedBed200x100x5mm.stl"
+    },
+    {
+      "id": "200x200x5",
+      "label": "200 × 200 × 5 mm",
+      "width": 200,
+      "length": 200,
+      "totalHeight": 5,
+      "file": "HeatedBed200x200x5mm.stl"
+    },
+    {
+      "id": "255x255x5",
+      "label": "255 × 255 × 5 mm",
+      "width": 255,
+      "length": 255,
+      "totalHeight": 5,
+      "file": "HeatedBed255x255x5mm.stl"
+    }
+  ]
+}

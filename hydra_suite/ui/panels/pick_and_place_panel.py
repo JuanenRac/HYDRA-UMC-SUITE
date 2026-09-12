@@ -203,6 +203,9 @@ class PickAndPlacePanel(QWidget):
         settings_box_layout.addWidget(self._size_page)
 
         settings_layout.addWidget(settings_box)
+        asset_note = QLabel(_("LBL_MACHINE_ASSETS_NOTE"))
+        asset_note.setWordWrap(True)
+        settings_layout.addWidget(asset_note)
         settings_layout.addStretch(1)
         self._split.addWidget(settings_column)
 

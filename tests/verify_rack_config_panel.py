@@ -52,6 +52,19 @@ def _run() -> None:
     assert panel._current_robot.rack_system["enabled"] is True
     assert panel._stack.currentIndex() == 1
     print("RackConfigPanel enable: PASS")
+    before = dict(panel._current_robot.rack_system["rack2"])
+    panel._rack1_widget._dimension_spins["width"].setValue(161)
+    panel._rack1_widget._dimension_spins["depth"].setValue(201)
+    panel._on_field_changed("rack1", "color", "#123abc")
+    current = panel._current_robot.rack_system
+    assert current["rack1"]["width"] == 161 and current["rack1"]["depth"] == 201
+    assert current["rack1"]["color"] == "#123abc"
+    assert current["rack2"] == before
+    panel._on_field_changed("rack1", "width", float("nan"))
+    panel._on_field_changed("rack1", "color", "not-a-color")
+    assert panel._current_robot.rack_system["rack1"]["width"] == 161
+    assert panel._current_robot.rack_system["rack1"]["color"] == "#123abc"
+    print("RackConfigPanel dimensions/color/independence: PASS")
 
     # Type change on rack1.
     panel._on_field_changed("rack1", "type", "None")

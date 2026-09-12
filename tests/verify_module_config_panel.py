@@ -146,6 +146,13 @@ def _run() -> None:
     assert heated_bed_panel._current_robot.module("heatedBed")["ssrActive"] is True
     assert heated_bed_panel._ssr_btn.text() == "SSR ON"
     print("HeatedBedPanel target-temp/SSR write-back: PASS")
+    assert heated_bed_panel._model_combo.count() == 4
+    heated_bed_panel._model_combo.setCurrentIndex(3)
+    assert heated_bed_panel._width_spin.value() == 255
+    heated_bed_panel._width_spin.stepUp()
+    module = heated_bed_panel._current_robot.module("heatedBed")
+    assert module['size'] == {'width': 260, 'length': 255}
+    assert module['targetTemp'] == 85 and module['ssrActive'] is True
 
     # Reset re-enables with the documented defaults, including the extra
     # heating fields (matches HeatedBedConfig.tsx's own handleReset()).
@@ -156,6 +163,7 @@ def _run() -> None:
     assert module["currentTemp1"] == 25.0
     assert module["ssrActive"] is False
     print("HeatedBedPanel reset includes extra heating fields: PASS")
+    assert module['size'] == {'width': 200, 'length': 200}
 
     # A state that already has real live telemetry (a value NOT among the
     # defaults) renders the real numbers, not the fallback.
@@ -175,7 +183,7 @@ def _run() -> None:
     vacuum_panel._on_enable()
     assert vacuum_panel._current_robot.module("vacuumTable")["size"] == {"width": 160, "length": 120}
     assert vacuum_panel._width_spin.value() == 160
-    assert not vacuum_panel._width_spin.isEnabled()
+    assert vacuum_panel._width_spin.isEnabled() and vacuum_panel._width_spin.singleStep() == 5
     vacuum_panel._pump_btn.setChecked(True)
     vacuum_panel._valve_btn.setChecked(True)
     for index in range(6):
@@ -185,6 +193,11 @@ def _run() -> None:
         assert module["pumpActive"] and module["valveActive"]
     vacuum_panel._model_combo.setCurrentIndex(3)
     assert vacuum_panel._width_spin.value() == 232 and vacuum_panel._length_spin.value() == 217
+    vacuum_panel._width_spin.stepUp()
+    vacuum_panel._length_spin.setValue(150)
+    module = vacuum_panel._current_robot.module("vacuumTable")
+    assert module["size"] == {"width": 237, "length": 150} and module["customSize"] is True
+    assert module["pumpActive"] and module["valveActive"]
     vacuum_panel._on_reset()
     module = vacuum_panel._current_robot.module("vacuumTable")
     assert module["size"] == {"width": 160, "length": 120}
@@ -204,10 +217,11 @@ def _run() -> None:
     standalone_viewport = RobotViewport()
     assert standalone_viewport._renderer._attached_module_type is None
     standalone_viewport.set_attached_module("juanenCNC", 500.0, 500.0)
-    assert standalone_viewport._renderer._attached_module_type == "juanenCNC"
-    assert standalone_viewport._renderer._module_segments_cache == module_segments("juanenCNC", 500.0, 500.0)
-    assert len(standalone_viewport._renderer._module_segments_cache) > 0, "juanenCNC must have real ported geometry, not an empty list"
+    assert standalone_viewport._renderer._pnp_machine_type == "juanenCNC"
+    assert standalone_viewport._renderer._pending_pnp_mesh_load
+    assert module_segments("juanenCNC", 500.0, 500.0) == [], "CNC must no longer use a primitive approximation"
     standalone_viewport.set_attached_module(None)
+    assert standalone_viewport._renderer._pnp_machine_type is None
     assert standalone_viewport._renderer._attached_module_type is None
     assert standalone_viewport._renderer._module_segments_cache == [], "clearing the attached module must clear the cached segments too"
     # A module key with no ported geometry yet (see module_rig.py's own
@@ -223,13 +237,14 @@ def _run() -> None:
     controller.active_state_changed.emit(_state_with_one_robot(cnc=None))
     assert cnc_panel2._module_viewport._renderer._attached_module_type is None, "no module enabled yet -> nothing attached"
     cnc_panel2._on_enable()
-    assert cnc_panel2._module_viewport._renderer._attached_module_type == "juanenCNC"
-    assert len(cnc_panel2._module_viewport._renderer._module_segments_cache) > 0
+    assert cnc_panel2._module_viewport._renderer._pnp_machine_type == "juanenCNC"
+    assert cnc_panel2._module_viewport._renderer._pending_pnp_mesh_load
     cnc_panel2._width_spin.setValue(750)
-    assert cnc_panel2._module_viewport._renderer._module_segments_cache == module_segments("juanenCNC", 750.0, 500.0), (
-        "a real width change must rebuild the preview at the new size, not keep showing the old one"
-    )
+    assert cnc_panel2._module_viewport._renderer._pnp_machine_type == "juanenCNC"
+    assert cnc_panel2._current_robot.module("juanenCNC")["size"]["width"] == 750
+    # Size settings survive; the independent STL uses its authored CAD dimensions.
     cnc_panel2._on_disable()
+    assert cnc_panel2._module_viewport._renderer._pnp_machine_type is None
     assert cnc_panel2._module_viewport._renderer._attached_module_type is None, "disabling the module must detach the preview too"
     print("ModuleConfigPanel drives its own embedded RobotViewport from real state changes: PASS")
 

@@ -8,7 +8,42 @@ goes up by 1 on every real build; once it would pass 9 it resets to 0 and
 minor goes up by 1 instead (e.g. `0.1.9` -> `0.2.0`). The version is bumped
 automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
-"Unreleased" below for the change that introduced this.
+"Historical versioning notes" below for the change that introduced this.
+
+## [0.5.1] - Table model configuration: heated beds, racks, vacuum tables, CAD module STL
+
+- Separate JuanenPnP, JuanenCNC and JuanenLaser into independent editable STL
+  directories (167 meshes each), retaining the untouched LumenPnP source and
+  attribution. Replace CNC/laser primitive previews with the copied CAD assembly.
+- Load variant STL directly, isolate caches by machine and document CAD-size
+  behavior, editing/reloading and retained module settings in seven languages.
+- Frame each machine from its mesh bounds and cover machine selection in the
+  classic/Qt Quick previews, plus the 27-script offline verification suite.
+
+- Add configurable rack width/depth (1 mm steps), capacity-driven STL guides
+  and independent color metadata. Preserve pickup poses and the other rack.
+  Ship editable OpenSCAD/components/default assembly, seven-language controls
+  and documentation, geometry regression tests and live rack previews.
+
+- Add four detailed heated-bed STL presets and their parametric OpenSCAD source,
+  all 5 mm high. Classic and Qt Quick controls support preset selection and
+  5 mm footprint edits without changing heater state; default/reset is 200x200.
+- Reuse the STL preview for both table types, add heated-bed verification and
+  document the assets/settings contract in the guide and all seven README/UI languages.
+
+- Allow vacuum-table footprint edits in 5 mm steps, preserving thickness,
+  controls and placement. Share explicit customSize settings with STUDIO/SERVER.
+- Put the Qt Quick model selector in the vacuum panel; preview cache now
+  includes dimensions. Update the seven UI languages, README and model guide.
+
+- Keep the Qt Quick shell verifier offline, including background HTTP polls;
+  drive UI events through qasync and bound cancellation before closing its loop.
+- Correct the vacuum-table guide to invoke the current verifier script instead
+  of the removed unittest filename. No model geometry or version is changed.
+
+## [0.5.0]
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.4.9] - Real selectable vacuum table models replace the primitive one
 
@@ -984,7 +1019,7 @@ Builds `0.1.1` and `0.1.2` were bumped automatically by `bump_version.py`
 on routine packaged builds; no additional behavior change is on record for
 either beyond what's already listed under [0.1.0] below.
 
-## Unreleased
+## Historical versioning notes
 
 - Added `bump_version.py` and wired it into `build_exe.bat` (step 3/6) and
   `build_exe.sh` (step 4/7), so `hydra_suite/__version__` is bumped
