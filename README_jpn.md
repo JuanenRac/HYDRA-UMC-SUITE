@@ -25,7 +25,7 @@
 </p>
 
 
-**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の24件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており、さらに `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` が実際に稼働中のHYDRA-UMC SERVERとこのマシンの実際のGPU/OpenGLコンテキストに対して検証されています。Qt Quickシェル(`--qtquick`、専用の `OffscreenRobotRenderer` による3Dビューポートを含む全26の従来パネルが移植済み)は本物の、実際に動くコードであり、変更されていない従来のエントリポイントと並行して起動されます。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: `trajectory_panel.py` はローカル限定のポイントレコーダーであり、HYDRA-UMC STUDIO自身の `data/WORKS/*.json` 形式を読み書きしません。CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして `combinedWith`(結合ロボットモード)は、STUDIO自身のデータモデルに存在するにもかかわらず、このアプリのUIには公開されていません。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
+**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の27件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており、さらに `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` が実際に稼働中のHYDRA-UMC SERVERとこのマシンの実際のGPU/OpenGLコンテキストに対して検証されています。Qt Quickシェル(`--qtquick`、専用の `OffscreenRobotRenderer` による3Dビューポートを含む全26の従来パネルが移植済み)は本物の、実際に動くコードであり、変更されていない従来のエントリポイントと並行して起動されます。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: `trajectory_panel.py` はローカル限定のポイントレコーダーであり、HYDRA-UMC STUDIO自身の `data/WORKS/*.json` 形式を読み書きしません。CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして `combinedWith`(結合ロボットモード)は、STUDIO自身のデータモデルに存在するにもかかわらず、このアプリのUIには公開されていません。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
 
 ---
 
@@ -64,15 +64,34 @@ python main.py --qtquick
 - **🪟 Photoshop 風のドッキング可能なワークスペース** —— すべてのパネルは本物の `QDockWidget` です：ドラッグして自由に浮遊させる、ドラッグして戻してドッキングまたはタブグループへ統合する、ワークスペースを分割する、閉じる、そして View メニューから再表示する、といった操作が可能です。パネルをフローティング化すると、それは真に独立したトップレベルウィンドウになるため、2 台目（あるいは 3 台目）の物理モニターへドラッグしてそこに置いておくことがそのまま機能します——Qt/OS のウィンドウマネージャーが他のウィンドウと同様にそれを配置するため、追加の「マルチモニターモード」は不要です。
 - **🌐 7 言語** —— 英語、スペイン語、イタリア語、フランス語、ドイツ語、簡体中国語、日本語（URTC-FLASHER/URTC-TESTER と同じ `language/*.lng` 方式）、Language メニューから切り替え（再起動後に反映）。
 - **📷 カメラ** —— コントローラーごとの実際のカメラ一覧(存在するカメラ、その種類、接続状態、そしてブランドを問わない汎用のホスト/ポート/パス/認証情報フィールドを備えた実際の USB/IP(RTSP)ソースタイプ切り替え)を、ここにある他のすべてのパネルと同じ方式で実際のサーバーと同期します。メタデータは最初から最後まで本物であり、各カメラカードが実際の MJPEG ストリーム自体をレンダリングします(HYDRA-UMC-VISION-STREAMER 自身の `stream serve` が、HYDRA-UMC-SERVER の `GET /api/camera/:id/stream` を通じて中継され)。実際の JPEG SOI/EOI マーカーをスキャンする実際のクライアント（HYDRA-UMC-ANDROID-CONTROL 自身の `MjpegStreamParser.kt` がすでに使っているのと同じ実際の手法）を使っており、実際の USB・IP ハードウェアに対して検証済みです。
-- **🛠️ ツールアタッチメント設定、全11パネル完備** —— CNC、レーザー、ヒートベッド、バキュームテーブル、ATC(自動工具交換装置)、XY テーブル、ラックマネージャー、Pick & Place、Kinematic Brain Stage、Flasher、Tester——HYDRA-UMC STUDIO 自身のツール別画面それぞれとの実際の機能パリティで、それぞれが忠実な移植です(STUDIO 自身のソースコードが持つ、時に癖のある実際の挙動も含め、ここで「修正」するのではなく意図的に再現しています)。それぞれに実際のヘッドレステストカバレッジがあります。CNC/レーザー/ヒートベッド/バキュームテーブルは1つの `ModuleConfigPanel` 実装を共有しています(STUDIO 自身の `CNC.tsx`/`Laser.tsx` はモジュールキー以外は同一のコンポーネントです)。残りの7つはそれぞれ独自に作られた実際のパネルが必要でした。STUDIO 側でライブ 3D プレビューを持つ5つのモジュールすべてが、今ではこちらにも揃っています——CNC/レーザー/ヒートベッド/バキュームテーブル(`render/module_rig.py`, STUDIOと同じ形状：真空テーブルは実際のSTL、その他のモジュールはボックス/シリンダー)と Pick & Place(`render/pnp_rig.py`——STUDIO 自身の `LumenPnPRig.tsx` を実際に移植したもの。`assets/meshes/lumenpnp/` にある5つの本物の `.stl` メッシュを、プリミティブではなく実際のカーテシアン・ガントリー機構チェーンで位置づけています)。それぞれ、モジュール専用モードに切り替えた独自の `RobotViewport` が描画します。
+- **🛠️ ツールアタッチメント設定、全11パネル完備** —— CNC、レーザー、ヒートベッド、バキュームテーブル、ATC(自動工具交換装置)、XY テーブル、ラックマネージャー、Pick & Place、Kinematic Brain Stage、Flasher、Tester——HYDRA-UMC STUDIO 自身のツール別画面それぞれとの実際の機能パリティで、それぞれが忠実な移植です(STUDIO 自身のソースコードが持つ、時に癖のある実際の挙動も含め、ここで「修正」するのではなく意図的に再現しています)。それぞれに実際のヘッドレステストカバレッジがあります。CNC/レーザー/ヒートベッド/バキュームテーブルは1つの `ModuleConfigPanel` 実装を共有しています(STUDIO 自身の `CNC.tsx`/`Laser.tsx` はモジュールキー以外は同一のコンポーネントです)。残りの7つはそれぞれ独自に作られた実際のパネルが必要でした。ヒートベッドと真空テーブルは `render/module_rig.py` で STL を使用します。PnP、CNC、レーザーは `render/pnp_rig.py` を使用し、独立したフォルダーごとに 7 個の可動メッシュと 160 個の個別部品があります。`RobotViewport` が各アセンブリを表示します。[機械モデル](docs/MACHINE_ASSETS.md)を参照してください。
 
 ---
 
 ### 🧩 選択可能な真空テーブル
 
-真空テーブルメニューで6種類の実際のSTLモデルから選択できます：160 × 120、230 × 210、230 × 250、232 × 217、240 × 240、250 × 250 mm。ベース厚は15 mm、位置決め壁を含む全高は16.2 mmです。寸法は固定です。モデルの選択は位置、ポンプ、バルブの状態を保持します。リセットは160 × 120 mmを選択し、ポンプとバルブをオフにします。旧設定や不明なモデルIDは最初のモデルで表示されます。STUDIOとSUITEの両インターフェースは同じカタログとロボット設定のmodelIdを使用します。
+真空テーブルメニューで6種類の実際のSTLモデルから選択できます：160 × 120、230 × 210、230 × 250、232 × 217、240 × 240、250 × 250 mm。ベース厚は15 mm、位置決め壁を含む全高は16.2 mmです。幅と長さは5 mm刻みで変更できます（10–5000 mm）。平面寸法のみを拡大・縮小し、厚さは変えません。モデルを選ぶと元の寸法に戻ります。カスタム寸法はSERVER経由で同期されます。拡大・縮小した穴や溝は配置の可視化用であり、製造用STLの再生成ではありません。モデルの選択は位置、ポンプ、バルブの状態を保持します。リセットは160 × 120 mmを選択し、ポンプとバルブをオフにします。旧設定や不明なモデルIDは最初のモデルで表示されます。STUDIOとSUITEの両インターフェースは同じカタログとロボット設定のmodelIdを使用します。
 
 [モデル・設定・再生成ガイド](docs/VACUUM_TABLE_MODELS.md).
+
+### 🔥 ヒートベッドモデル
+
+STLプリセットは100×100、200×100、200×200、255×255 mmの4種類で、厚さはすべて5 mmです。幅と長さは5 mm刻みで変更できます（25–5000 mm）。モデルを選ぶと寸法が戻り、加熱状態は変わりません。可視化用であり、電気設計や製造設計ではありません。
+
+[ヒートベッドモデル — STL / OpenSCAD](docs/HEATED_BED_MODELS.md).
+
+### 🗄️ 設定可能な STL ラック
+
+STL ラック：幅と奥行きは 40～1000 mm、1 mm 刻み。基板数は 1～24 枚、間隔は 10 mm 固定です。表示設定であり、ロボットの校正ではありません。
+
+[設定可能な STL ラック — STL / OpenSCAD](docs/RACK_MODELS.md).
+
+### 🛠️ 独立した機械モデル
+
+JuanenPnP、JuanenCNC、JuanenLaser は独立した STL コピーを使用し、LumenPnP は元のモデルを維持します。各モデルは専用フォルダーで編集してください。CAD 寸法を使用し、従来のサイズ設定ではモデルを引き伸ばしません。
+
+[独立した機械モデル — STL](docs/MACHINE_ASSETS.md).
+
 
 これらのオリジナルJuanenPNP / HYDRA-UMCモデルとSCADソースはGPL-3.0です。Opulo製マシンのCADではありません。
 
@@ -87,6 +106,17 @@ python main.py --qtquick
 ```text
 HYDRA-UMC-SUITE/
 ├── docs/VACUUM_TABLE_MODELS.md
+├── docs/HEATED_BED_MODELS.md
+├── docs/RACK_MODELS.md
+├── docs/MACHINE_ASSETS.md
+├── assets/meshes/{juanenpnp,juanencnc,juanenlaser}/  # STL + ATTRIBUTION + VARIANT.md
+├── tests/verify_machine_assets.py
+├── assets/meshes/racks/        # Rack.scad + base/wall/guide/assembly STL
+├── hydra_suite/racks.py
+├── tests/verify_rack_geometry.py
+├── assets/meshes/heated-beds/  # catalog.json + HeatedBed.scad + 4 STL
+├── hydra_suite/heated_beds.py
+├── tests/verify_heated_beds.py
 ├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/test_vacuum_tables.py

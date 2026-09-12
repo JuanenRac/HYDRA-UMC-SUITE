@@ -5,9 +5,9 @@
 #
 # Real 3D kinematics for the LumenPnP/JuanenPnP tool-attachment modules
 # (juanenPnP/lumenPnP), matching HYDRA-UMC-STUDIO's own real-mesh
-# LumenPnPRig.tsx - unlike module_rig.py's 4 primitive-built modules
-# (CNC/Laser/HeatedBed/VacuumTable), this one drives real STL meshes
-# (assets/meshes/lumenpnp/, see that folder's own ATTRIBUTION.txt) posed
+# LumenPnPRig.tsx. Each of the four machine types selects its own STL
+# directory, including independent JuanenPnP/CNC/Laser copies. See each
+# directory's ATTRIBUTION.txt. These meshes are posed
 # through a real, if simple, Cartesian gantry chain - not a serial robot
 # joint chain (see kinematics.py's own UR/quaternion families), and not a
 # flat WORLD-space Segment list either (module_rig.py's modules are
@@ -15,10 +15,11 @@
 # nozzle2Rotation, same fields ui/panels/pick_and_place_panel.py's own
 # PNP_AXES sliders already write).
 #
-# STUDIO's own LumenPnPRig.tsx loads a pre-merged .glb (a browser-specific
+# STUDIO's original LumenPnP path loads a pre-merged .glb (a browser-specific
 # workaround, not a format requirement - see assets/meshes/lumenpnp/
 # ATTRIBUTION.txt for why) but keeps the raw .stl files as source of
-# truth; this app loads those .stl files directly via mesh.py's existing
+# truth; the three STUDIO variants and this app load STL directly. Here,
+# mesh.py's existing
 # load_link_set(), the same real loading path every other robot mesh in
 # this app already uses - no new mesh format support was needed.
 #
@@ -73,6 +74,20 @@ GROUND_OFFSET_M = 0.10081
 PNP_ROOT = translation((0.0, GROUND_OFFSET_M, 0.0)) @ rot_x(-np.pi / 2)
 
 PNP_MESH_DIR = "lumenpnp"
+MACHINE_MESH_DIRS = {
+    "lumenPnP": "lumenpnp",
+    "juanenPnP": "juanenpnp",
+    "juanenCNC": "juanencnc",
+    "juanenLaser": "juanenlaser",
+}
+
+
+def machine_mesh_dir(machine_type):
+    """Independent editable assets; never silently fall back to LumenPnP."""
+    if machine_type not in MACHINE_MESH_DIRS:
+        raise ValueError("Unknown machine mesh type")
+    return MACHINE_MESH_DIRS[machine_type]
+
 PNP_LINK_NAMES: tuple[str, ...] = (
     "base", "y_carriage", "x_carriage",
     "z_carriage_left", "z_carriage_right",

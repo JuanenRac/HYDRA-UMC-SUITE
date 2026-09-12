@@ -53,7 +53,7 @@ def run():
         check(f"{mid}: STL declares a positive triangle count", triangles > 0)
         check(f"{mid}: STL byte length matches its triangle count", len(data) == 84 + triangles * 50)
 
-        segment = module_segments("vacuumTable", 999, 999, mid)[0]
+        segment = module_segments("vacuumTable", model["width"], model["length"], mid)[0]
         mesh = module_segment_mesh(segment)
         check(f"{mid}: mesh vertices are all finite", bool(np.isfinite(mesh.vertices).all()))
         check(f"{mid}: mesh normals are all finite", bool(np.isfinite(mesh.normals).all()))
@@ -65,6 +65,21 @@ def run():
         centre_xz = (mesh.vertices.min(0) + mesh.vertices.max(0))[[0, 2]]
         check(f"{mid}: mesh is centred on X and Z", bool(np.allclose(centre_xz, [0, 0], atol=1e-6)))
         check(f"{mid}: mesh is grounded at Y=0", abs(float(mesh.vertices[:, 1].min())) < 1e-6)
+
+    # Anisotropic resizing preserves grounding, thickness and cached originals.
+    model = VACUUM_TABLE_MODELS[0]
+    resized = module_segment_mesh(module_segments("vacuumTable", 80, 300, model["id"])[0])
+    check("custom footprint and unchanged thickness", bool(np.allclose(np.ptp(resized.vertices, axis=0), [0.08, model["totalHeight"]/1000, 0.3])))
+    check("custom normals remain finite", bool(np.isfinite(resized.normals).all()))
+    original = module_segment_mesh(module_segments("vacuumTable", 160, 120, model["id"])[0])
+    check("custom mesh never mutates cached original", bool(np.allclose(np.ptp(original.vertices, axis=0)[[0,2]], [0.16, 0.12])))
+    from hydra_suite.vacuum_tables import resize_vacuum_table, vacuum_table_size
+    legacy = {"modelId": model["id"], "size": {"width": 999, "length": 999}, "pumpActive": True}
+    custom = resize_vacuum_table(legacy, "width", 165)
+    check("legacy ignored, custom axis preserves other catalog dimension", vacuum_table_size(custom) == {"width": 165, "length": 120})
+    check("pump preserved", custom["pumpActive"])
+    for bad in (True, float('nan'), float('inf'), 0, 5001, 12.5):
+        check(f"reject invalid custom dimension {bad}", resize_vacuum_table(custom, "length", bad) == custom)
 
     # --- select_vacuum_table(): whitelist ids, preserve everything else ---
     source = {

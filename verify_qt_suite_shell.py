@@ -452,6 +452,20 @@ def _run() -> None:
     data = {r["rackId"]: r for r in bridge.rackData}
     assert data["rack1"]["slots"][0] is False
     bridge.setRackCapacity("rack1", 5)
+    other_rack = dict(rack_robot.rack_system["rack2"])
+    bridge.setRackDimension("rack1", "width", 161)
+    bridge.setRackDimension("rack1", "depth", 201)
+    bridge.setRackColor("rack1", "#abcdef")
+    data = {r["rackId"]: r for r in bridge.rackData}
+    assert data["rack1"]["width"] == 161 and data["rack1"]["depth"] == 201
+    assert data["rack1"]["color"] == "#abcdef"
+    assert rack_robot.rack_system["rack2"] == other_rack
+    bridge.setRackDimension("rack1", "width", float("nan"))
+    bridge.setRackDimension("rack1", "depth", 201.5)
+    bridge.setRackColor("rack1", "invalid")
+    data = {r["rackId"]: r for r in bridge.rackData}
+    assert data["rack1"]["width"] == 161 and data["rack1"]["depth"] == 201
+    assert data["rack1"]["color"] == "#abcdef"
     assert {r["rackId"]: r for r in bridge.rackData}["rack1"]["capacity"] == 5
     bridge.setRackPos("rack1", "j2", 45.5)
     assert {r["rackId"]: r for r in bridge.rackData}["rack1"]["pos"]["j2"] == 45.5
@@ -604,9 +618,21 @@ def _run() -> None:
     bridge.setModuleTargetTemp(80)
     bridge.toggleModuleSsr()
     assert bridge.moduleTargetTemp == 80 and bridge.moduleSsrOn is True
+    assert len(bridge.heatedModelOptions) == 4
+    bridge.selectHeatedModel("255x255x5")
+    assert (bridge.moduleWidth, bridge.moduleLength) == (255, 255)
+    bridge.setModuleWidth(260)
+    bridge.setModuleLength(100)
+    assert (bridge.moduleWidth, bridge.moduleLength) == (260, 100)
+    assert bridge.moduleTargetTemp == 80 and bridge.moduleSsrOn is True
+    bridge.disableModuleConfig()
+    bridge.enableModuleConfig()
+    assert (bridge.moduleWidth, bridge.moduleLength) == (260, 100)
+    bridge.selectHeatedModel("../../bad")
+    assert bridge.heatedModelId == "255x255x5"
     bridge.resetModuleConfig()
     assert bridge.moduleTargetTemp == 60 and bridge.moduleSsrOn is False, "Reset writes the same real extra defaults back"
-    assert bridge.moduleWidth == 500 and bridge.moduleLength == 500, "HeatedBed resets to 500mm too, same as CNC/Laser"
+    assert bridge.moduleWidth == 200 and bridge.moduleLength == 200, "HeatedBed reset matches STUDIO's 200 mm preset"
 
     bridge.navigatePanel("vacuum_table")
     assert bridge.moduleExtraKind == "vacuum_table"
@@ -621,9 +647,16 @@ def _run() -> None:
         assert bridge.modulePumpOn and bridge.moduleValveOn
     bridge.selectVacuumModel("232x217x15")
     assert (bridge.moduleWidth, bridge.moduleLength) == (232, 217)
-    bridge.setModuleWidth(999)
+    bridge.setModuleWidth(237)
+    bridge.setModuleLength(150)
+    assert (bridge.moduleWidth, bridge.moduleLength) == (237, 150)
+    bridge.disableModuleConfig()
+    bridge.enableModuleConfig()
+    assert (bridge.moduleWidth, bridge.moduleLength) == (237, 150), "enable preserves custom footprint"
     bridge.selectVacuumModel("../../invalid.stl")
-    assert bridge.vacuumModelId == "232x217x15" and bridge.moduleWidth == 232
+    assert bridge.vacuumModelId == "232x217x15" and bridge.moduleWidth == 237
+    bridge.selectVacuumModel("232x217x15")
+    assert (bridge.moduleWidth, bridge.moduleLength) == (232, 217)
     bridge.resetModuleConfig()
     assert (bridge.moduleWidth, bridge.moduleLength) == (160, 120)
     assert bridge.vacuumModelId == "160x120x15"
@@ -1169,23 +1202,73 @@ def _run() -> None:
             timer.stop()
     qml_state = HydraState({"activeControllerId": "preview", "controllers": [
         {"id": "preview", "robots": [{"id": "A1", "model": "Generic (6-DOF)",
+         "heatedBed": {"enabled": True, "modelId": "255x255x5", "size": {"width": 260, "length": 150}, "ssrActive": False},
          "vacuumTable": {"enabled": True, "modelId": "160x120x15",
                          "pumpActive": False, "valveActive": False}}]}]})
     qml_bridge._on_module_state_changed(qml_state)
     qml_bridge.navigatePanel("vacuum_table")
     for _tick in range(3):
-        app.processEvents()
+        # Drive Qt through qasync so callbacks creating asyncio tasks have an
+        # active event loop; raw processEvents() leaves those tasks stranded.
+        loop.run_until_complete(asyncio.sleep(0))
     assert not warnings, f"Vacuum Table QML warnings: {warnings}"
+    qml_bridge.navigatePanel("heated_bed")
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"Heated Bed QML warnings: {warnings}"
+    assert qml_bridge.heatedModelId == "255x255x5" and qml_bridge.moduleWidth == 260
+    qml_bridge._on_rack_state_changed(qml_state)
+    qml_bridge.enableRackSystem()
+    qml_bridge.navigatePanel("rack")
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"Rack QML warnings: {warnings}"
+    qml_bridge.setRackDimension("rack1", "width", 161)
+    qml_bridge.setRackColor("rack2", "#aabbcc")
+    qml_bridge.previewRack("rack2")
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"Rack size/color QML warnings: {warnings}"
+    for panel in ("cnc", "laser"):
+        qml_bridge.navigatePanel(panel)
+        qml_bridge.enableModuleConfig()
+        for _tick in range(3):
+            loop.run_until_complete(asyncio.sleep(0))
+        assert not warnings, f"{panel} machine preview QML warnings: {warnings}"
+    qml_bridge._on_pnp_state_changed(qml_state)
+    qml_bridge.navigatePanel("pick_and_place")
+    qml_bridge.enablePnp()
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"PnP independent mesh QML warnings: {warnings}"
 
     # Drain/cancel background tasks scheduled by earlier signals before exit.
     pending = list(asyncio.all_tasks(loop))
     for task in pending:
         task.cancel()
-    if pending:
-        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+    async def drain_cancelled_tasks():
+        if pending:
+            _, unfinished = await asyncio.wait(pending, timeout=5)
+            assert not unfinished, f"Background tasks did not cancel: {unfinished}"
+
+    loop.run_until_complete(drain_cancelled_tasks())
+    loop.close()
 
     print("verify_qt_suite_shell: all real assertions passed")
 
 
 if __name__ == "__main__":
-    _run()
+    # Test UI/controller behaviour, never start real login/WebSocket traffic.
+    # add_server() schedules connect() even when individual HTTP methods below
+    # are faked. Keep that lifecycle boundary offline as this test promises.
+    from unittest.mock import AsyncMock, patch
+    from hydra_suite.net.client import HydraConnection
+    import httpx
+
+    async def offline_response(request, **kwargs):
+        return httpx.Response(503, json={"error": "offline test"}, request=request)
+
+    with patch.object(HydraConnection, "connect", new_callable=AsyncMock), \
+         patch.object(HydraConnection, "disconnect", new_callable=AsyncMock), \
+         patch.object(httpx.AsyncClient, "send", new=AsyncMock(side_effect=offline_response)):
+        _run()

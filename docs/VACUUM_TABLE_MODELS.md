@@ -15,7 +15,11 @@ The list contains six original JuanenPNP / HYDRA-UMC designs for use with LumenP
 
 All have a **15 mm base** and **16.2 mm total height** including the alignment walls.
 The selector uses the CAD footprint: X is the first number and Y the second.
-The size fields are read-only: stretching an STL would distort the holes and channels.
+Width and length are editable in 5 mm steps, from 10 to 5000 mm. Manual integer
+values are also accepted, including the original 232 × 217 preset. Editing either
+field activates customSize; selecting a preset restores both catalog dimensions.
+The footprint scales in X/depth while thickness stays unchanged. Holes and channels
+scale too: this is a layout preview, not regenerated parametric CAD for manufacturing.
 The existing placement/rotation and display-scale controls are separate; keep display
 scale at 1 for a real-size layout. Reset selects 160 × 120 mm, resets placement and
 sets pump and valve off, as part of the existing reset operation.
@@ -34,7 +38,8 @@ Each robot keeps its selection in its existing settings block:
   "vacuumTable": {
     "enabled": true,
     "modelId": "232x217x15",
-    "size": { "width": 232, "length": 217 },
+    "customSize": true,
+    "size": { "width": 300, "length": 200 },
     "pumpActive": false,
     "valveActive": false,
     "worldPos": { "x": 0, "y": 0 },
@@ -51,9 +56,10 @@ permissions and network connection. Test bidirectional sync with both updated
 clients before deployment; an old client cannot render these new models.
 
 A missing or unknown modelId displays the 160 × 120 mm model. Merely reading old
-settings does not rewrite them. Enabling, selecting a valid model or resetting
-writes the catalog ID and matching size. Old arbitrary sizes no longer deform the
-geometry. Unknown IDs passed to the selection handler are ignored, never treated
+settings does not rewrite them. Enabling preserves a customized footprint; selecting a valid model or resetting
+restores catalog dimensions and exits custom sizing. Without customSize=true,
+legacy arbitrary sizes still do not deform geometry. Invalid/non-finite dimensions
+fall back to the catalog on display; client edits reject them. Unknown IDs passed to the selection handler are ignored, never treated
 as filesystem paths or remote URLs. Selecting a model preserves placement, pump,
 valve and extension fields; it does not reset renderScale.
 
@@ -64,7 +70,7 @@ sources. STL files use **millimeters**, with a corner origin and CAD Z pointing 
 The renderers convert to meters, center the XY footprint, then rotate -90 degrees
 about X into the applications' Y-up world. The table bottom stays at world Y=0.
 The first CAD dimension maps to application width/X; the second maps to length
-(depth in the Y-up viewport). No automatic "fit to old size" is performed.
+(depth in the Y-up viewport). Only explicit customSize=true enables footprint scaling; legacy sizes are ignored.
 
 STUDIO loads binary STL on demand in both the dedicated panel and robot-cell view;
 a loading error is displayed without replacing the model with a fake table.
@@ -102,7 +108,7 @@ UI compatibility and asset tests; localized labels/notes must cover seven langua
 ## Verification
 
 ~~~sh
-python -m unittest discover -s tests -p test_vacuum_tables.py
+python tests/verify_vacuum_tables.py
 python tests/verify_module_config_panel.py
 python verify_qt_suite_shell.py
 ~~~

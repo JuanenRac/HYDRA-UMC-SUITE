@@ -13,17 +13,15 @@
 # way STUDIO's own component does; nothing here simulates or invents a
 # temperature curve.
 #
-# Deliberately does NOT port HeatedBedConfig.tsx's own right-hand "3D
-# Live View" - see module_config_panel.py's own header for why (no
-# render/viewport.py support yet for an attached tool module's own
-# geometry). See this repo's own [[project_suite_studio_parity_gap]] for
-# the full list of still-pending panels this reasoning also applies to.
+# Four detailed 5 mm STL presets share the live module renderer with STUDIO.
+# Size edits are visual configuration only; they never enable the heater.
 # =============================================================================
 from __future__ import annotations
 
 from typing import Any
 
 from PySide6.QtWidgets import (
+    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -36,6 +34,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.ui.panels.module_config_panel import ModuleConfigPanel
+from hydra_suite.heated_beds import HEATED_BED_MODELS, heated_bed_model, select_heated_bed
 
 DEFAULT_TARGET_TEMP_C = 60
 DEFAULT_AMBIENT_TEMP_C = 25.0
@@ -46,6 +45,18 @@ class HeatedBedPanel(ModuleConfigPanel):
         super().__init__(controller, "heatedBed", "HEADING_HEATED_BED", "Heated Bed", parent)
 
     def _build_extra_settings(self, settings_layout: QVBoxLayout) -> None:
+        for spin in (self._width_spin, self._length_spin):
+            spin.setRange(25, 5000)
+            spin.setSingleStep(5)
+        settings_layout.addWidget(QLabel(_("LBL_HEATED_MODEL")))
+        self._model_combo = QComboBox()
+        for model in HEATED_BED_MODELS:
+            self._model_combo.addItem(model["label"], model["id"])
+        self._model_combo.currentIndexChanged.connect(self._on_model_changed)
+        settings_layout.addWidget(self._model_combo)
+        note = QLabel(_("LBL_HEATED_MODEL_NOTE"))
+        note.setWordWrap(True)
+        settings_layout.addWidget(note)
         heating_box = QGroupBox(_("GROUP_HEATING_CONTROLS"))
         heating_layout = QVBoxLayout(heating_box)
 
@@ -91,6 +102,7 @@ class HeatedBedPanel(ModuleConfigPanel):
 
     def _refresh_extra_controls(self, module: dict[str, Any]) -> None:
         self._updating = True
+        self._model_combo.setCurrentIndex(self._model_combo.findData(heated_bed_model(module.get("modelId"))["id"]))
         self._target_spin.setValue(int(module.get("targetTemp", DEFAULT_TARGET_TEMP_C)))
         ssr_active = bool(module.get("ssrActive", False))
         self._ssr_btn.setChecked(ssr_active)
@@ -101,6 +113,7 @@ class HeatedBedPanel(ModuleConfigPanel):
 
     def _extra_default_fields(self) -> dict[str, Any]:
         return {
+            "modelId": "200x200x5",
             "targetTemp": DEFAULT_TARGET_TEMP_C,
             "currentTemp1": DEFAULT_AMBIENT_TEMP_C,
             "currentTemp2": DEFAULT_AMBIENT_TEMP_C,
@@ -109,11 +122,23 @@ class HeatedBedPanel(ModuleConfigPanel):
 
     def _extra_reset_fields(self) -> dict[str, Any]:
         return {
+            "modelId": "200x200x5",
             "targetTemp": DEFAULT_TARGET_TEMP_C,
             "currentTemp1": DEFAULT_AMBIENT_TEMP_C,
             "currentTemp2": DEFAULT_AMBIENT_TEMP_C,
             "ssrActive": False,
         }
+
+    def _display_default_size_mm(self) -> tuple[int, int]:
+        return (200, 200)
+
+    def _on_model_changed(self, index: int) -> None:
+        if self._updating or self._current_robot is None:
+            return
+        module = select_heated_bed(self._current_robot.module(self._module_key), self._model_combo.itemData(index))
+        self._current_robot.set_module(self._module_key, module)
+        self._refresh_controls()
+        self._push()
 
     def _on_ssr_toggled(self, checked: bool) -> None:
         if self._updating or self._current_robot is None:

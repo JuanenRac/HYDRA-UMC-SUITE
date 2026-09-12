@@ -50,13 +50,15 @@ from PySide6.QtOpenGLWidgets import QOpenGLWidget
 from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
 from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
-from hydra_suite.render.module_rig import module_segments, module_segment_mesh
+from hydra_suite.render.module_rig import module_segments, module_segment_mesh, rack_segments
+from hydra_suite.racks import rack_geometry
 from hydra_suite.render.module_rig import segment_world_transform as module_segment_world_transform
 from hydra_suite.render.pnp_rig import (
     PNP_ALL_MESH_FILES,
     PNP_ALL_MESH_NAMES,
     PNP_LINK_NAMES,
-    PNP_MESH_DIR,
+    machine_mesh_dir,
+    MACHINE_MESH_DIRS,
     PNP_STATIC_PART_OWNER,
     pnp_world_link_transforms,
 )
@@ -255,6 +257,7 @@ class RobotGLRenderer:
         # mesh-loading/draw path genuinely differs (real STL set vs.
         # primitives built from Segment).
         self._pnp_machine_type: str | None = None
+        self._machine_frames: dict = {}
         self._pnp_pose: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
         self._pending_pnp_mesh_load = False
 
@@ -304,18 +307,27 @@ class RobotGLRenderer:
             self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
         return True
 
-    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None) -> None:
+    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None, rack_config: dict | None = None) -> None:
         """Switches this renderer into module-only mode (render/module_rig.py)
         - a real live 3D preview of a tool-attachment module's own real
         geometry, matching HYDRA-UMC-STUDIO's own SharedModule3DView.tsx.
         `module_type=None` returns to normal robot-viewport mode."""
         self._attached_module_type = module_type
-        segs = module_segments(module_type, width_mm, length_mm, model_id) if module_type else []
+        if module_type in ("juanenCNC", "juanenLaser"):
+            self.set_attached_pnp(module_type)
+            return
+        self._pnp_machine_type = None
+        segs = rack_segments(rack_config or {}) if module_type == 'rack' else (module_segments(module_type, width_mm, length_mm, model_id) if module_type else [])
         if segs == self._module_segments_cache:
             return
-        if module_type == "vacuumTable":
+        if module_type == "rack":
+            g = rack_geometry(rack_config or {})
+            height = (g["capacity"]*10+40)/1000
+            self._target = np.array([0, height/2, 0], dtype=np.float32)
+            self._distance = max(height, (g["width"]+20)/1000, (g["depth"]+20)/1000)*2.5
+        if module_type in ("vacuumTable", "heatedBed"):
             self._target = np.array([0.0, 0.008, 0.0], dtype=np.float32)
-            self._distance = 0.55
+            self._distance = max(0.15, max(width_mm, length_mm) / 1000.0 * 2.2)
         if self._gl_ready:
             self._make_current()
             try:
@@ -349,18 +361,25 @@ class RobotGLRenderer:
         """Switches this renderer into PnP module-only mode
         (render/pnp_rig.py) - a real live 3D preview of the LumenPnP/
         JuanenPnP gantry, matching HYDRA-UMC-STUDIO's own real-mesh
-        LumenPnPRig.tsx. `machine_type` is `"juanenPnP"`/`"lumenPnP"` (both
-        share the exact same real mesh set and rig - see
-        assets/meshes/lumenpnp/ATTRIBUTION.txt) or `None` to leave PnP
+        LumenPnPRig.tsx. Each supported machine type selects its own mesh
+        directory; only the initial transform hierarchy is shared. Use
+        `None` to leave PnP
         mode. The mesh set loads once, lazily, on first real use (same
         caching as every robot's own mesh set in _mesh_buffers_by_dir) -
         not at construction time, since a renderer that's never shown a
         PnP preview shouldn't pay for it."""
+        mesh_dir = machine_mesh_dir(machine_type) if machine_type is not None else None
+        changed_machine = self._pnp_machine_type != machine_type
+        if machine_type is not None and changed_machine:
+            self._target = np.array([0.0, 0.3, 0.0], dtype=np.float32)
+            self._distance = 2.2
         self._pnp_machine_type = machine_type
+        if machine_type is not None:
+            self._attached_module_type = None
         self._pnp_pose = (axis_x_mm, axis_y_mm, axis_z_mm, nozzle1_deg, nozzle2_deg)
-        if machine_type is not None and PNP_MESH_DIR not in self._mesh_buffers_by_dir:
+        if mesh_dir is not None and mesh_dir not in self._mesh_buffers_by_dir:
             if self._gl_ready:
-                self._load_mesh_set(PNP_MESH_DIR, PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
+                self._load_mesh_set(mesh_dir, PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
             else:
                 # Same real-world timing gap set_attached_module() already
                 # guards against: a freshly-constructed, not-yet-rendered
@@ -369,6 +388,9 @@ class RobotGLRenderer:
                 # initialize_gl() can load it once a context actually
                 # exists, instead of silently losing this call.
                 self._pending_pnp_mesh_load = True
+        if changed_machine and mesh_dir in self._machine_frames:
+            center, self._distance = self._machine_frames[mesh_dir]
+            self._target = center.copy()
 
     def orbit(self, dx: float, dy: float) -> None:
         self._yaw -= dx * 0.4
@@ -387,6 +409,20 @@ class RobotGLRenderer:
 
     def _load_mesh_set(self, mesh_dir: str, link_names: tuple[str, ...], mesh_files: dict[str, str]) -> None:
         meshes = load_link_set(ASSETS_DIR / mesh_dir, mesh_files)
+        if mesh_dir in MACHINE_MESH_DIRS.values():
+            transforms = pnp_world_link_transforms(0, 0, 0, 0, 0)
+            bounds = []
+            for name, mesh in meshes.items():
+                owner = name if name in transforms else PNP_STATIC_PART_OWNER[name]
+                transform = transforms[owner]
+                lo, hi = mesh.vertices.min(axis=0), mesh.vertices.max(axis=0)
+                corners = np.array([[x,y,z] for x in (lo[0],hi[0]) for y in (lo[1],hi[1]) for z in (lo[2],hi[2])])
+                bounds.extend(corners @ transform[:3,:3].T + transform[:3,3])
+            lo, hi = np.min(bounds,axis=0), np.max(bounds,axis=0)
+            frame = ((lo+hi)/2, max(.3, float(np.max(hi-lo))*2.2))
+            self._machine_frames[mesh_dir] = frame
+            if self._pnp_machine_type is not None and machine_mesh_dir(self._pnp_machine_type) == mesh_dir:
+                self._target, self._distance = frame[0].copy(), frame[1]
         # set_robot_model() (this method's only non-initialize_gl caller)
         # runs from a plain Qt slot - Qt only guarantees the OWNER's own
         # GL context is current inside initializeGL/paintGL/resizeGL (or,
@@ -433,7 +469,8 @@ class RobotGLRenderer:
             ]
             self._pending_module_rebuild = False
         if self._pending_pnp_mesh_load:
-            self._load_mesh_set(PNP_MESH_DIR, PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
+            if self._pnp_machine_type is not None:
+                self._load_mesh_set(machine_mesh_dir(self._pnp_machine_type), PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
             self._pending_pnp_mesh_load = False
         entry = ROBOT_REGISTRY[self._model_name]
         if entry.family in ("ur", "quat"):
@@ -497,7 +534,7 @@ class RobotGLRenderer:
             self._draw_model(model, buf)
 
     def _draw_pnp(self) -> None:
-        buffers = self._mesh_buffers_by_dir.get(PNP_MESH_DIR)
+        buffers = self._mesh_buffers_by_dir.get(machine_mesh_dir(self._pnp_machine_type))
         if not buffers:
             return  # not loaded yet - only happens for a fraction of a frame right after set_attached_pnp()'s own initial call
         transforms = pnp_world_link_transforms(*self._pnp_pose)
@@ -588,8 +625,8 @@ class RobotViewport(QOpenGLWidget):
         if self._renderer.set_robot_model(model_name):
             self.update()
 
-    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None) -> None:
-        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id)
+    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None, rack_config: dict | None = None) -> None:
+        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id, rack_config)
         self.update()
 
     def set_attached_pnp(
@@ -735,8 +772,11 @@ class OffscreenRobotRenderer:
         finally:
             self._done_current()
 
-    def set_attached_module(self, module_type, width_mm=500.0, length_mm=500.0, model_id=None) -> None:
-        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id)
+    def set_attached_module(self, module_type, width_mm=500.0, length_mm=500.0, model_id=None, rack_config=None) -> None:
+        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id, rack_config)
+
+    def set_attached_pnp(self, machine_type, axis_x_mm=0, axis_y_mm=0, axis_z_mm=0, nozzle1_deg=0, nozzle2_deg=0):
+        self._renderer.set_attached_pnp(machine_type, axis_x_mm, axis_y_mm, axis_z_mm, nozzle1_deg, nozzle2_deg)
 
     def render(self) -> QImage:
         """Real, synchronous render - bind the FBO, run the exact same

@@ -1333,25 +1333,6 @@ ApplicationWindow {
                                 onClicked: suiteBackend.disableXyTable()
                             }
                         }
-                        ColumnLayout {
-                            visible: suiteBackend.moduleExtraKind === "vacuum_table"
-                            Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("LBL_VACUUM_MODEL"); color: window.textPrimary }
-                            ComboBox {
-                                id: vacuumModelCombo
-                                Layout.fillWidth: true
-                                model: suiteBackend.vacuumModelOptions
-                                textRole: "label"
-                                valueRole: "id"
-                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.vacuumModelId)
-                                Connections {
-                                    target: suiteBackend
-                                    function onChanged() { vacuumModelCombo.currentIndex = vacuumModelCombo.indexOfValue(suiteBackend.vacuumModelId) }
-                                }
-                                onActivated: suiteBackend.selectVacuumModel(currentValue)
-                            }
-                            Text { text: suiteBackend.uiText("LBL_VACUUM_MODEL_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        }
                         RowLayout {
                             spacing: 8
                             Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
@@ -1462,6 +1443,30 @@ ApplicationWindow {
                 ColumnLayout {
                     visible: rackCard.modelData.active
                     spacing: 6
+                    Text { text: suiteBackend.uiText("LBL_RACK_GEOMETRY_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Repeater {
+                        model: ["width", "depth"]
+                        RowLayout {
+                            required property string modelData
+                            Text { text: suiteBackend.uiText("LBL_RACK_" + modelData.toUpperCase()); color: window.muted }
+                            SpinBox {
+                                from: 40; to: 1000; stepSize: 1; editable: true
+                                value: rackCard.modelData[parent.modelData]
+                                onValueModified: suiteBackend.setRackDimension(rackCard.modelData.rackId, parent.modelData, value)
+                            }
+                        }
+                    }
+                    RowLayout {
+                        Text { text: suiteBackend.uiText("LBL_RACK_COLOR"); color: window.muted }
+                        Rectangle { width: 24; height: 24; color: rackCard.modelData.color }
+                        TextField {
+                            text: rackCard.modelData.color
+                            maximumLength: 7
+                            validator: RegularExpressionValidator { regularExpression: /#[0-9a-fA-F]{6}/ }
+                            onEditingFinished: if (acceptableInput) suiteBackend.setRackColor(rackCard.modelData.rackId, text)
+                        }
+                    }
+                    Button { text: suiteBackend.uiText("LBL_RACK_PREVIEW"); onClicked: suiteBackend.previewRack(rackCard.modelData.rackId) }
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: suiteBackend.uiText("LBL_CAPACITY"); color: window.muted; font.pixelSize: 10 }
@@ -1595,6 +1600,36 @@ ApplicationWindow {
                         delegate: rackGroupComponent
                     }
                 }
+            }
+            Rectangle {
+                visible: suiteBackend.rackEnabled
+                Layout.fillWidth: true
+                Layout.preferredHeight: 260
+                color: "#ffffff"
+                Component.onCompleted: if (visible) suiteBackend.refreshVacuumPreview()
+                onVisibleChanged: if (visible) suiteBackend.refreshVacuumPreview()
+                Connections {
+                    target: suiteBackend
+                    function onChanged() { if (suiteBackend.activePanel === "rack") suiteBackend.refreshVacuumPreview() }
+                }
+                Image {
+                    anchors.fill: parent
+                    fillMode: Image.PreserveAspectFit
+                    cache: false
+                    source: suiteBackend.vacuumPreviewVersion > 0 && suiteBackend.vacuumPreviewError === "" ? "image://vacuumFrame/" + suiteBackend.vacuumPreviewVersion : ""
+                    MouseArea {
+                        anchors.fill: parent
+                        property real lastX: 0
+                        property real lastY: 0
+                        onPressed: function(mouse) { lastX=mouse.x; lastY=mouse.y }
+                        onPositionChanged: function(mouse) {
+                            if (pressed) suiteBackend.vacuumPreviewOrbit(mouse.x-lastX, mouse.y-lastY)
+                            lastX=mouse.x; lastY=mouse.y
+                        }
+                        onWheel: function(wheel) { suiteBackend.vacuumPreviewZoom(wheel.angleDelta.y > 0 ? .9 : 1.1) }
+                    }
+                }
+                Text { anchors.centerIn: parent; text: suiteBackend.vacuumPreviewError; color: "#991b1b" }
             }
             Item { Layout.fillHeight: true; visible: !suiteBackend.rackEnabled }
         }
@@ -1804,6 +1839,35 @@ ApplicationWindow {
                     }
                 }
                 Text { text: suiteBackend.uiText("LBL_PNP_POSE_PREVIEW"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_MACHINE_ASSETS_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 260
+                    color: "#ffffff"
+                    Component.onCompleted: suiteBackend.refreshVacuumPreview()
+                    Connections {
+                        target: suiteBackend
+                        function onChanged() { if (suiteBackend.activePanel === "pick_and_place") suiteBackend.refreshVacuumPreview() }
+                    }
+                    Image {
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectFit
+                        cache: false
+                        source: suiteBackend.vacuumPreviewError === "" && suiteBackend.vacuumPreviewVersion > 0 ? "image://vacuumFrame/" + suiteBackend.vacuumPreviewVersion : ""
+                        MouseArea {
+                            anchors.fill: parent
+                            property real lastX: 0
+                            property real lastY: 0
+                            onPressed: function(mouse) { lastX=mouse.x; lastY=mouse.y }
+                            onPositionChanged: function(mouse) {
+                                if (pressed) suiteBackend.vacuumPreviewOrbit(mouse.x-lastX, mouse.y-lastY)
+                                lastX=mouse.x; lastY=mouse.y
+                            }
+                            onWheel: function(wheel) { suiteBackend.vacuumPreviewZoom(wheel.angleDelta.y > 0 ? .9 : 1.1) }
+                        }
+                    }
+                    Text { anchors.centerIn: parent; text: suiteBackend.vacuumPreviewError; color: "#991b1b" }
+                }
                 Card {
                     Layout.fillWidth: true
                     Layout.preferredHeight: pnpAxisColumn.implicitHeight + 24
@@ -2143,12 +2207,50 @@ ApplicationWindow {
                                 onClicked: suiteBackend.disableModuleConfig()
                             }
                         }
+                        ColumnLayout {
+                            visible: suiteBackend.moduleExtraKind === "vacuum_table"
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("LBL_VACUUM_MODEL"); color: window.textPrimary }
+                            ComboBox {
+                                id: vacuumModelCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.vacuumModelOptions
+                                textRole: "label"
+                                valueRole: "id"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.vacuumModelId)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() { vacuumModelCombo.currentIndex = vacuumModelCombo.indexOfValue(suiteBackend.vacuumModelId) }
+                                }
+                                onActivated: suiteBackend.selectVacuumModel(currentValue)
+                            }
+                            Text { text: suiteBackend.uiText("LBL_VACUUM_MODEL_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        }
+                        ColumnLayout {
+                            visible: suiteBackend.moduleExtraKind === "heated_bed"
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("LBL_HEATED_MODEL"); color: window.textPrimary }
+                            ComboBox {
+                                id: heatedModelCombo
+                                Layout.fillWidth: true
+                                model: suiteBackend.heatedModelOptions
+                                textRole: "label"
+                                valueRole: "id"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.heatedModelId)
+                                Connections {
+                                    target: suiteBackend
+                                    function onChanged() { heatedModelCombo.currentIndex = heatedModelCombo.indexOfValue(suiteBackend.heatedModelId) }
+                                }
+                                onActivated: suiteBackend.selectHeatedModel(currentValue)
+                            }
+                            Text { text: suiteBackend.uiText("LBL_HEATED_MODEL_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        }
                         RowLayout {
                             spacing: 8
                             Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
-                            SpinBox { enabled: suiteBackend.moduleExtraKind !== "vacuum_table"; from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleWidth(value) }
+                            SpinBox { from: suiteBackend.moduleExtraKind === "heated_bed" ? 25 : 10; to: 5000; stepSize: ["vacuum_table", "heated_bed"].indexOf(suiteBackend.moduleExtraKind) >= 0 ? 5 : 10; value: suiteBackend.moduleWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleWidth(value) }
                             Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
-                            SpinBox { enabled: suiteBackend.moduleExtraKind !== "vacuum_table"; from: 10; to: 5000; stepSize: 10; value: suiteBackend.moduleLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleLength(value) }
+                            SpinBox { from: suiteBackend.moduleExtraKind === "heated_bed" ? 25 : 10; to: 5000; stepSize: ["vacuum_table", "heated_bed"].indexOf(suiteBackend.moduleExtraKind) >= 0 ? 5 : 10; value: suiteBackend.moduleLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleLength(value) }
                         }
                     }
                 }
@@ -2211,10 +2313,17 @@ ApplicationWindow {
                 }
                 Rectangle {
                     id: vacuumPreview
-                    visible: suiteBackend.moduleExtraKind === "vacuum_table"
+                    visible: ["vacuum_table", "heated_bed", "cnc", "laser"].indexOf(suiteBackend.moduleExtraKind) >= 0
                     Layout.fillWidth: true
                     Layout.preferredHeight: 320
                     color: "#ffffff"
+                    Text {
+                        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
+                        z: 2
+                        visible: ["cnc","laser"].indexOf(suiteBackend.moduleExtraKind) >= 0
+                        text: suiteBackend.uiText("LBL_MACHINE_ASSETS_NOTE")
+                        color: "#334155"; wrapMode: Text.WordWrap; font.pixelSize: 11
+                    }
                     Component.onCompleted: if (visible) suiteBackend.refreshVacuumPreview()
                     onVisibleChanged: if (visible) suiteBackend.refreshVacuumPreview()
                     Connections {

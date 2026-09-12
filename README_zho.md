@@ -25,7 +25,7 @@
 </p>
 
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 24 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，全部 26 个经典面板均已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：`trajectory_panel.py` 只是一个纯本地的点位记录器，不会读写 HYDRA-UMC STUDIO 自身的 `data/WORKS/*.json` 格式；CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 27 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，全部 26 个经典面板均已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：`trajectory_panel.py` 只是一个纯本地的点位记录器，不会读写 HYDRA-UMC STUDIO 自身的 `data/WORKS/*.json` 格式；CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -64,15 +64,34 @@ python main.py --qtquick
 - **🪟 类 Photoshop 的可停靠工作区** —— 每个面板都是一个真正的 `QDockWidget`：可拖动使其自由浮动，拖回停靠或合并为选项卡组，拆分工作区，关闭，并从 View 菜单重新显示。将面板浮动化会使其成为一个真正独立的顶层窗口，因此将它拖到第二个（或第三个）物理显示器上并留在那里开箱即可使用——Qt/操作系统窗口管理器会像对待任何其他窗口一样放置它，无需额外的“多显示器模式”。
 - **🌐 7 种语言** —— 英语、西班牙语、意大利语、法语、德语、简体中文、日语（与 URTC-FLASHER/URTC-TESTER 相同的 `language/*.lng` 惯例），从“语言”菜单切换（重启后生效）。
 - **📷 摄像头** —— 每个控制器的真实摄像头名册（存在哪些摄像头、其类型、连接状态，以及一个真实的 USB/IP（RTSP）来源类型切换，配有通用、不限品牌的主机/端口/路径/凭证字段），与真实服务器同步，方式与此处的其他每个面板相同，还带有真实的实时视频：元数据自始至终都是真实的，每张摄像头卡片都会渲染真实的 MJPEG 视频流本身（HYDRA-UMC-VISION-STREAMER 自身的 `stream serve`，通过 HYDRA-UMC-SERVER 的 `GET /api/camera/:id/stream` 中继）。通过一个真实的 JPEG SOI/EOI 标记扫描客户端（与 HYDRA-UMC-ANDROID-CONTROL 自身的 `MjpegStreamParser.kt` 已经使用的真实方法相同）实现，已对真实 USB 和 IP 硬件验证。
-- **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `ModuleConfigPanel` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。在 STUDIO 那边具备实时 3D 预览的全部 5 个模块，现在这里也都具备了：CNC/激光/加热床/真空吸附台（`render/module_rig.py`, 与STUDIO一致的几何体：真空台使用真实STL，其他模块使用方块/圆柱）以及 Pick & Place（`render/pnp_rig.py`——真实移植自 STUDIO 自身的 `LumenPnPRig.tsx`：`assets/meshes/lumenpnp/` 中的 5 个真实 `.stl` 网格，通过真实的笛卡尔龙门运动链定位，而非基本几何体）。两者都由切换到各自仅模块模式的 `RobotViewport` 负责绘制。
+- **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `ModuleConfigPanel` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。加热床和真空台通过 `render/module_rig.py` 使用 STL。PnP、CNC 和激光使用 `render/pnp_rig.py`，每个独立文件夹包含 7 个运动部件网格和 160 个独立零件。`RobotViewport` 显示各个总成。参见[机器模型](docs/MACHINE_ASSETS.md)。
 
 ---
 
 ### 🧩 可选真空台模型
 
-在真空台菜单中选择六种真实STL模型之一：160 × 120、230 × 210、230 × 250、232 × 217、240 × 240或250 × 250 mm。底座厚15 mm，含定位壁的总高度为16.2 mm。尺寸固定。切换型号保留位置、泵和阀门状态；重置选择160 × 120 mm并关闭泵和阀门。旧型号或未知型号ID显示第一个模型。STUDIO和SUITE的两种界面使用相同目录以及机器人配置中的modelId。
+在真空台菜单中选择六种真实STL模型之一：160 × 120、230 × 210、230 × 250、232 × 217、240 × 240或250 × 250 mm。底座厚15 mm，含定位壁的总高度为16.2 mm。宽度和长度可按5 mm步长调整（10–5000 mm）。仅缩放平面尺寸，厚度保持不变。选择预设模型可恢复原始尺寸。自定义尺寸通过SERVER同步；缩放后的孔和通道仅用于布局显示，并非重新生成的制造用STL。切换型号保留位置、泵和阀门状态；重置选择160 × 120 mm并关闭泵和阀门。旧型号或未知型号ID显示第一个模型。STUDIO和SUITE的两种界面使用相同目录以及机器人配置中的modelId。
 
 [型号、配置与重新生成指南](docs/VACUUM_TABLE_MODELS.md).
+
+### 🔥 加热床模型
+
+四种STL预设：100×100、200×100、200×200和255×255 mm，厚度均为5 mm。宽度和长度可按5 mm步长调整（25–5000 mm）；选择预设会恢复尺寸，但不会改变加热状态。仅供可视化，不是电气或制造设计。
+
+[加热床模型 — STL / OpenSCAD](docs/HEATED_BED_MODELS.md).
+
+### 🗄️ 可配置的 STL 料架
+
+STL 料架：宽度和深度为 40–1000 毫米，以 1 毫米递增；可放置 1–24 块电路板，固定间距为 10 毫米。这些是显示设置，并非机器人标定。
+
+[可配置的 STL 料架 — STL / OpenSCAD](docs/RACK_MODELS.md).
+
+### 🛠️ 独立的机器模型
+
+JuanenPnP、JuanenCNC 和 JuanenLaser 使用独立的 STL 副本，LumenPnP 保留原始模型。请在各自文件夹中编辑模型。显示采用 CAD 尺寸，原有尺寸设置不会拉伸模型。
+
+[独立的机器模型 — STL](docs/MACHINE_ASSETS.md).
+
 
 这些原创JuanenPNP / HYDRA-UMC模型及其SCAD源文件采用GPL-3.0；它们不是Opulo机器的CAD文件。
 
@@ -87,6 +106,17 @@ python main.py --qtquick
 ```text
 HYDRA-UMC-SUITE/
 ├── docs/VACUUM_TABLE_MODELS.md
+├── docs/HEATED_BED_MODELS.md
+├── docs/RACK_MODELS.md
+├── docs/MACHINE_ASSETS.md
+├── assets/meshes/{juanenpnp,juanencnc,juanenlaser}/  # STL + ATTRIBUTION + VARIANT.md
+├── tests/verify_machine_assets.py
+├── assets/meshes/racks/        # Rack.scad + base/wall/guide/assembly STL
+├── hydra_suite/racks.py
+├── tests/verify_rack_geometry.py
+├── assets/meshes/heated-beds/  # catalog.json + HeatedBed.scad + 4 STL
+├── hydra_suite/heated_beds.py
+├── tests/verify_heated_beds.py
 ├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/test_vacuum_tables.py

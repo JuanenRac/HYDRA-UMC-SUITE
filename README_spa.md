@@ -25,7 +25,7 @@
 </p>
 
 
-**Verificación de honestidad - qué funciona de verdad hoy:** el descubrimiento de red (escaneo de subred concurrente + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), la conexión REST+WebSocket en vivo y el soporte de enjambre (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinemática directa real del visor 3D para los 24 modelos de robot reales más un fallback "Generic" (`hydra_suite/render/`, verificada numéricamente byte a byte contra la propia implementación TypeScript de HYDRA-UMC STUDIO), los 11 de 11 paneles de configuración de herramientas, el flasheo CAN-OTA/SPI-OTA, y el renderizado real de cámaras MJPEG son reales y están probados - 24 scripts de verificación/smoke bajo `tests/` (`python tools/run_offline_verifiers.py`, Qt sin cabeza vía `QT_QPA_PLATFORM=offscreen`), todos pasando, más `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` ejercitados contra un HYDRA-UMC SERVER real en ejecución y un contexto GPU/OpenGL real en esta máquina. La shell Qt Quick (`--qtquick`, los 26 paneles clásicos portados, incluido el visor 3D mediante un `OffscreenRobotRenderer` dedicado) es código real y funcional, lanzado junto al punto de entrada clásico sin modificar. Lo que explícitamente NO está hecho todavía, según la propia convención de honestidad de este repo: `trajectory_panel.py` es un grabador de puntos solo local que no lee/escribe el formato `data/WORKS/*.json` propio de HYDRA-UMC STUDIO; los niveles URTC Tool Head/Advanced Expansion de CAN-OTA no tienen todavía un túnel de relé real hacia el hardware; y `combinedWith` (modo de robot combinado) no está expuesto en la UI de esta app pese a existir en el propio modelo de datos de STUDIO. Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para el desglose completo y detallado de lo real frente a lo diferido que resume este párrafo, y `CHANGELOG.md` para lo que ya se ha entregado exactamente.
+**Verificación de honestidad - qué funciona de verdad hoy:** el descubrimiento de red (escaneo de subred concurrente + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), la conexión REST+WebSocket en vivo y el soporte de enjambre (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinemática directa real del visor 3D para los 24 modelos de robot reales más un fallback "Generic" (`hydra_suite/render/`, verificada numéricamente byte a byte contra la propia implementación TypeScript de HYDRA-UMC STUDIO), los 11 de 11 paneles de configuración de herramientas, el flasheo CAN-OTA/SPI-OTA, y el renderizado real de cámaras MJPEG son reales y están probados - 27 scripts de verificación/smoke bajo `tests/` (`python tools/run_offline_verifiers.py`, Qt sin cabeza vía `QT_QPA_PLATFORM=offscreen`), todos pasando, más `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` ejercitados contra un HYDRA-UMC SERVER real en ejecución y un contexto GPU/OpenGL real en esta máquina. La shell Qt Quick (`--qtquick`, los 26 paneles clásicos portados, incluido el visor 3D mediante un `OffscreenRobotRenderer` dedicado) es código real y funcional, lanzado junto al punto de entrada clásico sin modificar. Lo que explícitamente NO está hecho todavía, según la propia convención de honestidad de este repo: `trajectory_panel.py` es un grabador de puntos solo local que no lee/escribe el formato `data/WORKS/*.json` propio de HYDRA-UMC STUDIO; los niveles URTC Tool Head/Advanced Expansion de CAN-OTA no tienen todavía un túnel de relé real hacia el hardware; y `combinedWith` (modo de robot combinado) no está expuesto en la UI de esta app pese a existir en el propio modelo de datos de STUDIO. Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para el desglose completo y detallado de lo real frente a lo diferido que resume este párrafo, y `CHANGELOG.md` para lo que ya se ha entregado exactamente.
 
 ---
 
@@ -136,22 +136,34 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   Mesa de Vacío comparten una única implementación `ModuleConfigPanel`
   (el propio `CNC.tsx`/`Laser.tsx` de STUDIO son componentes idénticos
   salvo por la clave del módulo); los otros 7 necesitaron cada uno su
-  propio panel real, construido a medida. Los 5 módulos que tienen vista
-  previa 3D en vivo en STUDIO ahora también la tienen aquí: CNC/Láser/
-  Cama Caliente/Mesa de Vacío (`render/module_rig.py`, la geometría de STUDIO: STL reales para las mesas de vacío y cajas/cilindros para los demás módulos) y Pick & Place
-  (`render/pnp_rig.py`, un port real del propio `LumenPnPRig.tsx` de
-  STUDIO - las 5 mallas `.stl` reales en `assets/meshes/lumenpnp/`,
-  posicionadas mediante una cadena real de pórtico cartesiano, no
-  primitivas), cada uno dibujado por un `RobotViewport` puesto en su
-  propio modo exclusivo de módulo.
+  propio panel real, construido a medida. La cama calefactada y la mesa de vacío usan STL en `render/module_rig.py`. PnP, CNC y láser usan `render/pnp_rig.py`: 7 mallas articuladas y 160 piezas individuales por carpeta independiente. `RobotViewport` representa cada conjunto. Consulta [los modelos](docs/MACHINE_ASSETS.md).
 
 ---
 
 ### 🧩 Mesas de vacío seleccionables
 
-Elige uno de seis modelos STL reales en Mesa de Vacío: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 o 250 × 250 mm. La base tiene 15 mm de grosor; con las paredes de alineación, la altura total es 16,2 mm. Las dimensiones son fijas. Elegir modelo conserva posición, bomba y válvula; reiniciar selecciona 160 × 120 mm y apaga bomba y válvula. Los identificadores antiguos o desconocidos muestran el primer modelo. STUDIO y las dos interfaces de SUITE usan el mismo catálogo y modelId en la configuración del robot.
+Elige uno de seis modelos STL reales en Mesa de Vacío: 160 × 120, 230 × 210, 230 × 250, 232 × 217, 240 × 240 o 250 × 250 mm. La base tiene 15 mm de grosor; con las paredes de alineación, la altura total es 16,2 mm. Ancho y largo son editables en pasos de 5 mm (10–5000 mm). Se escala la superficie, no el grosor. Elegir un modelo restaura sus medidas originales. El tamaño personalizado se sincroniza mediante SERVER; los agujeros y canales escalados son una vista de distribución, no un STL regenerado para fabricar. Elegir modelo conserva posición, bomba y válvula; reiniciar selecciona 160 × 120 mm y apaga bomba y válvula. Los identificadores antiguos o desconocidos muestran el primer modelo. STUDIO y las dos interfaces de SUITE usan el mismo catálogo y modelId en la configuración del robot.
 
 [Guía de modelos, configuración y regeneración](docs/VACUUM_TABLE_MODELS.md).
+
+### 🔥 Modelo de cama calefactada
+
+Cuatro modelos STL: 100×100, 200×100, 200×200 y 255×255 mm, todos de 5 mm de grosor. Ancho/largo ajustables en pasos de 5 mm (25–5000 mm); elegir un modelo restaura sus medidas sin cambiar la calefacción. Modelo visual, no un diseño eléctrico ni de fabricación.
+
+[Modelo de cama calefactada — STL / OpenSCAD](docs/HEATED_BED_MODELS.md).
+
+### 🗄️ Racks STL configurables
+
+Rack STL: ancho y fondo de 40–1000 mm en pasos de 1 mm; 1–24 placas con separación fija de 10 mm. Son ajustes visuales, no una calibración del robot.
+
+[Racks STL configurables — STL / OpenSCAD](docs/RACK_MODELS.md).
+
+### 🛠️ Modelos independientes de máquinas
+
+Copias STL independientes para JuanenPnP, JuanenCNC y JuanenLaser; LumenPnP conserva el original. Edita cada modelo en su carpeta. Se usan las dimensiones CAD; los antiguos ajustes de tamaño no estiran el modelo.
+
+[Modelos independientes de máquinas — STL](docs/MACHINE_ASSETS.md).
+
 
 Estos diseños originales JuanenPNP / HYDRA-UMC y sus fuentes SCAD usan GPL-3.0; no son el CAD de la máquina de Opulo.
 
@@ -168,6 +180,17 @@ aquí más adelante.
 ```text
 HYDRA-UMC-SUITE/
 ├── docs/VACUUM_TABLE_MODELS.md
+├── docs/HEATED_BED_MODELS.md
+├── docs/RACK_MODELS.md
+├── docs/MACHINE_ASSETS.md
+├── assets/meshes/{juanenpnp,juanencnc,juanenlaser}/  # STL + ATTRIBUTION + VARIANT.md
+├── tests/verify_machine_assets.py
+├── assets/meshes/racks/        # Rack.scad + base/wall/guide/assembly STL
+├── hydra_suite/racks.py
+├── tests/verify_rack_geometry.py
+├── assets/meshes/heated-beds/  # catalog.json + HeatedBed.scad + 4 STL
+├── hydra_suite/heated_beds.py
+├── tests/verify_heated_beds.py
 ├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/test_vacuum_tables.py
