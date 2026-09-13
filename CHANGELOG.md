@@ -26,6 +26,30 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.2] - H034/H035: throttle robot-id collision, delta/settings convergence
+
+- H034: `net/client.py`'s per-command throttle (`_throttle_tasks`/
+  `_throttle_latest_send`) was keyed by command name alone - two different
+  robots sending the SAME command name (e.g. both jogging) in the same
+  throttle window shared one slot, so one robot's pending send could
+  silently overwrite the other's before either reached the network. Keyed
+  by `(robot_id, command)` instead. `stop`/`play`/`pause` already sent
+  immediately (`debounce_ms=0`, a different command name besides) and were
+  never affected.
+- H035: `_apply_robot_delta()` mutates local state from a real targeted
+  delta but never updated `_last_payload_json` (the echo-guard baseline
+  that suppresses our own writes echoed back) - a later full snapshot
+  whose payload happened to be byte-identical to the one from BEFORE that
+  delta (the delta's own change getting reverted/superseded server-side)
+  then matched the stale baseline and was wrongly dropped as "our own
+  echo", permanently stranding local state on the post-delta value.
+  Recomputed from the mutated state so a later snapshot is compared
+  against what's actually true right now, not what was true before the
+  delta.
+- Add `tests/verify_delta_settings_convergence.py` and extend
+  `tests/verify_send_command_debounce.py` with real regression coverage
+  for both (each confirmed to fail without its own fix, and pass with it).
+
 ## [0.5.1] - Table model configuration: heated beds, racks, vacuum tables, CAD module STL
 
 - Separate JuanenPnP, JuanenCNC and JuanenLaser into independent editable STL
