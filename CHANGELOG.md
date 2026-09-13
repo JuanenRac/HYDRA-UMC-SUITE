@@ -10,6 +10,22 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
+## Unreleased - real bug: build-test.sh/.bat never activated .venv
+
+Live report: running the documented `build-test.bat` produced a wall of
+`ModuleNotFoundError` (numpy/PySide6/httpx/qasync) across all 27 offline
+verifiers, looking exactly like the project was broken. Root cause:
+unlike `run.sh`/`run.bat`/`build_exe.sh`/`build_exe.bat` (which all
+correctly activate `.venv` first), `build-test.sh`/`build-test.bat`
+called the bare `python3`/`python`/`py -3` launcher directly - on any
+machine following the normal, correct workflow (`build_exe` creates
+`.venv` and installs `requirements.txt` into it, nothing is installed
+globally), this reliably fails every dependency-requiring verifier.
+Fixed to activate `.venv` first, exactly like the other 4 scripts
+already do. Tooling-only fix (dev scripts, not shipped application
+code) - no version bump, matching this repo's own convention for
+non-runtime changes.
+
 ## [0.5.1] - Table model configuration: heated beds, racks, vacuum tables, CAD module STL
 
 - Separate JuanenPnP, JuanenCNC and JuanenLaser into independent editable STL
