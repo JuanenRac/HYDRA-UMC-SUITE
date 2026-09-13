@@ -29,6 +29,16 @@ REM HYDRA_UMC_SCRIPT_STANDARD_BANNER_END
 REM Runs the non-versioning build check. It does not update the manifest or CHANGELOG.
 setlocal
 cd /d "%~dp0"
+REM Real bug fixed here: unlike run.bat/build_exe.bat, this never
+REM activated .venv before invoking python/py -3 - on a machine where
+REM numpy/PySide6/httpx/qasync are only installed in .venv (the normal,
+REM correct setup after build_exe.bat), every one of the 27 offline
+REM verifiers failed with ModuleNotFoundError, looking exactly like the
+REM whole build was broken when the real project was fine - a live
+REM report confirmed this exact reproduction.
+if exist .venv\Scripts\activate.bat (
+    call .venv\Scripts\activate.bat
+)
 where py >nul 2>&1
 if errorlevel 1 (
     python tools\build_test.py
