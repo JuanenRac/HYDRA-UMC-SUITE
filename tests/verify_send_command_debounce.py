@@ -44,7 +44,7 @@ async def run():
     posts: list[dict] = []
 
     async def fake_post(self, url, json=None, headers=None, timeout=None):
-        posts.append(json)
+        posts.append({"url": url, **json})
         return _FakeResponse()
 
     original_post = httpx.AsyncClient.post
@@ -78,6 +78,29 @@ async def run():
         posts.clear()
         await conn.send_command(1, "stop", debounce_ms=0)
         check("debounce_ms=0 sends immediately, no delay needed", len(posts), 1)
+
+        # H034: the SAME command name for TWO DIFFERENT robots must never
+        # share a throttle slot - before this fix, _throttle_tasks/
+        # _throttle_latest_send were keyed by command name alone, so
+        # robot 2's "jog" during robot 1's own "jog" throttle window would
+        # silently overwrite robot 1's pending send, dropping it entirely.
+        # A real "two robots, two controls" scenario: robot 1 jogs, robot 2
+        # jogs, robot 1 also adjusts speed - all 3 must independently reach
+        # the server with their own last value, none dropped. robot_id
+        # isn't in the JSON body (it's in the URL path, /api/robot/:id/
+        # command) - read it back from each recorded POST's own url.
+        posts.clear()
+        for value in (1, 2, 3):
+            await conn.send_command(1, "jog", {"value": value}, debounce_ms=50)
+        for value in (10, 20):
+            await conn.send_command(2, "jog", {"value": value}, debounce_ms=50)
+        await conn.send_command(1, "speed", {"value": 99}, debounce_ms=50)
+        await asyncio.sleep(0.1)
+        check("robot1-jog + robot2-jog + robot1-speed: none dropped, 3 real POSTs", len(posts), 3)
+        by_key = {(p["url"].split("/")[-2], p["command"]): p["params"]["value"] for p in posts}
+        check("robot 1's own last jog value (3) reached the server", by_key.get(("1", "jog")), 3)
+        check("robot 2's own last jog value (20) reached the server, not dropped for sharing 'jog'", by_key.get(("2", "jog")), 20)
+        check("robot 1's speed reached the server independently of its own jog", by_key.get(("1", "speed")), 99)
     finally:
         httpx.AsyncClient.post = original_post
 

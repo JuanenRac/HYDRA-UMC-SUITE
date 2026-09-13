@@ -117,20 +117,26 @@ class HydraConnection(QObject):
         # later one already applied must not roll back over that newer
         # state).
         self._command_generation: dict[int, int] = {}
-        # Per-command-name THROTTLE (see send_command()'s own comment on
-        # why this is a throttle and not a debounce) for send_command()'s
-        # own network send - a dragged RotaryKnob/QSlider (robot_control.py's
-        # own JointRow/speed slider) emits continuously, and until this
-        # existed each of HYDRA-UMC-ANDROID-CONTROL's own equivalent
-        # sendAtomicCommand() already debounces its speed command 300ms for
-        # exactly this reason - this desktop client had the same gap. Keyed
-        # by command name so throttling 'jog' can never coalesce away or
-        # delay an unrelated command (e.g. 'speed') fired during the same
-        # window. _throttle_tasks holds the pending timer (if any);
-        # _throttle_latest_send holds the most recent send_now() closure
-        # that timer will call once it fires.
-        self._throttle_tasks: dict[str, asyncio.Task] = {}
-        self._throttle_latest_send: dict[str, Callable[[], Awaitable[None]]] = {}
+        # Per-(robot, command-name) THROTTLE (see send_command()'s own
+        # comment on why this is a throttle and not a debounce) for
+        # send_command()'s own network send - a dragged RotaryKnob/QSlider
+        # (robot_control.py's own JointRow/speed slider) emits continuously,
+        # and until this existed each of HYDRA-UMC-ANDROID-CONTROL's own
+        # equivalent sendAtomicCommand() already debounces its speed command
+        # 300ms for exactly this reason - this desktop client had the same
+        # gap. Keyed by (robot_id, command) - H034: keying by command name
+        # ALONE (as this used to) meant throttling 'jog' for robot 1 shared
+        # the exact same timer/slot as 'jog' for robot 2, so two robots
+        # jogged in the same window could silently drop one of their two
+        # commands (whichever call didn't win the shared
+        # _throttle_latest_send slot never reached the network at all) -
+        # the same collision the header comment already correctly worried
+        # about for two DIFFERENT command names, just missed for the SAME
+        # command name across different robots. _throttle_tasks holds the
+        # pending timer (if any); _throttle_latest_send holds the most
+        # recent send_now() closure that timer will call once it fires.
+        self._throttle_tasks: dict[tuple[int, str], asyncio.Task] = {}
+        self._throttle_latest_send: dict[tuple[int, str], Callable[[], Awaitable[None]]] = {}
 
     @property
     def is_connected(self) -> bool:
@@ -547,19 +553,20 @@ class HydraConnection(QObject):
         # events now reaches every other client at a steady ~debounce_ms
         # cadence for as long as the drag continues, instead of only once
         # it stops.
-        self._throttle_latest_send[command] = send_now
-        pending = self._throttle_tasks.get(command)
+        throttle_key = (robot_id, command)
+        self._throttle_latest_send[throttle_key] = send_now
+        pending = self._throttle_tasks.get(throttle_key)
         if pending is not None and not pending.done():
-            return  # a timer for this command is already ticking - it will pick up the latest send_now above when it fires
+            return  # a timer for this (robot, command) is already ticking - it will pick up the latest send_now above when it fires
 
         async def fire_throttled() -> None:
             await asyncio.sleep(debounce_ms / 1000)
-            latest = self._throttle_latest_send.pop(command, None)
-            self._throttle_tasks.pop(command, None)
+            latest = self._throttle_latest_send.pop(throttle_key, None)
+            self._throttle_tasks.pop(throttle_key, None)
             if latest is not None:
                 await latest()
 
-        self._throttle_tasks[command] = asyncio.ensure_future(fire_throttled())
+        self._throttle_tasks[throttle_key] = asyncio.ensure_future(fire_throttled())
 
     async def fetch_system_metrics(self) -> dict | None:
         """GET /api/system/metrics - no auth required server-side. Returns
@@ -699,11 +706,15 @@ class HydraConnection(QObject):
         initial full-tree load), the delta is discarded and a full
         fetch_state() is forced instead of ever creating a "ghost" robot
         from a partial patch - DISEÑO_SYNC_DELTAS.txt section 5b mitigation
-        (b), non-optional. Deliberately does NOT update _last_payload_json -
-        that guard exists to break the full-tree echo loop (push_state()'s
-        own comment); a delta's own small payload was never compared
-        against it in the first place, so there's nothing here to
-        de-duplicate against."""
+        (b), non-optional.
+
+        H035: DOES recompute _last_payload_json from the now-mutated state
+        once the patch is applied (see the assignment below its own
+        comment for the real bug this fixes) - this delta's own small
+        payload is still never compared against that guard directly, but
+        leaving the guard's baseline stale after a real state mutation is
+        exactly what let a later legitimate full snapshot get silently
+        mistaken for our own echo and dropped."""
         controller_id = msg.get("controllerId")
         robot_id = msg.get("robotId")
         patch = msg.get("patch")
@@ -733,6 +744,23 @@ class HydraConnection(QObject):
         camera_patch = msg.get("cameraPatch")
         if target_camera is not None and isinstance(camera_patch, dict):
             target_camera.update(camera_patch)
+        # H035: this used to leave _last_payload_json completely untouched
+        # (see this method's own docstring, which was right that a delta's
+        # OWN small payload is never compared against it - but wrong that
+        # nothing here needs to touch it at all). Real bug: settings #1 ->
+        # this delta -> settings #2 that happens to be byte-for-byte
+        # identical to settings #1 (e.g. the delta's own change gets
+        # reverted/superseded server-side and the full tree converges back)
+        # - _last_payload_json was still settings #1's own JSON, so
+        # settings #2 matched it and was WRONGLY treated as "our own
+        # echoed-back write" and silently dropped at the top of
+        # _on_ws_message(), leaving self.state permanently stuck on the
+        # post-delta value the server had already moved past. Recomputing
+        # here to match the ACTUAL current (now delta-mutated) state means
+        # settings #2's JSON - which no longer matches this recomputed
+        # value, since the delta really did change something - correctly
+        # fails the echo check and gets applied for real.
+        self._last_payload_json = json.dumps(self.state.raw, sort_keys=True)
         self.state_changed.emit(self.state)
 
     async def disconnect(self) -> None:
