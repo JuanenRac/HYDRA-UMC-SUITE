@@ -485,3 +485,6 @@ LBL_CONNECTING_STREAM=连接中...
 QT_NOT_YET_MIGRATED_TITLE=尚未迁移
 QT_NOT_YET_MIGRATED_BODY=该面板的实际内容尚未移植到 Qt Quick。不加 --qtquick 运行即可使用拥有该内容的经典视图。
 QT_SUITE_TAGLINE=蜂群指挥台
+QT_XY_TABLE_X_AXIS=X 轴
+QT_XY_TABLE_Y_AXIS=Y 轴
+QT_XY_TABLE_LABEL=工作台

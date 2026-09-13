@@ -26,6 +26,20 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.3] - H063: XY-table axis/unit labels were hardcoded English, never routed through the language files
+
+- The XY Table panel's own "X Axis"/"Y Axis" labels and the rack's own
+  "Table X (mm)"/"Table Y (mm)" labels were plain literal QML strings -
+  every other language always showed English text there regardless of
+  the selected language, since `suiteBackend.uiText()` was never called
+  for them. New `QT_XY_TABLE_X_AXIS`/`QT_XY_TABLE_Y_AXIS`/
+  `QT_XY_TABLE_LABEL` keys added to all 7 `language/*.lng` files, wired
+  into `assets/qml/Main.qml`.
+- Verified the 3 new keys load correctly from all 7 real `.lng` files
+  (`hydra_suite.i18n.load_language()`), and `tools/build_test.py`'s
+  offline verifier suite (28/28, including `verify_xy_table_panel.py`)
+  still passes unchanged.
+
 ## [0.5.2] - H034/H035: throttle robot-id collision, delta/settings convergence
 
 - H034: `net/client.py`'s per-command throttle (`_throttle_tasks`/
