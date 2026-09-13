@@ -486,3 +486,6 @@ LBL_CONNECTING_STREAM=VERBINDE...
 QT_NOT_YET_MIGRATED_TITLE=Noch nicht migriert
 QT_NOT_YET_MIGRATED_BODY=Der eigentliche Inhalt dieses Panels ist noch nicht auf Qt Quick portiert. Ohne --qtquick starten fuer die klassische Ansicht, die ihn hat.
 QT_SUITE_TAGLINE=SCHWARM-KOMMANDOZENTRALE
+QT_XY_TABLE_X_AXIS=X-Achse
+QT_XY_TABLE_Y_AXIS=Y-Achse
+QT_XY_TABLE_LABEL=Tisch

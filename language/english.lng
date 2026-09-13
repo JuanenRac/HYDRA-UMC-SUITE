@@ -485,3 +485,6 @@ LBL_CONNECTING_STREAM=CONNECTING...
 QT_NOT_YET_MIGRATED_TITLE=Not yet migrated
 QT_NOT_YET_MIGRATED_BODY=This panel's real content isn't ported to Qt Quick yet. Run without --qtquick for the classic view, which has it.
 QT_SUITE_TAGLINE=SWARM COMMAND DECK
+QT_XY_TABLE_X_AXIS=X Axis
+QT_XY_TABLE_Y_AXIS=Y Axis
+QT_XY_TABLE_LABEL=Table

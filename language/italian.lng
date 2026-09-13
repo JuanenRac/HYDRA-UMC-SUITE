@@ -486,3 +486,6 @@ LBL_CONNECTING_STREAM=CONNESSIONE...
 QT_NOT_YET_MIGRATED_TITLE=Non ancora migrato
 QT_NOT_YET_MIGRATED_BODY=Il contenuto reale di questo pannello non e ancora stato portato a Qt Quick. Esegui senza --qtquick per la vista classica, che ce l'ha.
 QT_SUITE_TAGLINE=PLANCIA DI COMANDO DELLO SCIAME
+QT_XY_TABLE_X_AXIS=Asse X
+QT_XY_TABLE_Y_AXIS=Asse Y
+QT_XY_TABLE_LABEL=Tavola

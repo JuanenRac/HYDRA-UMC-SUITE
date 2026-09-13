@@ -1363,7 +1363,7 @@ ApplicationWindow {
                         RowLayout {
                             spacing: 24
                             ColumnLayout {
-                                Text { text: "X Axis"; color: window.muted; font.pixelSize: 10 }
+                                Text { text: suiteBackend.uiText("QT_XY_TABLE_X_AXIS"); color: window.muted; font.pixelSize: 10 }
                                 Text { text: suiteBackend.xyPosX; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16 }
                                 RowLayout {
                                     Button { text: "◀"; onClicked: suiteBackend.jogXyTable("x", -1) }
@@ -1371,7 +1371,7 @@ ApplicationWindow {
                                 }
                             }
                             ColumnLayout {
-                                Text { text: "Y Axis"; color: window.muted; font.pixelSize: 10 }
+                                Text { text: suiteBackend.uiText("QT_XY_TABLE_Y_AXIS"); color: window.muted; font.pixelSize: 10 }
                                 Text { text: suiteBackend.xyPosY; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16 }
                                 RowLayout {
                                     Button { text: "▼"; onClicked: suiteBackend.jogXyTable("y", -1) }
@@ -1526,7 +1526,7 @@ ApplicationWindow {
                             delegate: ColumnLayout {
                                 required property string modelData
                                 spacing: 1
-                                Text { text: "Table " + modelData.substring(1).toUpperCase() + " (mm)"; color: "#d97706"; font.pixelSize: 8 }
+                                Text { text: suiteBackend.uiText("QT_XY_TABLE_LABEL") + " " + modelData.substring(1).toUpperCase() + " (mm)"; color: "#d97706"; font.pixelSize: 8 }
                                 DecimalSpinBox {
                                     realFrom: -5000; realTo: 5000
                                     realValue: rackCard.modelData.pos[modelData]
