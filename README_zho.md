@@ -158,7 +158,7 @@ HYDRA-UMC-SUITE/
 │       ├── about_dialog.py          # 真实的"关于"对话框（版本/作者/许可证）
 │       ├── theme.py                  # 加载 assets/qss/industrial_dark.qss
 │       ├── widgets/rotary_knob.py    # 自绘旋钮控件（RotaryKnob.tsx 的桌面对应组件）
-│       └── panels/                   # 每个可停靠面板一个文件 —— 与 STUDIO 自身标签页真正做到 1:1 对等：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+真实 PTZ 控制）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
+│       └── panels/                   # 每个可停靠面板一个文件 —— 与 STUDIO 自身标签页真正做到 1:1 对等：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+真实 PTZ 控制）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、system_supervisor_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # 未来工业风格的 Qt 样式表
 │   ├── qml/Main.qml                 # `--qtquick` 命令面板的 Qt Quick 界面（全部 26 个面板）

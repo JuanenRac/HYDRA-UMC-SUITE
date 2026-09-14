@@ -158,7 +158,7 @@ HYDRA-UMC-SUITE/
 │       ├── about_dialog.py          # 実際のAboutダイアログ（バージョン/作者/ライセンス）
 │       ├── theme.py                  # assets/qss/industrial_dark.qssを読み込み
 │       ├── widgets/rotary_knob.py    # カスタム描画のロータリーノブ（RotaryKnob.tsxのデスクトップ版対応物）
-│       └── panels/                   # ドッキング可能なパネルごとに1ファイル - STUDIO自身のタブとの実際の1:1パリティ：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+実際のPTZ制御）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
+│       └── panels/                   # ドッキング可能なパネルごとに1ファイル - STUDIO自身のタブとの実際の1:1パリティ：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+実際のPTZ制御）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、system_supervisor_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # 未来的・産業的なQtスタイルシート
 │   ├── qml/Main.qml                 # `--qtquick` コマンドデッキ(全26パネル)のQt Quick UI

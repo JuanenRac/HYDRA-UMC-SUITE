@@ -57,6 +57,7 @@ from hydra_suite.ui.panels.tester_panel import TesterPanel
 from hydra_suite.ui.panels.robot_control import RobotControlPanel
 from hydra_suite.ui.panels.vacuum_table_panel import VacuumTablePanel
 from hydra_suite.ui.panels.server_browser import ServerBrowserPanel
+from hydra_suite.ui.panels.system_supervisor_panel import SystemSupervisorPanel
 from hydra_suite.ui.panels.trajectory_panel import TrajectoryPanel
 from hydra_suite.ui.panels.viewport_panel import ViewportPanel
 from hydra_suite.ui.panels.xy_table_panel import XYTablePanel
@@ -133,6 +134,7 @@ class MainWindow(QMainWindow):
         self.admin_clients_panel = AdminClientsPanel(self.controller)
         self.admin_logs_panel = AdminLogsPanel(self.controller)
         self.admin_server_panel = AdminServerPanel(self.controller)
+        self.system_supervisor_panel = SystemSupervisorPanel(self.controller)
         # Tool-attachment config panels - ports of HYDRA-UMC-STUDIO's own
         # CNC.tsx/Laser.tsx/HeatedBedConfig.tsx/VacuumTableConfig.tsx (see
         # module_config_panel.py's own header for the shared implementation
@@ -176,6 +178,7 @@ class MainWindow(QMainWindow):
         dock_admin_clients = self._make_dock(_("DOCK_ADMIN_CLIENTS"), self.admin_clients_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_logs = self._make_dock(_("DOCK_ADMIN_LOGS"), self.admin_logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_admin_server = self._make_dock(_("DOCK_ADMIN_SERVER"), self.admin_server_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_system_supervisor = self._make_dock(_("DOCK_SYSTEM_SUPERVISOR"), self.system_supervisor_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_cnc = self._make_dock(_("HEADING_CNC"), self.cnc_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_laser = self._make_dock(_("HEADING_LASER"), self.laser_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_heated_bed = self._make_dock(_("HEADING_HEATED_BED"), self.heated_bed_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
@@ -204,6 +207,7 @@ class MainWindow(QMainWindow):
             "admin_clients": dock_admin_clients,
             "admin_logs": dock_admin_logs,
             "admin_server": dock_admin_server,
+            "system_supervisor": dock_system_supervisor,
             "cnc": dock_cnc,
             "laser": dock_laser,
             "heated_bed": dock_heated_bed,
@@ -245,7 +249,8 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(dock_ai_family, dock_admin_clients)
         self.tabifyDockWidget(dock_admin_clients, dock_admin_logs)
         self.tabifyDockWidget(dock_admin_logs, dock_admin_server)
-        self.tabifyDockWidget(dock_admin_server, dock_cnc)
+        self.tabifyDockWidget(dock_admin_server, dock_system_supervisor)
+        self.tabifyDockWidget(dock_system_supervisor, dock_cnc)
         self.tabifyDockWidget(dock_cnc, dock_laser)
         self.tabifyDockWidget(dock_laser, dock_heated_bed)
         self.tabifyDockWidget(dock_heated_bed, dock_vacuum_table)
@@ -267,6 +272,7 @@ class MainWindow(QMainWindow):
         for dock in (
             dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
+            dock_system_supervisor,
             dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc, dock_xy_table, dock_rack, dock_pick_and_place, dock_kinematic_brain_stage,
             dock_urtc_flasher, dock_hydra_flasher, dock_urtc_tester, dock_hydra_tester,
         ):

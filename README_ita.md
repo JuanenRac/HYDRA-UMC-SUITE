@@ -233,7 +233,7 @@ HYDRA-UMC-SUITE/
 │       ├── about_dialog.py          # Vera finestra Informazioni (versione/autore/licenza)
 │       ├── theme.py                  # Carica assets/qss/industrial_dark.qss
 │       ├── widgets/rotary_knob.py    # Manopola rotativa disegnata su misura (controparte desktop di RotaryKnob.tsx)
-│       └── panels/                   # Un file per pannello agganciabile - vera parità 1:1 con le schede di STUDIO: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ vero controllo PTZ), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
+│       └── panels/                   # Un file per pannello agganciabile - vera parità 1:1 con le schede di STUDIO: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ vero controllo PTZ), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, system_supervisor_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # Il foglio di stile Qt futuristico-industriale
 │   ├── qml/Main.qml                 # UI Qt Quick del pannello comandi `--qtquick` (tutti i 26 pannelli)
