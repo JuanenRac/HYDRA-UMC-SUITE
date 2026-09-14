@@ -26,6 +26,45 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.4] - N01: real System Supervisor panel, closing the last real STUDIO parity gap
+
+New `SystemSupervisorPanel` (`ui/panels/system_supervisor_panel.py`) - the
+desktop counterpart to HYDRA-UMC-STUDIO's own `SystemSupervisor.tsx`, the
+one panel from the original 11-panel parity backlog that was never
+actually ported. Polls the real, already-existing `GET
+/api/system/supervisor` (no auth required server-side) every 2s, keeping
+its own rolling client-side history window (same 60-sample/2s convention
+STUDIO's own component uses, since the server itself keeps no history):
+CPU/memory/disk/temperature/load-average stat tiles, a CPU trend chart,
+per-core load bars with live clock speed, memory and temperature trend
+charts (via `PySide6.QtCharts`, already proven working elsewhere in this
+app's QWidgets stack), a network throughput chart (rx/tx delta rate per
+interface, only when the host actually has real traffic counters to
+read), and a top-processes table. Every field renders its own honest
+"-"/"N/A" when this host genuinely can't supply it (a non-Linux dev
+machine, a kernel without cpufreq exposed, `ps`/`df` missing), never a
+placeholder number - matching STUDIO's own convention exactly.
+
+New `HydraConnection.fetch_system_supervisor()` - a plain on-demand fetch
+(like `fetch_admin_clients()`/`fetch_telemetry_query()`), deliberately
+NOT folded into the continuous `_metrics_loop()` background poll
+`/api/system/metrics` already uses: this heavier route runs a real
+`ps`/`df` on the host every call, so it should only run while this panel
+is actually the one asking.
+
+Wired into the real dock/nav system (`main_window.py`, `nav_sidebar.py`)
+next to the other Ecosystem/Admin panels - no `conn.is_admin` gate,
+since the real route itself needs no auth (an invented gate would be a
+permission requirement that doesn't actually exist, same reasoning
+`nav_sidebar.py`'s own header comment already gives for every other
+ecosystem-wide panel in this app). 30 new translation keys added to all
+7 `language/*.lng` files (verified in sync - 473 keys each). Verified for
+real: full `tools/build_test.py` (95-file compile + all 28
+`tests/verify_*.py` offline verifiers, `verify_nav_sidebar.py` included -
+constructs the real `MainWindow`, so a wiring mistake in either the dock
+or the nav sidebar would fail it the same way it would fail a person
+clicking through the app by hand).
+
 ## [0.5.3] - H063: XY-table axis/unit labels were hardcoded English, never routed through the language files
 
 - The XY Table panel's own "X Axis"/"Y Axis" labels and the rack's own

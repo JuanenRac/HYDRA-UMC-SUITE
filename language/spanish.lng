@@ -144,6 +144,7 @@ DOCK_ECOSYSTEM_TELEMETRY=Telemetría del ecosistema
 DOCK_ADMIN_CLIENTS=Apps conectadas
 DOCK_ADMIN_LOGS=Logs del servidor
 DOCK_ADMIN_SERVER=Admin del servidor
+DOCK_SYSTEM_SUPERVISOR=Supervisor del sistema
 HEADING_ECOSYSTEM_SERVICES=SERVICIOS DEL ECOSISTEMA
 BTN_REFRESH=Refrescar
 LBL_ES_NOT_LOADED=Todavía no se ha cargado - pulsa Refrescar.
@@ -210,6 +211,36 @@ BTN_RESTART_SERVER=Reiniciar servidor ahora
 TITLE_RESTART_SERVER=Reiniciar servidor
 MSG_ADMIN_SERVER_RESTART_CONFIRM=¿Reiniciar este servidor ahora? Todo dispositivo conectado se desconectará y reconectará brevemente. Solo reinicia de verdad si este proceso corre bajo un supervisor (systemd/pm2/Docker) configurado para reiniciar automáticamente al salir.
 MSG_ADMIN_SERVER_RESTART_REQUESTED=Reinicio solicitado.
+
+# Panel Supervisor del Sistema (N01, paridad con SystemSupervisor.tsx de STUDIO)
+HEADING_SYSTEM_SUPERVISOR=SUPERVISOR DEL SISTEMA
+LBL_SUPERVISOR_LIVE=En vivo
+LBL_SUPERVISOR_STALE=Desactualizado
+LBL_SUPERVISOR_UPTIME=Tiempo activo
+LBL_SUPERVISOR_WIFI=Wi-Fi
+LBL_SUPERVISOR_BLUETOOTH=BT
+LBL_SUPERVISOR_ETHERNET=ETH
+LBL_SUPERVISOR_CPU=CPU
+LBL_SUPERVISOR_MEMORY=Memoria
+LBL_SUPERVISOR_DISK=Flash
+LBL_SUPERVISOR_CPU_TEMP=Temp. CPU
+LBL_SUPERVISOR_RP1_TEMP=Temp. RP1
+LBL_SUPERVISOR_LOAD_AVG=Carga media
+LBL_SUPERVISOR_CORES=núcleos
+LBL_SUPERVISOR_CPU_TREND=Carga de CPU (general)
+LBL_SUPERVISOR_CPU_CORES=Carga por núcleo
+LBL_SUPERVISOR_MEMORY_TREND=Uso de memoria
+LBL_SUPERVISOR_TEMP_TREND=Temperatura
+LBL_SUPERVISOR_WIFI_TOTAL=Total Wi-Fi
+LBL_SUPERVISOR_ETHERNET_TOTAL=Total Ethernet
+LBL_SUPERVISOR_NETWORK_THROUGHPUT=Rendimiento de red
+LBL_SUPERVISOR_PROCESSES=Procesos principales
+MSG_SUPERVISOR_UNREACHABLE=No se puede contactar con el servidor para obtener métricas del host en vivo.
+COL_SUPERVISOR_PID=PID
+COL_SUPERVISOR_PROCESS=Proceso
+COL_SUPERVISOR_CPU_PERCENT=CPU%
+COL_SUPERVISOR_MEM_PERCENT=MEM%
+COL_SUPERVISOR_RSS=RSS
 
 # AI Family panel + Ecosystem redesign (STUDIO 0.2.9 parity)
 DOCK_AI_FAMILY=Familia IA

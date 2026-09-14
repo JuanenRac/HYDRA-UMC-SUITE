@@ -328,6 +328,20 @@ class HydraConnection(QObject):
         STUDIO's own 0.2.9 redesign."""
         return await self._request_json("GET", "/api/hydra-info")
 
+    async def fetch_system_supervisor(self) -> tuple[int, object] | None:
+        """GET /api/system/supervisor - no auth required server-side (same
+        "read-only host introspection" trust tier as /api/system/metrics -
+        see server.ts's own route comment), the real Netdata-style
+        deep-dive HYDRA-UMC-STUDIO's own SystemSupervisor.tsx already
+        polls every 2s. Deliberately a plain on-demand fetch through
+        _request_json() - like fetch_admin_clients()/fetch_telemetry_query()
+        above, not a continuous background loop on this connection the way
+        fetch_system_metrics()/_metrics_loop() is - this route runs a real
+        `ps`/`df` on the host every call, so it should only ever be polled
+        while SystemSupervisorPanel is actually the one asking, not for
+        every connection regardless of whether anyone is looking at it."""
+        return await self._request_json("GET", "/api/system/supervisor")
+
     async def restart_server(self) -> tuple[int, object] | None:
         """POST /api/admin/restart (admin-only) - graceful self-restart,
         only meaningful behind a process supervisor configured to

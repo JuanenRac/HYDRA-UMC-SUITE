@@ -144,6 +144,7 @@ DOCK_ECOSYSTEM_TELEMETRY=Ökosystem-Telemetrie
 DOCK_ADMIN_CLIENTS=Verbundene Apps
 DOCK_ADMIN_LOGS=Server-Logs
 DOCK_ADMIN_SERVER=Server-Admin
+DOCK_SYSTEM_SUPERVISOR=Systemüberwachung
 HEADING_ECOSYSTEM_SERVICES=ÖKOSYSTEM-DIENSTE
 BTN_REFRESH=Aktualisieren
 LBL_ES_NOT_LOADED=Noch nicht geladen - auf Aktualisieren klicken.
@@ -210,6 +211,36 @@ BTN_RESTART_SERVER=Server jetzt neu starten
 TITLE_RESTART_SERVER=Server neu starten
 MSG_ADMIN_SERVER_RESTART_CONFIRM=Diesen Server jetzt neu starten? Jedes verbundene Gerät wird kurz getrennt und verbindet sich neu. Startet nur wirklich neu, wenn dieser Prozess unter einem Supervisor (systemd/pm2/Docker) läuft, der für automatischen Neustart beim Beenden konfiguriert ist.
 MSG_ADMIN_SERVER_RESTART_REQUESTED=Neustart angefordert.
+
+# Panel Systemüberwachung (N01, Parität mit STUDIOs eigenem SystemSupervisor.tsx)
+HEADING_SYSTEM_SUPERVISOR=SYSTEMÜBERWACHUNG
+LBL_SUPERVISOR_LIVE=Live
+LBL_SUPERVISOR_STALE=Veraltet
+LBL_SUPERVISOR_UPTIME=Laufzeit
+LBL_SUPERVISOR_WIFI=WLAN
+LBL_SUPERVISOR_BLUETOOTH=BT
+LBL_SUPERVISOR_ETHERNET=ETH
+LBL_SUPERVISOR_CPU=CPU
+LBL_SUPERVISOR_MEMORY=Speicher
+LBL_SUPERVISOR_DISK=Flash
+LBL_SUPERVISOR_CPU_TEMP=CPU-Temp.
+LBL_SUPERVISOR_RP1_TEMP=RP1-Temp.
+LBL_SUPERVISOR_LOAD_AVG=Lastdurchschnitt
+LBL_SUPERVISOR_CORES=Kerne
+LBL_SUPERVISOR_CPU_TREND=CPU-Last (gesamt)
+LBL_SUPERVISOR_CPU_CORES=Last pro Kern
+LBL_SUPERVISOR_MEMORY_TREND=Speichernutzung
+LBL_SUPERVISOR_TEMP_TREND=Temperatur
+LBL_SUPERVISOR_WIFI_TOTAL=WLAN gesamt
+LBL_SUPERVISOR_ETHERNET_TOTAL=Ethernet gesamt
+LBL_SUPERVISOR_NETWORK_THROUGHPUT=Netzwerkdurchsatz
+LBL_SUPERVISOR_PROCESSES=Top-Prozesse
+MSG_SUPERVISOR_UNREACHABLE=Der Server ist für Live-Host-Metriken nicht erreichbar.
+COL_SUPERVISOR_PID=PID
+COL_SUPERVISOR_PROCESS=Prozess
+COL_SUPERVISOR_CPU_PERCENT=CPU%
+COL_SUPERVISOR_MEM_PERCENT=MEM%
+COL_SUPERVISOR_RSS=RSS
 
 # AI Family panel + Ecosystem redesign (STUDIO 0.2.9 parity)
 DOCK_AI_FAMILY=KI-Familie

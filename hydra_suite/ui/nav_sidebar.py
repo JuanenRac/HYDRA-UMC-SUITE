@@ -87,6 +87,7 @@ HYDRAUMC_ECOSYSTEM_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_ADMIN_CLIENTS", "admin_clients"),
     ("DOCK_ADMIN_LOGS", "admin_logs"),
     ("DOCK_ADMIN_SERVER", "admin_server"),
+    ("DOCK_SYSTEM_SUPERVISOR", "system_supervisor"),
 )
 
 # Every real dock key this sidebar can reach - a real test
