@@ -714,9 +714,9 @@ class ServerInfo:
     def ws_url(self, token: str | None = None) -> str:
         base = f"ws://{self.host}:{self.port}/ws"
         # remoteApiVersion=2 declares this connection understands a real
-        # targeted delta (server.ts's own per-connection `schema`, see
-        # DISEÑO_SYNC_DELTAS.txt section 3) - a server that doesn't
-        # recognize the param (or is an older deployment) just keeps
+        # targeted delta (server.ts's own per-connection `schema`) - a
+        # server that doesn't recognize the param (or is an older
+        # deployment) just keeps
         # sending the full tree under "delta" like before, so this is safe
         # to always send once this app's own net/client.py understands the
         # real delta shape (see _handle_message()'s own schema==2 branch).
