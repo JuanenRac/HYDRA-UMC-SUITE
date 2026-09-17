@@ -460,9 +460,8 @@ class HydraConnection(QObject):
         own full-tree read-modify-write - for the handful of discrete
         actions that already have an exact 1:1 case in server.ts's own
         switch (today: jog/speed/acceleration from robot_control.py's
-        knob/sliders). See DISEÑO_SYNC_DELTAS.txt CAUSA A and
-        HYDRA-UMC-STUDIO's own store.tsx sendRobotCommand(), the same fix
-        mirrored here.
+        knob/sliders). See HYDRA-UMC-STUDIO's own store.tsx
+        sendRobotCommand(), the same fix mirrored here.
 
         `local_mutate`, when given, applies an OPTIMISTIC local update to
         the target robot's own raw dict immediately, before the network
@@ -719,8 +718,7 @@ class HydraConnection(QObject):
         doesn't (this mirror is stale, or somehow missed the robot's own
         initial full-tree load), the delta is discarded and a full
         fetch_state() is forced instead of ever creating a "ghost" robot
-        from a partial patch - DISEÑO_SYNC_DELTAS.txt section 5b mitigation
-        (b), non-optional.
+        from a partial patch - non-optional.
 
         H035: DOES recompute _last_payload_json from the now-mutated state
         once the patch is applied (see the assignment below its own

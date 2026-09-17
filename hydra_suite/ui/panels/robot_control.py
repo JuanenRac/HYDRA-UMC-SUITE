@@ -293,8 +293,8 @@ class RobotControlPanel(QWidget):
         robot = self._current_robot
         # Atomic 'jog' command instead of mutating state + a full-tree
         # push_active_state() - same real gap class as the speed/
-        # acceleration sliders below (DISEÑO_SYNC_DELTAS.txt CAUSA A),
-        # just never fixed for the joint knob/slider until now. Sends the
+        # acceleration sliders below, just never fixed for the joint
+        # knob/slider until now. Sends the
         # real joints override contract server.ts's own "jog" case
         # accepts (axis:'x'/amount:0/target:'robot' + an explicit 6-joint
         # override) - the same mechanism HYDRA-UMC-STUDIO's
@@ -329,8 +329,8 @@ class RobotControlPanel(QWidget):
             return
         # Atomic 'speed' command instead of mutating state + a full-tree
         # push_active_state() - see net/client.py's own send_command()
-        # comment / DISEÑO_SYNC_DELTAS.txt CAUSA A. local_mutate gives
-        # instant optimistic feedback (rolled back if the request fails);
+        # comment. local_mutate gives instant optimistic feedback
+        # (rolled back if the request fails);
         # every other client's state updates via the WS delta round-trip,
         # same as before. Debounced (300ms, matching
         # HYDRA-UMC-ANDROID-CONTROL's own setSpeed()) - QSlider.valueChanged
