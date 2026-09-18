@@ -392,6 +392,41 @@ class HydraConnection(QObject):
             json_body={"host": host, "username": username, "password": password, "pan": pan, "tilt": tilt, "zoom": zoom},
         )
 
+    async def fetch_works_index(self, folder_path: str) -> tuple[int, object] | None:
+        """GET /<folderPath>/index.json - the same static file
+        HYDRA-UMC-STUDIO's own RobotDetail.tsx fetchWorks() reads
+        (server.ts serves `dataPath` under express.static, no /api
+        prefix). No auth - the file itself carries nothing sensitive,
+        same trust tier STUDIO's own fetch() already assumes. Returns
+        (200, list[str]) on a real folder, or None on a genuine network
+        failure; a folder that doesn't exist yet answers 404, which the
+        caller treats as "no Works recorded here yet", not an error."""
+        return await self._request_json("GET", f"/{folder_path}/index.json")
+
+    async def fetch_work_file(self, folder_path: str, file_name: str) -> tuple[int, object] | None:
+        """GET /<folderPath>/<fileName> - one real trajectory file in
+        HYDRA-UMC-STUDIO's own WORKS/*.json format (a plain JSON array of
+        points, each either native j1..j6 joints or an x/y/z(/a/b/c)
+        Cartesian pose - see server.ts's own POST /api/robot/:id/command
+        trajectory validation for the exact accepted shape)."""
+        return await self._request_json("GET", f"/{folder_path}/{file_name}")
+
+    async def save_work_file(self, folder_path: str, file_name: str, content: list[dict]) -> tuple[int, object] | None:
+        """POST /api/upload-work (authenticate-only, no admin required -
+        see server.ts's own route comment on why an operator account can
+        reach this) - writes `content` as `<folderPath>/<fileName>` and
+        appends it to that folder's own index.json, the exact same call
+        HYDRA-UMC-STUDIO's own RobotDetail.tsx handleSaveWorkFile() makes.
+        `content` must already be in STUDIO's own WORKS point shape
+        (native j1..j6 joints, which is exactly what this app's own
+        RobotView.joints/trajectory_panel.py already record - no
+        Cartesian conversion needed for a point recorded here to be a
+        real, playable Work on Server or in STUDIO's own browser UI)."""
+        return await self._request_json(
+            "POST", "/api/upload-work", auth=True,
+            json_body={"folderPath": folder_path, "fileName": file_name, "content": content},
+        )
+
     async def fetch_state(self) -> HydraState:
         """One-shot REST read - used for the initial load before the
         WebSocket connects, and as a manual "force refresh" the UI can
