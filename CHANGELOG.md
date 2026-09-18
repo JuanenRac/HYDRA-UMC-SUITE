@@ -10,7 +10,7 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
-## Unreleased - real bug: build-test.sh/.bat never activated .venv
+## Tooling - real bug: build-test.sh/.bat never activated .venv
 
 Live report: running the documented `build-test.bat` produced a wall of
 `ModuleNotFoundError` (numpy/PySide6/httpx/qasync) across all 27 offline
@@ -950,7 +950,7 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
   a `failures` counter and `sys.exit(1)`, not a pytest suite - this repo
   has none).
 
-## [Unreleased] - Chinese and Japanese added to the language menu
+## [0.1.7] - Chinese/Japanese language support and Windows/Linux installer scripts
 
 - New `language/chinese.lng` (简体中文) and `language/japanese.lng` (日本語) -
   full translation of all 85 keys, matching the coverage of the existing
@@ -968,8 +968,6 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
   packaged build, not on every source change (see the versioning note
   above).
 
-## [Unreleased] - Installer scripts (Windows/Linux)
-
 - New `installer/` - `windows_installer.iss` + `build_installer.bat`
   (Inno Setup, a real Windows installer with Start Menu/uninstall
   entries) and `build_deb.sh` (a real `.deb`, `dpkg-deb`-based). Both
@@ -985,10 +983,6 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
   See `installer/README.md`'s own "Verification status" for the honest
   caveat - treat both as written and reasoned through, not yet proven,
   until someone with the right tooling runs one for real.
-
-## [0.1.7]
-
-- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.1.6] - Ecosystem panels: real charts, card layouts, cross-referenced data (STUDIO 0.2.9 parity)
 
