@@ -31,7 +31,7 @@
 # RobotViewport (render/viewport.py) switched into PnP module-only mode
 # (set_attached_pnp(), render/pnp_rig.py) rather than module_rig.py's
 # primitive-built family: juanenPnP/lumenPnP have a real STL rig
-# (assets/meshes/lumenpnp/), the one real-mesh exception among all the
+# (assets/meshes/machine-pnp/lumenpnp/), the one real-mesh exception among all the
 # tool-attachment modules - see module_config_panel.py's own header for
 # the 4 primitive ones.
 #

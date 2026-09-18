@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "gen2",
+  "model": "Gen2 (6-DOF)",
+  "manufacturer": "Kinova",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

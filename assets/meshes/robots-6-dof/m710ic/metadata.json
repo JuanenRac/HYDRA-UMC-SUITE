@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "m710ic",
+  "model": "M-710iC (6-DOF)",
+  "manufacturer": "FANUC",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

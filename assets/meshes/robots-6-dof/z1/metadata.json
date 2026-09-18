@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "z1",
+  "model": "Z1 (6-DOF)",
+  "manufacturer": "Unitree",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "xarm6",
+  "model": "xArm6 (6-DOF)",
+  "manufacturer": "UFACTORY",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

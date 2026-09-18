@@ -248,7 +248,7 @@ class RobotGLRenderer:
         # sibling of the module-only mode above, used by
         # ui/panels/pick_and_place_panel.py's own embedded viewport
         # instead of set_attached_module(): juanenPnP/lumenPnP have a real
-        # STL rig (assets/meshes/lumenpnp/), not primitive box/cylinder
+        # STL rig (assets/meshes/machine-pnp/lumenpnp/), not primitive box/cylinder
         # geometry, and a real 2-axis-plus-2-nozzle pose rather than a
         # static width/length. Mutually exclusive with
         # _attached_module_type in practice (each embedding panel only

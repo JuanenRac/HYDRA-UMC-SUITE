@@ -16,7 +16,7 @@
 # PNP_AXES sliders already write).
 #
 # STUDIO's original LumenPnP path loads a pre-merged .glb (a browser-specific
-# workaround, not a format requirement - see assets/meshes/lumenpnp/
+# workaround, not a format requirement - see assets/meshes/machine-pnp/lumenpnp/
 # ATTRIBUTION.txt for why) but keeps the raw .stl files as source of
 # truth; the three STUDIO variants and this app load STL directly. Here,
 # mesh.py's existing
@@ -75,10 +75,10 @@ PNP_ROOT = translation((0.0, GROUND_OFFSET_M, 0.0)) @ rot_x(-np.pi / 2)
 
 PNP_MESH_DIR = "lumenpnp"
 MACHINE_MESH_DIRS = {
-    "lumenPnP": "lumenpnp",
-    "juanenPnP": "juanenpnp",
-    "juanenCNC": "juanencnc",
-    "juanenLaser": "juanenlaser",
+    "lumenPnP": "machine-pnp/lumenpnp",
+    "juanenPnP": "machine-pnp/juanenpnp",
+    "juanenCNC": "machine-cnc/juanencnc",
+    "juanenLaser": "machine-laser/juanenlaser",
 }
 
 
@@ -95,7 +95,7 @@ PNP_LINK_NAMES: tuple[str, ...] = (
 )
 PNP_MESH_FILES: dict[str, str] = {name: f"{name}.stl" for name in PNP_LINK_NAMES}
 
-# 160 real, individually-named CAD parts (assets/meshes/lumenpnp/parts/ -
+# 160 real, individually-named CAD parts (assets/meshes/machine-pnp/lumenpnp/parts/ -
 # legs, control box, frame extrusions, cameras/lights, feeders, motors,
 # pulleys, belts, the real drag chains, and more) mirroring HYDRA-UMC-
 # STUDIO's own LumenPnPRig.tsx batches 1-5 - wired in here
@@ -104,7 +104,7 @@ PNP_MESH_FILES: dict[str, str] = {name: f"{name}.stl" for name in PNP_LINK_NAMES
 # part is already in real assembled world-space (no per-part offset
 # needed) and is attached to whichever of base/y_carriage/x_carriage
 # matches its own real mechanical role - see
-# assets/meshes/lumenpnp/ATTRIBUTION.txt and parts/manifest.json for the
+# assets/meshes/machine-pnp/lumenpnp/ATTRIBUTION.txt and parts/manifest.json for the
 # full per-part reasoning (STUDIO's own commit messages document it
 # batch by batch; not re-derived independently here).
 PNP_BASE_STATIC_PARTS: tuple[str, ...] = (

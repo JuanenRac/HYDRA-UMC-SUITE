@@ -6,7 +6,7 @@
 import re
 from pathlib import Path
 
-ASSET_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "racks"
+ASSET_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "racks" / "default"
 
 
 def valid_dimension(v):

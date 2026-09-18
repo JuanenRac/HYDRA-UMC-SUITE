@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "vx300s",
+  "model": "ViperX 300 (6-DOF)",
+  "manufacturer": "Trossen Robotics",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "faze4",
+  "model": "Faze4 (6-DOF)",
+  "manufacturer": "Source Robotics",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

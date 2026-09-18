@@ -6,7 +6,7 @@
 import json
 from pathlib import Path
 
-CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "heated-beds"
+CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "heatedbeds" / "default"
 _catalog = json.loads((CATALOG_DIR / "catalog.json").read_text(encoding="utf-8"))
 HEATED_BED_MODELS = _catalog["models"]
 
