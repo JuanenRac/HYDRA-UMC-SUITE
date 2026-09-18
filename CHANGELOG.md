@@ -26,6 +26,23 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.5] - trajectory_panel.py now reads/writes HYDRA-UMC STUDIO's own real WORKS/*.json format
+
+Closes the gap this repo's own README/ROADMAP.md previously disclosed honestly: `trajectory_panel.py` was a
+local-only point recorder with no connection at all to HYDRA-UMC STUDIO's own `WORKS/*.json` trajectory files.
+
+Added `HydraConnection.save_work_file()`/`fetch_works_index()`/`fetch_work_file()` (`hydra_suite/net/client.py`) -
+the same `POST /api/upload-work` and `GET /<folder>/index.json`/`GET /<folder>/<file>.json` calls
+HYDRA-UMC-STUDIO's own `RobotDetail.tsx` already makes. `trajectory_panel.py` gained two new buttons: "Export to
+Works..." writes the currently recorded points as a real `<folder>/<name>.json` Work file (stripping this panel's
+own local `_time` display column - the points are already in the format's native-joints shape, `j1..j6`, so no
+Cartesian conversion is needed), and "Import from Works..." lists that robot's real Work files and loads one back
+into the table, skipping any point that is Cartesian-only (no joint values) since this panel has no inverse-
+kinematics engine to jog back to one. The target folder resolves the same way STUDIO's own RobotDetail.tsx does:
+`settings.worksPaths[robot.id]` if configured, else `WORKS/<robot name, whitespace stripped>` - so a point
+recorded in either app lands in, and can be played back from, the same real folder. New i18n keys added across
+all 7 language files. `tools/run_offline_verifiers.py`'s existing 28 scripts all still pass unmodified.
+
 ## [0.5.4] - N01: real System Supervisor panel, closing the last real STUDIO parity gap
 
 New `SystemSupervisorPanel` (`ui/panels/system_supervisor_panel.py`) - the

@@ -95,6 +95,16 @@ COL_TIME=時刻
 BTN_RECORD_POSE=現在の姿勢を記録
 BTN_JOG_TO_POINT=選択したポイントへロボットをジョグ
 BTN_DELETE_POINT=ポイントを削除
+BTN_EXPORT_WORK=Works へエクスポート...
+BTN_IMPORT_WORK=Works からインポート...
+DLG_EXPORT_WORK_TITLE=軌道をエクスポート
+DLG_EXPORT_WORK_LABEL=ファイル名（.json は不要）：
+DLG_IMPORT_WORK_TITLE=軌道をインポート
+DLG_IMPORT_WORK_LABEL=Work ファイルを選択：
+MSG_WORK_EXPORTED=実際の HYDRA-UMC STUDIO Work ファイルとして保存しました：{file}
+MSG_WORK_EXPORT_FAILED=Work ファイルを保存できませんでした：{error}
+MSG_WORK_IMPORT_FAILED=Works からのインポートに失敗しました：{error}
+MSG_WORK_IMPORT_PARTIAL={imported} 件のポイントをインポートしました。このパネルでは移動できないデカルト座標のみのポイント {skipped} 件をスキップしました
 
 HEADING_VIEWPORT=3D ビューポート
 MSG_UNSUPPORTED_MODEL=「{model}」には HYDRA-UMC SUITE 内でまだ実際の 3D メッシュ/運動学データがありません。\n\nこのバージョンで接続されているのは {models} のみです（HYDRA-UMC-STUDIO 自身の Web UI がそのために使用しているのと同じ実際の STL + 正運動学データ）——他のモデルへ拡張する方法については docs/ROADMAP.md を参照してください。

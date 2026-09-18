@@ -185,20 +185,24 @@ just moves where it breaks.
   an atomic-endpoint concept - server.ts has no such case; every
   tool-attachment module's own enable/disable already goes through
   `module_config_panel.py`'s own `_on_enable()`, unrelated to this gap.
+- **Trajectory file format parity with HYDRA-UMC-STUDIO's own WORKS/
+  library** - `trajectory_panel.py` now exports its recorded points as a
+  real HYDRA-UMC-STUDIO `WORKS/*.json` file (`HydraConnection.save_work_file()`,
+  `POST /api/upload-work` - the exact same call RobotDetail.tsx's own
+  `handleSaveWorkFile()` makes, including the server's own `index.json`
+  bookkeeping) and imports one back (`fetch_works_index()`/
+  `fetch_work_file()`, `GET /<folder>/index.json` and
+  `GET /<folder>/<file>.json`). The points this panel records are
+  already in that format's native-joints shape (`j1..j6`), so no
+  Cartesian conversion is needed on export; import skips any point that
+  is Cartesian-only (`x/y/z/a/b/c` with no joint values) since this
+  panel has no inverse-kinematics engine to jog back to one. The real,
+  per-robot folder path resolves the same way HYDRA-UMC-STUDIO's own
+  RobotDetail.tsx does: `settings.worksPaths[robot.id]` if configured
+  from Config, else `WORKS/<robot name, whitespace stripped>`.
 
 ## 🚧 Deliberately out of scope this pass
 
-- **Trajectory file format parity with HYDRA-UMC-STUDIO's own WORKS/
-  library** - `trajectory_panel.py` is a local-only point recorder today
-  (records the selected robot's live joint pose, jogs back to a recorded
-  point) - it does not read or write HYDRA-UMC-STUDIO's own
-  `data/WORKS/*.json` trajectory file format yet, so a point recorded
-  here isn't visible from a browser tab's own Works library. Real,
-  scoped follow-up: reverse-engineer that JSON shape from HYDRA-UMC-STUDIO's
-  own `src/examples/utils.ts`/`RobotDetail.tsx` and read/write the same
-  files (accessible remotely once a `/api/works` style endpoint exists -
-  today's REMOTE_API.md doesn't cover file-level access, only the full
-  settings blob).
 - **VPN-tunnel-specific UI** - deliberately NOT built as a separate
   feature. A VPN tunnel just makes a remote host reachable as if it were
   local - the existing "Add server by address" manual entry in the

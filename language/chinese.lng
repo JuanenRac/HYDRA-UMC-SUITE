@@ -95,6 +95,16 @@ COL_TIME=时间
 BTN_RECORD_POSE=记录当前姿态
 BTN_JOG_TO_POINT=点动机器人至所选点位
 BTN_DELETE_POINT=删除点位
+BTN_EXPORT_WORK=导出到 Works...
+BTN_IMPORT_WORK=从 Works 导入...
+DLG_EXPORT_WORK_TITLE=导出轨迹
+DLG_EXPORT_WORK_LABEL=文件名（不含 .json）：
+DLG_IMPORT_WORK_TITLE=导入轨迹
+DLG_IMPORT_WORK_LABEL=选择一个 Work 文件：
+MSG_WORK_EXPORTED=已保存为真实的 HYDRA-UMC STUDIO Work 文件：{file}
+MSG_WORK_EXPORT_FAILED=无法保存 Work 文件：{error}
+MSG_WORK_IMPORT_FAILED=无法从 Works 导入：{error}
+MSG_WORK_IMPORT_PARTIAL=已导入 {imported} 个点位；跳过 {skipped} 个仅笛卡尔坐标、此面板无法点动到达的点位
 
 HEADING_VIEWPORT=3D 视口
 MSG_UNSUPPORTED_MODEL=“{model}”在 HYDRA-UMC SUITE 中尚无真实的 3D 网格/运动学数据。\n\n此版本仅接入了 {models}（与 HYDRA-UMC-STUDIO 自身网页界面所使用的真实 STL + 正向运动学数据相同）——有关如何扩展至其他型号，请参见 docs/ROADMAP.md。

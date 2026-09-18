@@ -96,6 +96,16 @@ COL_TIME=Hora
 BTN_RECORD_POSE=Grabar postura actual
 BTN_JOG_TO_POINT=Mover robot al punto seleccionado
 BTN_DELETE_POINT=Eliminar punto
+BTN_EXPORT_WORK=Exportar a Works...
+BTN_IMPORT_WORK=Importar desde Works...
+DLG_EXPORT_WORK_TITLE=Exportar trayectoria
+DLG_EXPORT_WORK_LABEL=Nombre del archivo (sin .json):
+DLG_IMPORT_WORK_TITLE=Importar trayectoria
+DLG_IMPORT_WORK_LABEL=Selecciona un archivo Work:
+MSG_WORK_EXPORTED=Guardado como un archivo Work real de HYDRA-UMC STUDIO: {file}
+MSG_WORK_EXPORT_FAILED=No se pudo guardar el archivo Work: {error}
+MSG_WORK_IMPORT_FAILED=No se pudo importar desde Works: {error}
+MSG_WORK_IMPORT_PARTIAL=Se importaron {imported} punto(s); se omitieron {skipped} punto(s) solo cartesianos que este panel no puede alcanzar
 
 HEADING_VIEWPORT=VISTA 3D
 MSG_UNSUPPORTED_MODEL='{model}' todavía no tiene malla 3D/cinemática real en HYDRA-UMC SUITE.\n\nSolo {models} está integrado en esta versión (los mismos datos reales de STL y cinemática directa que usa la interfaz web de HYDRA-UMC-STUDIO) - consulta docs/ROADMAP.md para ampliarlo a los demás modelos.

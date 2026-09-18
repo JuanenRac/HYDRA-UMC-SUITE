@@ -96,6 +96,16 @@ COL_TIME=Zeit
 BTN_RECORD_POSE=Aktuelle Pose aufzeichnen
 BTN_JOG_TO_POINT=Roboter zum ausgewählten Punkt fahren
 BTN_DELETE_POINT=Punkt löschen
+BTN_EXPORT_WORK=Nach Works exportieren...
+BTN_IMPORT_WORK=Aus Works importieren...
+DLG_EXPORT_WORK_TITLE=Trajektorie exportieren
+DLG_EXPORT_WORK_LABEL=Dateiname (ohne .json):
+DLG_IMPORT_WORK_TITLE=Trajektorie importieren
+DLG_IMPORT_WORK_LABEL=Work-Datei auswählen:
+MSG_WORK_EXPORTED=Als echte HYDRA-UMC STUDIO Work-Datei gespeichert: {file}
+MSG_WORK_EXPORT_FAILED=Die Work-Datei konnte nicht gespeichert werden: {error}
+MSG_WORK_IMPORT_FAILED=Import aus Works fehlgeschlagen: {error}
+MSG_WORK_IMPORT_PARTIAL={imported} Punkt(e) importiert; {skipped} rein kartesische(r) Punkt(e) übersprungen, die dieses Panel nicht anfahren kann
 
 HEADING_VIEWPORT=3D-ANSICHT
 MSG_UNSUPPORTED_MODEL='{model}' hat noch kein echtes 3D-Mesh/keine echte Kinematik in HYDRA-UMC SUITE.\n\nNur {models} ist in dieser Version integriert (dieselben echten STL- und Vorwärtskinematik-Daten, die auch die Weboberfläche von HYDRA-UMC-STUDIO verwendet) - siehe docs/ROADMAP.md, um dies auf die anderen Modelle zu erweitern.

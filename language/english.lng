@@ -95,6 +95,16 @@ COL_TIME=Time
 BTN_RECORD_POSE=Record current pose
 BTN_JOG_TO_POINT=Jog robot to selected point
 BTN_DELETE_POINT=Delete point
+BTN_EXPORT_WORK=Export to Works...
+BTN_IMPORT_WORK=Import from Works...
+DLG_EXPORT_WORK_TITLE=Export trajectory
+DLG_EXPORT_WORK_LABEL=File name (without .json):
+DLG_IMPORT_WORK_TITLE=Import trajectory
+DLG_IMPORT_WORK_LABEL=Select a Work file:
+MSG_WORK_EXPORTED=Saved as a real HYDRA-UMC STUDIO Work file: {file}
+MSG_WORK_EXPORT_FAILED=Could not save the Work file: {error}
+MSG_WORK_IMPORT_FAILED=Could not import from Works: {error}
+MSG_WORK_IMPORT_PARTIAL=Imported {imported} point(s); skipped {skipped} Cartesian-only point(s) this panel cannot jog to
 
 HEADING_VIEWPORT=3D VIEWPORT
 MSG_UNSUPPORTED_MODEL='{model}' has no real 3D mesh/kinematics in HYDRA-UMC SUITE yet.\n\nOnly {models} is wired up in this version (same real STL + forward-kinematics data HYDRA-UMC-STUDIO's own web UI uses for it) - see docs/ROADMAP.md for extending this to the other models.
