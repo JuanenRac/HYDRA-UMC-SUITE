@@ -127,8 +127,7 @@ HYDRA-UMC-SUITE/
 ├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
 ├── bump_version.py                # 为 hydra_suite/__init__.py 自身的 __version__ 做里程表式版本递增，在每次真实的 PyInstaller 构建前由 build_exe.bat/.sh 运行
 ├── bump_manifest_version.py       # 将 hydra-umc.project.json 的版本与原生版本同步（通用，在整个生态系统中原样复制）
-├── build.bat / build.sh           # venv + 可编辑安装 + 真实测试套件（增量构建，含版本递增）
-├── build-test.bat / build-test.sh # 相同的检查，但不产生变更 - 从不递增版本，也不改动 CHANGELOG.md
+├── build-test.bat / build-test.sh # venv + 可编辑安装 + 真实测试套件，不产生变更 - 从不递增版本，也不改动 CHANGELOG.md
 ├── run.bat / run.sh               # 通过 venv 启动 main.py
 ├── HYDRA-UMC_SUITE.spec           # PyInstaller 规格文件（见下方 build_exe.bat/.sh）
 ├── build_exe.bat                  # 一步式 Windows 构建 -> dist/HYDRA-UMC_SUITE.exe
