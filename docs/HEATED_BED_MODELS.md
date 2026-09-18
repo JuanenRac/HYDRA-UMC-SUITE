@@ -63,7 +63,7 @@ recessed perimeter marks, a center cross, HYDRA-UMC engraving and underside groo
 Every detail is cut into the plate, so nothing protrudes above 5 mm.
 The underside grooves are visual detail, not an electrical design.
 
-assets/meshes/heated-beds contains catalog.json, HeatedBed.scad and four preset STL files.
+assets/meshes/heatedbeds/default contains catalog.json, HeatedBed.scad and four preset STL files.
 SCAD/STL coordinates are millimeters with a corner origin and Z up. Renderers
 convert to meters, center the footprint and rotate to Y up: world bottom=0,
 top=0.005 m. Cached source meshes are not mutated during resizing.
@@ -74,12 +74,12 @@ OpenSCAD is needed only to regenerate CAD, not to run the application.
 From this repository root:
 
 ~~~sh
-openscad --export-format binstl -D bed_width=255 -D bed_length=255 -o assets/meshes/heated-beds/HeatedBed255x255x5mm.stl assets/meshes/heated-beds/HeatedBed.scad
+openscad --export-format binstl -D bed_width=255 -D bed_length=255 -o assets/meshes/heatedbeds/default/HeatedBed255x255x5mm.stl assets/meshes/heatedbeds/default/HeatedBed.scad
 ~~~
 
 On Windows use the installed openscad.com with PowerShell's call operator:
 ~~~powershell
-& "C:/Program Files/OpenSCAD/openscad.com" --export-format binstl -D "bed_width=255" -D "bed_length=255" -o "assets/meshes/heated-beds/HeatedBed255x255x5mm.stl" "assets/meshes/heated-beds/HeatedBed.scad"
+& "C:/Program Files/OpenSCAD/openscad.com" --export-format binstl -D "bed_width=255" -D "bed_length=255" -o "assets/meshes/heatedbeds/default/HeatedBed255x255x5mm.stl" "assets/meshes/heatedbeds/default/HeatedBed.scad"
 ~~~
 
 bed_thickness is fixed at 5. For new manufacturing dimensions, regenerate from

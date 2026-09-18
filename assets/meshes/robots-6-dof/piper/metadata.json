@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "piper",
+  "model": "PiPER (6-DOF)",
+  "manufacturer": "AgileX",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

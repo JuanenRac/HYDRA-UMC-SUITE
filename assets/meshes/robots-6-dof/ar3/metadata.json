@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "ar3",
+  "model": "AR3 (6-DOF)",
+  "manufacturer": "Annin Robotics",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

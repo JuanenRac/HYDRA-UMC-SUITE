@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "ur5e",
+  "model": "UR5e (6-DOF)",
+  "manufacturer": "Universal Robots",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

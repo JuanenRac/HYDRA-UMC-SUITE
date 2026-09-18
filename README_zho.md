@@ -111,13 +111,13 @@ HYDRA-UMC-SUITE/
 ├── docs/MACHINE_ASSETS.md
 ├── assets/meshes/{juanenpnp,juanencnc,juanenlaser}/  # STL + ATTRIBUTION + VARIANT.md
 ├── tests/verify_machine_assets.py
-├── assets/meshes/racks/        # Rack.scad + base/wall/guide/assembly STL
+├── assets/meshes/racks/default/        # Rack.scad + base/wall/guide/assembly STL
 ├── hydra_suite/racks.py
 ├── tests/verify_rack_geometry.py
-├── assets/meshes/heated-beds/  # catalog.json + HeatedBed.scad + 4 STL
+├── assets/meshes/heatedbeds/default/  # catalog.json + HeatedBed.scad + 4 STL
 ├── hydra_suite/heated_beds.py
 ├── tests/verify_heated_beds.py
-├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
+├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
 ├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板

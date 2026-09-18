@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "vacuum-tables"
+CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "vacuum-tables" / "default"
 VACUUM_TABLE_MODELS = json.loads((CATALOG_DIR / "catalog.json").read_text(encoding="utf-8"))["models"]
 
 

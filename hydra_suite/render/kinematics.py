@@ -289,7 +289,7 @@ UR_MESH_FILES = {
 # xArm6/Lite6 (UFACTORY) - same "every joint is local Z" structure as the
 # UR family (chain/limits copied verbatim from xarm_ros2's own
 # xarm6.urdf.xacro/lite6.urdf.xacro, BSD-3-Clause - see
-# assets/meshes/xarm6/ATTRIBUTION.txt), so they reuse ur_world_link_transforms/
+# assets/meshes/robots-6-dof/xarm6/ATTRIBUTION.txt), so they reuse ur_world_link_transforms/
 # ur_mesh_world_transforms directly. Unlike UR's own official meshes,
 # xArm6/Lite6's own <visual><origin> is (0,0,0)/(0,0,0) for every link (the
 # STLs are already authored aligned to their own joint-chain frame), so
@@ -325,7 +325,7 @@ LITE6_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j
 # Kinova Gen2 (j2s6s200) - same "every joint is local Z" structure (chain
 # copied verbatim from Kinovarobotics/kinova-ros's own
 # kinova_description/urdf/j2s6s200_standalone.xacro, BSD-3-Clause - see
-# assets/meshes/gen2/ATTRIBUTION.txt). Every <visual> mesh sits at its
+# assets/meshes/robots-6-dof/gen2/ATTRIBUTION.txt). Every <visual> mesh sits at its
 # own link's default origin (no explicit <origin> tag = identity), so
 # GEN2_MESH_OFFSETS is all-identity like xArm6/Lite6's own.
 GEN2_CHAIN: list[JointStep] = [
@@ -344,7 +344,7 @@ GEN2_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6
 # AgileX PiPER - same "every joint is local Z" structure (chain copied
 # verbatim from renesas-rdk/agilex_piper_arm_description's own
 # urdf/reference/agilex_piper_arm_ref.urdf, Apache-2.0 per that repo's
-# own package.xml license tag - see assets/meshes/piper/ATTRIBUTION.txt;
+# own package.xml license tag - see assets/meshes/robots-6-dof/piper/ATTRIBUTION.txt;
 # that repo is itself explicitly derived from AgileX's own official
 # agilexrobotics/piper_ros, MIT). Identity mesh offsets, same reasoning
 # as Gen2/xArm6/Lite6.
@@ -363,7 +363,7 @@ PIPER_HOME_POSE_DEG = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j
 
 # Kinova Gen3 Lite - same "every joint is local Z" structure (chain
 # copied verbatim from ros2_kortex's own gen3_lite.urdf, BSD-3-Clause -
-# see assets/meshes/gen3lite/ATTRIBUTION.txt). The source URDF's own
+# see assets/meshes/robots-6-dof/gen3lite/ATTRIBUTION.txt). The source URDF's own
 # end_effector_link (after joint 6) has no mesh of its own - only 6 real
 # link_names/mesh_files are given here, and ur_world_link_transforms()
 # returns 7 transforms; zip() truncates to the shorter list, so the
@@ -545,7 +545,7 @@ AR4 = QuatRobotConfig(
 # genuinely arbitrary (joint_2's own axis is (-0.88847,0.2908,0.35504),
 # not a cardinal direction) - chain copied verbatim from
 # eDO_description's own robots/edo_sim.urdf (BSD-3-Clause, Comau S.p.A -
-# see assets/meshes/edo/ATTRIBUTION.txt), so this uses the same
+# see assets/meshes/robots-6-dof/edo/ATTRIBUTION.txt), so this uses the same
 # quaternion-family engine as Parol6/Faze4/AR3/AR4. base_link's own STL
 # origin is (0,0,0) in the source URDF, so base_offset is (0,0,0) - no
 # hand-tuned recentering needed (unlike Parol6/Faze4's own off-center meshes).
@@ -578,7 +578,7 @@ EDO = QuatRobotConfig(
 # translation between joints) but the per-joint axis varies (not always
 # Z: joint_2 is world Y, joint_4/joint_6 are -X) - chain copied verbatim
 # from robot-descriptions/fanuc_m710ic_description's own urdf/
-# m710ic70.urdf (BSD-3-Clause - see assets/meshes/m710ic/ATTRIBUTION.txt).
+# m710ic70.urdf (BSD-3-Clause - see assets/meshes/robots-6-dof/m710ic/ATTRIBUTION.txt).
 M710IC_CHAIN: list[JointStep] = [
     JointStep((0, 0, 0.565), (0, 0, 0), (0, 0, 1)),
     JointStep((0.150, 0, 0), (0, 0, 0), (0, 1, 0)),
@@ -606,7 +606,7 @@ M710IC = QuatRobotConfig(
 
 # SO-ARM100 (The Robot Studio) - chain copied verbatim from that
 # repository's own Simulation/SO100/so100.urdf (Apache-2.0 - see
-# assets/meshes/so100/ATTRIBUTION.txt). ONLY 5 real arm joints (not 6 -
+# assets/meshes/robots-6-dof/so100/ATTRIBUTION.txt). ONLY 5 real arm joints (not 6 -
 # the source URDF's own 6th joint is the gripper jaw, not a wrist
 # orientation axis) - see that ATTRIBUTION.txt for why j6 is left unused
 # rather than repurposed. quat_family_link_transforms()'s own `order`
@@ -638,7 +638,7 @@ SOARM100 = QuatRobotConfig(
 )
 
 # Koch v1.1 / "Low-Cost Robot Arm" (same real open-hardware design, see
-# assets/meshes/koch/ATTRIBUTION.txt for why this ports it once instead
+# assets/meshes/robots-6-dof/koch/ATTRIBUTION.txt for why this ports it once instead
 # of as two near-duplicate robots) - chain copied verbatim from
 # mujoco_menagerie's own low_cost_robot_arm/low_cost_robot_arm.xml MJCF
 # (Apache-2.0). Only 5 real arm joints (not 6 - the source MJCF's own
@@ -668,7 +668,7 @@ KOCH = QuatRobotConfig(
 
 # Universal Robots UR3/UR5/UR10 (classic, pre-e-Series) - chains built
 # from ros-industrial/universal_robot's own real DH parameters
-# (BSD-3-Clause - see assets/meshes/ur{3,5,10}classic/ATTRIBUTION.txt).
+# (BSD-3-Clause - see assets/meshes/robots-6-dof/ur{3,5,10}classic/ATTRIBUTION.txt).
 # UNLIKE the e-Series (UR3E_CHAIN etc. above, all local-Z), this classic
 # generation's own DH-based URDF mixes axes per joint (shoulder_pan/
 # wrist_2 = Z, shoulder_lift/elbow/wrist_1/wrist_3 = Y) - so despite
@@ -725,7 +725,7 @@ UR10CLASSIC = QuatRobotConfig(
 # Unitree Z1 - every joint's own rpy is (0,0,0) (pure translation) but
 # the axis varies per joint (not always Z) - chain copied verbatim from
 # mujoco_menagerie's own unitree_z1/z1.xml MJCF (BSD-3-Clause, Unitree
-# Robotics - see assets/meshes/z1/ATTRIBUTION.txt). MJCF bodies have no
+# Robotics - see assets/meshes/robots-6-dof/z1/ATTRIBUTION.txt). MJCF bodies have no
 # separate visual-mesh offset from their own joint frame here (no <geom
 # quat/pos> override beyond the body's own placement), so identity mesh
 # offsets, same as the other quat-family robots without one.
@@ -757,7 +757,7 @@ Z1 = QuatRobotConfig(
 
 # ViperX 300 / WidowX 250 (Trossen Robotics) - chains copied verbatim
 # from Interbotix's own official interbotix_ros_manipulators repo
-# (BSD-3-Clause - see assets/meshes/vx300s|wx250s/ATTRIBUTION.txt).
+# (BSD-3-Clause - see assets/meshes/robots-6-dof/vx300s|wx250s/ATTRIBUTION.txt).
 # Unlike every other quat-family robot so far, these DO have a real,
 # non-identity <visual><origin> per link, distinct from the joint
 # chain's own origin - hence VX300S_MESH_OFFSETS/WX250S_MESH_OFFSETS
@@ -847,29 +847,29 @@ class RobotModelEntry:
 
 
 ROBOT_REGISTRY: dict[str, RobotModelEntry] = {
-    "UR3e (6-DOF)": RobotModelEntry("ur", "ur3e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR3E_CHAIN, mesh_offsets=UR3E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
-    "UR5e (6-DOF)": RobotModelEntry("ur", "ur5e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR5E_CHAIN, mesh_offsets=UR5E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
-    "UR10e (6-DOF)": RobotModelEntry("ur", "ur10e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR10E_CHAIN, mesh_offsets=UR10E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
-    "UR16e (6-DOF)": RobotModelEntry("ur", "ur16e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR16E_CHAIN, mesh_offsets=UR16E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
-    "UR20 (6-DOF)": RobotModelEntry("ur", "ur20", UR_LINK_NAMES, UR_MESH_FILES, chain=UR20_CHAIN, mesh_offsets=UR20_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
-    "Parol6 (6-DOF)": RobotModelEntry("quat", "parol6", PAROL6.link_names, PAROL6.mesh_files, quat_config=PAROL6, home_pose_deg=PAROL6.home_pose_deg),
-    "Faze4 (6-DOF)": RobotModelEntry("quat", "faze4", FAZE4.link_names, FAZE4.mesh_files, quat_config=FAZE4, home_pose_deg=FAZE4.home_pose_deg),
-    "AR3 (6-DOF)": RobotModelEntry("quat", "ar3", AR3.link_names, AR3.mesh_files, quat_config=AR3, home_pose_deg=AR3.home_pose_deg),
-    "AR4 (6-DOF)": RobotModelEntry("quat", "ar4", AR4.link_names, AR4.mesh_files, quat_config=AR4, home_pose_deg=AR4.home_pose_deg),
-    "xArm6 (6-DOF)": RobotModelEntry("ur", "xarm6", XARM6_LINK_NAMES, XARM6_MESH_FILES, chain=XARM6_CHAIN, mesh_offsets=XARM6_MESH_OFFSETS, home_pose_deg=XARM6_HOME_POSE_DEG),
-    "Lite 6 (6-DOF)": RobotModelEntry("ur", "lite6", LITE6_LINK_NAMES, LITE6_MESH_FILES, chain=LITE6_CHAIN, mesh_offsets=LITE6_MESH_OFFSETS, home_pose_deg=LITE6_HOME_POSE_DEG),
-    "e.DO (6-DOF)": RobotModelEntry("quat", "edo", EDO.link_names, EDO.mesh_files, quat_config=EDO, home_pose_deg=EDO.home_pose_deg),
-    "Gen3 Lite (6-DOF)": RobotModelEntry("ur", "gen3lite", GEN3LITE_LINK_NAMES, GEN3LITE_MESH_FILES, chain=GEN3LITE_CHAIN, mesh_offsets=GEN3LITE_MESH_OFFSETS, home_pose_deg=GEN3LITE_HOME_POSE_DEG),
-    "M-710iC (6-DOF)": RobotModelEntry("quat", "m710ic", M710IC.link_names, M710IC.mesh_files, quat_config=M710IC, home_pose_deg=M710IC.home_pose_deg),
-    "SO-ARM100 (5-DOF)": RobotModelEntry("quat", "so100", SOARM100.link_names, SOARM100.mesh_files, quat_config=SOARM100, home_pose_deg=SOARM100.home_pose_deg),
-    "Gen2 (6-DOF)": RobotModelEntry("ur", "gen2", GEN2_LINK_NAMES, GEN2_MESH_FILES, chain=GEN2_CHAIN, mesh_offsets=GEN2_MESH_OFFSETS, home_pose_deg=GEN2_HOME_POSE_DEG),
-    "PiPER (6-DOF)": RobotModelEntry("ur", "piper", PIPER_LINK_NAMES, PIPER_MESH_FILES, chain=PIPER_CHAIN, mesh_offsets=PIPER_MESH_OFFSETS, home_pose_deg=PIPER_HOME_POSE_DEG),
-    "Z1 (6-DOF)": RobotModelEntry("quat", "z1", Z1.link_names, Z1.mesh_files, quat_config=Z1, home_pose_deg=Z1.home_pose_deg),
-    "ViperX 300 (6-DOF)": RobotModelEntry("quat", "vx300s", VX300S.link_names, VX300S.mesh_files, quat_config=VX300S, home_pose_deg=VX300S.home_pose_deg),
-    "WidowX 250 (6-DOF)": RobotModelEntry("quat", "wx250s", WX250S.link_names, WX250S.mesh_files, quat_config=WX250S, home_pose_deg=WX250S.home_pose_deg),
-    "Koch v1.1 (5-DOF)": RobotModelEntry("quat", "koch", KOCH.link_names, KOCH.mesh_files, quat_config=KOCH, home_pose_deg=KOCH.home_pose_deg),
-    "UR3 (6-DOF)": RobotModelEntry("quat", "ur3classic", UR3CLASSIC.link_names, UR3CLASSIC.mesh_files, quat_config=UR3CLASSIC, home_pose_deg=UR3CLASSIC.home_pose_deg),
-    "UR5 (6-DOF)": RobotModelEntry("quat", "ur5classic", UR5CLASSIC.link_names, UR5CLASSIC.mesh_files, quat_config=UR5CLASSIC, home_pose_deg=UR5CLASSIC.home_pose_deg),
-    "UR10 (6-DOF)": RobotModelEntry("quat", "ur10classic", UR10CLASSIC.link_names, UR10CLASSIC.mesh_files, quat_config=UR10CLASSIC, home_pose_deg=UR10CLASSIC.home_pose_deg),
+    "UR3e (6-DOF)": RobotModelEntry("ur", "robots-6-dof/ur3e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR3E_CHAIN, mesh_offsets=UR3E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR5e (6-DOF)": RobotModelEntry("ur", "robots-6-dof/ur5e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR5E_CHAIN, mesh_offsets=UR5E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR10e (6-DOF)": RobotModelEntry("ur", "robots-6-dof/ur10e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR10E_CHAIN, mesh_offsets=UR10E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR16e (6-DOF)": RobotModelEntry("ur", "robots-6-dof/ur16e", UR_LINK_NAMES, UR_MESH_FILES, chain=UR16E_CHAIN, mesh_offsets=UR16E_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "UR20 (6-DOF)": RobotModelEntry("ur", "robots-6-dof/ur20", UR_LINK_NAMES, UR_MESH_FILES, chain=UR20_CHAIN, mesh_offsets=UR20_MESH_OFFSETS, home_pose_deg=UR_HOME_POSE_DEG),
+    "Parol6 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/parol6", PAROL6.link_names, PAROL6.mesh_files, quat_config=PAROL6, home_pose_deg=PAROL6.home_pose_deg),
+    "Faze4 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/faze4", FAZE4.link_names, FAZE4.mesh_files, quat_config=FAZE4, home_pose_deg=FAZE4.home_pose_deg),
+    "AR3 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/ar3", AR3.link_names, AR3.mesh_files, quat_config=AR3, home_pose_deg=AR3.home_pose_deg),
+    "AR4 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/ar4", AR4.link_names, AR4.mesh_files, quat_config=AR4, home_pose_deg=AR4.home_pose_deg),
+    "xArm6 (6-DOF)": RobotModelEntry("ur", "robots-6-dof/xarm6", XARM6_LINK_NAMES, XARM6_MESH_FILES, chain=XARM6_CHAIN, mesh_offsets=XARM6_MESH_OFFSETS, home_pose_deg=XARM6_HOME_POSE_DEG),
+    "Lite 6 (6-DOF)": RobotModelEntry("ur", "robots-6-dof/lite6", LITE6_LINK_NAMES, LITE6_MESH_FILES, chain=LITE6_CHAIN, mesh_offsets=LITE6_MESH_OFFSETS, home_pose_deg=LITE6_HOME_POSE_DEG),
+    "e.DO (6-DOF)": RobotModelEntry("quat", "robots-6-dof/edo", EDO.link_names, EDO.mesh_files, quat_config=EDO, home_pose_deg=EDO.home_pose_deg),
+    "Gen3 Lite (6-DOF)": RobotModelEntry("ur", "robots-6-dof/gen3lite", GEN3LITE_LINK_NAMES, GEN3LITE_MESH_FILES, chain=GEN3LITE_CHAIN, mesh_offsets=GEN3LITE_MESH_OFFSETS, home_pose_deg=GEN3LITE_HOME_POSE_DEG),
+    "M-710iC (6-DOF)": RobotModelEntry("quat", "robots-6-dof/m710ic", M710IC.link_names, M710IC.mesh_files, quat_config=M710IC, home_pose_deg=M710IC.home_pose_deg),
+    "SO-ARM100 (5-DOF)": RobotModelEntry("quat", "robots-5-dof/so100", SOARM100.link_names, SOARM100.mesh_files, quat_config=SOARM100, home_pose_deg=SOARM100.home_pose_deg),
+    "Gen2 (6-DOF)": RobotModelEntry("ur", "robots-6-dof/gen2", GEN2_LINK_NAMES, GEN2_MESH_FILES, chain=GEN2_CHAIN, mesh_offsets=GEN2_MESH_OFFSETS, home_pose_deg=GEN2_HOME_POSE_DEG),
+    "PiPER (6-DOF)": RobotModelEntry("ur", "robots-6-dof/piper", PIPER_LINK_NAMES, PIPER_MESH_FILES, chain=PIPER_CHAIN, mesh_offsets=PIPER_MESH_OFFSETS, home_pose_deg=PIPER_HOME_POSE_DEG),
+    "Z1 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/z1", Z1.link_names, Z1.mesh_files, quat_config=Z1, home_pose_deg=Z1.home_pose_deg),
+    "ViperX 300 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/vx300s", VX300S.link_names, VX300S.mesh_files, quat_config=VX300S, home_pose_deg=VX300S.home_pose_deg),
+    "WidowX 250 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/wx250s", WX250S.link_names, WX250S.mesh_files, quat_config=WX250S, home_pose_deg=WX250S.home_pose_deg),
+    "Koch v1.1 (5-DOF)": RobotModelEntry("quat", "robots-5-dof/koch", KOCH.link_names, KOCH.mesh_files, quat_config=KOCH, home_pose_deg=KOCH.home_pose_deg),
+    "UR3 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/ur3classic", UR3CLASSIC.link_names, UR3CLASSIC.mesh_files, quat_config=UR3CLASSIC, home_pose_deg=UR3CLASSIC.home_pose_deg),
+    "UR5 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/ur5classic", UR5CLASSIC.link_names, UR5CLASSIC.mesh_files, quat_config=UR5CLASSIC, home_pose_deg=UR5CLASSIC.home_pose_deg),
+    "UR10 (6-DOF)": RobotModelEntry("quat", "robots-6-dof/ur10classic", UR10CLASSIC.link_names, UR10CLASSIC.mesh_files, quat_config=UR10CLASSIC, home_pose_deg=UR10CLASSIC.home_pose_deg),
     "Generic (6-DOF)": RobotModelEntry("generic", None, None, None, home_pose_deg={"j1": 0.0, "j2": -45.0, "j3": 45.0, "j4": 0.0, "j5": 0.0, "j6": 0.0}),
 }

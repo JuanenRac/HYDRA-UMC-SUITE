@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "edo",
+  "model": "e.DO (6-DOF)",
+  "manufacturer": "Comau",
+  "dof": 6,
+  "category": "robots-6-dof"
+}

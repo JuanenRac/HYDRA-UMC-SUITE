@@ -59,7 +59,7 @@ robot's real trajectory or slot pickup positions.
 
 ## Using and editing the assets
 
-Assets: assets/meshes/racks/. Source contract: hydra_suite/racks.py.
+Assets: assets/meshes/racks/default/. Source contract: hydra_suite/racks.py.
 
 STUDIO offers independent 3D previews on both rack cards and reuses the same
 assembly in its existing cell view. SUITE classic offers a preview per rack;
