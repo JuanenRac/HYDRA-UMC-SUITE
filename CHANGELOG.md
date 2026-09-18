@@ -26,6 +26,31 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.6] - Model library reorganized into category folders
+
+- `assets/meshes/` was one flat folder mixing 24 robot arms, 4 independent
+  PnP/CNC/laser machine copies, heated beds, racks and vacuum tables. Split
+  into `robots-5-dof/`, `robots-6-dof/` (plus a reserved, currently-empty
+  `robots-7-dof/` - no 7-DOF model exists in `kinematics.py`'s own
+  `ROBOT_REGISTRY` yet), `machine-pnp/{lumenpnp,juanenpnp}/`,
+  `machine-cnc/juanencnc/`, `machine-laser/juanenlaser/`, and
+  `heatedbeds/default/`, `racks/default/`, `vacuum-tables/default/` (a
+  `default/` variant subfolder under each, room for future alternates
+  without another reshuffle), matching HYDRA-UMC-STUDIO's own
+  identical reorganization. DOF classification per robot comes straight
+  from `ROBOT_REGISTRY`'s own model-name strings (e.g. `(5-DOF)`), not
+  guessed from STL file/joint counts. `kinematics.py`'s `mesh_dir` per
+  robot, `pnp_rig.py`'s `MACHINE_MESH_DIRS`, and `heated_beds.py`/
+  `racks.py`/`vacuum_tables.py`'s catalog directory constants were all
+  updated to the new paths - `viewport.py`'s own mesh loading needed no
+  code change, since it already just joins `ASSETS_DIR` with whatever
+  string `mesh_dir` holds. Verified every registered robot/machine's
+  mesh directory and files resolve on disk, plus a full re-run of the
+  kinematics/heated-bed/rack/vacuum-table/pick-and-place verifiers.
+  Added a `metadata.json` (id/model/manufacturer/dof/category, or
+  id/name/manufacturer/category for machines) next to each model folder
+  alongside its existing `ATTRIBUTION.txt`.
+
 ## [0.5.5] - trajectory_panel.py now reads/writes HYDRA-UMC STUDIO's own real WORKS/*.json format
 
 Closes the gap this repo's own README/ROADMAP.md previously disclosed honestly: `trajectory_panel.py` was a
@@ -82,7 +107,7 @@ constructs the real `MainWindow`, so a wiring mistake in either the dock
 or the nav sidebar would fail it the same way it would fail a person
 clicking through the app by hand).
 
-## [0.5.3] - H063: XY-table axis/unit labels were hardcoded English, never routed through the language files
+## [0.5.3] - XY-table axis/unit labels were hardcoded English, never routed through the language files
 
 - The XY Table panel's own "X Axis"/"Y Axis" labels and the rack's own
   "Table X (mm)"/"Table Y (mm)" labels were plain literal QML strings -
@@ -96,9 +121,9 @@ clicking through the app by hand).
   offline verifier suite (28/28, including `verify_xy_table_panel.py`)
   still passes unchanged.
 
-## [0.5.2] - H034/H035: throttle robot-id collision, delta/settings convergence
+## [0.5.2] - Throttle robot-id collision, delta/settings convergence
 
-- H034: `net/client.py`'s per-command throttle (`_throttle_tasks`/
+- `net/client.py`'s per-command throttle (`_throttle_tasks`/
   `_throttle_latest_send`) was keyed by command name alone - two different
   robots sending the SAME command name (e.g. both jogging) in the same
   throttle window shared one slot, so one robot's pending send could
@@ -106,7 +131,7 @@ clicking through the app by hand).
   by `(robot_id, command)` instead. `stop`/`play`/`pause` already sent
   immediately (`debounce_ms=0`, a different command name besides) and were
   never affected.
-- H035: `_apply_robot_delta()` mutates local state from a real targeted
+- `_apply_robot_delta()` mutates local state from a real targeted
   delta but never updated `_last_payload_json` (the echo-guard baseline
   that suppresses our own writes echoed back) - a later full snapshot
   whose payload happened to be byte-identical to the one from BEFORE that
@@ -294,7 +319,7 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
   asserts the exact command name and params each control sends. See
   `docs/ROADMAP.md`'s own "Atomic per-command sync" entry, moved from
   "deliberately out of scope" now that this is real.
-- **REV-019 (found while re-checking the code, P2): neither
+- **Found while re-checking the code: neither
   `tools/build_test.py` nor `.github/workflows/ci.yml` ever ran the real
   Qt/backend control verifiers under `tests/verify_*.py` - both only
   ever compiled Python sources.** A broken button connection, a control
