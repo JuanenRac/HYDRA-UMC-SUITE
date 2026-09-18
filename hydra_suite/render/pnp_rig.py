@@ -73,7 +73,7 @@ from hydra_suite.render.kinematics import DEG, rot_x, rot_z, translation
 GROUND_OFFSET_M = 0.10081
 PNP_ROOT = translation((0.0, GROUND_OFFSET_M, 0.0)) @ rot_x(-np.pi / 2)
 
-PNP_MESH_DIR = "lumenpnp"
+PNP_MESH_DIR = "machine-pnp/lumenpnp"
 MACHINE_MESH_DIRS = {
     "lumenPnP": "machine-pnp/lumenpnp",
     "juanenPnP": "machine-pnp/juanenpnp",

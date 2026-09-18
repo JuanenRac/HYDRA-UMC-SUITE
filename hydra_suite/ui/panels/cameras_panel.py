@@ -186,6 +186,29 @@ class CameraCard(QFrame):
         self._video_area.setObjectName("cameraVideoArea")
         layout.addWidget(self._video_area, 1)
 
+        # Real snapshot/recording capture, matching HYDRA-UMC-STUDIO's own
+        # CamerasView.tsx toggleRecording()/takePhoto() - both now call
+        # HYDRA-UMC-SERVER's real /api/camera/:id/snapshot and
+        # /recording/{start,stop}, saved from the same local mjpeg stream
+        # this card's own video_area already renders (see
+        # iter_mjpeg_frames() above), not simulated client-side.
+        capture_row = QHBoxLayout()
+        capture_row.setSpacing(4)
+        self._snapshot_button = QPushButton(_("BTN_CAMERA_SNAPSHOT"))
+        self._snapshot_button.clicked.connect(lambda: asyncio.ensure_future(self._take_snapshot()))
+        capture_row.addWidget(self._snapshot_button)
+        self._record_button = QPushButton(_("BTN_CAMERA_RECORD_START"))
+        self._record_button.setCheckable(True)
+        self._record_button.toggled.connect(lambda checked: asyncio.ensure_future(self._toggle_recording(checked)))
+        capture_row.addWidget(self._record_button)
+        layout.addLayout(capture_row)
+        self._capture_status_label = QLabel()
+        self._capture_status_label.setWordWrap(True)
+        self._capture_status_label.setVisible(False)
+        layout.addWidget(self._capture_status_label)
+        self._is_recording = False
+        self._recording_state_synced = False
+
         # Real pan/tilt/zoom control - IP cameras only, matching
         # HYDRA-UMC-STUDIO's own CamerasView.tsx one-to-one (see that
         # file's own header comment on the same feature). A checkable
@@ -361,6 +384,10 @@ class CameraCard(QFrame):
     def refresh(self, camera: CameraView, robots: list[RobotView]) -> None:
         self._camera = camera
         self._header.setText(f"{_('LBL_CAM')} {camera.id}")
+
+        if not self._recording_state_synced:
+            self._recording_state_synced = True
+            asyncio.ensure_future(self._sync_recording_state())
 
         is_ip = camera.source_type == "ip"
         self._sync_type_options(is_ip, camera.camera_type)
@@ -732,6 +759,62 @@ class CameraCard(QFrame):
         self._ptz_row.setVisible(checked and self._camera.source_type == "ip")
         if not checked:
             self._ptz_status_label.setVisible(False)
+
+    async def _sync_recording_state(self) -> None:
+        """Real recording state lives on the server, not in this card -
+        a card recreated after a controller reconnect (or SUITE itself
+        restarting) starts with `_is_recording = False` even if the
+        server is genuinely still recording this camera, so this pulls
+        the real truth once per card lifetime instead of guessing."""
+        conn: HydraConnection | None = self._get_connection()
+        if conn is None:
+            return
+        result = await conn.list_camera_media()
+        if result is None or result[0] != 200 or not isinstance(result[1], dict):
+            return
+        items = result[1].get("items") or []
+        recording = any(
+            isinstance(item, dict) and item.get("cameraId") == self._camera.id and item.get("recording")
+            for item in items
+        )
+        self._is_recording = recording
+        self._record_button.blockSignals(True)
+        self._record_button.setChecked(recording)
+        self._record_button.blockSignals(False)
+        self._record_button.setText(_("BTN_CAMERA_RECORD_STOP") if recording else _("BTN_CAMERA_RECORD_START"))
+
+    async def _take_snapshot(self) -> None:
+        conn: HydraConnection | None = self._get_connection()
+        if conn is None:
+            return
+        result = await conn.take_camera_snapshot(self._camera.id)
+        if result is None or result[0] != 200:
+            self._capture_status_label.setText(_("MSG_CAMERA_SNAPSHOT_FAILED"))
+            self._capture_status_label.setVisible(True)
+            return
+        self._capture_status_label.setVisible(False)
+
+    async def _toggle_recording(self, checked: bool) -> None:
+        conn: HydraConnection | None = self._get_connection()
+        if conn is None:
+            self._record_button.setChecked(not checked)
+            return
+        if checked:
+            result = await conn.start_camera_recording(self._camera.id)
+        else:
+            result = await conn.stop_camera_recording(self._camera.id)
+        if result is None or result[0] not in (200, 409, 404):
+            # Revert the toggle to match reality - never show "recording"
+            # (or "not recording") when the server call itself failed.
+            self._record_button.blockSignals(True)
+            self._record_button.setChecked(self._is_recording)
+            self._record_button.blockSignals(False)
+            self._capture_status_label.setText(_("MSG_CAMERA_RECORDING_FAILED"))
+            self._capture_status_label.setVisible(True)
+            return
+        self._is_recording = checked and result[0] == 200
+        self._record_button.setText(_("BTN_CAMERA_RECORD_STOP") if self._is_recording else _("BTN_CAMERA_RECORD_START"))
+        self._capture_status_label.setVisible(False)
 
     async def _send_ptz(self, pan: int, tilt: int, zoom: int) -> None:
         conn: HydraConnection | None = self._get_connection()
