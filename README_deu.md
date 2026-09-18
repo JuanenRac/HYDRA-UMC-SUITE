@@ -193,7 +193,7 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_heated_beds.py
 ├── assets/meshes/vacuum-tables/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
-├── tests/test_vacuum_tables.py
+├── tests/verify_vacuum_tables.py
 ├── main.py                        # Einstiegspunkt - Vollbild min. 1920x1080, F11 schaltet zwischen Vollbild/Fenster um; --qtquick wechselt zum Panel unten
 ├── qt_suite.py                     # Qt-Quick-Frontend - eigenständiges `--qtquick`-Kommandopult (alle 26 Panels), verbindet den unveränderten SuiteController mit QML
 ├── verify_qt_suite_shell.py        # Echter, hardware-/netzwerkfreier Check der Qt-Quick-Shell - bewusst außerhalb von tests/ (gleicher Grund wie bei URTC-TESTER/URTC-FLASHERs eigenen verify_qt_*.py), ausgeführt mit `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
