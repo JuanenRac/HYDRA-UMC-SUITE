@@ -194,8 +194,7 @@ HYDRA-UMC-SUITE/
 ├── hydra-umc.project.json         # Ecosystem manifest - version/family/parent, the source dashboard/updater/OS-REBUILDER read
 ├── bump_version.py                # Odometer version bump for hydra_suite/__init__.py's own __version__, run by build_exe.bat/.sh before every real PyInstaller build
 ├── bump_manifest_version.py       # Syncs hydra-umc.project.json's version to the native one (generic, copied verbatim across the ecosystem)
-├── build.bat / build.sh           # venv + editable install + real test suite (incremental, versioning build)
-├── build-test.bat / build-test.sh # Same checks, non-mutating - never bumps the version or touches CHANGELOG.md
+├── build-test.bat / build-test.sh # venv + editable install + real test suite, non-mutating - never bumps the version or touches CHANGELOG.md
 ├── run.bat / run.sh               # Launches main.py through the venv
 ├── HYDRA-UMC_SUITE.spec           # PyInstaller spec (see build_exe.bat/.sh below)
 ├── build_exe.bat                  # One-shot Windows build -> dist/HYDRA-UMC_SUITE.exe
