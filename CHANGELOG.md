@@ -26,6 +26,31 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.7] - Real camera snapshot/recording capture, matching STUDIO
+
+- `pnp_rig.py`'s own standalone `PNP_MESH_DIR` constant (separate from
+  `MACHINE_MESH_DIRS`, used only by `tests/verify_pnp_static_parts.py`)
+  was missed in 0.5.6's model-library reorganization - still pointed at
+  the pre-reorg bare `lumenpnp`, breaking that one verifier. Fixed to
+  `machine-pnp/lumenpnp`, matching `MACHINE_MESH_DIRS["lumenPnP"]`.
+- The Cameras panel had no snapshot/recording capture at all - only a
+  live MJPEG preview. New `HydraConnection.take_camera_snapshot()`/
+  `start_camera_recording()`/`stop_camera_recording()`/
+  `list_camera_media()` (net/client.py), matching `send_ptz()`'s own
+  pattern, call HYDRA-UMC-SERVER's new camera media endpoints (see that
+  repo's own CHANGELOG). Each camera card now has a real Take
+  Photo button and a Start/Stop Recording toggle; a freshly-created card
+  syncs its own recording indicator from the server's real
+  `GET /api/camera/media` once (not every state broadcast) instead of
+  always assuming "not recording", the same real-state-over-local-guess
+  fix HYDRA-UMC-STUDIO's own CameraMediaView.tsx applies. New
+  `BTN_CAMERA_SNAPSHOT`/`BTN_CAMERA_RECORD_START`/
+  `BTN_CAMERA_RECORD_STOP`/`MSG_CAMERA_SNAPSHOT_FAILED`/
+  `MSG_CAMERA_RECORDING_FAILED` keys across all 7 `.lng` files.
+  `tests/verify_cameras_panel.py` covers the real capture-call
+  forwarding, a failed start reverting the toggle, and a fresh card
+  picking up real server-side recording state.
+
 ## [0.5.6] - Model library reorganized into category folders
 
 - `assets/meshes/` was one flat folder mixing 24 robot arms, 4 independent

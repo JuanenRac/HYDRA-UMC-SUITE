@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QApplication
 sys.path.insert(0, ".")
 from hydra_suite.app import SuiteController
 from hydra_suite.models import CAMERA_TYPES, RTSP_DEFAULT_PORT, CameraView, HydraState
-from hydra_suite.ui.panels.cameras_panel import CamerasPanel
+from hydra_suite.ui.panels.cameras_panel import CameraCard, CamerasPanel
 
 
 def _state_with_camera(camera: dict, robots: list[dict] | None = None) -> HydraState:
@@ -104,6 +104,27 @@ def _run() -> None:
         ptz_calls.append((camera_id, host, username, password, pan, tilt, zoom))
         return 200, {"ok": True}
 
+    # Real call log for the snapshot/recording assertions below - same
+    # "log what was actually called, don't just canned-return" reasoning
+    # as ptz_calls above.
+    capture_calls: list[str] = []
+    media_items: list[dict] = []
+
+    async def _fake_take_snapshot(camera_id: int) -> tuple[int, object]:
+        capture_calls.append(f"snapshot:{camera_id}")
+        return 200, {"success": True, "cameraId": camera_id, "filename": "fake.jpg"}
+
+    async def _fake_start_recording(camera_id: int) -> tuple[int, object]:
+        capture_calls.append(f"start:{camera_id}")
+        return 200, {"success": True, "cameraId": camera_id, "filename": "fake.mjpeg"}
+
+    async def _fake_stop_recording(camera_id: int) -> tuple[int, object]:
+        capture_calls.append(f"stop:{camera_id}")
+        return 200, {"success": True, "cameraId": camera_id, "filename": "fake.mjpeg"}
+
+    async def _fake_list_camera_media() -> tuple[int, object]:
+        return 200, {"items": media_items}
+
     controller.connections["c1"] = types.SimpleNamespace(
         state=state,
         push_state=_noop_push_state,
@@ -111,6 +132,10 @@ def _run() -> None:
         discover_rtsp_path=_fake_discover_rtsp,
         fetch_camera_status=_fake_camera_status,
         send_ptz=_fake_send_ptz,
+        take_camera_snapshot=_fake_take_snapshot,
+        start_camera_recording=_fake_start_recording,
+        stop_camera_recording=_fake_stop_recording,
+        list_camera_media=_fake_list_camera_media,
         # Real HydraConnection.info always has this - only needed here
         # since _on_type_combo_changed's own real stream-switch behavior
         # (card._get_stream_url() -> conn.info.base_url) is now exercised
@@ -317,6 +342,49 @@ def _run() -> None:
     panel._on_state_changed(controller.active_state)
     assert card._ptz_button.isHidden(), "PTZ toggle must hide for a USB camera"
     assert card._ptz_row.isHidden()
+
+    # --- real snapshot/recording capture (matches CamerasView.tsx's own
+    # takePhoto()/toggleRecording(), now real server calls instead of only
+    # flipping local UI state) --------------------------------------------
+    loop.run_until_complete(card._take_snapshot())
+    assert capture_calls[-1] == "snapshot:1", "a snapshot must be requested for THIS card's own camera id"
+    assert card._capture_status_label.isHidden(), "a real success response must not show an error"
+
+    card._record_button.setChecked(True)
+    loop.run_until_complete(asyncio.sleep(0))
+    assert capture_calls[-1] == "start:1", "checking the record button must call recording/start for this camera"
+    assert card._is_recording is True
+    assert card._record_button.text() == "Stop Recording"
+
+    card._record_button.setChecked(False)
+    loop.run_until_complete(asyncio.sleep(0))
+    assert capture_calls[-1] == "stop:1", "unchecking the record button must call recording/stop"
+    assert card._is_recording is False
+    assert card._record_button.text() == "Start Recording"
+
+    # A failed start must revert the toggle rather than show "recording"
+    # when the server call itself failed.
+    async def _fake_start_recording_failed(camera_id: int) -> tuple[int, object]:
+        return 500, {"error": "boom"}
+
+    controller.connections["c1"].start_camera_recording = _fake_start_recording_failed
+    card._record_button.setChecked(True)
+    loop.run_until_complete(asyncio.sleep(0))
+    assert card._is_recording is False, "a failed recording/start must not be treated as recording"
+    assert not card._capture_status_label.isHidden(), "a real recording failure must be shown, not swallowed"
+
+    # A card recreated after a reconnect must pick up real server-side
+    # recording state instead of always assuming "not recording" - closes
+    # the same class of bug HYDRA-UMC-STUDIO's own CameraMediaView.tsx sync
+    # fixes on the web side.
+    media_items.append({"cameraId": 1, "kind": "recordings", "filename": "already-running.mjpeg", "recording": True})
+    fresh_card = CameraCard(cam1, lambda *a: None, lambda *a: None, lambda *a: None, panel._get_stream_url, panel._get_connection)
+    fresh_card.refresh(cam1, [])
+    loop.run_until_complete(asyncio.sleep(0))
+    assert fresh_card._is_recording is True, "a freshly-created card must sync real recording state from the server"
+    assert fresh_card._record_button.isChecked() is True
+    fresh_card.stop_stream()
+    fresh_card.deleteLater()
 
     # REV-019 (found wiring this script into a real, repeated batch runner
     # for the first time): CamerasPanel starts a real, unconditional 3s

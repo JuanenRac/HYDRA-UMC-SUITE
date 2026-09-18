@@ -392,6 +392,26 @@ class HydraConnection(QObject):
             json_body={"host": host, "username": username, "password": password, "pan": pan, "tilt": tilt, "zoom": zoom},
         )
 
+    async def take_camera_snapshot(self, camera_id: int) -> tuple[int, object] | None:
+        """POST /api/camera/:id/snapshot - captures and saves one real
+        frame off that camera's own local mjpeg stream. Matches
+        HYDRA-UMC-STUDIO's own CamerasView.tsx takePhoto()."""
+        return await self._request_json("POST", f"/api/camera/{camera_id}/snapshot", auth=True)
+
+    async def start_camera_recording(self, camera_id: int) -> tuple[int, object] | None:
+        """POST /api/camera/:id/recording/start - matches
+        HYDRA-UMC-STUDIO's own CamerasView.tsx toggleRecording()."""
+        return await self._request_json("POST", f"/api/camera/{camera_id}/recording/start", auth=True)
+
+    async def stop_camera_recording(self, camera_id: int) -> tuple[int, object] | None:
+        """POST /api/camera/:id/recording/stop."""
+        return await self._request_json("POST", f"/api/camera/{camera_id}/recording/stop", auth=True)
+
+    async def list_camera_media(self) -> tuple[int, object] | None:
+        """GET /api/camera/media - every saved snapshot/recording across
+        every camera, newest first."""
+        return await self._request_json("GET", "/api/camera/media", auth=True)
+
     async def fetch_works_index(self, folder_path: str) -> tuple[int, object] | None:
         """GET /<folderPath>/index.json - the same static file
         HYDRA-UMC-STUDIO's own RobotDetail.tsx fetchWorks() reads
