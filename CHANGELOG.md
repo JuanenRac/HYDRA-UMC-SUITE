@@ -613,7 +613,7 @@ under `assets/meshes/lumenpnp/` (see that folder's own ATTRIBUTION.txt).
 
 ## [0.4.0]
 
-- DOC-38 (found while reviewing the code for improvements): removed
+- Found while reviewing the code for improvements: removed
   a dangling reference to a private tracking document's filename from one
   of this file's own section headings - that file isn't tracked in this
   repo, and the section's own bullet points already describe the real
