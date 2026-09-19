@@ -53,6 +53,7 @@ ROOT_ITEMS: tuple[tuple[str, str], ...] = (
 # Dashboard.tsx groupings (industrial/urtc/hydraumc) item for item where
 # SUITE has a real equivalent dock.
 INDUSTRIAL_ITEMS: tuple[tuple[str, str], ...] = (
+    ("DOCK_ROBOTS_CATALOG", "robots_catalog"),
     ("HEADING_XY_TABLE", "xy_table"),
     ("HEADING_ATC", "atc"),
     ("HEADING_RACK_MANAGER", "rack"),

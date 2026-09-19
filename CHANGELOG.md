@@ -26,6 +26,22 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.9] - New Robots Catalog panel, with a real per-model activate/deactivate switch
+
+- New `robot_catalog.py` - the same 24-model manufacturer/DOF metadata as
+  HYDRA-UMC-STUDIO's own store.tsx `ROBOT_MANUFACTURERS` (kept in sync by
+  hand; asserted against `render/kinematics.py`'s real `ROBOT_REGISTRY`
+  in `tests/verify_robots_catalog_panel.py` so the two can't silently
+  drift). New **Robots Catalog** dock (first item under Industrial,
+  matching STUDIO's own menu order) - `RobotsCatalogPanel` lists every
+  real model, filterable by manufacturer/DOF, with a standalone
+  `RobotViewport` preview on the left (the same real QOpenGLWidget the
+  main 3D Viewport dock already uses) and a per-model checkbox writing
+  the same real `settings.enabledRobotModels` field STUDIO's own
+  RobotsCatalogView.tsx writes (`HydraState.is_robot_model_enabled()`/
+  `set_robot_model_enabled()` - the one shared settings tree both apps
+  read/write over `GET`/`POST /api/settings`).
+
 ## [0.5.8] - About dialog shows the active server's own version too
 
 - The About dialog only ever showed this app's own `__version__` -
