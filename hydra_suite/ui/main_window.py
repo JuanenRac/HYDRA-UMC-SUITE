@@ -463,8 +463,28 @@ class MainWindow(QMainWindow):
         )
 
     def _show_about(self) -> None:
+        # Real bug fixed, matching HYDRA-UMC-STUDIO's own About.tsx fix:
+        # this used to show only SUITE's own __version__, with no way to
+        # tell which HYDRA-UMC-SERVER build the active connection is
+        # actually running - a mismatch after deploying one without the
+        # other was invisible. GET /api/hydra-info is fetched fresh (not
+        # cached) since the active connection can change between opens;
+        # None (no active connection, or the fetch itself failed) shows
+        # the dialog's own honest "unknown" placeholder rather than a
+        # stale or fabricated value.
+        asyncio.ensure_future(self._show_about_async())
+
+    async def _show_about_async(self) -> None:
         logo_path = IMAGES_DIR / "HYDRA_UMC_ICON.svg"
-        AboutDialog(__version__, logo_path, self).exec()
+        server_version: str | None = None
+        conn = self.controller.active_connection
+        if conn is not None:
+            result = await conn.fetch_hydra_info()
+            if result is not None and result[0] == 200 and isinstance(result[1], dict):
+                app_version = result[1].get("appVersion")
+                if isinstance(app_version, str):
+                    server_version = app_version
+        AboutDialog(__version__, server_version, logo_path, self).exec()
 
     def _on_language_change(self, code: str) -> None:
         if save_config({"language": code}):

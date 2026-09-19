@@ -30,7 +30,9 @@ _COLOR_CYAN = "#38d4e6"
 
 
 class AboutDialog(QDialog):
-    def __init__(self, version: str, logo_path: Path | None, parent: QWidget | None = None) -> None:
+    def __init__(
+        self, version: str, server_version: str | None, logo_path: Path | None, parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
         self.setObjectName("aboutDialog")
         self.setWindowTitle(_("TITLE_ABOUT"))
@@ -81,7 +83,8 @@ class AboutDialog(QDialog):
         layout.addWidget(description)
 
         layout.addSpacing(6)
-        layout.addWidget(_info_row(_("ABOUT_VERSION"), version))
+        layout.addWidget(_info_row(_("ABOUT_VERSION_SUITE"), version))
+        layout.addWidget(_info_row(_("ABOUT_VERSION_SERVER"), server_version or _("STATUS_ES_NA")))
         layout.addWidget(_info_row(_("ABOUT_AUTHOR"), AUTHOR_NAME))
         email_value = QLabel(f'<a href="mailto:{AUTHOR_EMAIL}">{AUTHOR_EMAIL}</a>')
         email_value.setObjectName("aboutInfoValue")
