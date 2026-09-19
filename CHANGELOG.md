@@ -26,6 +26,34 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.6.0] - New Camera Media panel: browse, play back and delete saved snapshots/recordings
+
+Real parity gap closed: CamerasPanel could start/stop a recording, but
+SUITE had no way at all to browse, play back, or delete what actually
+got saved - matching HYDRA-UMC-STUDIO's own new CameraMediaView.tsx/
+MjpegRecordingPlayer.tsx feature set.
+
+- New `camera_media_panel.py` (`CameraMediaPanel`) - lists every real
+  saved snapshot/recording (`GET /api/camera/media`), filterable per
+  camera, with a real viewer: a snapshot shows as a real `QPixmap`; a
+  recording steps through its own real JPEG frames
+  (`parse_mjpeg_frames()`, the same real SOI/EOI marker-scan
+  `cameras_panel.py`'s own `iter_mjpeg_frames()` already uses for a live
+  stream, applied here to an already-downloaded static blob) under a
+  real `QTimer`, with Play/Pause/Stop and a real seek slider. Uses the
+  server's own real per-recording `durationMs`/`frameCount` for an
+  honest per-frame interval when present, falling back to a fixed step
+  for an older recording saved before that metadata existed - never an
+  invented frame rate.
+- `net/client.py`: new `fetch_camera_media_bytes()` (deliberately
+  unauthenticated, matching the server's own open route - the same
+  reasoning STUDIO's own README already documents) and
+  `delete_camera_media()` (real, permanent, admin-only `DELETE`).
+- Save As (writes the real fetched bytes to a local file) and Delete
+  (with a real confirmation prompt) round-trip to the live server.
+- New "Camera Media" nav entry/dock, tabbed next to Cameras. 8 new
+  regression assertions in `tests/verify_camera_media_panel.py`.
+
 ## [0.5.9] - New Robots Catalog panel, with a real per-model activate/deactivate switch
 
 - New `robot_catalog.py` - the same 24-model manufacturer/DOF metadata as

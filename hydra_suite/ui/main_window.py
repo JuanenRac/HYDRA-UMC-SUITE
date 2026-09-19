@@ -41,6 +41,7 @@ from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
 from hydra_suite.ui.panels.admin_server_panel import AdminServerPanel
 from hydra_suite.ui.panels.ai_family_status_panel import AiFamilyStatusPanel
 from hydra_suite.ui.panels.atc_tools_panel import AtcToolsPanel
+from hydra_suite.ui.panels.camera_media_panel import CameraMediaPanel
 from hydra_suite.ui.panels.cameras_panel import CamerasPanel
 from hydra_suite.ui.panels.cnc_panel import CncPanel
 from hydra_suite.ui.panels.ecosystem_services_panel import EcosystemServicesPanel
@@ -124,6 +125,7 @@ class MainWindow(QMainWindow):
         self.viewport_panel = ViewportPanel(self.controller)
         self.trajectory_panel = TrajectoryPanel(self.controller)
         self.cameras_panel = CamerasPanel(self.controller)
+        self.camera_media_panel = CameraMediaPanel(self.controller)
         self.logs_panel = LogsPanel()
         # Ecosystem-wide panels - visual surface for the whole HYDRA-UMC-*
         # ecosystem the active connection's own Server can see, not just
@@ -173,6 +175,7 @@ class MainWindow(QMainWindow):
         dock_robot = self._make_dock(_("DOCK_ROBOT_CONTROL"), self.robot_control, Qt.DockWidgetArea.RightDockWidgetArea)
         dock_traj = self._make_dock(_("DOCK_TRAJECTORY"), self.trajectory_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_cameras = self._make_dock(_("TAB_CAMERAS"), self.cameras_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_camera_media = self._make_dock(_("TAB_CAMERA_MEDIA"), self.camera_media_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_logs = self._make_dock(_("DOCK_LOGS"), self.logs_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_es_services = self._make_dock(_("DOCK_ECOSYSTEM_SERVICES"), self.ecosystem_services_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_es_telemetry = self._make_dock(_("DOCK_ECOSYSTEM_TELEMETRY"), self.ecosystem_telemetry_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
@@ -203,6 +206,7 @@ class MainWindow(QMainWindow):
             "robot": dock_robot,
             "trajectory": dock_traj,
             "cameras": dock_cameras,
+            "camera_media": dock_camera_media,
             "logs": dock_logs,
             "ecosystem_services": dock_es_services,
             "ecosystem_telemetry": dock_es_telemetry,
@@ -242,7 +246,8 @@ class MainWindow(QMainWindow):
         # at a time) never needed anywhere near that much space.
         self.resizeDocks([dock_viewport, dock_traj], [700, 260], Qt.Orientation.Vertical)
         self.tabifyDockWidget(dock_traj, dock_cameras)
-        self.tabifyDockWidget(dock_cameras, dock_logs)
+        self.tabifyDockWidget(dock_cameras, dock_camera_media)
+        self.tabifyDockWidget(dock_camera_media, dock_logs)
         # The 5 new ecosystem/admin panels start tabbed together, behind
         # the existing bottom-area tab group - visible via the View menu
         # or a click, not competing for screen space with the per-robot
@@ -275,7 +280,7 @@ class MainWindow(QMainWindow):
         # a real "show again" entry in the View menu, same as a plain Qt
         # app with dockable panels normally does.
         for dock in (
-            dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_logs,
+            dock_servers, dock_overview, dock_viewport, dock_robot, dock_traj, dock_cameras, dock_camera_media, dock_logs,
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
             dock_system_supervisor,
             dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc, dock_xy_table, dock_rack, dock_pick_and_place, dock_kinematic_brain_stage,

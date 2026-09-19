@@ -412,6 +412,35 @@ class HydraConnection(QObject):
         every camera, newest first."""
         return await self._request_json("GET", "/api/camera/media", auth=True)
 
+    async def fetch_camera_media_bytes(self, camera_id: int, kind: str, filename: str) -> bytes | None:
+        """GET /api/camera/media/:cameraId/:kind/:filename - the real raw
+        bytes of one saved snapshot (a plain JPEG) or recording (raw
+        multipart/x-mixed-replace framing, the same real boundary/
+        Content-Length framing every live camera stream already uses -
+        see camera_media_panel.py's own MjpegRecordingPlayer for how a
+        recording's own individual frames get parsed back out of it).
+        Deliberately NOT sent with an auth header - this route is
+        intentionally open server-side (see server.ts's own comment on
+        it: an `<img src>` cannot send one either), so this call doesn't
+        need `_request_json`'s own auth plumbing at all. `None` only on a
+        genuine network failure; a real 404/other status still returns
+        the real bytes HYDRA-UMC-SERVER sent back (an error JSON body,
+        as raw bytes) so the caller can decide what "no real image" means
+        for its own UI rather than this method guessing."""
+        path = f"/api/camera/media/{camera_id}/{kind}/{filename}"
+        try:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                resp = await client.get(f"{self.info.base_url}{path}", timeout=10.0)
+        except httpx.HTTPError:
+            return None
+        return resp.content
+
+    async def delete_camera_media(self, camera_id: int, kind: str, filename: str) -> tuple[int, object] | None:
+        """DELETE /api/camera/media/:cameraId/:kind/:filename - a real,
+        permanent delete (admin-only server-side). Matches
+        HYDRA-UMC-STUDIO's own CameraMediaView.tsx deleteSelected()."""
+        return await self._request_json("DELETE", f"/api/camera/media/{camera_id}/{kind}/{filename}", auth=True)
+
     async def fetch_works_index(self, folder_path: str) -> tuple[int, object] | None:
         """GET /<folderPath>/index.json - the same static file
         HYDRA-UMC-STUDIO's own RobotDetail.tsx fetchWorks() reads
