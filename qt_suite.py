@@ -109,6 +109,7 @@ from hydra_suite.ui.panels.atc_tools_panel import (
     _default_atc_config,
     _default_pos,
 )
+from hydra_suite.ui.panels.camera_media_panel import parse_mjpeg_frames
 from hydra_suite.ui.panels.cameras_panel import (
     GRID_COLUMNS as _CAM_GRID_COLUMNS,
     _STATUS_COLORS as _CAM_STATUS_COLORS,
@@ -158,7 +159,7 @@ from hydra_suite.ui.nav_sidebar import (
 # placeholder (see NotMigratedPanel in Main.qml). Update this set as more
 # real panels are ported; it is the ONE place that decides which content
 # the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "urtc_flasher", "hydra_flasher", "urtc_tester", "hydra_tester", "viewport"})
+MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "camera_media", "urtc_flasher", "hydra_flasher", "urtc_tester", "hydra_tester", "viewport"})
 
 # Real per-instance tier set - matches main_window.py's own two separate
 # FlasherPanel(tiers=...) instances exactly (URTC_TIERS/HYDRA_BRAIN_TIERS,
@@ -250,6 +251,40 @@ class CameraFrameProvider(QQuickImageProvider):
         return image
 
 
+class MediaFrameProvider(QQuickImageProvider):
+    """Feeds the Camera Media panel's own real snapshot/recording frames
+    into QML - same real "decode once, serve from a dict, cache-bust via
+    a changing key" shape as CameraFrameProvider above, just keyed by an
+    opaque string SuiteQtBridge controls (`<cameraId>:<kind>:<filename>:
+    <frameIndex>`) instead of a bare camera id, since this provider has
+    to hold more than one real image alive at once (every frame of a
+    selected recording, not just one live feed per camera). Real network
+    I/O (fetch_camera_media_bytes()) happens beforehand, in
+    SuiteQtBridge's own async slot - this provider only ever decodes
+    already-downloaded bytes into a QImage, never blocks on the network
+    itself from inside requestImage()."""
+
+    def __init__(self) -> None:
+        super().__init__(QQuickImageProvider.ImageType.Image)
+        self._images: dict[str, QImage] = {}
+
+    def set_image(self, key: str, image: QImage) -> None:
+        self._images[key] = image
+
+    def clear(self) -> None:
+        self._images.clear()
+
+    def requestImage(self, id: str, size: QSize, requestedSize: QSize) -> QImage:  # noqa: N802 - Qt override signature
+        image = self._images.get(id)
+        if image is None:
+            image = QImage(1, 1, QImage.Format.Format_RGB32)
+            image.fill(0x0A0F14)
+        if size is not None:
+            size.setWidth(image.width())
+            size.setHeight(image.height())
+        return image
+
+
 class ViewportFrameProvider(QQuickImageProvider):
     """Feeds the 3D Viewport panel's own real rendered frame into QML -
     one real `QImage` (there's only ever one viewport, unlike Cameras'
@@ -298,17 +333,23 @@ class SuiteQtBridge(QObject):
     # Same real reasoning as _camerasChanged above - a live 3D render can
     # update every real joint tick.
     _viewportChanged = Signal()
+    # Own dedicated signal - a real recording's own playback timer can
+    # advance several times a second while playing, same reasoning as
+    # _camerasChanged/_viewportChanged above.
+    _cameraMediaChanged = Signal()
 
     def __init__(
         self,
         controller: SuiteController,
         frame_provider: "CameraFrameProvider | None" = None,
         viewport_frame_provider: "ViewportFrameProvider | None" = None,
+        media_frame_provider: "MediaFrameProvider | None" = None,
     ) -> None:
         super().__init__()
         self._controller = controller
         self._frame_provider = frame_provider
         self._viewport_frame_provider = viewport_frame_provider
+        self._media_frame_provider = media_frame_provider
         self._vacuum_frame_provider = ViewportFrameProvider()
         self._vacuum_renderer = None
         self._vacuum_preview_version = 0
@@ -561,11 +602,28 @@ class SuiteQtBridge(QObject):
         self._camera_usb_devices: dict[int, list[dict]] = {}
         self._camera_discovery_status: dict[int, tuple[str, str]] = {}
         self._camera_ptz_error: dict[int, str] = {}
+        self._camera_recording_ids: set[int] = set()
+        self._camera_capture_error: str = ""
         controller.active_state_changed.connect(self._on_cameras_state_changed)
         self._camera_status_timer = QTimer(self)
         self._camera_status_timer.setInterval(3000)
         self._camera_status_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
         self._camera_status_timer.start()
+        # -- real Camera Media parity gap closed - see camera_media_panel.py's
+        # own header comment for the full "why this parses frames itself"
+        # reasoning; this reuses the exact same parse_mjpeg_frames() (never
+        # a second, independent copy of that real SOI/EOI marker-scan). --
+        self._camera_media_items: list[dict] = []
+        self._camera_media_filter: int | str = "all"
+        self._camera_media_selected: dict | None = None
+        self._camera_media_frames: list[bytes] = []
+        self._camera_media_frame_index: int = 0
+        self._camera_media_frame_interval_ms: int = 100
+        self._camera_media_frame_version: int = 0
+        self._camera_media_playing: bool = False
+        self._camera_media_error: str = ""
+        self._camera_media_timer = QTimer(self)
+        self._camera_media_timer.timeout.connect(self._advance_camera_media_frame)
 
         # -- Flasher (ported from flasher_panel.py's own FlasherPanel -
         # can_ota.py's CanOtaTarget/FlashOptions/etc. imported directly,
@@ -3458,6 +3516,271 @@ class SuiteQtBridge(QObject):
         self._camera_status = body
         self._camerasChanged.emit()
 
+    # --- real snapshot/recording capture (parity gap closed: this mode
+    # never had these at all, unlike cameras_panel.py's own CameraCard) ---
+
+    @Property("QVariantList", notify=_camerasChanged)
+    def cameraRecordingIds(self) -> list[int]:
+        return sorted(self._camera_recording_ids)
+
+    @Property(str, notify=_camerasChanged)
+    def cameraCaptureError(self) -> str:
+        return self._camera_capture_error
+
+    @Slot(int)
+    def takeCameraSnapshot(self, camera_id: int) -> None:
+        asyncio.ensure_future(self._run_take_snapshot(camera_id))
+
+    async def _run_take_snapshot(self, camera_id: int) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        result = await conn.take_camera_snapshot(camera_id)
+        if result is None or result[0] != 200:
+            self._camera_capture_error = _("MSG_CAMERA_SNAPSHOT_FAILED")
+        else:
+            self._camera_capture_error = ""
+        self._camerasChanged.emit()
+
+    @Slot(int)
+    def toggleCameraRecording(self, camera_id: int) -> None:
+        asyncio.ensure_future(self._run_toggle_recording(camera_id))
+
+    async def _run_toggle_recording(self, camera_id: int) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        is_recording = camera_id in self._camera_recording_ids
+        result = await (conn.stop_camera_recording(camera_id) if is_recording else conn.start_camera_recording(camera_id))
+        if result is None or result[0] != 200:
+            self._camera_capture_error = _("MSG_CAMERA_RECORDING_FAILED")
+        else:
+            self._camera_capture_error = ""
+            if is_recording:
+                self._camera_recording_ids.discard(camera_id)
+            else:
+                self._camera_recording_ids.add(camera_id)
+        self._camerasChanged.emit()
+
+    # --- real Camera Media panel: browse/play back/delete saved
+    # snapshots/recordings - QtQuick-mode counterpart to
+    # camera_media_panel.py's own CameraMediaPanel (Widgets mode). ---
+
+    @Property("QVariantList", notify=_cameraMediaChanged)
+    def cameraMediaItems(self) -> list[dict[str, object]]:
+        result = []
+        for item in self._camera_media_items:
+            if self._camera_media_filter != "all" and item.get("cameraId") != self._camera_media_filter:
+                continue
+            selected = self._camera_media_selected
+            result.append({
+                "cameraId": item.get("cameraId"),
+                "kind": item.get("kind"),
+                "filename": item.get("filename"),
+                "recording": bool(item.get("recording")),
+                "label": f"{_('LBL_CAM')} {item.get('cameraId')} · {item.get('filename')}" + (f" · {_('CAMERA_MEDIA_REC_BADGE')}" if item.get("recording") else ""),
+                "isSelected": bool(selected and selected.get("cameraId") == item.get("cameraId") and selected.get("kind") == item.get("kind") and selected.get("filename") == item.get("filename")),
+            })
+        return result
+
+    @Property("QVariantList", notify=_cameraMediaChanged)
+    def cameraMediaCameraIds(self) -> list[int]:
+        return sorted({i.get("cameraId") for i in self._camera_media_items if isinstance(i.get("cameraId"), int)})
+
+    @Property(str, notify=_cameraMediaChanged)
+    def cameraMediaFilter(self) -> str:
+        return str(self._camera_media_filter)
+
+    @Property(bool, notify=_cameraMediaChanged)
+    def cameraMediaHasSelection(self) -> bool:
+        return self._camera_media_selected is not None
+
+    @Property(bool, notify=_cameraMediaChanged)
+    def cameraMediaIsRecording(self) -> bool:
+        return bool(self._camera_media_selected) and self._camera_media_selected.get("kind") == "recordings"
+
+    @Property(str, notify=_cameraMediaChanged)
+    def cameraMediaError(self) -> str:
+        return self._camera_media_error
+
+    @Property(int, notify=_cameraMediaChanged)
+    def cameraMediaFrameCount(self) -> int:
+        return len(self._camera_media_frames)
+
+    @Property(int, notify=_cameraMediaChanged)
+    def cameraMediaFrameIndex(self) -> int:
+        return self._camera_media_frame_index
+
+    @Property(bool, notify=_cameraMediaChanged)
+    def cameraMediaPlaying(self) -> bool:
+        return self._camera_media_playing
+
+    @Property(str, notify=_cameraMediaChanged)
+    def cameraMediaImageSource(self) -> str:
+        """`image://cameraMedia/<key>` for the current real frame/snapshot -
+        `""` when nothing is loaded yet, which QML reads as "show nothing",
+        never a broken-image glyph."""
+        selected = self._camera_media_selected
+        if selected is None:
+            return ""
+        if selected.get("kind") == "snapshots":
+            key = f"{selected['cameraId']}:snapshots:{selected['filename']}:0"
+        else:
+            if not self._camera_media_frames:
+                return ""
+            key = f"{selected['cameraId']}:recordings:{selected['filename']}:{self._camera_media_frame_index}"
+        return f"image://cameraMedia/{key}?v={self._camera_media_frame_version}"
+
+    @Slot()
+    def loadCameraMedia(self) -> None:
+        asyncio.ensure_future(self._run_load_camera_media())
+
+    async def _run_load_camera_media(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        result = await conn.list_camera_media()
+        if result is None or result[0] != 200 or not isinstance(result[1], dict):
+            self._camera_media_error = _("CAMERA_MEDIA_LOAD_FAILED")
+            self._cameraMediaChanged.emit()
+            return
+        self._camera_media_error = ""
+        self._camera_media_items = result[1].get("items") or []
+        self._cameraMediaChanged.emit()
+
+    @Slot(str)
+    def setCameraMediaFilter(self, camera_id: str) -> None:
+        self._camera_media_filter = "all" if camera_id == "all" else int(camera_id)
+        self._cameraMediaChanged.emit()
+
+    @Slot(int, str, str)
+    def selectCameraMediaItem(self, camera_id: int, kind: str, filename: str) -> None:
+        self._stop_camera_media_playback()
+        item = next(
+            (i for i in self._camera_media_items if i.get("cameraId") == camera_id and i.get("kind") == kind and i.get("filename") == filename),
+            None,
+        )
+        self._camera_media_selected = item
+        self._camera_media_frames = []
+        self._camera_media_frame_index = 0
+        if self._media_frame_provider is not None:
+            self._media_frame_provider.clear()
+        self._cameraMediaChanged.emit()
+        if item is not None:
+            asyncio.ensure_future(self._run_load_selected_media(item))
+
+    async def _run_load_selected_media(self, item: dict) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        data = await conn.fetch_camera_media_bytes(item["cameraId"], item["kind"], item["filename"])
+        if self._camera_media_selected is not item:
+            return  # selection moved on while this was in flight
+        if not data:
+            self._camera_media_error = _("CAMERA_MEDIA_LOAD_RECORDING_FAILED") if item["kind"] == "recordings" else _("CAMERA_MEDIA_LOAD_FAILED")
+            self._cameraMediaChanged.emit()
+            return
+        self._camera_media_error = ""
+        if item["kind"] == "snapshots":
+            image = QImage()
+            image.loadFromData(data)
+            if self._media_frame_provider is not None:
+                self._media_frame_provider.set_image(f"{item['cameraId']}:snapshots:{item['filename']}:0", image)
+            self._camera_media_frame_version += 1
+            self._cameraMediaChanged.emit()
+            return
+        frames = parse_mjpeg_frames(data)
+        if not frames:
+            self._camera_media_error = _("CAMERA_MEDIA_EMPTY_RECORDING")
+            self._cameraMediaChanged.emit()
+            return
+        self._camera_media_frames = frames
+        self._camera_media_frame_index = 0
+        duration_ms = item.get("durationMs")
+        frame_count = item.get("frameCount")
+        if isinstance(duration_ms, (int, float)) and isinstance(frame_count, int) and frame_count > 1:
+            self._camera_media_frame_interval_ms = max(1, int(duration_ms / frame_count))
+        else:
+            self._camera_media_frame_interval_ms = 100  # honest fallback, never a fabricated frame rate
+        self._show_camera_media_frame()
+
+    def _show_camera_media_frame(self) -> None:
+        selected = self._camera_media_selected
+        if selected is None or not self._camera_media_frames:
+            return
+        self._camera_media_frame_index = max(0, min(self._camera_media_frame_index, len(self._camera_media_frames) - 1))
+        if self._media_frame_provider is not None:
+            image = QImage()
+            image.loadFromData(self._camera_media_frames[self._camera_media_frame_index])
+            key = f"{selected['cameraId']}:recordings:{selected['filename']}:{self._camera_media_frame_index}"
+            self._media_frame_provider.set_image(key, image)
+        self._camera_media_frame_version += 1
+        self._cameraMediaChanged.emit()
+
+    @Slot()
+    def toggleCameraMediaPlay(self) -> None:
+        if self._camera_media_playing:
+            self._pause_camera_media_playback()
+        else:
+            self._start_camera_media_playback()
+
+    def _start_camera_media_playback(self) -> None:
+        if not self._camera_media_frames:
+            return
+        if self._camera_media_frame_index >= len(self._camera_media_frames) - 1:
+            self._camera_media_frame_index = 0
+        self._camera_media_playing = True
+        self._camera_media_timer.start(self._camera_media_frame_interval_ms)
+        self._cameraMediaChanged.emit()
+
+    def _pause_camera_media_playback(self) -> None:
+        self._camera_media_timer.stop()
+        self._camera_media_playing = False
+        self._cameraMediaChanged.emit()
+
+    @Slot()
+    def stopCameraMediaPlay(self) -> None:
+        self._stop_camera_media_playback()
+        self._show_camera_media_frame()
+
+    def _stop_camera_media_playback(self) -> None:
+        self._camera_media_timer.stop()
+        self._camera_media_playing = False
+        self._camera_media_frame_index = 0
+
+    def _advance_camera_media_frame(self) -> None:
+        if self._camera_media_frame_index + 1 >= len(self._camera_media_frames):
+            self._pause_camera_media_playback()
+            return
+        self._camera_media_frame_index += 1
+        self._show_camera_media_frame()
+
+    @Slot(int)
+    def seekCameraMediaFrame(self, index: int) -> None:
+        self._pause_camera_media_playback()
+        self._camera_media_frame_index = index
+        self._show_camera_media_frame()
+
+    @Slot()
+    def deleteCameraMediaSelected(self) -> None:
+        asyncio.ensure_future(self._run_delete_camera_media())
+
+    async def _run_delete_camera_media(self) -> None:
+        item = self._camera_media_selected
+        conn = self._controller.active_connection
+        if item is None or conn is None:
+            return
+        result = await conn.delete_camera_media(item["cameraId"], item["kind"], item["filename"])
+        if result is None or result[0] != 200:
+            self._camera_media_error = _("CAMERA_MEDIA_DELETE_FAILED")
+            self._cameraMediaChanged.emit()
+            return
+        self._camera_media_selected = None
+        self._camera_media_frames = []
+        if self._media_frame_provider is not None:
+            self._media_frame_provider.clear()
+        await self._run_load_camera_media()
+
     # -- Flasher -----------------------------------------------------------
 
     def _flasher_active_key(self) -> str | None:
@@ -4484,12 +4807,19 @@ def run_qtquick() -> int:
     controller = SuiteController()
     frame_provider = CameraFrameProvider()
     viewport_frame_provider = ViewportFrameProvider()
-    bridge = SuiteQtBridge(controller, frame_provider=frame_provider, viewport_frame_provider=viewport_frame_provider)
+    media_frame_provider = MediaFrameProvider()
+    bridge = SuiteQtBridge(
+        controller,
+        frame_provider=frame_provider,
+        viewport_frame_provider=viewport_frame_provider,
+        media_frame_provider=media_frame_provider,
+    )
 
     engine = QQmlApplicationEngine()
     engine.addImageProvider("cameraFrames", frame_provider)
     engine.addImageProvider("viewportFrame", viewport_frame_provider)
     engine.addImageProvider("vacuumFrame", bridge._vacuum_frame_provider)
+    engine.addImageProvider("cameraMedia", media_frame_provider)
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))

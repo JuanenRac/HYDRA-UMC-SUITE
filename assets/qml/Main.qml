@@ -362,6 +362,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "vacuum_table") return moduleConfigComponent
                     if (suiteBackend.activePanel === "atc") return atcComponent
                     if (suiteBackend.activePanel === "cameras") return camerasComponent
+                    if (suiteBackend.activePanel === "camera_media") return cameraMediaComponent
                     if (suiteBackend.activePanel === "urtc_flasher") return flasherComponent
                     if (suiteBackend.activePanel === "hydra_flasher") return flasherComponent
                     if (suiteBackend.activePanel === "urtc_tester") return testerComponent
@@ -2918,6 +2919,30 @@ ApplicationWindow {
                     text: suiteBackend.uiText("BTN_TOGGLE_CONNECTION") + " (" + (camCard.modelData.connected ? suiteBackend.uiText("STATUS_CONNECTED") : suiteBackend.uiText("STATUS_DISCONNECTED")) + ")"
                     onClicked: suiteBackend.toggleCameraConnection(camCard.modelData.id)
                 }
+
+                RowLayout {
+                    visible: camCard.modelData.connected
+                    spacing: 4
+                    Button {
+                        text: suiteBackend.uiText("BTN_CAMERA_SNAPSHOT")
+                        Layout.fillWidth: true
+                        onClicked: suiteBackend.takeCameraSnapshot(camCard.modelData.id)
+                    }
+                    Button {
+                        property bool recording: suiteBackend.cameraRecordingIds.indexOf(camCard.modelData.id) !== -1
+                        text: recording ? suiteBackend.uiText("BTN_CAMERA_RECORD_STOP") : suiteBackend.uiText("BTN_CAMERA_RECORD_START")
+                        Layout.fillWidth: true
+                        onClicked: suiteBackend.toggleCameraRecording(camCard.modelData.id)
+                    }
+                }
+                Text {
+                    visible: suiteBackend.cameraCaptureError.length > 0
+                    text: suiteBackend.cameraCaptureError
+                    color: "#ef4444"
+                    font.pixelSize: 8
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
             }
         }
     }
@@ -2945,6 +2970,181 @@ ApplicationWindow {
                         model: suiteBackend.camerasData
                         delegate: cameraCardComponent
                     }
+                }
+            }
+        }
+    }
+
+    // Real Camera Media panel - QtQuick-mode counterpart to
+    // camera_media_panel.py's own CameraMediaPanel (Widgets mode), same
+    // real browse/filter/play/delete capability, driven entirely by
+    // SuiteQtBridge's cameraMedia* Properties/Slots.
+    Component {
+        id: cameraMediaComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            Component.onCompleted: suiteBackend.loadCameraMedia()
+
+            RowLayout {
+                Text { text: suiteBackend.uiText("CAMERA_MEDIA_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16; Layout.fillWidth: true }
+                Button { text: suiteBackend.uiText("CAMERA_MEDIA_REFRESH"); onClicked: suiteBackend.loadCameraMedia() }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+                Button {
+                    text: suiteBackend.uiText("CAMERA_MEDIA_ALL")
+                    checkable: true
+                    checked: suiteBackend.cameraMediaFilter === "all"
+                    onClicked: suiteBackend.setCameraMediaFilter("all")
+                }
+                Repeater {
+                    model: suiteBackend.cameraMediaCameraIds
+                    delegate: Button {
+                        required property var modelData
+                        text: suiteBackend.uiText("LBL_CAM") + " " + modelData
+                        checkable: true
+                        checked: suiteBackend.cameraMediaFilter === String(modelData)
+                        onClicked: suiteBackend.setCameraMediaFilter(String(modelData))
+                    }
+                }
+                Item { Layout.fillWidth: true }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 10
+
+                Card {
+                    Layout.preferredWidth: 260
+                    Layout.fillHeight: true
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            ListView {
+                                model: suiteBackend.cameraMediaItems
+                                spacing: 2
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: ListView.view.width
+                                    height: mediaItemText.implicitHeight + 10
+                                    color: modelData.isSelected ? "#1a2530" : "transparent"
+                                    Text {
+                                        id: mediaItemText
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.margins: 6
+                                        text: modelData.label
+                                        color: window.textPrimary
+                                        font.pixelSize: 10
+                                        wrapMode: Text.WrapAnywhere
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: suiteBackend.selectCameraMediaItem(modelData.cameraId, modelData.kind, modelData.filename)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 6
+
+                        Item {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Image {
+                                id: mediaViewer
+                                anchors.fill: parent
+                                visible: suiteBackend.cameraMediaImageSource !== ""
+                                fillMode: Image.PreserveAspectFit
+                                cache: false
+                                asynchronous: true
+                                source: suiteBackend.cameraMediaImageSource
+                            }
+                            Rectangle {
+                                anchors.fill: parent
+                                visible: !mediaViewer.visible
+                                color: "#0a0f14"
+                                border.width: 1
+                                border.color: "#1a2530"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: suiteBackend.uiText("CAMERA_MEDIA_SELECT_HINT")
+                                    color: window.muted
+                                    font.pixelSize: 11
+                                }
+                            }
+                        }
+
+                        RowLayout {
+                            visible: suiteBackend.cameraMediaHasSelection && suiteBackend.cameraMediaIsRecording
+                            spacing: 6
+                            Button {
+                                text: suiteBackend.cameraMediaPlaying ? suiteBackend.uiText("CAMERA_MEDIA_PAUSE") : suiteBackend.uiText("CAMERA_MEDIA_PLAY")
+                                onClicked: suiteBackend.toggleCameraMediaPlay()
+                            }
+                            Button {
+                                text: suiteBackend.uiText("CAMERA_MEDIA_STOP")
+                                onClicked: suiteBackend.stopCameraMediaPlay()
+                            }
+                            Slider {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: Math.max(0, suiteBackend.cameraMediaFrameCount - 1)
+                                value: suiteBackend.cameraMediaFrameIndex
+                                onMoved: suiteBackend.seekCameraMediaFrame(Math.round(value))
+                            }
+                            Text {
+                                text: (suiteBackend.cameraMediaFrameIndex + 1) + " / " + suiteBackend.cameraMediaFrameCount
+                                color: window.muted
+                                font.pixelSize: 9
+                            }
+                        }
+
+                        RowLayout {
+                            visible: suiteBackend.cameraMediaHasSelection
+                            Item { Layout.fillWidth: true }
+                            Button {
+                                text: suiteBackend.uiText("CAMERA_MEDIA_DELETE")
+                                onClicked: cameraMediaDeleteConfirm.open()
+                            }
+                        }
+
+                        Text {
+                            visible: suiteBackend.cameraMediaError.length > 0
+                            text: suiteBackend.cameraMediaError
+                            color: "#ef4444"
+                            font.pixelSize: 9
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
+            }
+
+            MessageDialog {
+                id: cameraMediaDeleteConfirm
+                text: suiteBackend.uiText("CAMERA_MEDIA_DELETE_CONFIRM")
+                buttons: MessageDialog.Yes | MessageDialog.No
+                onButtonClicked: function (button, role) {
+                    if (button === MessageDialog.Yes) suiteBackend.deleteCameraMediaSelected()
                 }
             }
         }
