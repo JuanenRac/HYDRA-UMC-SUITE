@@ -294,6 +294,7 @@ Linux では（正確な、テスト済みのコマンドは `build_exe.sh` を�
 
 *コアバックエンド&クライアント*
 - **[HYDRA-UMC-EDITOR-URDF](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-URDF)** — 完成したモデルを STUDIO 自身のカタログへ送信するデスクトップ用グラフィカル URDF 作成/編集ツール。
+- **[HYDRA-UMC-EDITOR-STL](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-STL)** — 本アプリ自身の `assets/meshes/` ライブラリ（および STUDIO が保持するそのミラー）向けのデスクトップ STL モデルエディタ - 実在するパーツを変換/置換/削除/追加し、何かを永久に削除することは決してない。
 
 *URTC ツールプラットフォーム*
 - **[URTC](https://github.com/JuanenRac/URTC)** — 物理的な Universal Robot Tool Controller 基板向けファームウェア、CAN バス経由の 25 以上のツールプロファイル。

@@ -394,6 +394,7 @@ This project is part of the HYDRA-UMC robotics ecosystem by the same author (Jua
 
 *Core Backend & Clients*
 - **[HYDRA-UMC-EDITOR-URDF](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-URDF)** — desktop graphical URDF creator/editor that pushes finished models into STUDIO's own catalog.
+- **[HYDRA-UMC-EDITOR-STL](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-STL)** — desktop STL model editor for this app's own `assets/meshes/` library (and STUDIO's own mirror of it) - transform/replace/remove/add real parts, never permanently deleting anything.
 
 *URTC Tool Platform*
 - **[URTC](https://github.com/JuanenRac/URTC)** — firmware for the physical Universal Robot Tool Controller PCB, 25+ tool profiles over CAN bus.

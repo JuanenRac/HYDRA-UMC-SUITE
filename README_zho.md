@@ -294,6 +294,7 @@ python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" 
 
 *核心后端与客户端*
 - **[HYDRA-UMC-EDITOR-URDF](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-URDF)** —— 将完成的模型推送到 STUDIO 自身目录的桌面版图形化 URDF 创建/编辑工具。
+- **[HYDRA-UMC-EDITOR-STL](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-STL)** —— 面向本应用自身 `assets/meshes/` 库（以及 STUDIO 维护的镜像）的桌面 STL 模型编辑器——变换/替换/移除/添加真实部件，绝不永久删除任何内容。
 
 *URTC 工具平台*
 - **[URTC](https://github.com/JuanenRac/URTC)** —— 面向实体 Universal Robot Tool Controller 板卡的固件,通过 CAN 总线支持 25 种以上工具配置。

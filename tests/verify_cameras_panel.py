@@ -386,7 +386,7 @@ def _run() -> None:
     fresh_card.stop_stream()
     fresh_card.deleteLater()
 
-    # REV-019 (found wiring this script into a real, repeated batch runner
+    # Found wiring this script into a real, repeated batch runner
     # for the first time): CamerasPanel starts a real, unconditional 3s
     # QTimer at construction (its own comment: "acceptable here since
     # there's only ever one CamerasPanel alive" - true for the real app's

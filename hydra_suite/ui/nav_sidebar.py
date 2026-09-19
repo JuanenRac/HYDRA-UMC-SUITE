@@ -46,6 +46,7 @@ ROOT_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_ROBOT_CONTROL", "robot"),
     ("DOCK_TRAJECTORY", "trajectory"),
     ("TAB_CAMERAS", "cameras"),
+    ("TAB_CAMERA_MEDIA", "camera_media"),
     ("DOCK_LOGS", "logs"),
 )
 
