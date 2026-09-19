@@ -679,6 +679,22 @@ class HydraState:
         raw_can_ota = (self.raw.get("settings") or {}).get("canOta") or {}
         return "hardware" if raw_can_ota.get("transport") == "hardware" else "mock"
 
+    def is_robot_model_enabled(self, model: str) -> bool:
+        """The same `settings.enabledRobotModels` field HYDRA-UMC
+        STUDIO's own Robots catalog panel (RobotsCatalogView.tsx)
+        writes - missing/unset (no catalog panel visit yet on either
+        app, or a settings.json saved before this feature existed)
+        reads as enabled, matching that panel's own isModelSelectable()."""
+        enabled_map = (self.raw.get("settings") or {}).get("enabledRobotModels") or {}
+        return enabled_map.get(model) is not False
+
+    def set_robot_model_enabled(self, model: str, enabled: bool) -> None:
+        """Mutates in place - call push_state() to actually send it, same
+        two-step pattern every other settings write in this app uses."""
+        settings = self.raw.setdefault("settings", {})
+        enabled_map = settings.setdefault("enabledRobotModels", {})
+        enabled_map[model] = enabled
+
     def to_json_dict(self) -> dict[str, Any]:
         """The exact dict to POST back / send over the settings WebSocket
         message - just the raw payload, since every accessor above

@@ -48,6 +48,7 @@ from hydra_suite.ui.panels.flasher_panel import HYDRA_BRAIN_TIERS, URTC_TIERS, F
 from hydra_suite.ui.panels.ecosystem_telemetry_panel import EcosystemTelemetryPanel
 from hydra_suite.ui.panels.heated_bed_panel import HeatedBedPanel
 from hydra_suite.ui.panels.kinematic_brain_stage_panel import KinematicBrainStagePanel
+from hydra_suite.ui.panels.robots_catalog_panel import RobotsCatalogPanel
 from hydra_suite.ui.panels.laser_panel import LaserPanel
 from hydra_suite.ui.panels.logs_panel import LogsPanel
 from hydra_suite.ui.panels.overview import OverviewPanel
@@ -154,6 +155,7 @@ class MainWindow(QMainWindow):
         self.rack_config_panel = RackConfigPanel(self.controller)
         self.pick_and_place_panel = PickAndPlacePanel(self.controller)
         self.kinematic_brain_stage_panel = KinematicBrainStagePanel(self.controller)
+        self.robots_catalog_panel = RobotsCatalogPanel(self.controller)
         # Two real, separate instances - matches STUDIO's own Dashboard.tsx
         # exactly (its own "URTC" nav vs "HYDRA-UMC" nav each pass a
         # different `tiers` prop to the same Flasher component).
@@ -188,6 +190,7 @@ class MainWindow(QMainWindow):
         dock_rack = self._make_dock(_("HEADING_RACK_MANAGER"), self.rack_config_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_pick_and_place = self._make_dock(_("HEADING_PICK_AND_PLACE"), self.pick_and_place_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_kinematic_brain_stage = self._make_dock(_("HEADING_KINEMATIC_BRAIN_STAGE"), self.kinematic_brain_stage_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
+        dock_robots_catalog = self._make_dock(_("DOCK_ROBOTS_CATALOG"), self.robots_catalog_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_urtc_flasher = self._make_dock(_("NAV_FLASHER_STUDIO"), self.urtc_flasher_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_hydra_flasher = self._make_dock(_("NAV_FIRMWARE_UPDATE"), self.hydra_flasher_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         dock_urtc_tester = self._make_dock(_("NAV_TESTER_CENTER"), self.urtc_tester_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
@@ -217,6 +220,7 @@ class MainWindow(QMainWindow):
             "rack": dock_rack,
             "pick_and_place": dock_pick_and_place,
             "kinematic_brain_stage": dock_kinematic_brain_stage,
+            "robots_catalog": dock_robots_catalog,
             "urtc_flasher": dock_urtc_flasher,
             "hydra_flasher": dock_hydra_flasher,
             "urtc_tester": dock_urtc_tester,
@@ -259,7 +263,8 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(dock_xy_table, dock_rack)
         self.tabifyDockWidget(dock_rack, dock_pick_and_place)
         self.tabifyDockWidget(dock_pick_and_place, dock_kinematic_brain_stage)
-        self.tabifyDockWidget(dock_kinematic_brain_stage, dock_urtc_flasher)
+        self.tabifyDockWidget(dock_kinematic_brain_stage, dock_robots_catalog)
+        self.tabifyDockWidget(dock_robots_catalog, dock_urtc_flasher)
         self.tabifyDockWidget(dock_urtc_flasher, dock_hydra_flasher)
         self.tabifyDockWidget(dock_hydra_flasher, dock_urtc_tester)
         self.tabifyDockWidget(dock_urtc_tester, dock_hydra_tester)
@@ -274,6 +279,7 @@ class MainWindow(QMainWindow):
             dock_es_services, dock_es_telemetry, dock_ai_family, dock_admin_clients, dock_admin_logs, dock_admin_server,
             dock_system_supervisor,
             dock_cnc, dock_laser, dock_heated_bed, dock_vacuum_table, dock_atc, dock_xy_table, dock_rack, dock_pick_and_place, dock_kinematic_brain_stage,
+            dock_robots_catalog,
             dock_urtc_flasher, dock_hydra_flasher, dock_urtc_tester, dock_hydra_tester,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
