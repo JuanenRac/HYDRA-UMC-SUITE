@@ -10,6 +10,19 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
+## QtQuick mode: real Camera Media panel + snapshot/recording controls
+
+The `--qtquick` shell had no way at all to take a snapshot, start/stop a
+recording, or browse/play back/delete a saved one - only the default
+Widgets UI had this. Closed the gap in one pass: `SuiteQtBridge` gained
+real snapshot/recording Slots on each camera card (reusing the same
+`net/client.py` methods the Widgets panel already calls), plus a full
+Camera Media panel (filter by camera, browse saved snapshots/recordings,
+play back a recording frame-by-frame at its real recorded rate, delete)
+backed by a new `MediaFrameProvider` and the same real MJPEG frame-marker
+parser the Widgets panel already uses - never a second, independent copy
+of that parsing logic.
+
 ## Tooling - real bug: build-test.sh/.bat never activated .venv
 
 Live report: running the documented `build-test.bat` produced a wall of
@@ -25,6 +38,10 @@ Fixed to activate `.venv` first, exactly like the other 4 scripts
 already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
+
+## [0.6.1]
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.6.0] - New Camera Media panel: browse, play back and delete saved snapshots/recordings
 
