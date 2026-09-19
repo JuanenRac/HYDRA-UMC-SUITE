@@ -26,6 +26,18 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.5.8] - About dialog shows the active server's own version too
+
+- The About dialog only ever showed this app's own `__version__` -
+  matching HYDRA-UMC-STUDIO's own About.tsx fix, it now also fetches and
+  shows the active connection's real `GET /api/hydra-info` `appVersion`
+  (`AboutDialog` gained a `server_version` parameter; `_show_about` is
+  now async to fetch it fresh on every open, since the active connection
+  can change between opens). Shows "N/A" with no active connection or on
+  a failed fetch - never a stale or fabricated value. `ABOUT_VERSION`
+  split into `ABOUT_VERSION_SUITE`/`ABOUT_VERSION_SERVER` across all 7
+  `.lng` files.
+
 ## [0.5.7] - Real camera snapshot/recording capture, matching STUDIO
 
 - `pnp_rig.py`'s own standalone `PNP_MESH_DIR` constant (separate from
