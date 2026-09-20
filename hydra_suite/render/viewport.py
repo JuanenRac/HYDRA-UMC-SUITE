@@ -51,6 +51,7 @@ from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, s
 from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
 from hydra_suite.render.module_rig import module_segments, module_segment_mesh, rack_segments
+from hydra_suite.render.part_colors import hex_to_rgb01, load_part_colors
 from hydra_suite.racks import rack_geometry
 from hydra_suite.render.module_rig import segment_world_transform as module_segment_world_transform
 from hydra_suite.render.pnp_rig import (
@@ -225,6 +226,10 @@ class RobotGLRenderer:
         # each one) rather than eagerly loading all 9 robots' meshes at
         # startup, most of which may never be viewed in a given session.
         self._mesh_buffers_by_dir: dict[str, dict[str, GLMeshBuffer]] = {}
+        # Real per-part color overrides (part_colors.py) - loaded once per
+        # mesh_dir alongside its own mesh set in _load_mesh_set(), same
+        # cache-once discipline STUDIO's own usePartColors.ts documents.
+        self._part_colors_by_dir: dict[str, dict[str, str]] = {}
         # Generic rig: one buffer per SEGMENTS index, built once (fixed
         # geometry - only the pose changes frame to frame).
         self._generic_buffers: list[GLMeshBuffer] = []
@@ -409,6 +414,7 @@ class RobotGLRenderer:
 
     def _load_mesh_set(self, mesh_dir: str, link_names: tuple[str, ...], mesh_files: dict[str, str]) -> None:
         meshes = load_link_set(ASSETS_DIR / mesh_dir, mesh_files)
+        self._part_colors_by_dir[mesh_dir] = load_part_colors(ASSETS_DIR / mesh_dir)
         if mesh_dir in MACHINE_MESH_DIRS.values():
             transforms = pnp_world_link_transforms(0, 0, 0, 0, 0)
             bounds = []
@@ -516,7 +522,7 @@ class RobotGLRenderer:
         if not buffers:
             return  # not loaded yet (only happens for a brand-new model right at startup, before initialize_gl's own preload runs)
 
-        gl.glUniform3f(self._uniforms["uBaseColor"], 0.72, 0.75, 0.80)
+        default_color = (0.72, 0.75, 0.80)
 
         if entry.family == "ur":
             transforms = ur_mesh_world_transforms(entry.chain, entry.mesh_offsets, self._joints_deg)
@@ -525,6 +531,8 @@ class RobotGLRenderer:
             transforms = quat_family_mesh_world_transforms(cfg.chain, cfg.mesh_offsets, cfg.root_axis_target, cfg.base_offset, self._joints_deg)
 
         for name, model in zip(entry.link_names, transforms):
+            color = self._link_color(entry.mesh_dir, entry.mesh_files[name], default_color)
+            gl.glUniform3f(self._uniforms["uBaseColor"], *color)
             self._draw_model(model, buffers[name])
 
     def _draw_module_preview(self) -> None:
@@ -534,19 +542,22 @@ class RobotGLRenderer:
             self._draw_model(model, buf)
 
     def _draw_pnp(self) -> None:
-        buffers = self._mesh_buffers_by_dir.get(machine_mesh_dir(self._pnp_machine_type))
+        mesh_dir = machine_mesh_dir(self._pnp_machine_type)
+        buffers = self._mesh_buffers_by_dir.get(mesh_dir)
         if not buffers:
             return  # not loaded yet - only happens for a fraction of a frame right after set_attached_pnp()'s own initial call
         transforms = pnp_world_link_transforms(*self._pnp_pose)
         for name in PNP_LINK_NAMES:
-            gl.glUniform3f(self._uniforms["uBaseColor"], *_PNP_LINK_COLORS[name])
+            color = self._link_color(mesh_dir, PNP_ALL_MESH_FILES[name], _PNP_LINK_COLORS[name])
+            gl.glUniform3f(self._uniforms["uBaseColor"], *color)
             self._draw_model(transforms[name], buffers[name])
         # 160 real static CAD parts (legs, control box, motors, belts,
         # the real drag chains, ...) - each one drawn with its owning
         # link's own real transform (base/y_carriage/x_carriage) and that
         # link's own color, matching HYDRA-UMC-STUDIO's own LumenPnPRig.tsx.
         for part_name, owner in PNP_STATIC_PART_OWNER.items():
-            gl.glUniform3f(self._uniforms["uBaseColor"], *_PNP_LINK_COLORS[owner])
+            color = self._link_color(mesh_dir, PNP_ALL_MESH_FILES[part_name], _PNP_LINK_COLORS[owner])
+            gl.glUniform3f(self._uniforms["uBaseColor"], *color)
             self._draw_model(transforms[owner], buffers[part_name])
 
     def _draw_generic(self) -> None:
@@ -555,6 +566,15 @@ class RobotGLRenderer:
             model = segment_world_transform(frames, seg)
             gl.glUniform3f(self._uniforms["uBaseColor"], *seg.color)
             self._draw_model(model, buf)
+
+    def _link_color(self, mesh_dir: str, filename: str, default: tuple[float, float, float]) -> tuple[float, float, float]:
+        """This part's own saved color (part_colors.py, written by the
+        separate HYDRA-UMC-EDITOR-STL tool) if one exists for `filename`
+        inside `mesh_dir`, else `default` unchanged."""
+        override = self._part_colors_by_dir.get(mesh_dir, {}).get(filename)
+        if override is None:
+            return default
+        return hex_to_rgb01(override) or default
 
     def _draw_model(self, model: np.ndarray, buf: GLMeshBuffer) -> None:
         model32 = model.astype(np.float32)

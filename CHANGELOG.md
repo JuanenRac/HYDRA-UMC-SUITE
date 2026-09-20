@@ -39,6 +39,18 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.6.2] - A saved per-part color now reaches the live 3D viewport, not just HYDRA-UMC-EDITOR-STL's own preview
+
+The separate HYDRA-UMC-EDITOR-STL tool already saved a real per-part
+color annotation (`part_colors.json`, one sidecar per model folder) next
+to a model's own STL parts, but nothing here ever read it back. A new
+`render/part_colors.py` loads that same sidecar; `viewport.py`'s own
+`RobotGLRenderer` (shared by both the classic `RobotViewport` and the
+QtQuick shell's `OffscreenRobotRenderer` - one real render path, both
+fixed at once) and `module_rig.py`'s heated-bed/vacuum-table/rack
+segment builders now use a saved color per part when one exists, never
+inventing one when the sidecar simply doesn't exist yet.
+
 ## [0.6.1]
 
 - Build version synchronized with `hydra-umc.project.json` and the repository-native version source.

@@ -20,6 +20,7 @@ from hydra_suite.vacuum_tables import CATALOG_DIR, vacuum_table_model
 from hydra_suite.heated_beds import CATALOG_DIR as HEATED_DIR, heated_bed_model
 from hydra_suite.racks import ASSET_DIR as RACK_DIR, rack_geometry, rack_parts
 from hydra_suite.render.mesh import Mesh, load_stl, make_box_mesh, make_cylinder_mesh
+from hydra_suite.render.part_colors import hex_to_rgb01, load_part_colors
 
 import numpy as np
 
@@ -116,8 +117,10 @@ def rack_segments(rack):
         return []
     spec = rack_geometry(rack)
     color = tuple(int(spec["color"][i:i+2], 16)/255 for i in (1,3,5))
+    part_colors = load_part_colors(RACK_DIR)
     segs = [Segment("rack_stl", tuple(v/1000 for v in size),
-                    pos=tuple(v/1000 for v in pos), color=color, model_id=part)
+                    pos=tuple(v/1000 for v in pos),
+                    color=hex_to_rgb01(part_colors.get(f"{part}.stl", "")) or color, model_id=part)
             for part, size, pos in rack_parts(rack)]
     # Opaque slot indicators in SUITE; STUDIO uses translucent indicators.
     slots = rack.get("usableSlots", [])
@@ -136,7 +139,11 @@ def module_segments(module_type: str, width_mm: float, length_mm: float, model_i
     w = max(0.001, width_mm / 1000.0)
     length = max(0.001, length_mm / 1000.0)
     if module_type == "vacuumTable":
-        return [Segment("vacuum_stl", (w, 0, length), color=_C_94A3B8, model_id=vacuum_table_model(model_id)["id"])]
+        model = vacuum_table_model(model_id)
+        override = hex_to_rgb01(load_part_colors(CATALOG_DIR).get(model["file"], ""))
+        return [Segment("vacuum_stl", (w, 0, length), color=override or _C_94A3B8, model_id=model["id"])]
     if module_type == "heatedBed":
-        return [Segment("heated_stl", (w, 0, length), color=(0.72, 0.45, 0.27), model_id=heated_bed_model(model_id)["id"])]
+        model = heated_bed_model(model_id)
+        override = hex_to_rgb01(load_part_colors(HEATED_DIR).get(model["file"], ""))
+        return [Segment("heated_stl", (w, 0, length), color=override or (0.72, 0.45, 0.27), model_id=model["id"])]
     return []
