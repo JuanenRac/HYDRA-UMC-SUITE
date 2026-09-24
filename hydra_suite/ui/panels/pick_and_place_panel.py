@@ -4,7 +4,7 @@
 # GPL-3.0 - see LICENSE
 #
 # Real port of HYDRA-UMC-STUDIO's own PickAndPlace.tsx (205 lines) - the
-# 8th of 11 panels from [[project_suite_studio_parity_gap]]. NOT built
+# 8th of 11 panels of the parity list. NOT built
 # directly on ModuleConfigPanel: unlike CNC/Laser (one module key per
 # panel instance), this ONE panel switches between TWO real module keys
 # (`juanenPnP`/`lumenPnP`) via its own in-panel Machine combo - reuses

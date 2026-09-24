@@ -10,7 +10,7 @@
 # a real empty state, width/length (mm) size fields, and a reset action.
 # One class parameterized by module_key/title covers both real panels
 # (see cnc_panel.py/laser_panel.py) instead of duplicating this shape
-# twice, matching [[feedback_no_reference_reuse_dont_invent]] - a
+# twice - a
 # spec-less variant reuses the existing baseline instead of a fresh
 # design, and STUDIO's own two source files already ARE that baseline
 # duplicated once; this does not need to happen again on the Qt side.

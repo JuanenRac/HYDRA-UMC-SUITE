@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
         # CNC.tsx/Laser.tsx/HeatedBedConfig.tsx/VacuumTableConfig.tsx (see
         # module_config_panel.py's own header for the shared implementation
         # and what's deliberately not ported yet - the live 3D preview). 5
-        # of 11 panels from [[project_suite_studio_parity_gap]] done;
+        # of 11 panels of the parity list done;
         # HeatedBedPanel/VacuumTablePanel extend ModuleConfigPanel's own
         # extension hooks for their extra controls rather than duplicating
         # the shared shape. AtcToolsPanel is its own fresh implementation
