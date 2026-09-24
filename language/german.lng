@@ -76,6 +76,8 @@ COL_ROLE=Rolle
 COL_SPEED_ACCEL=Geschwindigkeit / Beschleunigung
 STATUS_ONLINE=Online
 STATUS_OFFLINE=Offline
+MOTION_SIMULATED=Simuliert - bewegt die Maschine nicht
+MOTION_LIVE=Live
 
 HEADING_ROBOT_CONTROL=ROBOTERSTEUERUNG
 GROUP_JOINTS=Gelenke

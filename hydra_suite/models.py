@@ -110,6 +110,17 @@ class RobotView:
         return bool(self.raw.get("urtcConnected", False))
 
     @property
+    def motion_source(self) -> str:
+        """What the pose drawn for this robot stands for: "offline" (not
+        reachable), "simulated" (the server is up but no tool controller is
+        connected, so no real motion can happen) or "live" (a controller is
+        connected and can carry the motion out). Same rule as
+        HYDRA-UMC-STUDIO's own motionSource()."""
+        if not self.online:
+            return "offline"
+        return "live" if self.urtc_connected else "simulated"
+
+    @property
     def joints(self) -> dict[str, float]:
         # A NaN/Infinity value can reach this dict two ways this app doesn't
         # control: a server payload authored by something other than SUITE

@@ -27,6 +27,13 @@ from hydra_suite.i18n import _
 from hydra_suite.models import HydraState
 
 
+_MOTION_SOURCE_KEYS = {
+    "offline": "STATUS_OFFLINE",
+    "simulated": "MOTION_SIMULATED",
+    "live": "MOTION_LIVE",
+}
+
+
 class OverviewPanel(QWidget):
     def __init__(self, controller: SuiteController, parent: QWidget | None = None):
         super().__init__(parent)
@@ -133,7 +140,7 @@ class OverviewPanel(QWidget):
             self._set_cell(row, 0, robot.id)
             self._set_cell(row, 1, robot.model)
             self._set_cell(row, 2, robot.role)
-            self._set_cell(row, 3, _("STATUS_ONLINE") if robot.online else _("STATUS_OFFLINE"))
+            self._set_cell(row, 3, _(_MOTION_SOURCE_KEYS[robot.motion_source]))
             self._set_cell(row, 4, f"{robot.speed:.0f}% / {robot.acceleration:.0f}%")
 
     def _set_cell(self, row: int, col: int, text: str) -> None:

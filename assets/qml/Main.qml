@@ -1699,7 +1699,7 @@ ApplicationWindow {
                 Text { text: suiteBackend.uiText("COL_ROBOT"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90 }
                 Text { text: suiteBackend.uiText("COL_MODEL"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
                 Text { text: suiteBackend.uiText("COL_ROLE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 120 }
-                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90 }
+                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 210 }
                 Text { text: suiteBackend.uiText("COL_SPEED_ACCEL"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
             }
             ListView {
@@ -1719,7 +1719,7 @@ ApplicationWindow {
                         Text { text: "#" + modelData.id; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 86 }
                         Text { text: modelData.model; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
                         Text { text: modelData.role; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 120 }
-                        Text { text: modelData.status; color: modelData.online ? window.green : window.muted; font.pixelSize: 10; Layout.preferredWidth: 90 }
+                        Text { text: modelData.status; color: modelData.motionSource === "live" ? window.green : (modelData.motionSource === "simulated" ? window.amber : window.muted); font.pixelSize: 10; Layout.preferredWidth: 210; elide: Text.ElideRight }
                         Text { text: modelData.speedAccel; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 130 }
                     }
                 }
