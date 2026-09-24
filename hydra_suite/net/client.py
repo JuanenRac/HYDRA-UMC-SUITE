@@ -124,7 +124,7 @@ class HydraConnection(QObject):
         # and until this existed each of HYDRA-UMC-ANDROID-CONTROL's own
         # equivalent sendAtomicCommand() already debounces its speed command
         # 300ms for exactly this reason - this desktop client had the same
-        # gap. Keyed by (robot_id, command) - H034: keying by command name
+        # gap. Keyed by (robot_id, command) - keying by command name
         # ALONE (as this used to) meant throttling 'jog' for robot 1 shared
         # the exact same timer/slot as 'jog' for robot 2, so two robots
         # jogged in the same window could silently drop one of their two
@@ -804,7 +804,7 @@ class HydraConnection(QObject):
         fetch_state() is forced instead of ever creating a "ghost" robot
         from a partial patch - non-optional.
 
-        H035: DOES recompute _last_payload_json from the now-mutated state
+        DOES recompute _last_payload_json from the now-mutated state
         once the patch is applied (see the assignment below its own
         comment for the real bug this fixes) - this delta's own small
         payload is still never compared against that guard directly, but
@@ -840,7 +840,7 @@ class HydraConnection(QObject):
         camera_patch = msg.get("cameraPatch")
         if target_camera is not None and isinstance(camera_patch, dict):
             target_camera.update(camera_patch)
-        # H035: this used to leave _last_payload_json completely untouched
+        # this used to leave _last_payload_json completely untouched
         # (see this method's own docstring, which was right that a delta's
         # OWN small payload is never compared against it - but wrong that
         # nothing here needs to touch it at all). Real bug: settings #1 ->

@@ -84,7 +84,7 @@ def _run() -> None:
     # --- Real mock flash cycle end to end, via the panel's own real path ---
     panel2._set_file("g474_application.bin", bytes(6000))  # -> ceil(6000/2048) = 3 pages
     assert panel2._flash_btn.isEnabled() is True
-    # REV-019 (found wiring this script into a real, repeated batch runner
+    # (found wiring this script into a real, repeated batch runner
     # for the first time): can_ota.py's mock_flash() has a real, deliberate
     # ~3% unseeded random.random() chance of an "anti-rollback" simulated
     # failure whenever allow_downgrade is False (the panel's own checkbox
