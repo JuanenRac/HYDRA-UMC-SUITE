@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# H035: net/client.py's own _last_payload_json echo-guard (settings ==
+# net/client.py's own _last_payload_json echo-guard (settings ==
 # _last_payload_json means "our own write echoed back, ignore it") was never
 # updated by _apply_robot_delta() - a real targeted delta really does change
 # self.state, but left the guard's own baseline pointing at the full-tree
@@ -68,7 +68,7 @@ def delta_message(robot_id: int, patch: dict) -> str:
 def run() -> None:
     conn = HydraConnection(ServerInfo(host="127.0.0.1", port=3000))
 
-    # --- H035 core scenario: settings -> delta -> settings (restored) -----
+    # --- core scenario: settings -> delta -> settings (restored) -----
     snapshot_1 = full_settings_payload(j1_robot5=10.0, j1_robot6=0.0)
     conn._handle_message(settings_message(snapshot_1))
     check("snapshot 1 applies: robot 5 at 10.0", robot_j1(conn, 5), 10.0)
@@ -78,7 +78,7 @@ def run() -> None:
 
     # snapshot 2 is byte-identical to snapshot 1 - the server's own tree
     # converged back to that exact value (the delta's move got superseded).
-    # Before the H035 fix, _last_payload_json was still snapshot 1's own
+    # Before the fix, _last_payload_json was still snapshot 1's own
     # JSON, so this matched and was dropped - robot 5 stayed wrongly stuck
     # at 20.0 forever instead of converging back to the server's real 10.0.
     snapshot_2 = full_settings_payload(j1_robot5=10.0, j1_robot6=0.0)
@@ -111,7 +111,7 @@ def run() -> None:
 
     # --- Reconnect: a fresh full snapshot after reconnecting always applies,
     # exactly like the very first connect's own fetch_state()/first WS
-    # message - this must keep working after the H035 change to
+    # message - this must keep working after the change to
     # _apply_robot_delta(), which never runs on this path at all.
     reconnect_snapshot = full_settings_payload(j1_robot5=1.0, j1_robot6=2.0)
     conn._handle_message(settings_message(reconnect_snapshot))

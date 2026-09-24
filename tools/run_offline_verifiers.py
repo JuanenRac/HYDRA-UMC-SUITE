@@ -4,7 +4,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# REV-019 (P2): neither this
+# neither this
 # repository's own tools/build_test.py nor .github/workflows/ci.yml ever
 # ran the real Qt/backend control verifiers under tests/verify_*.py -
 # both only ever compiled Python sources. A real, deterministic

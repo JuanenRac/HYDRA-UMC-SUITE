@@ -79,7 +79,7 @@ async def run():
         await conn.send_command(1, "stop", debounce_ms=0)
         check("debounce_ms=0 sends immediately, no delay needed", len(posts), 1)
 
-        # H034: the SAME command name for TWO DIFFERENT robots must never
+        # the SAME command name for TWO DIFFERENT robots must never
         # share a throttle slot - before this fix, _throttle_tasks/
         # _throttle_latest_send were keyed by command name alone, so
         # robot 2's "jog" during robot 1's own "jog" throttle window would
