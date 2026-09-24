@@ -4,8 +4,8 @@
 # GPL-3.0 - see LICENSE
 #
 # Real port of HYDRA-UMC-STUDIO's own XYTableConfig.tsx (294 lines) - the
-# 6th of 11 panels from the real, standing SUITE/STUDIO parity gap (see
-# [[project_suite_studio_parity_gap]]). NOT built on module_config_panel.py's
+# 6th of 11 panels from the real, standing SUITE/STUDIO parity gap.
+# NOT built on module_config_panel.py's
 # shared ModuleConfigPanel: STUDIO keeps `hasXYTable: boolean` and
 # `xyTable: {...}` as two GENUINELY SEPARATE fields (unlike every
 # ModuleConfigPanel-family module's single `{enabled, size, ...}` shape,

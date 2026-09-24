@@ -4,7 +4,7 @@
 # GPL-3.0 - see LICENSE
 #
 # Real port of HYDRA-UMC-STUDIO's own KinematicBrainStage.tsx (316 lines) -
-# the 9th of 11 panels from [[project_suite_studio_parity_gap]]. Control
+# the 9th of 11 panels of the parity list. Control
 # panel for the Kinematic Brain's OWN local 6-axis stage (STM32H745 -
 # HYDRA-UMC's docs/PINOUT_STM32H745_KINEMATIC_BRAIN.TXT section 3,
 # docs/CANBUS_STM32H745.TXT section 4). CONFIRMED job per axis: X/Y1/Y2 =

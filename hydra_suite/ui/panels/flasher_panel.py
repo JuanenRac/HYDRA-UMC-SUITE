@@ -4,7 +4,7 @@
 # GPL-3.0 - see LICENSE
 #
 # Real port of HYDRA-UMC-STUDIO's own Flasher.tsx (425 lines) - the 10th
-# of 11 panels from [[project_suite_studio_parity_gap]]. CAN-OTA (and, for
+# of 11 panels of the parity list. CAN-OTA (and, for
 # the Kinematic Brain, SPI-OTA) firmware flashing - see can_ota.py's own
 # header for the full 4-tier chain this targets. `tiers` restricts which
 # tiers one instance offers, matching STUDIO's own Dashboard.tsx: the

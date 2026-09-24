@@ -20,7 +20,7 @@
 # no width/length size, and 3 layout modes instead of one. Forcing that
 # shape into ModuleConfigPanel's assumptions would either lose real fields
 # or invent ones STUDIO doesn't have - a fresh, purpose-built panel is the
-# honest port here, matching [[feedback_no_reference_reuse_dont_invent]]
+# honest port here
 # in the other direction: this IS a genuinely different design, not a
 # spec-less variant of the CNC/Laser/HeatedBed/VacuumTable family.
 #

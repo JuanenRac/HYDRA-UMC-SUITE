@@ -4,7 +4,7 @@
 # GPL-3.0 - see LICENSE
 #
 # Real port of HYDRA-UMC-STUDIO's own RackConfigView.tsx (228 lines) - the
-# 7th of 11 panels from [[project_suite_studio_parity_gap]]. NOT built on
+# 7th of 11 panels of the parity list. NOT built on
 # module_config_panel.py's shared ModuleConfigPanel: `rackSystem` nests TWO
 # real sub-racks (rack1/rack2, each its own type/capacity/usableSlots/
 # basePickupPos), a shape none of that family's single-module panels have.

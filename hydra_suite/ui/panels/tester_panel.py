@@ -4,7 +4,7 @@
 # GPL-3.0 - see LICENSE
 #
 # Real port of HYDRA-UMC-STUDIO's own Tester.tsx (448 lines) - the 11th
-# and LAST panel from [[project_suite_studio_parity_gap]]. CAN-OTA runtime
+# and LAST panel of the parity list. CAN-OTA runtime
 # diagnostics for a Robot Controller Board or (relayed through it) a
 # robot's own URTC Tool Head - porting URTC-TESTER's own feature set
 # (global LED/OLED controls, F-RAM query/erase, per-tool telemetry, safe
