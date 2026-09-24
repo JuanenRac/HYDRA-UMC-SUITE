@@ -39,6 +39,10 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.6.3] - Motion source in the overview
+
+- The robot overview (classic and Qt Quick shells) now says whether each robot is offline, simulated (online without a connected tool controller, so the machine does not move) or live, in all seven languages, following the same rule as STUDIO.
+
 ## [0.6.2] - A saved per-part color now reaches the live 3D viewport, not just HYDRA-UMC-EDITOR-STL's own preview
 
 The separate HYDRA-UMC-EDITOR-STL tool already saved a real per-part

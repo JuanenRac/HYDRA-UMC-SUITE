@@ -4764,7 +4764,8 @@ class SuiteQtBridge(QObject):
                 "id": r.id,
                 "model": r.model,
                 "role": r.role,
-                "status": _("STATUS_ONLINE") if r.online else _("STATUS_OFFLINE"),
+                "status": _({"offline": "STATUS_OFFLINE", "simulated": "MOTION_SIMULATED", "live": "MOTION_LIVE"}[r.motion_source]),
+                "motionSource": r.motion_source,
                 "online": r.online,
                 "speedAccel": f"{r.speed:.0f}% / {r.acceleration:.0f}%",
             }
