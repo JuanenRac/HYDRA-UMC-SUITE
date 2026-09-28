@@ -733,13 +733,20 @@ class ServerInfo:
     # longer provides a source-known administrator account to discovered peers.
     username: str = ""
     password: str = ""
+    # True once net/discovery.py's own probe found this server only
+    # answers over HTTPS (server.ts's own optional TLS_CERT_PATH/
+    # TLS_KEY_PATH switches it to HTTPS/WSS-only, no HTTP fallback of its
+    # own) - never guessed, always set from a real probe result.
+    use_tls: bool = False
 
     @property
     def base_url(self) -> str:
-        return f"http://{self.host}:{self.port}"
+        scheme = "https" if self.use_tls else "http"
+        return f"{scheme}://{self.host}:{self.port}"
 
     def ws_url(self, token: str | None = None) -> str:
-        base = f"ws://{self.host}:{self.port}/ws"
+        scheme = "wss" if self.use_tls else "ws"
+        base = f"{scheme}://{self.host}:{self.port}/ws"
         # remoteApiVersion=2 declares this connection understands a real
         # targeted delta (server.ts's own per-connection `schema`) - a
         # server that doesn't recognize the param (or is an older
@@ -754,7 +761,7 @@ class ServerInfo:
         return self.nickname or self.hostname or self.host
 
     @staticmethod
-    def from_hydra_info(host: str, port: int, payload: dict[str, Any]) -> "ServerInfo":
+    def from_hydra_info(host: str, port: int, payload: dict[str, Any], use_tls: bool = False) -> "ServerInfo":
         return ServerInfo(
             host=host,
             port=port,
@@ -765,4 +772,5 @@ class ServerInfo:
             controller_count=int(payload.get("controllerCount", 0)),
             robot_count=int(payload.get("robotCount", 0)),
             uptime_seconds=int(payload.get("uptimeSeconds", 0)),
+            use_tls=use_tls,
         )

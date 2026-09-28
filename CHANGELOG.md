@@ -39,6 +39,10 @@ already do. Tooling-only fix (dev scripts, not shipped application
 code) - no version bump, matching this repo's own convention for
 non-runtime changes.
 
+## [0.6.4] - Discovery never found a server with TLS turned on
+
+- **Real bug, found reviewing this app for the same TLS rollout that fixed HYDRA-UMC-ANDROID-CONTROL and HYDRA-UMC-STUDIO:** `ServerInfo.base_url`/`ws_url` and `net/discovery.py`'s own probe hardcoded `http://`/`ws://`, with no way to find or reach a server that switched to HYDRA-UMC-SERVER's optional HTTPS/WSS-only mode (`TLS_CERT_PATH`/`TLS_KEY_PATH`, server.ts). `probe_host()` now tries plain HTTP first (today's default, unchanged for every server that hasn't opted in) and, only if that gets no answer at all, retries once over HTTPS - remembered on the returned `ServerInfo` (`use_tls`) for every later call `net/client.py` already makes through `base_url`/`ws_url`, which needed no changes at all. 3 new checks in `tests/verify_discovery.py`. Manually adding a server by address still assumes plain HTTP, unchanged - only automatic discovery gained the fallback.
+
 ## [0.6.3] - Motion source in the overview
 
 - The robot overview (classic and Qt Quick shells) now says whether each robot is offline, simulated (online without a connected tool controller, so the machine does not move) or live, in all seven languages, following the same rule as STUDIO.
