@@ -34,6 +34,7 @@ import asyncio
 import ipaddress
 import socket
 from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 from zeroconf import IPVersion, ServiceStateChange
@@ -141,14 +142,14 @@ def candidate_hosts_for(local_ip: str) -> list[str]:
 _HYDRA_INFO_REQUIRED_KEYS = ("remoteApiVersion", "appVersion", "hostname", "controllerCount", "robotCount")
 
 
-async def probe_host(client: httpx.AsyncClient, host: str, port: int = DEFAULT_PORT) -> ServerInfo | None:
-    """One GET /api/hydra-info - returns None for anything that doesn't
-    answer or doesn't answer with a recognizable HYDRA-UMC STUDIO payload
-    (a closed port, a different service entirely, or a malformed response
-    all look the same from here: "not a real server", not an error worth
-    surfacing per-host during a broad scan)."""
+async def _get_hydra_info(client: httpx.AsyncClient, base: str) -> dict[str, Any] | None:
+    """One GET {base}/api/hydra-info - returns None for anything that
+    doesn't answer or doesn't answer with a recognizable HYDRA-UMC STUDIO
+    payload (a closed port, a different service entirely, or a malformed
+    response all look the same from here: "not a real server", not an
+    error worth surfacing per-host during a broad scan)."""
     try:
-        resp = await client.get(f"http://{host}:{port}/api/hydra-info", timeout=SCAN_TIMEOUT_S)
+        resp = await client.get(f"{base}/api/hydra-info", timeout=SCAN_TIMEOUT_S)
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -156,9 +157,25 @@ async def probe_host(client: httpx.AsyncClient, host: str, port: int = DEFAULT_P
             return None
         if not isinstance(data.get("remoteApiVersion"), int):
             return None
-        return ServerInfo.from_hydra_info(host, port, data)
+        return data
     except (httpx.HTTPError, ValueError):
         return None
+
+
+async def probe_host(client: httpx.AsyncClient, host: str, port: int = DEFAULT_PORT) -> ServerInfo | None:
+    """Tries plain HTTP first (today's default for every real server); a
+    server with server.ts's own optional TLS_CERT_PATH/TLS_KEY_PATH set
+    answers nothing sensible to that (HTTPS/WSS-only, no HTTP fallback of
+    its own), so a second HTTPS attempt follows before giving up on this
+    host - remembered on the returned ServerInfo (use_tls) for every later
+    call against it (see models.py's own base_url/ws_url)."""
+    data = await _get_hydra_info(client, f"http://{host}:{port}")
+    if data is not None:
+        return ServerInfo.from_hydra_info(host, port, data, use_tls=False)
+    data = await _get_hydra_info(client, f"https://{host}:{port}")
+    if data is not None:
+        return ServerInfo.from_hydra_info(host, port, data, use_tls=True)
+    return None
 
 
 async def scan_subnets(hosts: list[str] | None = None, port: int = DEFAULT_PORT) -> AsyncIterator[ServerInfo]:

@@ -85,9 +85,55 @@ hostnames = sorted(r.hostname for r in results)
 check("discover_servers yields 3 distinct (host, port) entries, not 4", len(results), 3)
 check("discover_servers dedups the entry both fakes yielded", hostnames, ["only-mdns", "only-scan", "same-both-sources"])
 
+# --- probe_host(): HTTP first, HTTPS fallback ----------------------------
+# server.ts's own optional TLS_CERT_PATH/TLS_KEY_PATH (HYDRA-UMC-SERVER)
+# makes a server answer nothing sensible to plain HTTP - probe_host()
+# retries once over HTTPS before giving up. _get_hydra_info() is
+# monkeypatched here rather than a real httpx.AsyncClient/server, same
+# "verify the real logic without the real network" boundary as above.
+
+_HYDRA_INFO_PAYLOAD = {
+    "remoteApiVersion": 2, "appVersion": "0.8.0", "hostname": "cm5-test",
+    "controllerCount": 1, "robotCount": 1,
+}
+
+
+async def fake_get_hydra_info_http_only(client, base):
+    return _HYDRA_INFO_PAYLOAD if base.startswith("http://") else None
+
+
+async def fake_get_hydra_info_https_only(client, base):
+    return _HYDRA_INFO_PAYLOAD if base.startswith("https://") else None
+
+
+async def fake_get_hydra_info_neither(client, base):
+    return None
+
+
+async def run_probe_check():
+    original = discovery._get_hydra_info
+    try:
+        discovery._get_hydra_info = fake_get_hydra_info_http_only
+        http_result = await discovery.probe_host(None, "10.0.0.5", 3000)
+
+        discovery._get_hydra_info = fake_get_hydra_info_https_only
+        https_result = await discovery.probe_host(None, "10.0.0.5", 3000)
+
+        discovery._get_hydra_info = fake_get_hydra_info_neither
+        neither_result = await discovery.probe_host(None, "10.0.0.5", 3000)
+    finally:
+        discovery._get_hydra_info = original
+    return http_result, https_result, neither_result
+
+
+http_result, https_result, neither_result = asyncio.run(run_probe_check())
+check("probe_host: a plain-HTTP server is used as-is (use_tls=False)", http_result.use_tls if http_result else "MISSING", False)
+check("probe_host: a TLS-only server is found via the HTTPS fallback (use_tls=True)", https_result.use_tls if https_result else "MISSING", True)
+check("probe_host: a genuinely unreachable host returns None, not a guess", neither_result, None)
+
 print()
 if failures:
     print(f"FAILED: {failures} mismatches")
     sys.exit(1)
 else:
-    print("ALL DISCOVERY CHECKS PASSED (candidate_hosts_for + discover_servers dedup)")
+    print("ALL DISCOVERY CHECKS PASSED (candidate_hosts_for + discover_servers dedup + probe_host TLS fallback)")
