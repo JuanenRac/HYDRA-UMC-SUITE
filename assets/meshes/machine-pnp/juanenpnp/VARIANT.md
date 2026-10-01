@@ -1,6 +1,6 @@
 # juanenpnp: independent editable mesh set
 
-Created 2026-09-12 as a copy of lumenpnp STL assets (167 files).
+Created as a copy of lumenpnp STL assets (167 files).
 Upstream authorship/export provenance and license notices remain in ATTRIBUTION.txt.
 No CAD changes have been applied to this initial copy.
 

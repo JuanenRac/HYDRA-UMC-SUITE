@@ -26,7 +26,7 @@ regardless of toolhead position, so it's grouped with the Y-carriage
 bridge instead), not guessed. Same grouping as this project's own formal
 lumenpnp_juanenpnp.urdf (7 links/6 joints).
 
-Real fix 2026-09-08: the original cut merged each Z-carriage housing with
+Real fix: the original cut merged each Z-carriage housing with
 its own nozzle into ONE rigid body per side (z_carriage_n1/n2) - convenient
 for the triangle-budget problem below, but a real visible error: the
 housing's own real footprint at that joint is ~44x51mm (measured off the
@@ -60,7 +60,7 @@ final counts land at base ~32.6K / y_carriage ~23.9K / x_carriage ~19.2K
 triangles. z_carriage_left/right (~15.2K/13.8K, kept at their real CAD
 export size - already inside this same budget, no further cut needed) and
 nozzle_left/right (~7.9K each, smaller than every other part) were added
-2026-09-08 replacing the old merged z_carriage_n1/n2 (~5.5K each) - a
+replacing the old merged z_carriage_n1/n2 (~5.5K each) - a
 recognizable silhouette, not a bolt-for-bolt replica, still in the same
 ballpark as this app's other robot meshes.
 
@@ -80,7 +80,7 @@ pre-merged/indexed offline into .glb so the browser has nothing left to
 compute on load, just a buffer to upload - LumenPnPRig.tsx itself only
 ever loads the .glb files. The original 5-part conversion used
 three.js's own STLLoader+mergeVertices()+GLTFExporter in a browser tab;
-regenerating z_carriage_left/right and nozzle_left/right 2026-09-08 used
+regenerating z_carriage_left/right and nozzle_left/right used
 a Node-side equivalent instead (three.js's mergeVertices() on a hand-
 parsed binary STL, then a minimal hand-written, spec-valid single-mesh
 GLB writer - POSITION/NORMAL/indices only, no material/image, round-trip
@@ -179,7 +179,7 @@ hand-written spec-valid GLB written directly - no browser-only globals).
 
 ---
 
-parts/ batches 2-4 (2026-09-08, same day as the batch above - added after
+parts/ batches 2-4 (same day as the batch above - added after
 the user looked at the live rig and named specific real gaps: motors,
 pulleys, the drag chain, belts, then asked for more individualized
 mechanical parts beyond fasteners)
@@ -229,7 +229,7 @@ label, assigned link, assembled bounding box and triangle count).
 
 ---
 
-parts/ batch 5 (2026-09-08, same day - user explicitly asked to keep
+parts/ batch 5 (same day - user explicitly asked to keep
 extracting real mechanical parts, screws/fasteners excluded)
 
 26 more real parts: the 2 real nozzle-rotation motors (hollow-shaft
