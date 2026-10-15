@@ -817,6 +817,36 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Text { text: suiteBackend.uiText("HEADING_ADMIN_LOGS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
                 Item { Layout.fillWidth: true }
+                // the copy button of the log: an icon of two sheets that puts every line on the clipboard (through a hidden text box, which can copy)
+                Rectangle {
+                    id: copyIconButton
+                    property bool copied: false
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 32
+                    radius: 8
+                    color: copyIconMouse.containsMouse ? "#1b3c52" : "#102a3b"
+                    border.width: 1
+                    border.color: copyIconButton.copied ? "#5df0c4" : "#264966"
+                    Item {
+                        anchors.centerIn: parent
+                        width: 18; height: 18
+                        Rectangle { x: 6; y: 0; width: 11; height: 12; radius: 2; color: "transparent"; border.width: 1.6; border.color: copyIconButton.copied ? "#5df0c4" : "#9fd8e3" }
+                        Rectangle { x: 1; y: 5; width: 11; height: 12; radius: 2; color: copyIconMouse.containsMouse ? "#1b3c52" : "#102a3b"; border.width: 1.6; border.color: copyIconButton.copied ? "#5df0c4" : "#9fd8e3" }
+                    }
+                    TextEdit { id: copyHelper; visible: false }
+                    Timer { id: copiedTimer; interval: 1400; onTriggered: copyIconButton.copied = false }
+                    MouseArea {
+                        id: copyIconMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            copyHelper.text = suiteBackend.adminLogsLines.join("\n")
+                            copyHelper.selectAll(); copyHelper.copy(); copyHelper.deselect()
+                            copyIconButton.copied = true; copiedTimer.restart()
+                        }
+                    }
+                }
                 Button { text: suiteBackend.uiText("BTN_CLEAR"); onClicked: suiteBackend.clearAdminLogs() }
                 Button { text: suiteBackend.adminLogsLive ? suiteBackend.uiText("BTN_PAUSE") : suiteBackend.uiText("BTN_RESUME"); onClicked: suiteBackend.toggleAdminLogsLive() }
             }

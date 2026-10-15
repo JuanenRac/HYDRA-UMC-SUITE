@@ -10,6 +10,10 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
+## Unreleased
+
+- The admin logs have a small copy button (an icon of two sheets) that puts every line on the clipboard, so it can be pasted into a message; it turns green for a moment when it has copied.
+
 ## QtQuick mode: real Camera Media panel + snapshot/recording controls
 
 The `--qtquick` shell had no way at all to take a snapshot, start/stop a
