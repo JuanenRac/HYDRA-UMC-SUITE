@@ -25,7 +25,7 @@
 </p>
 
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** die Netzwerkerkennung (gleichzeitiger Subnetz-Scan + echtes mDNS/Bonjour, `hydra_suite/net/discovery.py`), die Live-REST+WebSocket-Verbindung und Schwarm-Unterstützung (`hydra_suite/net/client.py`, `hydra_suite/app.py`), die echte Vorwärtskinematik der 3D-Ansicht für alle 24 echten Robotermodelle plus einen primitiven "Generic"-Fallback (`hydra_suite/render/`, numerisch bitgenau gegen HYDRA-UMC STUDIOs eigene TypeScript-FK verifiziert), alle 11 von 11 Werkzeug-Konfigurationspanels, das CAN-OTA/SPI-OTA-Flashen und das echte MJPEG-Kamera-Rendering sind real und getestet - 28 Offline-Verify-/Smoke-Skripte unter `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), alle bestanden, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py`, ausgeführt gegen einen echten, laufenden HYDRA-UMC SERVER und einen echten GPU-/OpenGL-Kontext auf dieser Maschine. Die Qt-Quick-Shell (`--qtquick`, alle 26 klassischen Panels portiert, einschließlich der 3D-Ansicht über einen eigenen `OffscreenRobotRenderer`) ist echter, funktionierender Code, der neben dem unveränderten klassischen Einstiegspunkt gestartet wird. Was ausdrücklich NOCH NICHT erledigt ist, gemäß der eigenen Ehrlichkeitskonvention dieses Repos: die URTC-Tool-Head-/Advanced-Expansion-Stufen des CAN-OTA haben noch keinen echten Hardware-Relay-Tunnel; und `combinedWith` (kombinierter Robotermodus) ist in der UI dieser App nicht freigelegt, obwohl es im eigenen Datenmodell von STUDIO existiert. `trajectory_panel.py` exportiert/importiert jetzt über das echte `WORKS/*.json`-Format von HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<Ordner>/index.json`) - ein hier aufgezeichneter Punkt ist ein echter, in beiden Apps abspielbarer Work. Siehe [`docs/ROADMAP.md`](docs/ROADMAP.md) für die vollständige, punktweise Aufschlüsselung von real gegenüber verschoben, die dieser Absatz zusammenfasst, und `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde.
+**Ehrlichkeitscheck - was heute wirklich läuft:** die Netzwerkerkennung (gleichzeitiger Subnetz-Scan + echtes mDNS/Bonjour, `hydra_suite/net/discovery.py`), die Live-REST+WebSocket-Verbindung und Schwarm-Unterstützung (`hydra_suite/net/client.py`, `hydra_suite/app.py`), die echte Vorwärtskinematik der 3D-Ansicht für alle 24 echten Robotermodelle plus einen primitiven "Generic"-Fallback (`hydra_suite/render/`, numerisch bitgenau gegen HYDRA-UMC STUDIOs eigene TypeScript-FK verifiziert), alle 11 von 11 Werkzeug-Konfigurationspanels, das CAN-OTA/SPI-OTA-Flashen und das echte MJPEG-Kamera-Rendering sind real und getestet - 29 Offline-Verify-/Smoke-Skripte unter `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), alle bestanden, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py`, ausgeführt gegen einen echten, laufenden HYDRA-UMC SERVER und einen echten GPU-/OpenGL-Kontext auf dieser Maschine. Die Qt-Quick-Shell (`--qtquick`, alle 26 klassischen Panels portiert, einschließlich der 3D-Ansicht über einen eigenen `OffscreenRobotRenderer`) ist echter, funktionierender Code, der neben dem unveränderten klassischen Einstiegspunkt gestartet wird. Was ausdrücklich NOCH NICHT erledigt ist, gemäß der eigenen Ehrlichkeitskonvention dieses Repos: die URTC-Tool-Head-/Advanced-Expansion-Stufen des CAN-OTA haben noch keinen echten Hardware-Relay-Tunnel; und `combinedWith` (kombinierter Robotermodus) ist in der UI dieser App nicht freigelegt, obwohl es im eigenen Datenmodell von STUDIO existiert. `trajectory_panel.py` exportiert/importiert jetzt über das echte `WORKS/*.json`-Format von HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<Ordner>/index.json`) - ein hier aufgezeichneter Punkt ist ein echter, in beiden Apps abspielbarer Work. Siehe [`docs/ROADMAP.md`](docs/ROADMAP.md) für die vollständige, punktweise Aufschlüsselung von real gegenüber verschoben, die dieser Absatz zusammenfasst, und `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde.
 
 ---
 
@@ -109,8 +109,8 @@ Ein echtes QML-`ApplicationWindow` - anders als das obige Command Deck überhaup
   lassen, funktioniert daher von Haus aus: Qt/der Fenstermanager des
   Betriebssystems platziert es wie jedes andere Fenster, ganz ohne
   eigenen "Multi-Monitor-Modus".
-- **🌐 7 Sprachen** - English, Español, Italiano, Français, Deutsch, 简体中文,
-  日本語
+- **🌐 8 Sprachen** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語, Português
   (dieselbe `language/*.lng`-Konvention wie URTC-FLASHER/URTC-TESTER), wird
   über das Sprachmenü gewechselt (wirksam nach einem Neustart).
 - **📷 Kameras** - echte Kameraliste pro Controller (welche Kameras
@@ -208,12 +208,12 @@ HYDRA-UMC-SUITE/
 ├── build_exe.sh                   # Linux-Build in einem Schritt -> dist/HYDRA-UMC_SUITE
 ├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
 ├── README.md                      # diese Datei
-├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- Übersetzungen
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md / README_por.md  <- Übersetzungen
 ├── .github/                        # CI-Workflow, Issue-Vorlagen, PR-Vorlage (generisch, ökosystemweit geteilt)
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView - leichte, mutationsfreundliche Ansichten über die echte settings.json-Form
 │   ├── app.py                      # SuiteController - verwaltet den Schwarm an Verbindungen, die "aktive" Auswahl; jedes Panel spricht damit
-│   ├── i18n.py                     # 7-Sprachen-KEY=Value-Lader (language/*.lng)
+│   ├── i18n.py                     # 8-Sprachen-KEY=Value-Lader (language/*.lng)
 │   ├── can_ota.py                  # Gemeinsamer CAN-OTA/SPI-OTA-Transport (echter Port von STUDIOs eigenem canOta.ts) - genutzt von Flasher und Tester
 │   ├── logging_handler.py          # Leitet Python-Logging an das Logs-Panel weiter
 │   ├── net/
@@ -236,7 +236,7 @@ HYDRA-UMC-SUITE/
 │   ├── qss/industrial_dark.qss     # Das futuristisch-industrielle Qt-Stylesheet
 │   ├── qml/Main.qml                 # Qt-Quick-UI des `--qtquick`-Kommandopults (alle 26 Panels)
 │   └── meshes/                      # Echte STL-Meshes, ein Ordner pro Roboter/Modul, kopiert aus HYDRA-UMC-STUDIOs eigenem public/models/ (jeweils mit eigener ATTRIBUTION.txt)
-├── language/                        # .lng-Dateien english/spanish/french/german/italian/japanese/chinese
+├── language/                        # .lng-Dateien english/spanish/french/german/italian/japanese/chinese/portuguese
 ├── docs/
 │   └── ROADMAP.md                   # Ehrliche Aussage zum echten Umfang vs. noch nicht Umgesetztem
 ├── tools/
@@ -487,7 +487,7 @@ HYDRA-UMC SUITE ist (c) 2026 JuanenRac (Electro Hobby 3D). Dieser Hinweis muss i
 
 Der Quellcode dieser Anwendung ist verfügbar unter der **GNU General Public License v3.0 (GPL-3.0)**. Vollständiger Text unter https://www.gnu.org/licenses/gpl-3.0.html.
 
-**Diese Dokumentation** (dieses README und seine eigenen Übersetzungen - `README_spa.md`, `README_ita.md`, `README_fra.md`, `README_deu.md`, `README_zho.md`, `README_jpn.md`) ist verfügbar unter **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**. Vollständiger Text unter https://creativecommons.org/licenses/by-sa/4.0/.
+**Diese Dokumentation** (dieses README und seine eigenen Übersetzungen - `README_spa.md`, `README_ita.md`, `README_fra.md`, `README_deu.md`, `README_zho.md`, `README_jpn.md`, `README_por.md`) ist verfügbar unter **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**. Vollständiger Text unter https://creativecommons.org/licenses/by-sa/4.0/.
 
 **Mesh-Assets von Drittanbietern:** jeder Ordner unter `assets/meshes/` ist wortgetreu aus dem eigenen offiziellen Hersteller-Repository dieses Roboters kopiert - NICHT von der obigen GPL-3.0 abgedeckt. Jeder hat seine eigene `ATTRIBUTION.txt` mit dem genauen Quell-/Lizenzverweis; die Tabelle unten fasst sie zusammen.
 

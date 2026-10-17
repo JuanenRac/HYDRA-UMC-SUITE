@@ -25,7 +25,7 @@
 </p>
 
 
-**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の28件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており、さらに `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` が実際に稼働中のHYDRA-UMC SERVERとこのマシンの実際のGPU/OpenGLコンテキストに対して検証されています。Qt Quickシェル(`--qtquick`、専用の `OffscreenRobotRenderer` による3Dビューポートを含む全26の従来パネルが移植済み)は本物の、実際に動くコードであり、変更されていない従来のエントリポイントと並行して起動されます。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして `combinedWith`(結合ロボットモード)は、STUDIO自身のデータモデルに存在するにもかかわらず、このアプリのUIには公開されていません。`trajectory_panel.py` は現在、HYDRA-UMC STUDIO自身の本物の `WORKS/*.json` 形式(`POST /api/upload-work`、`GET /<フォルダ>/index.json`)を通じてエクスポート/インポートします - ここで記録したポイントは、どちらのアプリからも再生できる本物のWorkです。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
+**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の29件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており、さらに `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` が実際に稼働中のHYDRA-UMC SERVERとこのマシンの実際のGPU/OpenGLコンテキストに対して検証されています。Qt Quickシェル(`--qtquick`、専用の `OffscreenRobotRenderer` による3Dビューポートを含む全26の従来パネルが移植済み)は本物の、実際に動くコードであり、変更されていない従来のエントリポイントと並行して起動されます。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして `combinedWith`(結合ロボットモード)は、STUDIO自身のデータモデルに存在するにもかかわらず、このアプリのUIには公開されていません。`trajectory_panel.py` は現在、HYDRA-UMC STUDIO自身の本物の `WORKS/*.json` 形式(`POST /api/upload-work`、`GET /<フォルダ>/index.json`)を通じてエクスポート/インポートします - ここで記録したポイントは、どちらのアプリからも再生できる本物のWorkです。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
 
 ---
 
@@ -62,7 +62,7 @@ python main.py --qtquick
 - **🧊 実際の 3D ビューポート** —— OpenGL 3.3、実際の STL メッシュ、24 個の実在するロボットモデルすべてに対する実際の正運動学（HYDRA-UMC STUDIO 自身の TypeScript 実装に対して数値検証済みで、結果はビット単位で同一）に加え、プリミティブで構築された「汎用」フォールバック——いずれも様式化されたプレースホルダーではありません。
 - **📍 軌道ポイント** —— 選択したロボットの実時間の姿勢を記録し、必要に応じて記録済みのポイントへジョグして戻ります。
 - **🪟 Photoshop 風のドッキング可能なワークスペース** —— すべてのパネルは本物の `QDockWidget` です：ドラッグして自由に浮遊させる、ドラッグして戻してドッキングまたはタブグループへ統合する、ワークスペースを分割する、閉じる、そして View メニューから再表示する、といった操作が可能です。パネルをフローティング化すると、それは真に独立したトップレベルウィンドウになるため、2 台目（あるいは 3 台目）の物理モニターへドラッグしてそこに置いておくことがそのまま機能します——Qt/OS のウィンドウマネージャーが他のウィンドウと同様にそれを配置するため、追加の「マルチモニターモード」は不要です。
-- **🌐 7 言語** —— 英語、スペイン語、イタリア語、フランス語、ドイツ語、簡体中国語、日本語（URTC-FLASHER/URTC-TESTER と同じ `language/*.lng` 方式）、Language メニューから切り替え（再起動後に反映）。
+- **🌐 8 言語** —— 英語、スペイン語、イタリア語、フランス語、ドイツ語、簡体中国語、日本語、ポルトガル語（URTC-FLASHER/URTC-TESTER と同じ `language/*.lng` 方式）、Language メニューから切り替え（再起動後に反映）。
 - **📷 カメラ** —— コントローラーごとの実際のカメラ一覧(存在するカメラ、その種類、接続状態、そしてブランドを問わない汎用のホスト/ポート/パス/認証情報フィールドを備えた実際の USB/IP(RTSP)ソースタイプ切り替え)を、ここにある他のすべてのパネルと同じ方式で実際のサーバーと同期します。メタデータは最初から最後まで本物であり、各カメラカードが実際の MJPEG ストリーム自体をレンダリングします(HYDRA-UMC-VISION-STREAMER 自身の `stream serve` が、HYDRA-UMC-SERVER の `GET /api/camera/:id/stream` を通じて中継され)。実際の JPEG SOI/EOI マーカーをスキャンする実際のクライアント（HYDRA-UMC-ANDROID-CONTROL 自身の `MjpegStreamParser.kt` がすでに使っているのと同じ実際の手法）を使っており、実際の USB・IP ハードウェアに対して検証済みです。
 - **🛠️ ツールアタッチメント設定、全11パネル完備** —— CNC、レーザー、ヒートベッド、バキュームテーブル、ATC(自動工具交換装置)、XY テーブル、ラックマネージャー、Pick & Place、Kinematic Brain Stage、Flasher、Tester——HYDRA-UMC STUDIO 自身のツール別画面それぞれとの実際の機能パリティで、それぞれが忠実な移植です(STUDIO 自身のソースコードが持つ、時に癖のある実際の挙動も含め、ここで「修正」するのではなく意図的に再現しています)。それぞれに実際のヘッドレステストカバレッジがあります。CNC/レーザー/ヒートベッド/バキュームテーブルは1つの `ModuleConfigPanel` 実装を共有しています(STUDIO 自身の `CNC.tsx`/`Laser.tsx` はモジュールキー以外は同一のコンポーネントです)。残りの7つはそれぞれ独自に作られた実際のパネルが必要でした。ヒートベッドと真空テーブルは `render/module_rig.py` で STL を使用します。PnP、CNC、レーザーは `render/pnp_rig.py` を使用し、独立したフォルダーごとに 7 個の可動メッシュと 160 個の個別部品があります。`RobotViewport` が各アセンブリを表示します。[機械モデル](docs/MACHINE_ASSETS.md)を参照してください。
 
@@ -134,12 +134,12 @@ HYDRA-UMC-SUITE/
 ├── build_exe.sh                   # ワンショットのLinuxビルド -> dist/HYDRA-UMC_SUITE
 ├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
 ├── README.md                      # このファイル
-├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- 翻訳版
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md / README_por.md  <- 翻訳版
 ├── .github/                        # CIワークフロー、issueテンプレート、PRテンプレート（汎用、エコシステム共有）
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView - 実際のsettings.json構造の上に構築された、軽量で変更しやすいビュー
 │   ├── app.py                      # SuiteController - 接続群と「アクティブ」選択を管理する。各パネルはこれと通信する
-│   ├── i18n.py                     # 7言語対応のKEY=Valueローダー（language/*.lng）
+│   ├── i18n.py                     # 8言語対応のKEY=Valueローダー（language/*.lng）
 │   ├── can_ota.py                  # 共有のCAN-OTA/SPI-OTAトランスポート（STUDIO自身のcanOta.tsの実際の移植）- FlasherとTesterで使用
 │   ├── logging_handler.py          # PythonのロギングをLogsパネルへルーティング
 │   ├── net/
@@ -162,7 +162,7 @@ HYDRA-UMC-SUITE/
 │   ├── qss/industrial_dark.qss     # 未来的・産業的なQtスタイルシート
 │   ├── qml/Main.qml                 # `--qtquick` コマンドデッキ(全26パネル)のQt Quick UI
 │   └── meshes/                      # 実際のSTLメッシュ、ロボット/モジュールごとに1フォルダ、HYDRA-UMC-STUDIO自身のpublic/models/からコピー（それぞれ独自のATTRIBUTION.txt付き）
-├── language/                        # english/spanish/french/german/italian/japanese/chineseの.lngファイル
+├── language/                        # english/spanish/french/german/italian/japanese/chinese/portugueseの.lngファイル
 ├── docs/
 │   └── ROADMAP.md                   # 実際の範囲と未実装部分についての正直な記述
 ├── tools/
@@ -373,7 +373,7 @@ HYDRA-UMC SUITE の著作権は (c) 2026 JuanenRac（Electro Hobby 3D）に帰�
 
 本アプリケーションのソースコードは、**GNU General Public License v3.0（GPL-3.0）** の下で提供されます。全文は https://www.gnu.org/licenses/gpl-3.0.html を参照してください。
 
-**本ドキュメント**（本 README およびその自身の翻訳版——`README_spa.md`、`README_ita.md`、`README_fra.md`、`README_deu.md`、`README_zho.md`、`README_jpn.md`）は、**クリエイティブ・コモンズ 表示-継承 4.0 国際（CC BY-SA 4.0）** の下で提供されます。全文は https://creativecommons.org/licenses/by-sa/4.0/ を参照してください。
+**本ドキュメント**（本 README およびその自身の翻訳版——`README_spa.md`、`README_ita.md`、`README_fra.md`、`README_deu.md`、`README_zho.md`、`README_jpn.md`、`README_por.md`）は、**クリエイティブ・コモンズ 表示-継承 4.0 国際（CC BY-SA 4.0）** の下で提供されます。全文は https://creativecommons.org/licenses/by-sa/4.0/ を参照してください。
 
 **サードパーティのメッシュアセット：** `assets/meshes/` 下のすべてのフォルダは、そのロボット自身の公式メーカーリポジトリからそのままコピーされたものです——上記の GPL-3.0 の対象では **ありません**。それぞれが、正確な出典/ライセンス参照を記した自身の `ATTRIBUTION.txt` を持ちます。下表はそれらをまとめたものです。
 

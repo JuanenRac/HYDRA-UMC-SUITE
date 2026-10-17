@@ -25,7 +25,7 @@
 </p>
 
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 28 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，全部 26 个经典面板均已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。`trajectory_panel.py` 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 29 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，全部 26 个经典面板均已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。`trajectory_panel.py` 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -62,7 +62,7 @@ python main.py --qtquick
 - **🧊 真实 3D 视口** —— OpenGL 3.3，真实的 STL 网格，针对全部 24 个真实机器人型号的真实正向运动学（与 HYDRA-UMC STUDIO 自身的 TypeScript 实现经数值验证，结果逐位一致），外加一个基于基本几何体构建的“通用”后备型号——两者都不是风格化的占位符。
 - **📍 轨迹点** —— 记录所选机器人的实时姿态，按需点动回到任意已记录的点位。
 - **🪟 类 Photoshop 的可停靠工作区** —— 每个面板都是一个真正的 `QDockWidget`：可拖动使其自由浮动，拖回停靠或合并为选项卡组，拆分工作区，关闭，并从 View 菜单重新显示。将面板浮动化会使其成为一个真正独立的顶层窗口，因此将它拖到第二个（或第三个）物理显示器上并留在那里开箱即可使用——Qt/操作系统窗口管理器会像对待任何其他窗口一样放置它，无需额外的“多显示器模式”。
-- **🌐 7 种语言** —— 英语、西班牙语、意大利语、法语、德语、简体中文、日语（与 URTC-FLASHER/URTC-TESTER 相同的 `language/*.lng` 惯例），从“语言”菜单切换（重启后生效）。
+- **🌐 8 种语言** —— 英语、西班牙语、意大利语、法语、德语、简体中文、日语、葡萄牙语（与 URTC-FLASHER/URTC-TESTER 相同的 `language/*.lng` 惯例），从“语言”菜单切换（重启后生效）。
 - **📷 摄像头** —— 每个控制器的真实摄像头名册（存在哪些摄像头、其类型、连接状态，以及一个真实的 USB/IP（RTSP）来源类型切换，配有通用、不限品牌的主机/端口/路径/凭证字段），与真实服务器同步，方式与此处的其他每个面板相同，还带有真实的实时视频：元数据自始至终都是真实的，每张摄像头卡片都会渲染真实的 MJPEG 视频流本身（HYDRA-UMC-VISION-STREAMER 自身的 `stream serve`，通过 HYDRA-UMC-SERVER 的 `GET /api/camera/:id/stream` 中继）。通过一个真实的 JPEG SOI/EOI 标记扫描客户端（与 HYDRA-UMC-ANDROID-CONTROL 自身的 `MjpegStreamParser.kt` 已经使用的真实方法相同）实现，已对真实 USB 和 IP 硬件验证。
 - **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `ModuleConfigPanel` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。加热床和真空台通过 `render/module_rig.py` 使用 STL。PnP、CNC 和激光使用 `render/pnp_rig.py`，每个独立文件夹包含 7 个运动部件网格和 160 个独立零件。`RobotViewport` 显示各个总成。参见[机器模型](docs/MACHINE_ASSETS.md)。
 
@@ -134,12 +134,12 @@ HYDRA-UMC-SUITE/
 ├── build_exe.sh                   # 一步式 Linux 构建 -> dist/HYDRA-UMC_SUITE
 ├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
 ├── README.md                      # 本文件
-├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- 翻译版本
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md / README_por.md  <- 翻译版本
 ├── .github/                        # CI 工作流、issue 模板、PR 模板（通用，生态系统共享）
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView —— 基于真实 settings.json 结构的轻量、可变视图
 │   ├── app.py                      # SuiteController —— 管理连接集群与"当前激活"选择；每个面板都与它通信
-│   ├── i18n.py                     # 7 语言 KEY=Value 加载器（language/*.lng）
+│   ├── i18n.py                     # 8 语言 KEY=Value 加载器（language/*.lng）
 │   ├── can_ota.py                  # 共享的 CAN-OTA/SPI-OTA 传输层（STUDIO 自身 canOta.ts 的真实移植）—— 供 Flasher 和 Tester 使用
 │   ├── logging_handler.py          # 将 Python 日志路由到日志面板
 │   ├── net/
@@ -162,7 +162,7 @@ HYDRA-UMC-SUITE/
 │   ├── qss/industrial_dark.qss     # 未来工业风格的 Qt 样式表
 │   ├── qml/Main.qml                 # `--qtquick` 命令面板的 Qt Quick 界面（全部 26 个面板）
 │   └── meshes/                      # 真实 STL 网格，每个机器人/模块一个文件夹，复制自 HYDRA-UMC-STUDIO 自身的 public/models/（各自附带 ATTRIBUTION.txt）
-├── language/                        # english/spanish/french/german/italian/japanese/chinese 的 .lng 文件
+├── language/                        # english/spanish/french/german/italian/japanese/chinese/portuguese 的 .lng 文件
 ├── docs/
 │   └── ROADMAP.md                   # 关于真实已实现范围与尚未实现内容的诚实说明
 ├── tools/
@@ -373,7 +373,7 @@ HYDRA-UMC SUITE 版权所有 (c) 2026 JuanenRac（Electro Hobby 3D）。分发�
 
 本应用的源代码依据 **GNU 通用公共许可证 v3.0（GPL-3.0）** 提供。完整文本见 https://www.gnu.org/licenses/gpl-3.0.html。
 
-**本文档**（本 README 及其自身的翻译版本——`README_spa.md`、`README_ita.md`、`README_fra.md`、`README_deu.md`、`README_zho.md`、`README_jpn.md`）依据 **知识共享 署名-相同方式共享 4.0 国际许可协议（CC BY-SA 4.0）** 提供。完整文本见 https://creativecommons.org/licenses/by-sa/4.0/。
+**本文档**（本 README 及其自身的翻译版本——`README_spa.md`、`README_ita.md`、`README_fra.md`、`README_deu.md`、`README_zho.md`、`README_jpn.md`、`README_por.md`）依据 **知识共享 署名-相同方式共享 4.0 国际许可协议（CC BY-SA 4.0）** 提供。完整文本见 https://creativecommons.org/licenses/by-sa/4.0/。
 
 **第三方网格资产：** `assets/meshes/` 下的每一个文件夹都是从该机器人自身官方制造商仓库原样复制而来——**不**受上述 GPL-3.0 覆盖。每一个都附有自己的 `ATTRIBUTION.txt`，注明确切的来源/许可证参考；下表对其进行了汇总。
 

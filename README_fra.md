@@ -25,7 +25,7 @@
 </p>
 
 
-**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** la découverte réseau (scan de sous-réseau concurrent + véritable mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connexion REST+WebSocket en direct et le support d'essaim (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinématique directe réelle de la vue 3D pour les 24 vrais modèles de robots plus un repli « Generic » (`hydra_suite/render/`), les 11 panneaux de configuration d'outils sur 11, le flashage CAN-OTA/SPI-OTA, et le rendu vidéo MJPEG réel des caméras sont réels et testés - 28 scripts de vérification/smoke sous `tests/` (`python tools/run_offline_verifiers.py`, Qt sans tête via `QT_QPA_PLATFORM=offscreen`), tous en succès, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` exécutés contre un véritable HYDRA-UMC SERVER en fonctionnement et un vrai contexte GPU/OpenGL sur cette machine. La coquille Qt Quick (`--qtquick`, les 26 panneaux classiques portés, y compris la vue 3D via un `OffscreenRobotRenderer` dédié) est du code réel et fonctionnel, lancé aux côtés du point d'entrée classique inchangé. Ce qui n'est explicitement PAS encore fait, selon la propre convention d'honnêteté de ce dépôt : les niveaux URTC Tool Head/Advanced Expansion du CAN-OTA n'ont pas encore de véritable tunnel de relais matériel ; et `combinedWith` (mode robot combiné) n'est pas exposé dans l'UI de cette application bien qu'il existe dans le propre modèle de données de STUDIO. `trajectory_panel.py` exporte/importe désormais via le véritable format `WORKS/*.json` de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<dossier>/index.json`) - un point enregistré ici est un Work réel et lisible depuis les deux applications. Voir [`docs/ROADMAP.md`](docs/ROADMAP.md) pour le détail complet, poste par poste, du réel par rapport au différé que ce paragraphe résume, et `CHANGELOG.md` pour ce qui a déjà été livré exactement.
+**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** la découverte réseau (scan de sous-réseau concurrent + véritable mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connexion REST+WebSocket en direct et le support d'essaim (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinématique directe réelle de la vue 3D pour les 24 vrais modèles de robots plus un repli « Generic » (`hydra_suite/render/`), les 11 panneaux de configuration d'outils sur 11, le flashage CAN-OTA/SPI-OTA, et le rendu vidéo MJPEG réel des caméras sont réels et testés - 29 scripts de vérification/smoke sous `tests/` (`python tools/run_offline_verifiers.py`, Qt sans tête via `QT_QPA_PLATFORM=offscreen`), tous en succès, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` exécutés contre un véritable HYDRA-UMC SERVER en fonctionnement et un vrai contexte GPU/OpenGL sur cette machine. La coquille Qt Quick (`--qtquick`, les 26 panneaux classiques portés, y compris la vue 3D via un `OffscreenRobotRenderer` dédié) est du code réel et fonctionnel, lancé aux côtés du point d'entrée classique inchangé. Ce qui n'est explicitement PAS encore fait, selon la propre convention d'honnêteté de ce dépôt : les niveaux URTC Tool Head/Advanced Expansion du CAN-OTA n'ont pas encore de véritable tunnel de relais matériel ; et `combinedWith` (mode robot combiné) n'est pas exposé dans l'UI de cette application bien qu'il existe dans le propre modèle de données de STUDIO. `trajectory_panel.py` exporte/importe désormais via le véritable format `WORKS/*.json` de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<dossier>/index.json`) - un point enregistré ici est un Work réel et lisible depuis les deux applications. Voir [`docs/ROADMAP.md`](docs/ROADMAP.md) pour le détail complet, poste par poste, du réel par rapport au différé que ce paragraphe résume, et `CHANGELOG.md` pour ce qui a déjà été livré exactement.
 
 ---
 
@@ -112,8 +112,8 @@ Une vraie `ApplicationWindow` QML - pas du tout intégrée dans la fenêtre clas
   d'office - Qt/le gestionnaire de fenêtres du système d'exploitation le
   place comme n'importe quelle autre fenêtre, sans « mode multi-écran »
   supplémentaire.
-- **🌐 7 langues** - English, Español, Italiano, Français, Deutsch, 简体中文,
-  日本語 (même
+- **🌐 8 langues** - English, Español, Italiano, Français, Deutsch, 简体中文,
+  日本語, Português (même
   convention `language/*.lng` que URTC-FLASHER/URTC-TESTER), se change
   depuis le menu Langue (effectif après un redémarrage).
 - **📷 Caméras** - liste réelle des caméras par contrôleur (quelles
@@ -213,12 +213,12 @@ HYDRA-UMC-SUITE/
 ├── build_exe.sh                   # Build Linux en une étape -> dist/HYDRA-UMC_SUITE
 ├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
 ├── README.md                      # ce fichier
-├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md  <- traductions
+├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md / README_por.md  <- traductions
 ├── .github/                        # Workflow CI, modèles d'issues, modèle de PR (générique, partagé dans l'écosystème)
 ├── hydra_suite/
 │   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView - vues légères et mutables sur la forme réelle de settings.json
 │   ├── app.py                      # SuiteController - gère l'essaim de connexions, la sélection « active » ; chaque panneau lui parle
-│   ├── i18n.py                     # Chargeur KEY=Value 7 langues (language/*.lng)
+│   ├── i18n.py                     # Chargeur KEY=Value 8 langues (language/*.lng)
 │   ├── can_ota.py                  # Transport partagé CAN-OTA/SPI-OTA (portage réel du canOta.ts propre à STUDIO) - utilisé par Flasher et Tester
 │   ├── logging_handler.py          # Route le logging Python vers le panneau Logs
 │   ├── net/
@@ -241,7 +241,7 @@ HYDRA-UMC-SUITE/
 │   ├── qss/industrial_dark.qss     # La feuille de style Qt futuriste-industrielle
 │   ├── qml/Main.qml                 # UI Qt Quick du panneau de commandes `--qtquick` (les 26 panneaux)
 │   └── meshes/                      # Vrais maillages STL, un dossier par robot/module, copiés du propre public/models/ de HYDRA-UMC-STUDIO (chacun avec son propre ATTRIBUTION.txt)
-├── language/                        # Fichiers .lng english/spanish/french/german/italian/japanese/chinese
+├── language/                        # Fichiers .lng english/spanish/french/german/italian/japanese/chinese/portuguese
 ├── docs/
 │   └── ROADMAP.md                   # Déclaration honnête du périmètre réel vs. pas encore fait
 ├── tools/
@@ -492,7 +492,7 @@ HYDRA-UMC SUITE est (c) 2026 JuanenRac (Electro Hobby 3D). Cet avis doit être i
 
 Le code source de cette application est disponible sous la **GNU General Public License v3.0 (GPL-3.0)**. Texte complet sur https://www.gnu.org/licenses/gpl-3.0.html.
 
-**Cette documentation** (ce README et ses propres traductions - `README_spa.md`, `README_ita.md`, `README_fra.md`, `README_deu.md`, `README_zho.md`, `README_jpn.md`) est disponible sous **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**. Texte complet sur https://creativecommons.org/licenses/by-sa/4.0/.
+**Cette documentation** (ce README et ses propres traductions - `README_spa.md`, `README_ita.md`, `README_fra.md`, `README_deu.md`, `README_zho.md`, `README_jpn.md`, `README_por.md`) est disponible sous **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**. Texte complet sur https://creativecommons.org/licenses/by-sa/4.0/.
 
 **Ressources de maillage tierces :** chaque dossier sous `assets/meshes/` est copié à l'identique depuis le propre dépôt officiel du fabricant de ce robot - NON couvert par la GPL-3.0 ci-dessus. Chacun possède son propre `ATTRIBUTION.txt` avec la référence exacte de source/licence ; le tableau ci-dessous les résume.
 
