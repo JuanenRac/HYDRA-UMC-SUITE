@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "ecosystem": "HYDRA-UMC",
   "name": "HYDRA-UMC-SUITE",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "role": "ui",
   "stack": "python",
   "technologies": [
@@ -10,7 +10,7 @@
     "PySide6"
   ],
   "deployment_target": "user-pc",
-  "maturity": "established",
+  "maturity": "functional",
   "family": "Core Backend & Clients",
   "parent": "HYDRA-UMC-SERVER",
   "build": "No pyproject.toml. __init__.py's __version__ is the real source. Packaged as standalone .exe using build_exe.bat/.sh.",

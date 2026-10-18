@@ -10,6 +10,11 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
+## [0.6.9]
+
+- Maturity is functional: nothing here has been verified on real hardware yet.
+- The READMEs say, in the eight languages, what is planned and what has only been tested against fakes, emulators or fixtures, and carry a short safety and security status note.
+
 ## [0.6.8] - STOP and live updates survive odd server answers
 
 - **Global STOP never raises:** a `200` answer to `POST /api/stop-all` whose robots carry an id that is not a number (`"abc"`, a list, `NaN`) or whose `robots` is not a list used to end in an unhandled exception instead of a result; the odd field is now read as 0 / ignored and the answer is shown as not clean.
