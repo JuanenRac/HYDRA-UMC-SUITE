@@ -112,14 +112,15 @@ class StopAllResult:
     @classmethod
     def from_json(cls, body: dict) -> "StopAllResult":
         robots: list[StopAllRobot] = []
-        for item in body.get("robots") or []:
+        listed = body.get("robots")
+        for item in listed if isinstance(listed, list) else []:
             if not isinstance(item, dict):
                 continue
             reserved = item.get("reservedBy")
             error = item.get("error")
             robots.append(
                 StopAllRobot(
-                    robot_id=int(item.get("robotId", 0) or 0),
+                    robot_id=_whole_number(item.get("robotId")),
                     controller_id=str(item.get("controllerId") or ""),
                     name=str(item.get("name") or ""),
                     stopped=bool(item.get("stopped", False)),
@@ -138,6 +139,39 @@ class StopAllResult:
             persisted=bool(body.get("persisted", False)),
             robots=robots,
         )
+
+
+def _whole_number(value: object) -> int:
+    """A robot id as the server sent it, or 0 when it is not a whole number: a
+    STOP answer must never be lost to one odd field."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        return 0
+    try:
+        return int(value)
+    except (ValueError, OverflowError):
+        return 0
+
+
+def is_settings_tree(data: object) -> bool:
+    """True when `data` has the shape of the settings tree every panel reads:
+    an object whose controllers (when present) are objects holding robot and
+    camera lists of objects. Anything else is not allowed to replace the
+    state, whoever sent it."""
+    if not isinstance(data, dict):
+        return False
+    controllers = data.get("controllers")
+    if controllers is None:
+        return True
+    if not isinstance(controllers, list):
+        return False
+    for controller in controllers:
+        if not isinstance(controller, dict):
+            return False
+        for key in ("robots", "cameras"):
+            items = controller.get(key)
+            if items is not None and (not isinstance(items, list) or not all(isinstance(i, dict) for i in items)):
+                return False
+    return True
 
 
 def _body_code(resp: "httpx.Response") -> str | None:
@@ -696,6 +730,8 @@ class HydraConnection(QObject):
         resp = await self._http("GET", "/api/settings")
         resp.raise_for_status()
         data = resp.json()
+        if not is_settings_tree(data):
+            raise ValueError("the server's settings are not a settings tree")
         self.state = HydraState(data)
         self._last_payload_json = json.dumps(data, sort_keys=True)
         self.state_changed.emit(self.state)
@@ -890,7 +926,9 @@ class HydraConnection(QObject):
                 if attempt == 0:
                     await asyncio.sleep(STOP_ALL_RETRY_DELAY_S)
                 continue
-            if resp.status_code == 429:
+            if resp.status_code in (404, 429):
+                # 429: over the server's rate limit. 404: a server that does not
+                # have the route yet. Either way the robots are stopped one by one.
                 return await self._stop_robots_one_by_one()
             if resp.status_code != 200:
                 message = describe_rejection(resp, "STOP")
@@ -1128,7 +1166,8 @@ class HydraConnection(QObject):
         if msg.get("type") not in ("settings", "delta"):
             return
         payload = msg.get("payload")
-        if not isinstance(payload, dict):
+        if not is_settings_tree(payload):
+            logger.warning("HydraConnection %s: ignored a settings message that is not a settings tree", self.info.host)
             return
         payload_json = json.dumps(payload, sort_keys=True)
         if payload_json == self._last_payload_json:
@@ -1173,16 +1212,16 @@ class HydraConnection(QObject):
         target_robot: dict | None = None
         target_camera: dict | None = None
         for c in self.state.raw.get("controllers") or []:
-            if str(c.get("id", "")) != controller_id:
+            if not isinstance(c, dict) or str(c.get("id", "")) != controller_id:
                 continue
             for r in c.get("robots") or []:
-                if r.get("id") == robot_id:
+                if isinstance(r, dict) and r.get("id") == robot_id:
                     target_robot = r
                     break
             camera_id = msg.get("cameraId")
             if camera_id is not None:
                 for cam in c.get("cameras") or []:
-                    if cam.get("id") == camera_id:
+                    if isinstance(cam, dict) and cam.get("id") == camera_id:
                         target_camera = cam
                         break
             break

@@ -33,7 +33,7 @@
 
 | | |
 |---|---|
-| Version | `0.6.7` |
+| Version | `0.6.8` |
 | Maturité | Établi |
 | Technologie | Python 3.12 / PySide6 |
 | Cible | Le PC de la personne qui l'utilise |
@@ -214,6 +214,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
+├── tests/verify_hostile_server_answers.py
 ├── main.py                        # Point d'entrée - plein écran 1280x720 min, F11 bascule plein écran/fenêtré ; --qtquick bascule vers le panneau ci-dessous
 ├── qt_suite.py                     # Interface Qt Quick - panneau de commandes `--qtquick` autonome (les 26 panneaux), relie le SuiteController inchangé à QML
 ├── verify_qt_suite_shell.py        # Vérification réelle de la shell Qt Quick sans matériel/réseau - délibérément hors de tests/ (même raison que les propres verify_qt_*.py d'URTC-TESTER/URTC-FLASHER), exécutée avec `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`

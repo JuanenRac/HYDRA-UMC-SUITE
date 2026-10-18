@@ -33,7 +33,7 @@
 
 | | |
 |---|---|
-| Version | `0.6.7` |
+| Version | `0.6.8` |
 | Maturity | Established |
 | Stack | Python 3.12 / PySide6 |
 | Target | The PC of the person using it |
@@ -202,6 +202,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
+├── tests/verify_hostile_server_answers.py
 ├── main.py                        # Entry point - fullscreen 1280x720 min, F11 toggles fullscreen/windowed; --qtquick switches to the deck below
 ├── qt_suite.py                     # Qt Quick front end - standalone `--qtquick` command deck (all 26 panels), bridges the unchanged SuiteController to QML
 ├── verify_qt_suite_shell.py        # Real, hardware/network-free Qt Quick shell check - deliberately kept outside tests/ (same reason as URTC-TESTER/URTC-FLASHER's own verify_qt_*.py), run with `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`

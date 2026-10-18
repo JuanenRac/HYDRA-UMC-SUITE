@@ -100,6 +100,15 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {})
 
 
+async def wait_for_key(seen, key, timeout=5.0):
+    """Waits until the fake server has recorded `key` (a fixed sleep made the
+    check fail on a loaded machine)."""
+    waited = 0.0
+    while not seen.get(key) and waited < timeout:
+        await asyncio.sleep(0.05)
+        waited += 0.05
+
+
 def start_http():
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -209,7 +218,7 @@ async def run():
         conn = make_conn(modern_port, username="a", password="b")
         conn._token = "tok.en-1"
         task = asyncio.ensure_future(conn._run())
-        await asyncio.sleep(0.25)
+        await wait_for_key(seen, "modern")
         conn._closing = True
         task.cancel()
         path, chosen = seen["modern"]
@@ -221,7 +230,7 @@ async def run():
         conn = make_conn(old_port, username="a", password="b")
         conn._token = "tok.en-2"
         task = asyncio.ensure_future(conn._run())
-        await asyncio.sleep(0.5)
+        await wait_for_key(seen, "old")
         conn._closing = True
         task.cancel()
         check("WS fallback: an older server gets ?token=", bool(seen["old"]) and "token=tok.en-2" in seen["old"], True)

@@ -33,7 +33,7 @@
 
 | | |
 |---|---|
-| 版本 | `0.6.7` |
+| 版本 | `0.6.8` |
 | 成熟度 | 成熟 |
 | 技术栈 | Python 3.12 / PySide6 |
 | 目标 | 使用者的电脑 |
@@ -136,6 +136,7 @@ HYDRA-UMC-SUITE/
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
+├── tests/verify_hostile_server_answers.py
 ├── main.py                        # 入口点 - 最小 1280x720 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
 ├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
 ├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行

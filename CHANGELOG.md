@@ -10,6 +10,13 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
+## [0.6.8] - STOP and live updates survive odd server answers
+
+- **Global STOP never raises:** a `200` answer to `POST /api/stop-all` whose robots carry an id that is not a number (`"abc"`, a list, `NaN`) or whose `robots` is not a list used to end in an unhandled exception instead of a result; the odd field is now read as 0 / ignored and the answer is shown as not clean.
+- **STOP on a server without the route:** a `404` from `POST /api/stop-all` (a server that does not have the route yet) now stops every known robot one by one, like a rate limited `429` already did and like the phone and tablet apps do, instead of leaving the STOP "not confirmed".
+- **Settings tree checks:** a settings read or a live `settings` / `delta` message whose controllers, robots or cameras are not objects is refused instead of replacing the state (and then breaking every panel that reads it), and a live delta over a list that holds a non-object no longer raises.
+- New verifier `tests/verify_hostile_server_answers.py` (about 170 checks) covers all of the above and the wording of the refusals for 400 / 401 / 403 / 409 / 5xx with bodies that are not JSON; the WebSocket check of `verify_session_and_errors.py` now waits for the server instead of sleeping a fixed time, which failed on a loaded machine.
+
 ## [0.6.7] - Global STOP
 
 - **STOP button on every panel:** a red **STOP** button (with the caption "Stop all", translated in the 8 languages) sits in the command deck of the classic window and in the header of the `--qtquick` shell, so it is on screen whatever panel is open. One click, no confirmation, no selected robot needed.
