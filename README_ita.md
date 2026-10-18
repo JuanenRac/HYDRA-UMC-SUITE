@@ -195,7 +195,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
-├── main.py                        # Punto di ingresso - schermo intero 1920x1080 min, F11 alterna schermo intero/finestra; --qtquick passa al pannello sotto
+├── main.py                        # Punto di ingresso - schermo intero 1280x720 min, F11 alterna schermo intero/finestra; --qtquick passa al pannello sotto
 ├── qt_suite.py                     # Front end Qt Quick - pannello comandi `--qtquick` autonomo (tutti i 26 pannelli), collega l'SuiteController invariato a QML
 ├── verify_qt_suite_shell.py        # Verifica reale della shell Qt Quick senza hardware/rete - deliberatamente fuori da tests/ (stesso motivo dei propri verify_qt_*.py di URTC-TESTER/URTC-FLASHER), eseguita con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
@@ -273,7 +273,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Si avvia a schermo intero con un minimo di 1920x1080 (secondo la stessa
+Si avvia a schermo intero con un minimo di 1280x720 (secondo la stessa
 specifica di design di questa app) - premi **F11** per alternare tra
 schermo intero e una normale finestra massimizzata in qualsiasi momento,
 così non ti intrappola mai realmente senza una via d'uscita. Usa il

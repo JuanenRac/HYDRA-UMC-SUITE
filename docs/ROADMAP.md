@@ -5,27 +5,21 @@ ecosystem's own established documentation convention of not overstating
 what's implemented. Every item below is a genuine gap, not a hidden bug -
 each one is a scoped, well-understood next step, not a redesign.
 
-**Why login exists in `net/client.py` at all:** HYDRA-UMC STUDIO's server
-requires a bearer token (`POST /api/login`) on every write and on the
-`/ws` upgrade - GET reads have no such requirement, so a connection with
-no token can still read state, but every write 401s and the WebSocket
-upgrade is rejected outright (code 1008) until login succeeds. `net/client.py`
-logs in automatically using the per-server credentials on `ServerInfo`
-(`admin`/`admin` by default, matching every real HYDRA-UMC STUDIO server's
-own seeded account - editable per-server from the Server Browser panel),
-and retries on its own reconnect cadence if a login attempt fails. Re-verified
-end-to-end against a real running server (`tests/smoke_test_app.py`) -
-"SMOKE TEST PASSED", 8 real robots, `Connection status live: True`.
+**Why login exists in `net/client.py` at all:** HYDRA-UMC-SERVER requires a
+bearer token (`POST /api/login`) on settings reads and writes, robot commands
+and the `/ws` upgrade, so nothing works until login succeeds. The credentials
+are always typed by the operator (a server found by the scan is listed but not
+logged in to until then); a rejected login is not retried, an expired access
+token is renewed through `/api/refresh`, and the WebSocket carries the token as
+the `hydra.bearer` subprotocol (falling back to `?token=` for an older server).
 
-The WebSocket connection also opens with no message-size cap
-(`max_size=None`): the server sends the FULL settings tree (1.6MB+ on a
-populated swarm, and only grows with more robots/trajectory points) as the
-first message on every connect, which exceeds the `websockets` library's
-own default 1 MiB limit - a cap here would close the connection with code
-1009 before a single byte of real state got through. No cap mirrors what a
-browser WebSocket client does; the real fix for the underlying payload
-size is a smaller wire format server-side, not a client-side ceiling that
-just moves where it breaks.
+The WebSocket connection allows messages up to 128 MB: the server sends the
+FULL settings tree (1.6MB+ on a populated swarm, and only grows with more
+robots/trajectory points) as the first message on every connect, which exceeds
+the `websockets` library's own default 1 MiB limit (a cap that low closes the
+connection with code 1009 before any state arrives), while a finite ceiling
+keeps a broken or hostile server from exhausting the PC's memory. The real fix
+for the payload size is a smaller wire format server-side.
 
 ## ✅ Real and verified end-to-end
 

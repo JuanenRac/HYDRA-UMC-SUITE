@@ -32,7 +32,12 @@
 ; here" caveat.
 ; =============================================================================
 #define MyAppName "HYDRA-UMC SUITE"
-#define MyAppVersion "0.1.3"
+; The version comes from build_installer.bat (iscc /DMyAppVersion=...), which
+; reads it from hydra_suite\__init__.py after the build; this value is only
+; the fallback for compiling the script by hand.
+#ifndef MyAppVersion
+  #define MyAppVersion "0.0.0"
+#endif
 #define MyAppPublisher "JuanenRac (Electro Hobby 3D)"
 #define MyAppURL "https://github.com/JuanenRac/HYDRA-UMC-SUITE"
 #define MyAppExeName "HYDRA-UMC_SUITE.exe"
@@ -74,6 +79,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; itself, only packages what's already in ..\dist\ (build_installer.bat
 ; runs build_exe.bat first to guarantee it's actually there and current).
 Source: "..\dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+; The window text lives in language\ next to the program (i18n.py); without it every label shows its key.
+Source: "..\language\*"; DestDir: "{app}\language"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

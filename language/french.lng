@@ -395,7 +395,6 @@ LBL_ATC_HORIZONTAL=Horizontal
 LBL_ATC_REVOLVER=Revolver
 LBL_PANEL_GRID_LAYOUT=Disposition de la Grille du Panneau
 LBL_REVOLVER_CAPACITY=Capacité du Revolver
-LBL_BASE_PICKUP_POS=Position de Prise de Base
 
 # Panneau Pick & Place
 HEADING_PICK_AND_PLACE=Pick & Place

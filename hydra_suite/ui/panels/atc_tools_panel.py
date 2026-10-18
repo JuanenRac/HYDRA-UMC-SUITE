@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QDoubleSpinBox,
     QSpinBox,
     QStackedWidget,
     QVBoxLayout,
@@ -125,7 +126,7 @@ class PositionEditor(QWidget):
 
     def __init__(self, has_xy_table: bool, parent: QWidget | None = None):
         super().__init__(parent)
-        self._spins: dict[str, QSpinBox] = {}
+        self._spins: dict[str, QDoubleSpinBox] = {}
         layout = QVBoxLayout(self)
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(4)
@@ -136,8 +137,9 @@ class PositionEditor(QWidget):
             lbl = QLabel(f"{f.upper()} (°)")
             lbl.setStyleSheet("font-size: 9px; font-weight: 600; color: #7f8ea1;")
             col.addWidget(lbl)
-            spin = QSpinBox()
-            spin.setRange(int(JOINT_RANGE_DEG[0]), int(JOINT_RANGE_DEG[1]))
+            spin = QDoubleSpinBox()
+            spin.setDecimals(2)
+            spin.setRange(JOINT_RANGE_DEG[0], JOINT_RANGE_DEG[1])
             spin.setSuffix("°")
             self._spins[f] = spin
             col.addWidget(spin)
@@ -151,8 +153,9 @@ class PositionEditor(QWidget):
                 lbl = QLabel(f"Table {f[1].upper()} (mm)")
                 lbl.setStyleSheet("font-size: 9px; font-weight: 600; color: #d97706;")
                 col.addWidget(lbl)
-                spin = QSpinBox()
-                spin.setRange(int(TABLE_RANGE_MM[0]), int(TABLE_RANGE_MM[1]))
+                spin = QDoubleSpinBox()
+                spin.setDecimals(2)
+                spin.setRange(TABLE_RANGE_MM[0], TABLE_RANGE_MM[1])
                 spin.setSuffix(" mm")
                 self._spins[f] = spin
                 col.addWidget(spin)
@@ -162,12 +165,12 @@ class PositionEditor(QWidget):
     def set_values(self, pos: dict[str, Any]) -> None:
         for f, spin in self._spins.items():
             spin.blockSignals(True)
-            spin.setValue(int(pos.get(f, 0) or 0))
+            spin.setValue(float(pos.get(f, 0) or 0))
             spin.blockSignals(False)
 
     def connect_field_changed(self, callback) -> None:
         for f, spin in self._spins.items():
-            spin.valueChanged.connect(lambda value, field=f: callback(field, float(value)))
+            spin.valueChanged.connect(lambda value, field=f: callback(field, round(float(value), 2)))
 
 
 class AtcGraphicsWidget(QWidget):

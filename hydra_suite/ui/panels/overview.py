@@ -109,7 +109,10 @@ class OverviewPanel(QWidget):
         uptime = metrics.get("uptime")
         self._cpu_label.setText(f"{cpu}%" if cpu is not None else "-")
         self._mem_label.setText(f"{mem}%" if mem is not None else "-")
-        self._temp_label.setText(f"{temp:.0f}°C" if isinstance(temp, (int, float)) else "-")
+        # A host without a temperature sensor reports a made-up number with
+        # temp_is_real false: showing it would pass noise off as a reading.
+        real = metrics.get("temp_is_real") is not False
+        self._temp_label.setText(f"{temp:.0f}°C" if real and isinstance(temp, (int, float)) else "-")
         if isinstance(uptime, (int, float)):
             hours, rem = divmod(int(uptime), 3600)
             minutes = rem // 60

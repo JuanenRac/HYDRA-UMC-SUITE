@@ -3,7 +3,7 @@ stop/tool/valve/pump controls (ui/panels/robot_control.py) - the atomic
 per-command counterparts to HYDRA-UMC-STUDIO's own RobotDetail.tsx
 transport buttons and I/O tab, added alongside the pre-existing jog/
 speed/acceleration controls this panel already had. Headless: a real
-QApplication, a real HydraConnection with httpx.AsyncClient.post
+QApplication, a real HydraConnection with httpx.AsyncClient.request
 monkeypatched (same boundary verify_send_command_debounce.py already
 uses) instead of a real network connection - proves the exact command
 name and params this panel sends for each control, not just that a
@@ -44,7 +44,7 @@ def _run() -> None:
     app = QApplication.instance() or QApplication(sys.argv)
     posts: list[dict] = []
 
-    async def fake_post(self, url, json=None, headers=None, timeout=None):
+    async def fake_post(self, method, url, json=None, headers=None, timeout=None, **kwargs):
         posts.append(json)
 
         class _Resp:
@@ -53,10 +53,13 @@ def _run() -> None:
             def raise_for_status(self):
                 pass
 
+            def json(self):
+                return {"success": True}
+
         return _Resp()
 
-    original_post = httpx.AsyncClient.post
-    httpx.AsyncClient.post = fake_post
+    original_post = httpx.AsyncClient.request
+    httpx.AsyncClient.request = fake_post
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -161,7 +164,7 @@ def _run() -> None:
         print("RobotControlPanel pump toggles: real 'pump' command, correct index: PASS")
 
     finally:
-        httpx.AsyncClient.post = original_post
+        httpx.AsyncClient.request = original_post
         loop.close()
 
 

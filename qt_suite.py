@@ -72,6 +72,7 @@ from hydra_suite.can_ota import (
     hardware_start_flash,
     has_advanced_expansion,
     hop_description,
+    parse_version_tag,
     mock_bus_monitor,
     mock_flash,
     mock_query_version,
@@ -595,6 +596,7 @@ class SuiteQtBridge(QObject):
         # panel's own Property bindings to re-evaluate several times a
         # second - see that signal's own declaration for why. --
         self._camera_stream_tasks: dict[int, asyncio.Task] = {}
+        self._camera_stream_urls: dict[int, str | None] = {}
         self._camera_discovery_tasks: dict[int, asyncio.Task] = {}
         self._camera_placeholder: dict[int, tuple[str, str]] = {}
         self._camera_frame_versions: dict[int, int] = {}
@@ -3132,11 +3134,14 @@ class SuiteQtBridge(QObject):
 
     def _ensure_camera_stream(self, camera_id: int) -> None:
         task = self._camera_stream_tasks.get(camera_id)
-        if task is not None and not task.done():
-            return  # already streaming - _on_cameras_state_changed runs on
-            # every state broadcast, not just real changes, matching
-            # CameraCard._start_stream()'s own real no-op guard.
         url = self._camera_stream_url(camera_id)
+        if task is not None and not task.done():
+            if url == self._camera_stream_urls.get(camera_id):
+                return  # already streaming - _on_cameras_state_changed runs on
+                # every state broadcast, not just real changes, matching
+                # CameraCard._start_stream()'s own real no-op guard.
+            self._stop_camera_stream(camera_id)  # the active server changed: this picture is the previous one's
+        self._camera_stream_urls[camera_id] = url
         if not url:
             self._camera_placeholder[camera_id] = (_("STATUS_LIVE"), "#10b981")
             return
@@ -3163,7 +3168,8 @@ class SuiteQtBridge(QObject):
         try:
             while True:
                 got_a_frame = False
-                async for frame in iter_mjpeg_frames(url):
+                conn = self._controller.active_connection
+                async for frame in iter_mjpeg_frames(url, conn.auth_headers() if conn is not None else None):
                     if not got_a_frame:
                         got_a_frame = True
                         attempt = 0
@@ -4168,7 +4174,7 @@ class SuiteQtBridge(QObject):
                     return
                 self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_CONNECTING"), "percent": 0}
                 self.changed.emit()
-                version_major, _sep, version_minor = (file.get("version_tag") or "0.0").partition(".")
+                version_major, version_minor = parse_version_tag(file.get("version_tag"))
                 hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
                 conn = self._controller.active_connection
                 if conn is None:
@@ -4176,14 +4182,14 @@ class SuiteQtBridge(QObject):
                     return
                 result = await hardware_start_flash(
                     conn, target, file["bytes"],
-                    int(version_major) if version_major.isdigit() else 0,
-                    int(version_minor) if version_minor.isdigit() else 0,
+                    version_major,
+                    version_minor,
                     hardware_id_number,
                 )
                 if result.success:
                     self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_DONE"), "percent": 100}
                     self._flasher_push_log(key, _("LBL_FLASH_DONE"), "ok")
-                    self._flasher_apply_patch(key, {"firmwareVersion": file["name"].removesuffix(".bin")})
+                    self._flasher_apply_patch(key, {"firmwareVersion": file.get("version_tag") or file["name"].removesuffix(".bin")})
                 else:
                     self._flasher_push_log(key, f"{_('LBL_FLASH_HARDWARE_FAILED')}: {result.reason}", "error")
                 return
@@ -4734,7 +4740,8 @@ class SuiteQtBridge(QObject):
         uptime = metrics.get("uptime")
         self._overview_cpu = f"{cpu}%" if cpu is not None else "-"
         self._overview_mem = f"{mem}%" if mem is not None else "-"
-        self._overview_temp = f"{temp:.0f}°C" if isinstance(temp, (int, float)) else "-"
+        real_temp = metrics.get("temp_is_real") is not False  # false = made-up value from a host with no sensor
+        self._overview_temp = f"{temp:.0f}°C" if real_temp and isinstance(temp, (int, float)) else "-"
         if isinstance(uptime, (int, float)):
             hours, rem = divmod(int(uptime), 3600)
             minutes = rem // 60

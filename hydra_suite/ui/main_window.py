@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("HYDRA-UMC SUITE")
-        self.setMinimumSize(1920, 1080)
+        self.setMinimumSize(1280, 720)
         self._apply_window_icon()
 
         self.controller = SuiteController(self)

@@ -50,6 +50,46 @@ METRICS_POLL_S = 5.0
 # for the full reasoning.
 HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": "suite"}
 
+# A finite ceiling for one WebSocket message (the full settings tree is a few
+# MB): enough for any real payload, not enough to exhaust the PC's memory.
+WS_MAX_MESSAGE_BYTES = 128 * 1024 * 1024
+# Server error codes (auth middleware) that a fresh login/refresh can cure.
+_RENEWABLE_TOKEN_CODES = ("TOKEN_EXPIRED", "TOKEN_INVALID")
+
+
+def _body_code(resp: "httpx.Response") -> str | None:
+    try:
+        body = resp.json()
+    except ValueError:
+        return None
+    code = body.get("code") if isinstance(body, dict) else None
+    return code if isinstance(code, str) else None
+
+
+def _body_error(resp: "httpx.Response") -> str:
+    try:
+        body = resp.json()
+    except ValueError:
+        return f"HTTP {resp.status_code}"
+    detail = body.get("error") if isinstance(body, dict) else None
+    return detail if isinstance(detail, str) and detail else f"HTTP {resp.status_code}"
+
+
+def describe_rejection(resp: "httpx.Response", what: str) -> str:
+    """The message for a 4xx answer to a write: a stale session, a missing
+    permission, a refused command (400) and a robot reserved by another
+    account (409) each read differently to the operator."""
+    status = resp.status_code
+    if status == 401 or (status == 403 and _body_code(resp) in _RENEWABLE_TOKEN_CODES):
+        return f"{what} rejected: not authenticated (session expired)"
+    if status == 403:
+        return f"{what} rejected: permission denied ({_body_error(resp)})"
+    if status == 409:
+        return f"{what} rejected: the robot is reserved by another account ({_body_error(resp)})"
+    if status == 400:
+        return f"{what} rejected: {_body_error(resp)}"
+    return f"{what} failed: HTTP {status}"
+
 
 class HydraConnection(QObject):
     """Manages one server's REST + WebSocket connection and keeps a local
@@ -89,6 +129,19 @@ class HydraConnection(QObject):
         # token can still read state, but every write 401s and the WebSocket
         # upgrade is rejected outright (code 1008) until login() succeeds.
         self._token: str | None = None
+        # Opaque refresh token from /api/login - exchanged at /api/refresh for
+        # a new access token when the JWT expires, so a station left open for
+        # days keeps control without asking for the password again.
+        self._refresh_token: str | None = None
+        self._renew_lock = asyncio.Lock()
+        # True once the server answered a login with 401/403 (or there are no
+        # credentials to send): retrying the same credentials only burns the
+        # server's login rate limit, so the reconnect loop waits for the
+        # operator to edit them (which reconnects from scratch).
+        self._login_rejected = False
+        # True after a server that predates the "hydra.bearer" subprotocol
+        # refused the upgrade - the token then goes in the address as before.
+        self._ws_query_token = False
         # None = never attempted yet, then True/False after every login()
         # call - lets the server list show a real per-server "login failed"
         # state instead of every non-active server just sitting at whatever
@@ -147,6 +200,15 @@ class HydraConnection(QObject):
         resulting token for every subsequent request. Returns False (and
         emits `error`) rather than raising, so a bad server/credentials
         doesn't take down connect()'s own caller."""
+        if not self.info.username or not self.info.password:
+            # A server found by the scan has no credentials yet: nothing is
+            # sent (an empty login only counts against the server's rate
+            # limit, shared with every other client on this PC).
+            detail = "Enter the username and password for this server"
+            self._login_rejected = True
+            self.login_ok = False
+            self.login_changed.emit(False, detail)
+            return False
         try:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 resp = await client.post(
@@ -180,6 +242,13 @@ class HydraConnection(QObject):
                     self.error.emit(detail)
                     self.login_changed.emit(False, detail)
                     return False
+                if resp.status_code in (400, 401, 403):
+                    self._login_rejected = True
+                    detail = _body_error(resp)
+                    self.login_ok = False
+                    self.error.emit(detail)
+                    self.login_changed.emit(False, detail)
+                    return False
                 resp.raise_for_status()
                 data = resp.json()
         except (httpx.HTTPError, ValueError) as e:
@@ -189,6 +258,8 @@ class HydraConnection(QObject):
             self.login_changed.emit(False, detail)
             return False
         self._login_retry_after_s = None
+        if not isinstance(data, dict):
+            data = {}
         token = data.get("token")
         if not token:
             detail = "Login failed: no token in response"
@@ -197,6 +268,9 @@ class HydraConnection(QObject):
             self.login_changed.emit(False, detail)
             return False
         self._token = token
+        refresh = data.get("refreshToken")
+        self._refresh_token = refresh if isinstance(refresh, str) and refresh else None
+        self._login_rejected = False
         self.role = data.get("role") if isinstance(data.get("role"), str) else None
         self.login_ok = True
         self.login_changed.emit(True, "")
@@ -208,6 +282,61 @@ class HydraConnection(QObject):
 
     def _auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self._token}"} if self._token else {}
+
+    def auth_headers(self) -> dict[str, str]:
+        """Public: the bearer header for requests made outside this class
+        (the live camera streams)."""
+        return self._auth_headers()
+
+    async def _renew_session(self, stale_token: str | None) -> bool:
+        """Gets a new access token after the server said the one in use is
+        expired/invalid: the refresh token first, the stored credentials as a
+        fallback. Concurrent callers renew once (the second sees a token that
+        already changed)."""
+        async with self._renew_lock:
+            if self._token is not None and self._token != stale_token:
+                return True  # another request already renewed it
+            if self._refresh_token:
+                try:
+                    async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                        resp = await client.post(
+                            f"{self.info.base_url}/api/refresh", json={"refreshToken": self._refresh_token}, timeout=5.0
+                        )
+                    body = resp.json() if resp.status_code == 200 else None
+                except (httpx.HTTPError, ValueError):
+                    body = None
+                if isinstance(body, dict) and isinstance(body.get("token"), str) and body["token"]:
+                    self._token = body["token"]
+                    new_refresh = body.get("refreshToken")
+                    if isinstance(new_refresh, str) and new_refresh:
+                        self._refresh_token = new_refresh
+                    if isinstance(body.get("role"), str):
+                        self.role = body["role"]
+                    return True
+            self._token = None
+            self._refresh_token = None
+            return await self.login()
+
+    async def _http(
+        self, method: str, path: str, *, timeout: float = 5.0, headers: dict | None = None, **kwargs
+    ) -> httpx.Response:
+        """One request to this server with the session's bearer token. A
+        403 TOKEN_EXPIRED/TOKEN_INVALID (or a 401) renews the session once and
+        repeats the request; any other answer is returned for the caller to
+        interpret (it can be an ordinary role 403)."""
+        used = self._token
+        request_headers = dict(headers or {})
+        if used:
+            request_headers["Authorization"] = f"Bearer {used}"
+        url = f"{self.info.base_url}{path}"
+        async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+            resp = await client.request(method, url, headers=request_headers, timeout=timeout, **kwargs)
+        if used and (resp.status_code == 401 or (resp.status_code == 403 and _body_code(resp) in _RENEWABLE_TOKEN_CODES)):
+            if await self._renew_session(used) and self._token:
+                request_headers["Authorization"] = f"Bearer {self._token}"
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                    resp = await client.request(method, url, headers=request_headers, timeout=timeout, **kwargs)
+        return resp
 
     async def _request_json(
         self, method: str, path: str, *, auth: bool = False, params: dict | None = None, json_body: dict | None = None
@@ -227,23 +356,24 @@ class HydraConnection(QObject):
         JSON) - the same "None = best-effort read failed" convention
         fetch_system_metrics() already uses.
         """
+        # The token goes with every request, `auth` or not: a server started
+        # with HYDRA_UMC_INFO_AUTH=required answers 401 to the otherwise open
+        # reads (metrics, supervisor, ecosystem) without it.
         try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                resp = await client.request(
-                    method,
-                    f"{self.info.base_url}{path}",
-                    params=params,
-                    json=json_body,
-                    headers=self._auth_headers() if auth else None,
-                    timeout=5.0,
-                )
-                body = resp.json()
+            resp = await self._http(method, path, params=params, json=json_body)
+            body = resp.json()
         except (httpx.HTTPError, ValueError):
             return None
         return resp.status_code, body
 
     async def canota_request(
-        self, method: str, path: str, *, params: dict | None = None, data: bytes | None = None
+        self,
+        method: str,
+        path: str,
+        *,
+        params: dict | None = None,
+        data: bytes | None = None,
+        timeout: float = 60.0,
     ) -> tuple[int, object] | None:
         """Real GET/POST to HYDRA-UMC-SERVER's own /api/hardware/canota/*
         routes (version query, flash) - matches STUDIO's own
@@ -257,15 +387,12 @@ class HydraConnection(QObject):
         against - see can_ota.py's own header), so this uses a generous
         60s timeout rather than `_request_json`'s own 5s default, which
         assumes a quick settings-style round trip."""
-        headers = self._auth_headers()
+        headers = {}
         if data is not None:
             headers["Content-Type"] = "application/octet-stream"
         try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                resp = await client.request(
-                    method, f"{self.info.base_url}{path}", params=params, content=data, headers=headers, timeout=60.0
-                )
-                body = resp.json()
+            resp = await self._http(method, path, params=params, content=data, headers=headers, timeout=timeout)
+            body = resp.json()
         except (httpx.HTTPError, ValueError):
             return None
         return resp.status_code, body
@@ -429,10 +556,11 @@ class HydraConnection(QObject):
         for its own UI rather than this method guessing."""
         path = f"/api/camera/media/{camera_id}/{kind}/{filename}"
         try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                resp = await client.get(f"{self.info.base_url}{path}", timeout=10.0)
+            resp = await self._http("GET", path, timeout=120.0)
         except httpx.HTTPError:
             return None
+        if resp.status_code != 200:
+            return None  # an error body is not a picture or a recording
         return resp.content
 
     async def delete_camera_media(self, camera_id: int, kind: str, filename: str) -> tuple[int, object] | None:
@@ -482,10 +610,9 @@ class HydraConnection(QObject):
         offer independent of live sync. GET has no auth requirement
         server-side, so this works even if login() hasn't succeeded yet -
         only writes and the WebSocket actually need the token."""
-        async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-            resp = await client.get(f"{self.info.base_url}/api/settings", headers=self._auth_headers(), timeout=5.0)
-            resp.raise_for_status()
-            data = resp.json()
+        resp = await self._http("GET", "/api/settings")
+        resp.raise_for_status()
+        data = resp.json()
         self.state = HydraState(data)
         self._last_payload_json = json.dumps(data, sort_keys=True)
         self.state_changed.emit(self.state)
@@ -519,14 +646,10 @@ class HydraConnection(QObject):
             if self._ws is not None:
                 await self._ws.send(json.dumps({"type": "settings", "payload": payload}))
             else:
-                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                    resp = await client.post(
-                        f"{self.info.base_url}/api/settings", json=payload, headers=self._auth_headers(), timeout=5.0
-                    )
-                    if resp.status_code in (401, 403):
-                        self.error.emit("Write rejected: not authenticated (token missing/expired)")
-                        return
-                    resp.raise_for_status()
+                resp = await self._http("POST", "/api/settings", json=payload)
+                if resp.status_code >= 400:
+                    self.error.emit(describe_rejection(resp, "Write"))
+                    return
         except (httpx.HTTPError, websockets.WebSocketException, OSError) as e:
             self.error.emit(f"Write failed: {e}")
             return
@@ -608,18 +731,18 @@ class HydraConnection(QObject):
 
         async def send_now() -> None:
             try:
-                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                    resp = await client.post(
-                        f"{self.info.base_url}/api/robot/{robot_id}/command",
-                        json={"command": command, "params": params or {}},
-                        headers=self._auth_headers(),
-                        timeout=5.0,
-                    )
-                    if resp.status_code in (401, 403):
-                        self.error.emit("Command rejected: not authenticated (token missing/expired)")
-                        rollback_if_current()
-                        return
-                    resp.raise_for_status()
+                resp = await self._http(
+                    "POST", f"/api/robot/{robot_id}/command", json={"command": command, "params": params or {}}
+                )
+                if resp.status_code >= 400:
+                    self.error.emit(describe_rejection(resp, "Command"))
+                    rollback_if_current()
+                    return
+                warnings = self._command_warnings(resp)
+                if warnings:
+                    # 200 with warnings means the server applied nothing.
+                    self.error.emit(f"Command not applied: {warnings}")
+                    rollback_if_current()
             except (httpx.HTTPError, OSError) as e:
                 self.error.emit(f"Command failed: {e}")
                 rollback_if_current()
@@ -665,15 +788,25 @@ class HydraConnection(QObject):
 
         self._throttle_tasks[throttle_key] = asyncio.ensure_future(fire_throttled())
 
+    @staticmethod
+    def _command_warnings(resp: "httpx.Response") -> str:
+        try:
+            body = resp.json()
+        except ValueError:
+            return ""
+        items = body.get("warnings") if isinstance(body, dict) else None
+        if not isinstance(items, list):
+            return ""
+        return "; ".join(str(w.get("message", w)) if isinstance(w, dict) else str(w) for w in items)
+
     async def fetch_system_metrics(self) -> dict | None:
         """GET /api/system/metrics - no auth required server-side. Returns
         None on any network error rather than raising, since this is a
         best-effort background poll, not a critical read."""
         try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                resp = await client.get(f"{self.info.base_url}/api/system/metrics", timeout=5.0)
-                resp.raise_for_status()
-                return resp.json()
+            resp = await self._http("GET", "/api/system/metrics")
+            resp.raise_for_status()
+            return resp.json()
         except (httpx.HTTPError, ValueError):
             return None
 
@@ -707,7 +840,7 @@ class HydraConnection(QObject):
 
     async def _run(self) -> None:
         while not self._closing:
-            if self._token is None and not await self.login():
+            if self._token is None and not await self._renew_session(None):
                 # No point opening a WS the server will reject with code 1008 -
                 # wait and retry the login itself instead of spinning a
                 # connect/reject loop against a server that's simply not up yet.
@@ -717,8 +850,13 @@ class HydraConnection(QObject):
                 # keep retrying every RECONNECT_DELAY_S straight into a real
                 # 15-minute lockout instead of just backing off once.
                 self.status_changed.emit("disconnected")
+                if self._login_rejected:
+                    # Wrong or missing credentials: retrying only spends the
+                    # server's login attempts. Editing them reconnects.
+                    return
                 await asyncio.sleep(self._login_retry_after_s or RECONNECT_DELAY_S)
                 continue
+            connected_once = False
             try:
                 # max_size=None: server.ts sends the FULL settings.json (1.6MB+
                 # on a populated swarm, and only grows with more robots/
@@ -733,8 +871,11 @@ class HydraConnection(QObject):
                 # own) - the real fix for the underlying payload size is a
                 # smaller wire format server-side, not a client-side ceiling
                 # that just moves where it breaks.
-                async with websockets.connect(self.info.ws_url(self._token), open_timeout=5.0, max_size=None) as ws:
+                # (now a finite 128 MB ceiling: far above any real tree, but a
+                # hostile or broken server can no longer exhaust the PC's memory)
+                async with self._open_ws() as ws:
                     self._ws = ws
+                    connected_once = True
                     self.status_changed.emit("connected")
                     async for raw in ws:
                         self._handle_message(raw)
@@ -744,13 +885,41 @@ class HydraConnection(QObject):
                 # not an exception with a status code - force a fresh login on
                 # the next loop iteration rather than retrying the same
                 # (possibly now-invalid) token forever.
-                self._token = None
+                rejected = isinstance(e, websockets.InvalidHandshake) or (
+                    isinstance(e, websockets.ConnectionClosed) and e.rcvd is not None and e.rcvd.code == 1008
+                )
+                if not connected_once and not self._ws_query_token and isinstance(e, websockets.InvalidHandshake):
+                    # Probably a server from before the subprotocol: try the
+                    # token in the address once, right away.
+                    self._ws_query_token = True
+                    continue
+                if rejected:
+                    # The server refused this token (expired, revoked): the
+                    # next pass renews it (refresh token first, then login).
+                    self._ws_query_token = False
+                    self._token = None
+                # Anything else (server down, link dropped) keeps the session:
+                # logging in again on every blip would spend the server's
+                # login limit.
             finally:
                 self._ws = None
             if self._closing:
                 break
             self.status_changed.emit("disconnected")
             await asyncio.sleep(RECONNECT_DELAY_S)
+
+    def _open_ws(self):
+        token = self._token
+        if self._ws_query_token:
+            return websockets.connect(
+                self.info.ws_url(token, token_in_query=True), open_timeout=5.0, max_size=WS_MAX_MESSAGE_BYTES
+            )
+        return websockets.connect(
+            self.info.ws_url(token, token_in_query=False),
+            subprotocols=self.info.ws_subprotocols(token),
+            open_timeout=5.0,
+            max_size=WS_MAX_MESSAGE_BYTES,
+        )
 
     def _handle_message(self, raw: str | bytes) -> None:
         try:
@@ -761,7 +930,13 @@ class HydraConnection(QObject):
         if not isinstance(msg, dict):
             return
         if msg.get("error"):
+            # The server refused something this client sent (a settings write
+            # from a non-admin session, for one). The local mirror may now
+            # show a value the server never applied: say so and re-read.
             logger.warning("HydraConnection %s: %s", self.info.host, msg["error"])
+            self.error.emit(f"Write rejected by the server: {msg['error']}")
+            self._last_payload_json = None
+            self._resync_after_error()
             return
         # A real targeted delta (server.ts's own broadcastRobotDelta(),
         # sent only to a connection that declared schema 2 - see
@@ -791,6 +966,15 @@ class HydraConnection(QObject):
         self._last_payload_json = payload_json
         self.state = HydraState(payload)
         self.state_changed.emit(self.state)
+
+    def _resync_after_error(self) -> None:
+        async def _reload() -> None:
+            try:
+                await self.fetch_state()
+            except (httpx.HTTPError, ValueError) as e:
+                logger.info("HydraConnection %s: resync failed (%s)", self.info.host, e)
+
+        asyncio.ensure_future(_reload())
 
     def _apply_robot_delta(self, msg: dict) -> None:
         """Applies one {controllerId, robotId, patch, cameraId?, cameraPatch?}
@@ -834,7 +1018,7 @@ class HydraConnection(QObject):
             break
         if target_robot is None:
             logger.info("HydraConnection %s: delta for unknown robot %r - forcing full reload", self.info.host, robot_id)
-            asyncio.ensure_future(self.fetch_state())
+            self._resync_after_error()
             return
         target_robot.update(patch)
         camera_patch = msg.get("cameraPatch")
@@ -862,7 +1046,10 @@ class HydraConnection(QObject):
     async def disconnect(self) -> None:
         self._closing = True
         if self._ws is not None:
-            await self._ws.close()
+            try:
+                await self._ws.close()
+            except (websockets.WebSocketException, OSError):
+                pass
         if self._recv_task is not None:
             self._recv_task.cancel()
         if self._metrics_task is not None:

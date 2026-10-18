@@ -556,13 +556,13 @@ ApplicationWindow {
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: suiteBackend.uiText("LBL_SPEED"); color: window.muted; Layout.preferredWidth: 90 }
-                        Slider { Layout.fillWidth: true; from: 1; to: 200; value: suiteBackend.selectedRobotSpeed; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotSpeed(Math.round(value)) }
+                        Slider { Layout.fillWidth: true; from: 10; to: 500; value: suiteBackend.selectedRobotSpeed; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotSpeed(Math.round(value)) }
                         Text { text: suiteBackend.selectedRobotSpeed + "%"; color: window.textPrimary; Layout.preferredWidth: 45 }
                     }
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: suiteBackend.uiText("LBL_ACCELERATION"); color: window.muted; Layout.preferredWidth: 90 }
-                        Slider { Layout.fillWidth: true; from: 1; to: 200; value: suiteBackend.selectedRobotAcceleration; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotAcceleration(Math.round(value)) }
+                        Slider { Layout.fillWidth: true; from: 10; to: 500; value: suiteBackend.selectedRobotAcceleration; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotAcceleration(Math.round(value)) }
                         Text { text: suiteBackend.selectedRobotAcceleration + "%"; color: window.textPrimary; Layout.preferredWidth: 45 }
                     }
                 }

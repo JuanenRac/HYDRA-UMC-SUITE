@@ -24,6 +24,16 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+echo "[1/4] Building HYDRA-UMC_SUITE (../build_exe.sh)..."
+( cd .. && bash build_exe.sh )
+python3 "$(dirname "$0")/../bump_manifest_version.py" --sync || exit 1
+if [ ! -f ../dist/HYDRA-UMC_SUITE ]; then
+    echo "ERROR: ../dist/HYDRA-UMC_SUITE not found - build_exe.sh's own output above should say why." >&2
+    exit 1
+fi
+
+# Read AFTER the build: build_exe.sh raises the version, so reading it earlier
+# would label the package with the previous one.
 # sed, not `grep -P` - PCRE lookbehind support isn't guaranteed on every
 # grep build (this exact command failed with "supports only unibyte and
 # UTF-8 locales" when checked from a Windows Git Bash session while
@@ -38,20 +48,14 @@ ARCH="amd64"
 PKG_NAME="hydra-umc-suite"
 PKG_DIR="build/${PKG_NAME}_${VERSION}_${ARCH}"
 
-echo "[1/4] Building HYDRA-UMC_SUITE (../build_exe.sh)..."
-( cd .. && bash build_exe.sh )
-python3 "$(dirname "$0")/../bump_manifest_version.py" --sync || exit 1
-if [ ! -f ../dist/HYDRA-UMC_SUITE ]; then
-    echo "ERROR: ../dist/HYDRA-UMC_SUITE not found - build_exe.sh's own output above should say why." >&2
-    exit 1
-fi
-
 echo "[2/4] Assembling the package tree..."
 rm -rf "$PKG_DIR"
-mkdir -p "$PKG_DIR/DEBIAN" "$PKG_DIR/usr/local/bin" "$PKG_DIR/usr/share/applications"
+mkdir -p "$PKG_DIR/DEBIAN" "$PKG_DIR/usr/local/bin" "$PKG_DIR/usr/share/applications" "$PKG_DIR/usr/share/hydra-umc-suite"
 
 cp ../dist/HYDRA-UMC_SUITE "$PKG_DIR/usr/local/bin/hydra-umc-suite"
 chmod 755 "$PKG_DIR/usr/local/bin/hydra-umc-suite"
+# The window text (i18n.py looks here when it is not next to the binary).
+cp -r ../language "$PKG_DIR/usr/share/hydra-umc-suite/language"
 
 cat > "$PKG_DIR/DEBIAN/control" << EOF
 Package: ${PKG_NAME}

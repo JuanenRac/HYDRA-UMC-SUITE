@@ -713,6 +713,15 @@ class HydraState:
         return self.raw
 
 
+# Range the server enforces for a robot's speed/acceleration percentage
+# (commandRoutes validSpeedField); outside it the server answers 200 with a
+# warning and applies nothing.
+SPEED_MIN_PERCENT = 10
+SPEED_MAX_PERCENT = 500
+
+WS_TOKEN_SUBPROTOCOL = "hydra.bearer"
+
+
 @dataclass
 class ServerInfo:
     """One entry in the discovery/connection list - see
@@ -744,7 +753,7 @@ class ServerInfo:
         scheme = "https" if self.use_tls else "http"
         return f"{scheme}://{self.host}:{self.port}"
 
-    def ws_url(self, token: str | None = None) -> str:
+    def ws_url(self, token: str | None = None, *, token_in_query: bool = True) -> str:
         scheme = "wss" if self.use_tls else "ws"
         base = f"{scheme}://{self.host}:{self.port}/ws"
         # remoteApiVersion=2 declares this connection understands a real
@@ -754,7 +763,21 @@ class ServerInfo:
         # sending the full tree under "delta" like before, so this is safe
         # to always send once this app's own net/client.py understands the
         # real delta shape (see _handle_message()'s own schema==2 branch).
-        return f"{base}?token={token}&remoteApiVersion=2" if token else base
+        #
+        # The token goes in the address only for the fallback to a server
+        # that predates the "hydra.bearer" subprotocol (token_in_query=True,
+        # the default, kept for those); the normal path sends it as a
+        # subprotocol (see ws_subprotocols()) so it never lands in a proxy
+        # or access log.
+        if token and token_in_query:
+            return f"{base}?token={token}&remoteApiVersion=2"
+        return f"{base}?remoteApiVersion=2"
+
+    @staticmethod
+    def ws_subprotocols(token: str | None) -> list[str] | None:
+        """`Sec-WebSocket-Protocol: hydra.bearer, <token>` - how the server
+        takes a token without it travelling in the address."""
+        return [WS_TOKEN_SUBPROTOCOL, token] if token else None
 
     @property
     def display_name(self) -> str:

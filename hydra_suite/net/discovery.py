@@ -222,10 +222,15 @@ async def scan_subnets(hosts: list[str] | None = None, port: int = DEFAULT_PORT)
     queue: asyncio.Queue[ServerInfo | None] = asyncio.Queue()
 
     async def worker(host: str) -> None:
-        async with semaphore:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
-                result = await probe_host(client, host, port)
-        await queue.put(result)
+        result = None
+        try:
+            async with semaphore:
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                    result = await probe_host(client, host, port)
+        except Exception:
+            result = None  # one host failing must never leave the scan waiting for its answer
+        finally:
+            await queue.put(result)
 
     tasks = [asyncio.create_task(worker(h)) for h in hosts]
 
@@ -280,7 +285,10 @@ async def discover_mdns(timeout: float = MDNS_TIMEOUT_S) -> AsyncIterator[Server
         return
 
     try:
-        browser = AsyncServiceBrowser(aiozc.zeroconf, MDNS_SERVICE_TYPE, handlers=[on_service_state_change])
+        try:
+            browser = AsyncServiceBrowser(aiozc.zeroconf, MDNS_SERVICE_TYPE, handlers=[on_service_state_change])
+        except Exception:
+            return  # multicast unusable after all: the subnet scan carries on alone
         try:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 loop = asyncio.get_running_loop()
@@ -343,9 +351,13 @@ async def discover_servers(
     queue: asyncio.Queue[ServerInfo | None] = asyncio.Queue()
 
     async def pump(gen: AsyncIterator[ServerInfo]) -> None:
-        async for info in gen:
-            await queue.put(info)
-        await queue.put(None)
+        try:
+            async for info in gen:
+                await queue.put(info)
+        except Exception:
+            pass  # a source that dies must still hand over its end marker
+        finally:
+            await queue.put(None)
 
     tasks = [
         asyncio.create_task(pump(scan_subnets(hosts, port))),

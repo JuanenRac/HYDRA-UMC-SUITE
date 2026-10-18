@@ -120,7 +120,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
-├── main.py                        # 入口点 - 最小 1920x1080 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
+├── main.py                        # 入口点 - 最小 1280x720 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
 ├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
 ├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行
 ├── requirements.txt
@@ -198,7 +198,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-以最小 1920x1080 全屏启动（依照本应用自身的设计规范）——随时按 **F11** 在全屏和普通最大化窗口之间切换，因此它绝不会真的把你困住而没有退出方式。使用 **Servers** 面板扫描你的网络，或按地址添加一台 HYDRA-UMC STUDIO 服务器。
+以最小 1280x720 全屏启动（依照本应用自身的设计规范）——随时按 **F11** 在全屏和普通最大化窗口之间切换，因此它绝不会真的把你困住而没有退出方式。使用 **Servers** 面板扫描你的网络，或按地址添加一台 HYDRA-UMC STUDIO 服务器。
 
 ---
 

@@ -60,6 +60,7 @@ from hydra_suite.can_ota import (
     has_advanced_expansion,
     hardware_start_flash,
     hop_description,
+    parse_version_tag,
     mock_flash,
     resolve_hardware_target,
     slot_label,
@@ -452,7 +453,7 @@ class FlasherPanel(QWidget):
                     return
                 self._progress_label.setText(_("FLASHER_PROGRESS_CONNECTING"))
                 self._progress_bar.setValue(0)
-                version_major, _sep, version_minor = (self._file_version_tag or "0.0").partition(".")
+                version_major, version_minor = parse_version_tag(self._file_version_tag)
                 hardware_id_number = int(self._file_hardware_id, 0) if self._file_hardware_id else 0
                 conn = self._controller.active_connection
                 if conn is None:
@@ -460,15 +461,15 @@ class FlasherPanel(QWidget):
                     return
                 result = await hardware_start_flash(
                     conn, target, self._file_bytes,
-                    int(version_major) if version_major.isdigit() else 0,
-                    int(version_minor) if version_minor.isdigit() else 0,
+                    version_major,
+                    version_minor,
                     hardware_id_number,
                 )
                 if result.success:
                     self._progress_label.setText(_("FLASHER_PROGRESS_DONE"))
                     self._progress_bar.setValue(100)
                     self._push_log(_("LBL_FLASH_DONE"), "ok")
-                    self._apply_board_patch({"firmwareVersion": self._file_name.removesuffix(".bin")})
+                    self._apply_board_patch({"firmwareVersion": self._file_version_tag or self._file_name.removesuffix(".bin")})
                 else:
                     self._push_log(f"{_('LBL_FLASH_HARDWARE_FAILED')}: {result.reason}", "error")
                 return

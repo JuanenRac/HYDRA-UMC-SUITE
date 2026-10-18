@@ -4,16 +4,17 @@
 # GPL-3.0 - see LICENSE
 #
 # Real-time log viewer with filters.
-# Every record ever received is kept in `_all_entries` (unbounded within
-# one session - this window doesn't run for weeks unattended the way
-# HYDRA-UMC-SERVER does, so no rotation/cap is needed here); the level/
+# The latest MAX_LOG_ENTRIES records are kept in `_all_entries` (a window
+# left open for days would otherwise grow without limit); the level/
 # text filters only control what's currently DISPLAYED, re-applied
-# against that same full list rather than dropping anything - clearing a
-# filter always brings back everything seen since the panel opened, not
-# just what arrived after the filter changed.
+# against that same list rather than dropping anything - clearing a
+# filter brings back everything still kept, not just what arrived after
+# the filter changed.
 # =============================================================================
 from __future__ import annotations
 
+import html
+from collections import deque
 from dataclasses import dataclass
 
 from PySide6.QtWidgets import (
@@ -31,6 +32,8 @@ from hydra_suite import logging_handler
 from hydra_suite.i18n import _
 
 _LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+MAX_LOG_ENTRIES = 5000
+
 _LEVEL_COLOR = {
     "DEBUG": "#888888",
     "INFO": "#d0d0d0",
@@ -50,7 +53,7 @@ class _LogEntry:
 class LogsPanel(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self._all_entries: list[_LogEntry] = []
+        self._all_entries: deque[_LogEntry] = deque(maxlen=MAX_LOG_ENTRIES)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -107,7 +110,10 @@ class LogsPanel(QWidget):
         # Full replace-on-filter-change (_refresh_display) uses the same
         # per-line HTML this appends live, so a filtered view and a fresh
         # live view are never visually different formats.
-        self._text.append(f'<span style="color:{color}">[{entry.level}] {entry.logger_name}: {entry.message}</span>')
+        # Server text (error messages, ids) is escaped: a "<" in it would
+        # otherwise be read as markup and corrupt the line.
+        line = html.escape(f"[{entry.level}] {entry.logger_name}: {entry.message}")
+        self._text.append(f'<span style="color:{color}">{line}</span>')
 
     def _refresh_display(self) -> None:
         self._text.clear()

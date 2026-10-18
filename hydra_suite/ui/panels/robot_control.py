@@ -30,7 +30,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import HydraState, JOINT_NAMES, RobotView
+from hydra_suite.models import HydraState, JOINT_NAMES, SPEED_MAX_PERCENT, SPEED_MIN_PERCENT, RobotView
 from hydra_suite.ui.panels.atc_tools_panel import URTC_TOOLS
 from hydra_suite.ui.widgets.rotary_knob import RotaryKnob
 
@@ -150,7 +150,7 @@ class RobotControlPanel(QWidget):
         speed_layout = QGridLayout()
         speed_layout.addWidget(QLabel(_("LBL_SPEED")), 0, 0)
         self._speed_slider = QSlider(Qt.Orientation.Horizontal)
-        self._speed_slider.setRange(1, 200)
+        self._speed_slider.setRange(SPEED_MIN_PERCENT, SPEED_MAX_PERCENT)
         self._speed_slider.valueChanged.connect(self._on_speed_changed)
         speed_layout.addWidget(self._speed_slider, 0, 1)
         self._speed_label = QLabel("100%")
@@ -158,7 +158,7 @@ class RobotControlPanel(QWidget):
 
         speed_layout.addWidget(QLabel(_("LBL_ACCELERATION")), 1, 0)
         self._accel_slider = QSlider(Qt.Orientation.Horizontal)
-        self._accel_slider.setRange(1, 200)
+        self._accel_slider.setRange(SPEED_MIN_PERCENT, SPEED_MAX_PERCENT)
         self._accel_slider.valueChanged.connect(self._on_accel_changed)
         speed_layout.addWidget(self._accel_slider, 1, 1)
         self._accel_label = QLabel("100%")
@@ -171,7 +171,7 @@ class RobotControlPanel(QWidget):
         # pump/valve (e.g. VacuumTablePanel's), a genuinely separate field
         # keyed by robot instead of by module. See models.py's own
         # RobotView.valves/pumps for the full distinction.
-        tool_box = QGroupBox(_("GROUP_TOOL_ACCESSORIES"))
+        tool_box = QGroupBox(_("GROUP_TOOL_ACCESSORIES").replace("&", "&&"))  # "&" would be read as a mnemonic and vanish
         tool_layout = QVBoxLayout(tool_box)
 
         tool_row = QHBoxLayout()

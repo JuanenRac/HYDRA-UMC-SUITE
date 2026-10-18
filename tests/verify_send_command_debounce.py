@@ -9,7 +9,7 @@
 # every single mouse-move tick fired its own real POST
 # /api/robot/:id/command). This verifies the real cancel-and-reschedule
 # state machine directly against HydraConnection itself - no real network,
-# no real server: httpx.AsyncClient.post is monkeypatched to record calls
+# no real server: httpx.AsyncClient.request is monkeypatched to record calls
 # instead of hitting the wire.
 # =============================================================================
 import asyncio
@@ -39,16 +39,19 @@ class _FakeResponse:
     def raise_for_status(self):
         pass
 
+    def json(self):
+        return {"success": True}
+
 
 async def run():
     posts: list[dict] = []
 
-    async def fake_post(self, url, json=None, headers=None, timeout=None):
+    async def fake_request(self, method, url, json=None, headers=None, timeout=None, **kwargs):
         posts.append({"url": url, **json})
         return _FakeResponse()
 
-    original_post = httpx.AsyncClient.post
-    httpx.AsyncClient.post = fake_post
+    original_post = httpx.AsyncClient.request
+    httpx.AsyncClient.request = fake_request
     try:
         conn = HydraConnection(ServerInfo(host="127.0.0.1", port=3000))
         conn.state = HydraState({"controllers": [], "activeControllerId": ""})
@@ -102,7 +105,7 @@ async def run():
         check("robot 2's own last jog value (20) reached the server, not dropped for sharing 'jog'", by_key.get(("2", "jog")), 20)
         check("robot 1's speed reached the server independently of its own jog", by_key.get(("1", "speed")), 99)
     finally:
-        httpx.AsyncClient.post = original_post
+        httpx.AsyncClient.request = original_post
 
 
 asyncio.run(run())

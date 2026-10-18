@@ -354,8 +354,11 @@ class CameraMediaPanel(QWidget):
         data = await self._fetch_selected_bytes(item)
         if not data:
             return
-        with open(path, "wb") as f:
-            f.write(data)
+        try:
+            with open(path, "wb") as f:
+                f.write(data)
+        except OSError:
+            return  # unwritable destination: nothing was saved, and nothing here to crash on
 
     async def _delete_selected(self) -> None:
         if self._selected is None:

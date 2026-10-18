@@ -31,7 +31,26 @@ else:
     _base_dir = Path(__file__).resolve().parent.parent
 
 LANGUAGE_FOLDER = _base_dir / "language"
-CONFIG_FILE_PATH = _base_dir / "hydra_suite_config.json"
+# A package that installs the binary under /usr/local/bin keeps the language
+# files in the shared data folder instead of next to it.
+_SHARED_LANGUAGE_FOLDER = Path("/usr/share/hydra-umc-suite/language")
+if getattr(sys, "frozen", False) and not LANGUAGE_FOLDER.is_dir() and _SHARED_LANGUAGE_FOLDER.is_dir():
+    LANGUAGE_FOLDER = _SHARED_LANGUAGE_FOLDER
+
+
+def _user_config_dir() -> Path:
+    if sys.platform == "win32":
+        return Path(os.environ.get("APPDATA") or Path.home()) / "HYDRA-UMC-SUITE"
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "hydra-umc-suite"
+
+
+# Next to the program while that folder can be written (a portable copy, a
+# source checkout); in the user's own config folder when it cannot (the
+# program installed under Program Files or /usr/local/bin).
+if getattr(sys, "frozen", False) and not os.access(_base_dir, os.W_OK):
+    CONFIG_FILE_PATH = _user_config_dir() / "hydra_suite_config.json"
+else:
+    CONFIG_FILE_PATH = _base_dir / "hydra_suite_config.json"
 DEFAULT_LANGUAGE = "english"
 AVAILABLE_LANGUAGES: list[tuple[str, str]] = [
     ("english", "English"),

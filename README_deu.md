@@ -194,7 +194,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
-├── main.py                        # Einstiegspunkt - Vollbild min. 1920x1080, F11 schaltet zwischen Vollbild/Fenster um; --qtquick wechselt zum Panel unten
+├── main.py                        # Einstiegspunkt - Vollbild min. 1280x720, F11 schaltet zwischen Vollbild/Fenster um; --qtquick wechselt zum Panel unten
 ├── qt_suite.py                     # Qt-Quick-Frontend - eigenständiges `--qtquick`-Kommandopult (alle 26 Panels), verbindet den unveränderten SuiteController mit QML
 ├── verify_qt_suite_shell.py        # Echter, hardware-/netzwerkfreier Check der Qt-Quick-Shell - bewusst außerhalb von tests/ (gleicher Grund wie bei URTC-TESTER/URTC-FLASHERs eigenen verify_qt_*.py), ausgeführt mit `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
@@ -272,7 +272,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Startet im Vollbild mit einem Minimum von 1920x1080 (gemäß der eigenen
+Startet im Vollbild mit einem Minimum von 1280x720 (gemäß der eigenen
 Design-Spezifikation dieser App) - drücke jederzeit **F11**, um zwischen
 Vollbild und einem normalen maximierten Fenster zu wechseln, sodass sie
 dich nie wirklich ohne Fluchtweg gefangen hält. Verwende das Panel

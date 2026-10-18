@@ -120,7 +120,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
-├── main.py                        # エントリーポイント - 最小1920x1080のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替。--qtquickで下記のデッキに切り替え
+├── main.py                        # エントリーポイント - 最小1280x720のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替。--qtquickで下記のデッキに切り替え
 ├── qt_suite.py                     # Qt Quick フロントエンド —— 独立した `--qtquick` コマンドデッキ(全26パネル)、変更を加えていないSuiteControllerをQMLに接続
 ├── verify_qt_suite_shell.py        # ハードウェア/ネットワーク不要の本物のQt Quickシェルチェック —— tests/ の外に意図的に配置(URTC-TESTER/URTC-FLASHER自身のverify_qt_*.pyと同じ理由)、`QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` で実行
 ├── requirements.txt
@@ -198,7 +198,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-最小 1920x1080 のフルスクリーンで起動します（本アプリ自身の設計仕様に基づく）——いつでも **F11** を押すことでフルスクリーンと通常の最大化ウィンドウを切り替えられるため、逃げ道なくトラップされることは決してありません。**Servers** パネルを使ってネットワークをスキャンするか、アドレスを指定して HYDRA-UMC STUDIO サーバーを追加してください。
+最小 1280x720 のフルスクリーンで起動します（本アプリ自身の設計仕様に基づく）——いつでも **F11** を押すことでフルスクリーンと通常の最大化ウィンドウを切り替えられるため、逃げ道なくトラップされることは決してありません。**Servers** パネルを使ってネットワークをスキャンするか、アドレスを指定して HYDRA-UMC STUDIO サーバーを追加してください。
 
 ---
 

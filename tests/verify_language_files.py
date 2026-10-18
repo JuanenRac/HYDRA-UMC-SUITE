@@ -26,6 +26,7 @@ def load(name: str) -> dict[str, str]:
     for line in (LANGUAGE_FOLDER / f"{name}.lng").read_text(encoding="utf-8").splitlines():
         if line and not line.startswith("#") and "=" in line:
             key, value = line.split("=", 1)
+            assert key not in values, f"{name}.lng: key {key} appears twice (the later one silently wins)"
             values[key] = value
     return values
 
@@ -46,7 +47,7 @@ def main() -> None:
         assert not missing and not extra, f"{code}: missing {missing[:5]}, extra {extra[:5]}"
         for key, value in english.items():
             assert sorted(PLACEHOLDER.findall(table[key])) == sorted(PLACEHOLDER.findall(value)), f"{code}: {key} changed its placeholders"
-            assert table[key].count("\n") == value.count("\n"), f"{code}: {key} changed its line breaks"
+            assert table[key].count("\\n") == value.count("\\n"), f"{code}: {key} changed its line breaks"
             assert table[key].strip(), f"{code}: {key} is empty"
     print(f"verify_language_files: OK ({len(codes)} languages x {len(english)} keys)")
 

@@ -75,7 +75,7 @@ _JPEG_SOI = b"\xff\xd8"
 _JPEG_EOI = b"\xff\xd9"
 
 
-async def iter_mjpeg_frames(url: str) -> AsyncIterator[bytes]:
+async def iter_mjpeg_frames(url: str, headers: dict[str, str] | None = None) -> AsyncIterator[bytes]:
     """Real MJPEG multipart/x-mixed-replace client - reads raw bytes off
     the wire and scans for JPEG SOI(0xFFD8)/EOI(0xFFD9) markers directly,
     the same real, proven approach HYDRA-UMC-ANDROID-CONTROL's own
@@ -88,7 +88,9 @@ async def iter_mjpeg_frames(url: str) -> AsyncIterator[bytes]:
     raises out of this generator, so a caller's own `async for` loop
     doesn't need its own try/except around iteration itself."""
     try:
-        async with httpx.AsyncClient() as client:
+        # `headers` carries the session's bearer token: a server started with
+        # HYDRA_UMC_CAMERA_AUTH=required refuses the picture without it.
+        async with httpx.AsyncClient(headers=headers) as client:
             async with client.stream("GET", url, timeout=httpx.Timeout(10.0, read=None)) as resp:
                 if resp.status_code != 200:
                     return
@@ -163,6 +165,7 @@ class CameraCard(QFrame):
         # streaming GET get_stream_url resolves).
         self._get_connection = get_connection
         self._stream_task: asyncio.Task | None = None
+        self._stream_url: str | None = None
         self._streaming_connected = False
         self._discovery_task: asyncio.Task | None = None
 
@@ -441,14 +444,20 @@ class CameraCard(QFrame):
     # --- real MJPEG stream ------------------------------------------------
 
     def _start_stream(self) -> None:
-        if self._stream_task is not None and not self._stream_task.done():
-            return  # already streaming - refresh() runs on every state
-            # broadcast, not just real changes, so this must be a no-op
-            # for "still connected, nothing changed" the common case.
         url = self._get_stream_url(self._camera.id)
+        if self._stream_task is not None and not self._stream_task.done():
+            if url == self._stream_url:
+                return  # already streaming - refresh() runs on every state
+                # broadcast, not just real changes, so this must be a no-op
+                # for "still connected, nothing changed" the common case.
+            # The active server changed under a camera with the same id: the
+            # picture on screen belongs to the previous server.
+            self._stop_stream()
         if not url:
+            self._stream_url = None
             self._show_stream_placeholder(_("STATUS_LIVE"), "#10b981")
             return
+        self._stream_url = url
         self._stream_task = asyncio.ensure_future(self._run_stream(url))
 
     def stop_stream(self) -> None:
@@ -489,7 +498,8 @@ class CameraCard(QFrame):
         try:
             while True:
                 got_a_frame = False
-                async for frame in iter_mjpeg_frames(url):
+                conn = self._get_connection()
+                async for frame in iter_mjpeg_frames(url, conn.auth_headers() if conn is not None else None):
                     if not got_a_frame:
                         got_a_frame = True
                         attempt = 0  # a real frame arrived - the next real drop starts backoff over from 1.5s

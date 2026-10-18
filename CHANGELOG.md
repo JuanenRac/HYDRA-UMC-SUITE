@@ -10,8 +10,20 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
-## Unreleased
+## [0.6.6] - Sessions, refusals and installers
 
+- **No login for a scanned server:** the network scan lists the servers it finds but sends no login until the operator types a username and password, and a login the server rejects is not retried in a loop (the retries used up the server's login limit and locked the PC out for 15 minutes).
+- **Session renewal:** an expired access token (403 `TOKEN_EXPIRED`) is renewed through `/api/refresh` (or a new login) and the request repeated once, for settings writes, robot commands, flashing and the admin panels; a station left open for days keeps control.
+- **Clear refusals:** a command or write the server refuses now says why in the status bar: a missing permission, an expired session, an unknown command (400) or a robot reserved by another account (409); a 200 answer with warnings (a speed outside the allowed range, for one) counts as not applied and the value is rolled back. An error pushed over the WebSocket is shown and the local copy is read again.
+- **Token out of the address:** the WebSocket sends the session token as the `hydra.bearer` subprotocol; a server from before that falls back to `?token=` automatically. The camera streams, saved photos and recordings, the metrics and the supervisor reads carry the bearer token, so a server that requires it for those keeps working.
+- **Speed range:** the speed and acceleration sliders cover 10-500 %, the range the server applies.
+- **Flashing:** the firmware version tag `1.2.0` is sent to the bootloader as 1.2 (it was sent as 1.0), the request waits up to 630 s for the server instead of giving up at 60 s, and the board record keeps the version tag instead of the file name; the mock hardware id of the first robot is 001.
+- **Host temperature:** a host without a temperature sensor is shown as `-` instead of a made-up number.
+- **Cameras:** switching the active server restarts the video of a camera with the same id instead of keeping the previous server's picture; a saved photo or recording that cannot be downloaded is not written to disk.
+- **Installers:** the Windows installer and the `.deb` ship the `language` folder and take the version from the build (the package was named after the previous version); a program installed where it cannot write keeps its language setting in the user's config folder.
+- **Window and tools:** the minimum window size is 1280x720; the ATC pickup positions keep their decimals; the log panel keeps the latest 5000 lines and shows server text as plain text; scanning ends even if one discovery source fails; a very large WebSocket message is refused instead of exhausting memory.
+- **Language files:** a duplicate `LBL_BASE_PICKUP_POS` key is removed, the `&` of "Tool & Accessories" is shown, and `tests/verify_language_files.py` now checks line breaks and duplicate keys.
+- **Tests:** `tests/verify_session_and_errors.py` runs the session, refusal and WebSocket behaviour against a small local server.
 - The admin logs have a small copy button (an icon of two sheets) that puts every line on the clipboard, so it can be pasted into a message; it turns green for a moment when it has copied.
 
 ## QtQuick mode: real Camera Media panel + snapshot/recording controls

@@ -40,6 +40,11 @@ from typing import AsyncGenerator, Literal
 
 import httpx
 
+# The server keeps flashing for SPI_BRIDGE_FLASH_TIMEOUT_MS (120 s by default,
+# 600 s at most) after the request arrives; giving up earlier would show a
+# network error while the board is still being written.
+FLASH_TIMEOUT_S = 630.0
+
 CanOtaTier = Literal["kinematicBrain", "controllerBoard", "urtcHead", "urtcExpansion"]
 FlashPhase = Literal[
     "connecting", "entering_bootloader", "erasing_fram", "transferring", "verifying", "rebooting", "done", "error"
@@ -145,7 +150,7 @@ async def mock_query_version(target: CanOtaTarget) -> VersionQueryResult:
         online=True,
         firmware_version=f"0.{random.randint(0, 3)}.{random.randint(0, 9)}",
         bootloader_version="0.0.0",
-        hardware_id=f"{prefix}-{((target.robot_index0 or -1) + 1):03d}",
+        hardware_id=f"{prefix}-{((-1 if target.robot_index0 is None else target.robot_index0) + 1):03d}",
         expansion_board_type=random.choice([0, 0, 0, 3, 6]) if target.tier == "urtcHead" else None,
     )
 
@@ -428,6 +433,18 @@ class HardwareFlashResult:
     reason: str
 
 
+def parse_version_tag(tag: str | None) -> tuple[int, int]:
+    """(major, minor) of a firmware version tag such as "1.2.0" or "v1.2":
+    the bootloader records these two numbers, so "1.2.0" must give 1 and 2
+    (not 1 and 0). Anything unreadable counts as 0."""
+    parts = (tag or "").strip().lstrip("vV").split(".")
+
+    def number(index: int) -> int:
+        return int(parts[index]) if index < len(parts) and parts[index].isdigit() else 0
+
+    return number(0), number(1)
+
+
 async def hardware_start_flash(
     conn, target: CanOtaTarget, firmware: bytes, version_major: int, version_minor: int, hardware_id: int = 0
 ) -> HardwareFlashResult:
@@ -457,7 +474,9 @@ async def hardware_start_flash(
         "version_major": version_major,
         "version_minor": version_minor,
     }
-    result = await conn.canota_request("POST", "/api/hardware/canota/flash", params=params, data=firmware)
+    result = await conn.canota_request(
+        "POST", "/api/hardware/canota/flash", params=params, data=firmware, timeout=FLASH_TIMEOUT_S
+    )
     if result is None:
         return HardwareFlashResult(reachable=True, success=False, reason="network error")
     status, body = result

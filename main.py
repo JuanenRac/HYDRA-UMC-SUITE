@@ -4,9 +4,9 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Starts MAXIMIZED (not true OS-level fullscreen) at a 1920x1080 minimum,
-# per the project owner's own spec ("se ejecutara a pantalla completa con
-# una resolución mínima de 1920x1080") while keeping the native title bar
+# Starts MAXIMIZED (not true OS-level fullscreen) with a 1280x720 minimum
+# window size (so it still fits a 1080p screen with a taskbar, or a laptop
+# at 125-150 % scaling), while keeping the native title bar
 # and its minimize/maximize/close buttons visible - true showFullScreen()
 # hides that title bar entirely on Windows, which read as "missing window
 # controls" rather than "running fullscreen". F11 still toggles into real
