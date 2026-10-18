@@ -4,7 +4,7 @@ Source: https://github.com/Annin-Robotics/ar4_ros_driver
 Path:   annin_ar4_description/meshes/ar4_mk3/
 License: MIT License, per that repository's own LICENSE file. Official
 Annin Robotics repository (unlike AR3, which has no official upstream repo
-- see public/models/ar3/ATTRIBUTION.txt).
+- see ../ar3/ATTRIBUTION.txt).
 
 Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's AR4Arm.tsx
 3D view. The "mk3" hardware revision was chosen (matching the joint limits

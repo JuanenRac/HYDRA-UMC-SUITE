@@ -12,7 +12,7 @@ VISUAL .dae set in the same repo, meshes/ur10e/visual/) to keep bundle
 size down - same STLLoader-based loading pipeline every other robot in
 this folder already uses, so no new mesh format/loader was introduced.
 
-Also the SOURCE of public/models/ur16e/'s own base.stl, shoulder.stl,
+Also the SOURCE of ../ur16e/'s own base.stl, shoulder.stl,
 wrist1.stl, wrist2.stl, wrist3.stl (UR16e's own visual_parameters.yaml
 explicitly reuses these UR10e files verbatim - "UR16e uses the same parts
 as UR10e except the upper and lower arm are shortened" - see that

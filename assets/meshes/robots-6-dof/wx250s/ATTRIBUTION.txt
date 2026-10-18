@@ -9,7 +9,7 @@ repository's own LICENSE file.
 Downloaded verbatim, unmodified, for use in HYDRA-UMC-STUDIO's
 Wx250sArm.tsx 3D view. Shares the exact same rig design/mesh-offset
 pattern as ViperX 300 (vx300s) - Trossen's smaller sibling product in
-the same arm family - see public/models/vx300s/ATTRIBUTION.txt for the
+the same arm family - see ../vx300s/ATTRIBUTION.txt for the
 full explanation of why the per-link mesh offsets are needed here.
 
 Joint kinematic chain comes from that repository's own
