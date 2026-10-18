@@ -28,6 +28,10 @@ echo.
 REM HYDRA_UMC_SCRIPT_STANDARD_BANNER_END
 REM Runs the non-versioning build check. It does not update the manifest or CHANGELOG.
 setlocal
+rem Keep the window open for people, never in automation (CI / HYDRA_UMC_CI).
+set "KEEP_OPEN=pause"
+if defined CI set "KEEP_OPEN=ver >nul"
+if "%HYDRA_UMC_CI%"=="1" set "KEEP_OPEN=ver >nul"
 cd /d "%~dp0"
 REM Real bug fixed here: unlike run.bat/build_exe.bat, this never
 REM activated .venv before invoking python/py -3 - on a machine where
@@ -51,5 +55,5 @@ if errorlevel 1 (
     set "RESULT=0"
 )
 echo.
-pause
+%KEEP_OPEN%
 exit /b %RESULT%

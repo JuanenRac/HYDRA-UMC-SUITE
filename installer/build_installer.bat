@@ -11,6 +11,10 @@ REM
 REM Output: installer\output\HYDRA-UMC_SUITE_Setup.exe
 REM =============================================================================
 setlocal
+rem Keep the window open for people, never in automation (CI / HYDRA_UMC_CI).
+set "KEEP_OPEN=pause"
+if defined CI set "KEEP_OPEN=ver >nul"
+if "%HYDRA_UMC_CI%"=="1" set "KEEP_OPEN=ver >nul"
 
 echo [1/2] Building HYDRA-UMC_SUITE.exe (..\build_exe.bat)...
 pushd ..
@@ -24,7 +28,7 @@ popd
 python "%~dp0..\bump_manifest_version.py" --sync
 if errorlevel 1 (
     echo ERROR: manifest synchronization failed after build_exe.bat.
-    pause
+    %KEEP_OPEN%
     exit /b 1
 )
 

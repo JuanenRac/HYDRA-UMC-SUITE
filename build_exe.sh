@@ -53,7 +53,7 @@ set -euo pipefail
 # this script's own explicit checks) - bash always runs the EXIT trap
 # right before the shell actually exits, regardless of which of those 3
 # triggered it.
-trap 'echo; read -r -p "Press Enter to close..." _ || true' EXIT
+trap 'echo; if [ -t 0 ] && [ "${HYDRA_UMC_CI:-}" != "1" ] && [ -z "${CI:-}" ]; then read -r -p "Press Enter to close..." _ || true; fi' EXIT
 if ! python3 -c "import ctypes; ctypes.CDLL('libGL.so.1')" 2>/dev/null; then
     echo "      libGL.so.1 not found."
     echo "      On Debian/Ubuntu:  sudo apt install libgl1 libxkbcommon-x11-0 libxcb-cursor0"
