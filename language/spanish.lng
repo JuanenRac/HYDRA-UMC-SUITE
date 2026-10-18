@@ -558,3 +558,21 @@ QT_SUITE_TAGLINE=PANEL DE MANDO DEL ENJAMBRE
 QT_XY_TABLE_X_AXIS=Eje X
 QT_XY_TABLE_Y_AXIS=Eje Y
 QT_XY_TABLE_LABEL=Mesa
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=Parar todo
+STOP_ALL_TOOLTIP=STOP: detener ahora todos los robots de todos los servidores conectados (F12)
+STOP_ALL_SENDING=Deteniendo todos los robots...
+STOP_ALL_DONE=STOP confirmado: {stopped} robots detenidos
+STOP_ALL_INCOMPLETE=STOP INCOMPLETO: {stopped} detenidos, {failed} no se detuvieron
+STOP_ALL_NOT_SAVED={server}: no se pudo guardar el estado de parada en el servidor, puede no mantenerse tras un reinicio
+STOP_ALL_ONE_BY_ONE={server}: enviado robot a robot (el servidor limitó la llamada global)
+STOP_ALL_ROBOT_FAILED={server}: {name} no se detuvo: {error}
+STOP_ALL_ROBOT_RESERVED={server}: {name} está reservado por {user} (detenido igualmente)
+STOP_ALL_SERVER_FAILED={server}: {reason}
+STOP_ALL_NOT_CONFIRMED=STOP NO CONFIRMADO: pulsa STOP otra vez o usa la seta de emergencia física
+STOP_ALL_NO_SERVER=No hay ningún servidor conectado
+MENU_SHORTCUTS=&Atajos de teclado
+TITLE_SHORTCUTS=Atajos de teclado
+MSG_SHORTCUTS=F11: alternar pantalla completa\nF12: STOP - detiene todos los robots de todos los servidores conectados (parada de emergencia global)

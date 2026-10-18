@@ -557,3 +557,21 @@ QT_SUITE_TAGLINE=PAINEL DE COMANDO DO ENXAME
 QT_XY_TABLE_X_AXIS=Eixo X
 QT_XY_TABLE_Y_AXIS=Eixo Y
 QT_XY_TABLE_LABEL=Mesa
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=Parar tudo
+STOP_ALL_TOOLTIP=STOP: parar agora todos os robôs de todos os servidores ligados (F12)
+STOP_ALL_SENDING=A parar todos os robôs...
+STOP_ALL_DONE=STOP confirmado: {stopped} robôs parados
+STOP_ALL_INCOMPLETE=STOP INCOMPLETO: {stopped} parados, {failed} não pararam
+STOP_ALL_NOT_SAVED={server}: não foi possível guardar o estado de paragem no servidor, pode não se manter após um reinício
+STOP_ALL_ONE_BY_ONE={server}: enviado robô a robô (o servidor limitou a chamada global)
+STOP_ALL_ROBOT_FAILED={server}: {name} não parou: {error}
+STOP_ALL_ROBOT_RESERVED={server}: {name} está reservado por {user} (parado na mesma)
+STOP_ALL_SERVER_FAILED={server}: {reason}
+STOP_ALL_NOT_CONFIRMED=STOP NÃO CONFIRMADO: prima STOP novamente ou use a paragem de emergência física
+STOP_ALL_NO_SERVER=Nenhum servidor está ligado
+MENU_SHORTCUTS=&Atalhos de teclado
+TITLE_SHORTCUTS=Atalhos de teclado
+MSG_SHORTCUTS=F11: alternar ecrã inteiro\nF12: STOP - pára todos os robôs de todos os servidores ligados (paragem de emergência global)

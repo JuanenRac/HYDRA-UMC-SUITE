@@ -558,3 +558,21 @@ QT_SUITE_TAGLINE=PLANCIA DI COMANDO DELLO SCIAME
 QT_XY_TABLE_X_AXIS=Asse X
 QT_XY_TABLE_Y_AXIS=Asse Y
 QT_XY_TABLE_LABEL=Tavola
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=Ferma tutto
+STOP_ALL_TOOLTIP=STOP: ferma subito tutti i robot di tutti i server connessi (F12)
+STOP_ALL_SENDING=Arresto di tutti i robot...
+STOP_ALL_DONE=STOP confermato: {stopped} robot fermati
+STOP_ALL_INCOMPLETE=STOP INCOMPLETO: {stopped} fermati, {failed} non fermati
+STOP_ALL_NOT_SAVED={server}: non è stato possibile salvare lo stato di arresto sul server, potrebbe non reggere dopo un riavvio
+STOP_ALL_ONE_BY_ONE={server}: inviato robot per robot (il server ha limitato la chiamata globale)
+STOP_ALL_ROBOT_FAILED={server}: {name} non si è fermato: {error}
+STOP_ALL_ROBOT_RESERVED={server}: {name} è riservato da {user} (fermato comunque)
+STOP_ALL_SERVER_FAILED={server}: {reason}
+STOP_ALL_NOT_CONFIRMED=STOP NON CONFERMATO: premi di nuovo STOP o usa il pulsante di emergenza fisico
+STOP_ALL_NO_SERVER=Nessun server connesso
+MENU_SHORTCUTS=&Scorciatoie da tastiera
+TITLE_SHORTCUTS=Scorciatoie da tastiera
+MSG_SHORTCUTS=F11: attiva/disattiva lo schermo intero\nF12: STOP - ferma tutti i robot di tutti i server connessi (arresto di emergenza globale)

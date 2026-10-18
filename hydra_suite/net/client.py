@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import dataclass, field
 from typing import Awaitable, Callable
 
 import httpx
@@ -55,6 +56,88 @@ HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": "suite"}
 WS_MAX_MESSAGE_BYTES = 128 * 1024 * 1024
 # Server error codes (auth middleware) that a fresh login/refresh can cure.
 _RENEWABLE_TOKEN_CODES = ("TOKEN_EXPIRED", "TOKEN_INVALID")
+
+# The global STOP (POST /api/stop-all) answers fast or not at all: a stop is
+# never worth waiting 5 s for, so it gets a short timeout and one retry.
+STOP_ALL_TIMEOUT_S = 2.0
+STOP_ALL_RETRY_DELAY_S = 0.3
+
+
+@dataclass
+class StopAllRobot:
+    """What the server did to one robot when the global STOP reached it."""
+
+    robot_id: int
+    controller_id: str = ""
+    name: str = ""
+    stopped: bool = False
+    valves_off: bool = False
+    pumps_off: bool = False
+    # The account holding the reservation, when it is somebody else (the
+    # stop ignores reservations, but the operator should know).
+    reserved_by: str | None = None
+    error: str | None = None
+
+
+@dataclass
+class StopAllResult:
+    """The server's answer to the global STOP, or - when nothing confirmed
+    it - a result with `confirmed=False` and the reason."""
+
+    success: bool = False
+    stopped_count: int = 0
+    failed_count: int = 0
+    # False when the server stopped the robots but could not save the stopped state.
+    persisted: bool = False
+    robots: list[StopAllRobot] = field(default_factory=list)
+    # True when the answer was built by stopping the robots one by one
+    # (the global call was rate limited).
+    via_fallback: bool = False
+    confirmed: bool = True
+    reason: str = ""
+
+    @property
+    def is_clean(self) -> bool:
+        """Everything went as it should: confirmed, no robot failed, stopped state saved."""
+        return self.confirmed and self.success and self.failed_count == 0 and self.persisted
+
+    @property
+    def failed_robots(self) -> list[StopAllRobot]:
+        return [r for r in self.robots if not r.stopped]
+
+    @classmethod
+    def not_confirmed(cls, reason: str) -> "StopAllResult":
+        return cls(confirmed=False, reason=reason)
+
+    @classmethod
+    def from_json(cls, body: dict) -> "StopAllResult":
+        robots: list[StopAllRobot] = []
+        for item in body.get("robots") or []:
+            if not isinstance(item, dict):
+                continue
+            reserved = item.get("reservedBy")
+            error = item.get("error")
+            robots.append(
+                StopAllRobot(
+                    robot_id=int(item.get("robotId", 0) or 0),
+                    controller_id=str(item.get("controllerId") or ""),
+                    name=str(item.get("name") or ""),
+                    stopped=bool(item.get("stopped", False)),
+                    valves_off=bool(item.get("valvesOff", False)),
+                    pumps_off=bool(item.get("pumpsOff", False)),
+                    reserved_by=reserved if isinstance(reserved, str) and reserved else None,
+                    error=error if isinstance(error, str) and error else None,
+                )
+            )
+        failed = body["failedCount"] if isinstance(body.get("failedCount"), int) else sum(1 for r in robots if not r.stopped)
+        stopped = body["stoppedCount"] if isinstance(body.get("stoppedCount"), int) else sum(1 for r in robots if r.stopped)
+        return cls(
+            success=bool(body.get("success", False)),
+            stopped_count=stopped,
+            failed_count=failed,
+            persisted=bool(body.get("persisted", False)),
+            robots=robots,
+        )
 
 
 def _body_code(resp: "httpx.Response") -> str | None:
@@ -787,6 +870,93 @@ class HydraConnection(QObject):
                 await latest()
 
         self._throttle_tasks[throttle_key] = asyncio.ensure_future(fire_throttled())
+
+    async def stop_all(self) -> StopAllResult:
+        """The global STOP: POST /api/stop-all stops every robot of this
+        server, whoever reserved it. It goes out at once (no wait for a
+        refresh), is retried once when nobody answers, falls back to the
+        per-robot `stop` for every known robot when the server rate limits
+        (429), and never raises: a stop that nothing confirmed comes back
+        as `StopAllResult.not_confirmed(reason)` so the caller can keep a
+        visible "not confirmed" state. A confirmed answer also stops the
+        robots in the local mirror, so the UI shows it before the next
+        broadcast."""
+        reason = ""
+        for attempt in range(2):
+            try:
+                resp = await self._http("POST", "/api/stop-all", timeout=STOP_ALL_TIMEOUT_S)
+            except (httpx.HTTPError, OSError) as e:
+                reason = str(e) or e.__class__.__name__
+                if attempt == 0:
+                    await asyncio.sleep(STOP_ALL_RETRY_DELAY_S)
+                continue
+            if resp.status_code == 429:
+                return await self._stop_robots_one_by_one()
+            if resp.status_code != 200:
+                message = describe_rejection(resp, "STOP")
+                self.error.emit(message)
+                return StopAllResult.not_confirmed(message)
+            try:
+                body = resp.json()
+            except ValueError:
+                body = None
+            if not isinstance(body, dict):
+                return StopAllResult.not_confirmed("the server answered with something that is not JSON")
+            result = StopAllResult.from_json(body)
+            self._apply_stopped(result)
+            return result
+        self.error.emit(f"STOP failed: {reason}")
+        return StopAllResult.not_confirmed(reason)
+
+    async def _stop_robots_one_by_one(self) -> StopAllResult:
+        """The fallback when the global call is rate limited: the atomic
+        `stop` command for every robot this server is known to have."""
+        known = [(c.id, r) for c in self.state.controllers for r in c.robots]
+        if not known:
+            return StopAllResult.not_confirmed("no known robot to stop")
+        entries: list[StopAllRobot] = []
+        for controller_id, robot in known:
+            error: str | None = None
+            for attempt in range(2):
+                try:
+                    resp = await self._http(
+                        "POST", f"/api/robot/{robot.id}/command", timeout=STOP_ALL_TIMEOUT_S, json={"command": "stop", "params": {}}
+                    )
+                    error = None if resp.status_code < 400 else describe_rejection(resp, "STOP")
+                    break
+                except (httpx.HTTPError, OSError) as e:
+                    error = str(e) or e.__class__.__name__
+                    if attempt == 0:
+                        await asyncio.sleep(STOP_ALL_RETRY_DELAY_S)
+            try:
+                numeric_id = int(robot.id)
+            except ValueError:
+                numeric_id = 0
+            entries.append(
+                StopAllRobot(
+                    robot_id=numeric_id, controller_id=controller_id, name=str(robot.raw.get("name") or ""),
+                    stopped=error is None, error=error,
+                )
+            )
+        failed = sum(1 for e in entries if not e.stopped)
+        result = StopAllResult(
+            success=failed == 0, stopped_count=len(entries) - failed, failed_count=failed,
+            persisted=True, robots=entries, via_fallback=True,
+        )
+        self._apply_stopped(result)
+        return result
+
+    def _apply_stopped(self, result: StopAllResult) -> None:
+        """Mirrors a confirmed stop into the local state (the next broadcast confirms or corrects it)."""
+        stopped_ids = {str(r.robot_id) for r in result.robots if r.stopped}
+        touched = False
+        for controller in self.state.controllers:
+            for robot in controller.robots:
+                if robot.id in stopped_ids:
+                    robot.stop_playing()
+                    touched = True
+        if touched:
+            self.state_changed.emit(self.state)
 
     @staticmethod
     def _command_warnings(resp: "httpx.Response") -> str:

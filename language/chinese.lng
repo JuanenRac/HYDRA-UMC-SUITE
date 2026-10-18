@@ -557,3 +557,21 @@ QT_SUITE_TAGLINE=蜂群指挥台
 QT_XY_TABLE_X_AXIS=X 轴
 QT_XY_TABLE_Y_AXIS=Y 轴
 QT_XY_TABLE_LABEL=工作台
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=全部停止
+STOP_ALL_TOOLTIP=STOP：立即停止所有已连接服务器上的所有机器人 (F12)
+STOP_ALL_SENDING=正在停止所有机器人...
+STOP_ALL_DONE=STOP 已确认：{stopped} 台机器人已停止
+STOP_ALL_INCOMPLETE=STOP 未完成：{stopped} 台已停止，{failed} 台未停止
+STOP_ALL_NOT_SAVED={server}：无法在服务器上保存停止状态，重启后可能不会保持
+STOP_ALL_ONE_BY_ONE={server}：已逐台发送（服务器限制了全局调用）
+STOP_ALL_ROBOT_FAILED={server}：{name} 未停止：{error}
+STOP_ALL_ROBOT_RESERVED={server}：{name} 已被 {user} 预约（仍已停止）
+STOP_ALL_SERVER_FAILED={server}：{reason}
+STOP_ALL_NOT_CONFIRMED=STOP 未确认：请再次按下 STOP 或使用物理急停
+STOP_ALL_NO_SERVER=没有已连接的服务器
+MENU_SHORTCUTS=键盘快捷键(&K)
+TITLE_SHORTCUTS=键盘快捷键
+MSG_SHORTCUTS=F11：切换全屏\nF12：STOP - 停止所有已连接服务器上的所有机器人（全局紧急停止）

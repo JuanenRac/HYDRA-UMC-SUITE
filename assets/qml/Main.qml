@@ -29,6 +29,16 @@ ApplicationWindow {
 
     Component.onCompleted: showMaximized()
 
+    // Documented single shortcut of the global STOP (Help/README): a bare
+    // function key, application-wide, so it works on every panel; it does not
+    // press a focused button (unlike Space) and closes nothing (unlike Esc).
+    Shortcut {
+        sequence: "F12"
+        context: Qt.ApplicationShortcut
+        autoRepeat: false
+        onActivated: suiteBackend.stopAll()
+    }
+
     property color panel: "#101d30"
     property color panelAlt: "#14253b"
     property color panelBorder: "#294965"
@@ -171,6 +181,53 @@ ApplicationWindow {
                     Text { text: suiteBackend.uiText("QT_SUITE_TAGLINE"); color: window.muted; font.family: "Bahnschrift"; font.pixelSize: 8 }
                 }
                 Item { Layout.fillWidth: true }
+                // Global STOP status: a clean result hides itself, anything else stays red.
+                Rectangle {
+                    visible: suiteBackend.stopAllText !== ""
+                    Layout.maximumWidth: 460
+                    Layout.preferredHeight: 40
+                    Layout.preferredWidth: stopAllLabel.implicitWidth + 20
+                    radius: 8
+                    color: suiteBackend.stopAllSeverity === "error" ? "#c40018" : "transparent"
+                    Text {
+                        id: stopAllLabel
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                        text: suiteBackend.stopAllText
+                        color: suiteBackend.stopAllSeverity === "ok" ? window.green : (suiteBackend.stopAllSeverity === "busy" ? window.amber : "#ffffff")
+                        font.family: "Bahnschrift"
+                        font.bold: true
+                        font.pixelSize: 11
+                    }
+                    ToolTip.visible: stopAllHover.hovered && suiteBackend.stopAllDetail !== ""
+                    ToolTip.text: suiteBackend.stopAllDetail
+                    HoverHandler { id: stopAllHover }
+                }
+                // The global STOP: one click, always visible, on every panel (F12 too).
+                Button {
+                    id: stopAllButton
+                    objectName: "stopAllButton"
+                    Layout.preferredWidth: 120
+                    Layout.preferredHeight: 52
+                    focusPolicy: Qt.NoFocus
+                    onClicked: suiteBackend.stopAll()
+                    Accessible.name: suiteBackend.uiText("STOP_ALL_TOOLTIP")
+                    ToolTip.visible: hovered
+                    ToolTip.text: suiteBackend.uiText("STOP_ALL_TOOLTIP")
+                    background: Rectangle {
+                        radius: 10
+                        color: stopAllButton.down ? "#8f0012" : (stopAllButton.hovered ? "#e0001d" : "#c40018")
+                        border.width: 2
+                        border.color: "#ff5d6f"
+                    }
+                    contentItem: Column {
+                        spacing: 0
+                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_LABEL"); color: "#ffffff"; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 20 }
+                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_CAPTION"); color: "#ffffff"; font.family: "Bahnschrift"; font.pixelSize: 10 }
+                    }
+                }
                 Text {
                     text: suiteBackend.connectionStatus === "connected" ? "● CONNECTED" : (suiteBackend.connectionStatus === "connecting" ? "● CONNECTING" : "● DISCONNECTED")
                     color: suiteBackend.connectionStatus === "connected" ? window.green : (suiteBackend.connectionStatus === "connecting" ? window.amber : window.muted)

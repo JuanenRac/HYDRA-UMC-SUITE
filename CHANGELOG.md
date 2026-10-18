@@ -10,6 +10,15 @@ automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
 before every PyInstaller build - not on a plain `python main.py` run. See
 "Historical versioning notes" below for the change that introduced this.
 
+## [0.6.7] - Global STOP
+
+- **STOP button on every panel:** a red **STOP** button (with the caption "Stop all", translated in the 8 languages) sits in the command deck of the classic window and in the header of the `--qtquick` shell, so it is on screen whatever panel is open. One click, no confirmation, no selected robot needed.
+- **One call, every robot:** it sends `POST /api/stop-all` to every connected server and stops every robot, including those reserved by another account (a safety stop is never blocked by a reservation). `HydraConnection.stop_all()` in `net/client.py` sends it at once with a 2 s timeout, retries once when nobody answers, and when the server rate limits the call (429) stops every known robot one by one.
+- **The result is shown, never assumed:** a green message when every robot stopped; a red one, kept until the next STOP, when a robot did not stop, the server could not save the stopped state, or nothing confirmed the stop (**STOP NOT CONFIRMED**, also when no server is connected). The tooltip and the status bar list each failed robot with its reason and every robot reserved by another account.
+- **F12 shortcut:** the same STOP from the keyboard, application-wide, listed in **Help > Keyboard shortcuts**. It is a bare function key on purpose: it never presses a focused button (Space would) and closes nothing (Esc would).
+- **Texts:** 16 new strings in the 8 language files (the button, the messages, the shortcut help).
+- **Tests:** `tests/verify_stop_all.py` runs the call, the retry, the fallback, the multi-server summary, the texts, the button and the shortcut of both shells against a small local server (picked up by `tools/run_offline_verifiers.py`).
+
 ## [0.6.6] - Sessions, refusals and installers
 
 - **No login for a scanned server:** the network scan lists the servers it finds but sends no login until the operator types a username and password, and a login the server rejects is not retried in a loop (the retries used up the server's login limit and locked the PC out for 15 minutes).

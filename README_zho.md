@@ -42,6 +42,11 @@
 ## ✨ 可视化指挥台
 
 桌面现已提供一个常驻、带有游戏菜单风格的指挥台，使用官方 HYDRA-UMC 图标以及 HYDRA-UMC-UPDATER 的深海军蓝/青色视觉语言。仪表板、机器人控制、相机、轨迹和日志按钮会打开对应的真实可停靠面板；右侧显示实时连接状态、活动服务器目标和 UTC 时钟。这是 Suite 真实功能上的视觉层，而不是模拟仪表板。
+
+### 🛑 全局 STOP
+
+**STOP** 按钮始终位于窗口顶部（命令面板中；在 `--qtquick` 模式下位于标题栏），在每个面板上都可见。一次点击，无需确认：它会在每个已连接的服务器上调用 `POST /api/stop-all`，停止所有机器人，即使被其他账户预约。它会显示结果：全部停止时显示绿色消息；当有机器人未停止、停止状态无法保存或没有任何响应确认停止时（**STOP 未确认**），显示红色消息并保持到下一次 STOP。如果服务器限制了该调用，则逐台停止机器人。**F12** 在键盘上执行相同操作（列在 **帮助 > 键盘快捷键** 中）；它是单独的功能键，因此不会按下获得焦点的按钮，也不会关闭任何内容。
+
 ### 完整的 Qt Quick 重新设计（`--qtquick`）
 
 这个指挥台是叠加在经典 `QMainWindow` 之上的一层。这个应用还拥有一个完全独立的 Qt Quick 外壳：
@@ -120,6 +125,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
+├── tests/verify_stop_all.py
 ├── main.py                        # 入口点 - 最小 1280x720 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
 ├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
 ├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行
@@ -199,6 +205,8 @@ python main.py
 ```
 
 以最小 1280x720 全屏启动（依照本应用自身的设计规范）——随时按 **F11** 在全屏和普通最大化窗口之间切换，因此它绝不会真的把你困住而没有退出方式。使用 **Servers** 面板扫描你的网络，或按地址添加一台 HYDRA-UMC STUDIO 服务器。
+
+随时按 **F12** 发送全局 STOP（顶部栏中的 **STOP** 按钮作用相同）。
 
 ---
 

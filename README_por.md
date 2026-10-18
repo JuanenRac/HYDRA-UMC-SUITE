@@ -75,6 +75,10 @@ correspondentes; o seu lado direito mostra o estado de ligação em direto, o
 servidor de destino selecionado e a hora UTC. É uma camada visual sobre as
 funções existentes do Suite, não um painel simulado.
 
+### 🛑 STOP global
+
+O botão **STOP** está sempre no topo da janela (na consola de comando e, no modo `--qtquick`, no cabeçalho), em todos os painéis. Um clique, sem confirmação: chama `POST /api/stop-all` em cada servidor ligado e pára todos os robôs, mesmo reservados por outra conta. Mostra o resultado: uma mensagem verde quando tudo parou e uma vermelha, que fica até ao próximo STOP, quando um robô não parou, o estado de paragem não pôde ser guardado ou nada confirmou a paragem (**STOP NÃO CONFIRMADO**). Se o servidor limitar a chamada, os robôs são parados um a um. **F12** faz o mesmo no teclado (listado em **Ajuda > Atalhos de teclado**); é uma tecla de função isolada, por isso nunca prime um botão com o foco nem fecha nada.
+
 ### Redesenho completo em Qt Quick (`--qtquick`)
 
 Esse painel de comando é uma camada sobre a `QMainWindow` clássica. Esta
@@ -224,6 +228,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
+├── tests/verify_stop_all.py
 ├── main.py                        # Ponto de entrada - ecrã inteiro 1280x720 mínimo, F11 alterna ecrã inteiro/janela; --qtquick muda para o painel abaixo
 ├── qt_suite.py                     # Front end Qt Quick - painel de comando `--qtquick` autónomo (todos os 26 painéis), liga o SuiteController inalterado ao QML
 ├── verify_qt_suite_shell.py        # Verificação real do shell Qt Quick, sem hardware nem rede - deliberadamente fora de tests/ (pela mesma razão dos verify_qt_*.py do URTC-TESTER/URTC-FLASHER), execute com `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
@@ -307,6 +312,8 @@ desenho desta própria aplicação) - carregue em **F11** para alternar a qualqu
 momento entre ecrã inteiro e uma janela maximizada normal, para que nunca o
 prenda sem uma saída de emergência. Use o painel **Servidores** para analisar a
 rede ou acrescentar um servidor HYDRA-UMC STUDIO por endereço.
+
+Carregue em **F12** a qualquer momento para enviar o STOP global (o botão **STOP** da barra superior faz o mesmo).
 
 ---
 

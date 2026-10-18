@@ -23,6 +23,17 @@ for the payload size is a smaller wire format server-side.
 
 ## ✅ Real and verified end-to-end
 
+- **Global STOP** (`hydra_suite/net/client.py` `HydraConnection.stop_all()`,
+  `hydra_suite/app.py` `SuiteController.stop_all()`) - the **STOP** button in
+  the command deck (classic window) and in the header (`--qtquick`), plus the
+  application-wide **F12** shortcut, call `POST /api/stop-all` on every
+  connected server: one click, no confirmation, every robot, reservations of
+  other accounts ignored. It is sent at once with a 2 s timeout and retried
+  once; a rate limited call (429) falls back to the per-robot `stop`. A clean
+  result hides itself; a failed robot, an unsaved stopped state or a stop that
+  nothing confirmed stays on screen in red until a later STOP confirms.
+  Covered by `tests/verify_stop_all.py`.
+
 - **Network discovery** (`hydra_suite/net/discovery.py`) - two independent
   paths running CONCURRENTLY, deduplicated by (host, port): a brute-force
   concurrent subnet scan hitting `GET /api/hydra-info` on every candidate

@@ -558,3 +558,21 @@ QT_SUITE_TAGLINE=SCHWARM-KOMMANDOZENTRALE
 QT_XY_TABLE_X_AXIS=X-Achse
 QT_XY_TABLE_Y_AXIS=Y-Achse
 QT_XY_TABLE_LABEL=Tisch
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=Alle stoppen
+STOP_ALL_TOOLTIP=STOP: alle Roboter aller verbundenen Server sofort anhalten (F12)
+STOP_ALL_SENDING=Alle Roboter werden angehalten...
+STOP_ALL_DONE=STOP bestätigt: {stopped} Roboter angehalten
+STOP_ALL_INCOMPLETE=STOP UNVOLLSTÄNDIG: {stopped} angehalten, {failed} nicht angehalten
+STOP_ALL_NOT_SAVED={server}: der Stopp-Zustand konnte auf dem Server nicht gespeichert werden, er hält evtl. nach einem Neustart nicht
+STOP_ALL_ONE_BY_ONE={server}: Roboter für Roboter gesendet (der Server hat den globalen Aufruf begrenzt)
+STOP_ALL_ROBOT_FAILED={server}: {name} wurde nicht angehalten: {error}
+STOP_ALL_ROBOT_RESERVED={server}: {name} ist von {user} reserviert (trotzdem angehalten)
+STOP_ALL_SERVER_FAILED={server}: {reason}
+STOP_ALL_NOT_CONFIRMED=STOP NICHT BESTÄTIGT: STOP erneut drücken oder den physischen Not-Aus benutzen
+STOP_ALL_NO_SERVER=Es ist kein Server verbunden
+MENU_SHORTCUTS=&Tastenkürzel
+TITLE_SHORTCUTS=Tastenkürzel
+MSG_SHORTCUTS=F11: Vollbild umschalten\nF12: STOP - hält alle Roboter aller verbundenen Server an (globaler Not-Aus)

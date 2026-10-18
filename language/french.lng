@@ -558,3 +558,21 @@ QT_SUITE_TAGLINE=POSTE DE COMMANDE DE L'ESSAIM
 QT_XY_TABLE_X_AXIS=Axe X
 QT_XY_TABLE_Y_AXIS=Axe Y
 QT_XY_TABLE_LABEL=Table
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=Tout arrêter
+STOP_ALL_TOOLTIP=STOP : arrêter maintenant tous les robots de tous les serveurs connectés (F12)
+STOP_ALL_SENDING=Arrêt de tous les robots...
+STOP_ALL_DONE=STOP confirmé : {stopped} robots arrêtés
+STOP_ALL_INCOMPLETE=STOP INCOMPLET : {stopped} arrêtés, {failed} non arrêtés
+STOP_ALL_NOT_SAVED={server} : l'état d'arrêt n'a pas pu être enregistré sur le serveur, il peut ne pas tenir après un redémarrage
+STOP_ALL_ONE_BY_ONE={server} : envoyé robot par robot (le serveur a limité l'appel global)
+STOP_ALL_ROBOT_FAILED={server} : {name} ne s'est pas arrêté : {error}
+STOP_ALL_ROBOT_RESERVED={server} : {name} est réservé par {user} (arrêté malgré tout)
+STOP_ALL_SERVER_FAILED={server} : {reason}
+STOP_ALL_NOT_CONFIRMED=STOP NON CONFIRMÉ : appuyez à nouveau sur STOP ou utilisez l'arrêt d'urgence physique
+STOP_ALL_NO_SERVER=Aucun serveur n'est connecté
+MENU_SHORTCUTS=&Raccourcis clavier
+TITLE_SHORTCUTS=Raccourcis clavier
+MSG_SHORTCUTS=F11 : basculer en plein écran\nF12 : STOP - arrête tous les robots de tous les serveurs connectés (arrêt d'urgence global)

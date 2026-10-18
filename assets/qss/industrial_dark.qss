@@ -469,3 +469,20 @@ QPushButton#aboutCloseButton {
 QPushButton#aboutCloseButton:hover {
     background-color: #55e0f0;
 }
+
+/* The global STOP: always red, never styled like an ordinary button. */
+QToolButton#commandDeckStop {
+    background: #c40018;
+    color: #ffffff;
+    border: 2px solid #ff5d6f;
+    border-radius: 8px;
+    padding: 4px 18px;
+    font-weight: 800;
+    min-width: 96px;
+}
+QToolButton#commandDeckStop:hover { background: #e0001d; }
+QToolButton#commandDeckStop:pressed { background: #8f0012; }
+QLabel#commandDeckStopStatus { padding: 0 10px; font-weight: 700; max-width: 520px; }
+QLabel#commandDeckStopStatus[severity="busy"] { color: #f3ba55; }
+QLabel#commandDeckStopStatus[severity="ok"] { color: #43db9b; }
+QLabel#commandDeckStopStatus[severity="error"] { color: #ffffff; background: #c40018; border-radius: 6px; }

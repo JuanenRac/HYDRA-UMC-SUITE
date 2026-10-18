@@ -69,6 +69,10 @@ propio.
 
 El escritorio incorpora una consola de mando persistente, inspirada en un menú de videojuego, con el icono oficial HYDRA-UMC y la paleta azul marino/cian de HYDRA-UMC-UPDATER. Sus controles de Panel, Control de robot, Cámaras, Trayectoria y Logs elevan los paneles acoplables reales; a la derecha muestra estado vivo de conexión, servidor activo y hora UTC. Es una capa visual sobre funciones reales de Suite, no un dashboard simulado.
 
+### 🛑 STOP global
+
+El botón **STOP** está siempre en la parte superior de la ventana (en la consola de mando y, en el modo `--qtquick`, en la cabecera), en todos los paneles. Un clic, sin confirmación: llama a `POST /api/stop-all` en cada servidor conectado y detiene todos los robots, aunque los tenga reservados otra cuenta. Muestra el resultado: un mensaje verde cuando todo se ha detenido y uno rojo, que se queda hasta el siguiente STOP, cuando un robot no se detuvo, no se pudo guardar el estado de parada o nada confirmó el stop (**STOP NO CONFIRMADO**). Si el servidor limita la llamada, los robots se detienen uno a uno. **F12** hace lo mismo desde el teclado (aparece en **Ayuda > Atajos de teclado**); es una tecla de función sola, así que nunca pulsa un botón con el foco ni cierra nada.
+
 ### Rediseño completo en Qt Quick (`--qtquick`)
 
 Esa consola de mando es una capa sobre el `QMainWindow` clásico. Esta app también tiene un shell Qt Quick totalmente independiente:
@@ -194,6 +198,7 @@ HYDRA-UMC-SUITE/
 ├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
 ├── hydra_suite/vacuum_tables.py
 ├── tests/verify_vacuum_tables.py
+├── tests/verify_stop_all.py
 ├── main.py                        # Punto de entrada - pantalla completa 1280x720 min, F11 alterna pantalla completa/ventana; --qtquick cambia al panel de abajo
 ├── qt_suite.py                     # Interfaz Qt Quick - panel de comandos `--qtquick` independiente (los 26 paneles), conecta el SuiteController sin tocar con QML
 ├── verify_qt_suite_shell.py        # Comprobación real de la shell Qt Quick sin hardware/red - deliberadamente fuera de tests/ (mismo motivo que los propios verify_qt_*.py de URTC-TESTER/URTC-FLASHER), se ejecuta con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
@@ -278,6 +283,8 @@ pantalla completa y una ventana maximizada normal en cualquier momento, así
 que nunca te deja realmente atrapado sin una vía de escape. Usa el panel
 **Servers** para escanear tu red o añadir un servidor HYDRA-UMC STUDIO por
 dirección.
+
+Pulsa **F12** en cualquier momento para enviar el STOP global (el botón **STOP** de la barra superior hace lo mismo).
 
 ---
 

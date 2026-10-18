@@ -557,3 +557,21 @@ QT_SUITE_TAGLINE=スワームコマンドデッキ
 QT_XY_TABLE_X_AXIS=X軸
 QT_XY_TABLE_Y_AXIS=Y軸
 QT_XY_TABLE_LABEL=テーブル
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=全停止
+STOP_ALL_TOOLTIP=STOP：接続中のすべてのサーバーのすべてのロボットを今すぐ停止 (F12)
+STOP_ALL_SENDING=すべてのロボットを停止しています...
+STOP_ALL_DONE=STOP を確認しました：{stopped} 台のロボットが停止
+STOP_ALL_INCOMPLETE=STOP が不完全です：{stopped} 台が停止、{failed} 台は停止せず
+STOP_ALL_NOT_SAVED={server}：停止状態をサーバーに保存できませんでした。再起動後は維持されない可能性があります
+STOP_ALL_ONE_BY_ONE={server}：ロボットごとに送信しました（サーバーが全体呼び出しを制限）
+STOP_ALL_ROBOT_FAILED={server}：{name} は停止しませんでした：{error}
+STOP_ALL_ROBOT_RESERVED={server}：{name} は {user} が予約中です（それでも停止）
+STOP_ALL_SERVER_FAILED={server}：{reason}
+STOP_ALL_NOT_CONFIRMED=STOP が確認されていません：もう一度 STOP を押すか、物理の非常停止を使ってください
+STOP_ALL_NO_SERVER=接続中のサーバーがありません
+MENU_SHORTCUTS=キーボードショートカット(&K)
+TITLE_SHORTCUTS=キーボードショートカット
+MSG_SHORTCUTS=F11：全画面の切り替え\nF12：STOP - 接続中のすべてのサーバーのすべてのロボットを停止（全体緊急停止）

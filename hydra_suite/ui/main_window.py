@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QActionGroup, QIcon
+from PySide6.QtGui import QActionGroup, QIcon, QKeySequence, QShortcut
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QDockWidget,
@@ -32,7 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from hydra_suite import __version__
-from hydra_suite.app import SuiteController
+from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.ui.about_dialog import AboutDialog
 from hydra_suite.ui.nav_sidebar import NavSidebar
 from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
@@ -63,6 +63,13 @@ from hydra_suite.ui.panels.system_supervisor_panel import SystemSupervisorPanel
 from hydra_suite.ui.panels.trajectory_panel import TrajectoryPanel
 from hydra_suite.ui.panels.viewport_panel import ViewportPanel
 from hydra_suite.ui.panels.xy_table_panel import XYTablePanel
+
+# One documented key for the global STOP (listed in Help > Keyboard shortcuts and the README).
+# A bare function key: it is not typed into any field, it does not press a focused
+# button (unlike Space) and it does not close anything (unlike Esc).
+STOP_ALL_SHORTCUT = Qt.Key.Key_F12
+# How long a clean "everything stopped" message stays; anything else stays until the next STOP.
+STOP_ALL_CLEAN_MESSAGE_MS = 6000
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
 IMAGES_DIR = Path(__file__).resolve().parent.parent.parent / "images"
@@ -377,6 +384,30 @@ class MainWindow(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         deck.addWidget(spacer)
 
+        # The global STOP: always visible, on every panel, one click.
+        self._stop_status = QLabel(deck)
+        self._stop_status.setObjectName("commandDeckStopStatus")
+        self._stop_status.setWordWrap(False)
+        self._stop_status.setVisible(False)
+        deck.addWidget(self._stop_status)
+
+        self._stop_button = QToolButton(deck)
+        self._stop_button.setObjectName("commandDeckStop")
+        self._stop_button.setText(f"{_('STOP_ALL_LABEL')}\n{_('STOP_ALL_CAPTION')}")
+        self._stop_button.setToolTip(_("STOP_ALL_TOOLTIP"))
+        self._stop_button.setAccessibleName(_("STOP_ALL_TOOLTIP"))
+        self._stop_button.clicked.connect(self.controller.stop_all)
+        deck.addWidget(self._stop_button)
+        self.controller.stop_all_changed.connect(self._on_stop_all_changed)
+        self._stop_clean_timer = QTimer(self)
+        self._stop_clean_timer.setSingleShot(True)
+        self._stop_clean_timer.timeout.connect(lambda: self._stop_status.setVisible(False))
+        # Application-wide, so it works with any panel focused or floating.
+        self._stop_shortcut = QShortcut(QKeySequence(STOP_ALL_SHORTCUT), self)
+        self._stop_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._stop_shortcut.setAutoRepeat(False)
+        self._stop_shortcut.activated.connect(self.controller.stop_all)
+
         self._state_chip = QLabel(deck)
         self._state_chip.setObjectName("commandDeckState")
         deck.addWidget(self._state_chip)
@@ -403,6 +434,28 @@ class MainWindow(QMainWindow):
         self._clock_timer = QTimer(self)
         self._clock_timer.timeout.connect(self._update_command_deck_clock)
         self._clock_timer.start(1000)
+
+    def _on_stop_all_changed(self, summary: StopAllSummary) -> None:
+        """Shows what the global STOP did. A clean result hides itself; a
+        warning, a failed robot, an unsaved stop or a STOP that was not
+        confirmed stays (red) until a later STOP confirms."""
+        headline, details, severity = describe_stop_all(summary)
+        self._stop_clean_timer.stop()
+        self._stop_status.setText(headline)
+        self._stop_status.setToolTip("\n".join(details))
+        self._stop_status.setProperty("severity", severity)
+        self._stop_status.style().unpolish(self._stop_status)
+        self._stop_status.style().polish(self._stop_status)
+        self._stop_status.setVisible(True)
+        if details:
+            self._status.showMessage(f"{headline}  |  " + "  |  ".join(details), 15000)
+        else:
+            self._status.showMessage(headline, 8000)
+        if severity == "ok":
+            self._stop_clean_timer.start(STOP_ALL_CLEAN_MESSAGE_MS)
+
+    def _show_shortcuts(self) -> None:
+        QMessageBox.information(self, _("TITLE_SHORTCUTS"), _("MSG_SHORTCUTS"))
 
     def _activate_dock(self, key: str) -> None:
         dock = self._docks[key]
@@ -452,6 +505,8 @@ class MainWindow(QMainWindow):
             language_group.addAction(action)
 
         help_menu = menu.addMenu(_("MENU_HELP"))
+        shortcuts_action = help_menu.addAction(_("MENU_SHORTCUTS"))
+        shortcuts_action.triggered.connect(self._show_shortcuts)
         about_action = help_menu.addAction(_("MENU_ABOUT"))
         about_action.triggered.connect(self._show_about)
 

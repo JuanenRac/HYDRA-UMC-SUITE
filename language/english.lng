@@ -557,3 +557,21 @@ QT_SUITE_TAGLINE=SWARM COMMAND DECK
 QT_XY_TABLE_X_AXIS=X Axis
 QT_XY_TABLE_Y_AXIS=Y Axis
 QT_XY_TABLE_LABEL=Table
+
+# Global STOP
+STOP_ALL_LABEL=STOP
+STOP_ALL_CAPTION=Stop all
+STOP_ALL_TOOLTIP=STOP: stop every robot on every connected server now (F12)
+STOP_ALL_SENDING=Stopping every robot...
+STOP_ALL_DONE=STOP confirmed: {stopped} robots stopped
+STOP_ALL_INCOMPLETE=STOP INCOMPLETE: {stopped} stopped, {failed} did not stop
+STOP_ALL_NOT_SAVED={server}: the stopped state could not be saved on the server, it may not hold after a restart
+STOP_ALL_ONE_BY_ONE={server}: sent robot by robot (the server limited the global call)
+STOP_ALL_ROBOT_FAILED={server}: {name} did not stop: {error}
+STOP_ALL_ROBOT_RESERVED={server}: {name} is reserved by {user} (stopped anyway)
+STOP_ALL_SERVER_FAILED={server}: {reason}
+STOP_ALL_NOT_CONFIRMED=STOP NOT CONFIRMED: press STOP again or use the physical emergency stop
+STOP_ALL_NO_SERVER=No server is connected
+MENU_SHORTCUTS=&Keyboard shortcuts
+TITLE_SHORTCUTS=Keyboard shortcuts
+MSG_SHORTCUTS=F11: toggle fullscreen\nF12: STOP - stop every robot on every connected server (global emergency stop)

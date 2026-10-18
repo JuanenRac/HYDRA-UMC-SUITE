@@ -25,9 +25,9 @@ and a hand-built docking system in QML would be a second, much bigger real
 engineering project of its own (see e.g. KDDockWidgets existing as a whole
 separate library for exactly this reason).
 
-hydra_suite.app.SuiteController is reused completely unchanged here - it
-was already a plain QObject with Qt Signals, never tied to QtWidgets, so
-it needs zero changes to serve a QML front end too.
+hydra_suite.app.SuiteController is reused here as it is - it is a plain
+QObject with Qt Signals, never tied to QtWidgets, so it serves a QML front
+end too (the global STOP is one of its methods, called by both shells).
 
 REAL, HONEST STATUS (kept current in this repo's own CHANGELOG.md, the
 authoritative source - this docstring is not re-updated per panel to avoid
@@ -59,7 +59,7 @@ from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtQuickControls2 import QQuickStyle
 
 from hydra_suite import __version__, logging_handler
-from hydra_suite.app import SuiteController
+from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.can_ota import (
     GITHUB_FIRMWARE_REPO,
     CanOtaTarget,
@@ -391,6 +391,18 @@ class SuiteQtBridge(QObject):
         controller.active_state_changed.connect(self._on_overview_state_changed)
         controller.active_metrics_changed.connect(self._on_overview_metrics_changed)
         controller.active_status_changed.connect(self._on_connection_status)
+
+        # -- Global STOP (always visible in the header, F12): the same
+        # SuiteController.stop_all() the classic window calls, and the same
+        # describe_stop_all() text. A clean result hides itself; anything
+        # else stays until a later STOP confirms.
+        self._stop_all_text = ""
+        self._stop_all_detail = ""
+        self._stop_all_severity = ""
+        self._stop_all_clean_timer = QTimer(self)
+        self._stop_all_clean_timer.setSingleShot(True)
+        self._stop_all_clean_timer.timeout.connect(self._clear_stop_all_text)
+        controller.stop_all_changed.connect(self._on_stop_all_changed)
 
         # -- Servers (ported from server_browser.py's own ServerBrowserPanel -
         # STATUS_DISPLAY_KEYS is imported from there directly rather than
@@ -744,6 +756,40 @@ class SuiteQtBridge(QObject):
     def iconSource(self) -> str:
         svg = IMAGES_DIR / "HYDRA_UMC_ICON.svg"
         return QUrl.fromLocalFile(str(svg)).toString() if svg.is_file() else ""
+
+    @Slot()
+    def stopAll(self) -> None:
+        """The global STOP: every robot of every connected server."""
+        self._controller.stop_all()
+
+    @Property(str, notify=changed)
+    def stopAllText(self) -> str:
+        return self._stop_all_text
+
+    @Property(str, notify=changed)
+    def stopAllDetail(self) -> str:
+        return self._stop_all_detail
+
+    @Property(str, notify=changed)
+    def stopAllSeverity(self) -> str:
+        return self._stop_all_severity
+
+    @Slot(object)
+    def _on_stop_all_changed(self, summary: StopAllSummary) -> None:
+        headline, details, severity = describe_stop_all(summary)
+        self._stop_all_clean_timer.stop()
+        self._stop_all_text = headline
+        self._stop_all_detail = "\n".join(details)
+        self._stop_all_severity = severity
+        if severity == "ok":
+            self._stop_all_clean_timer.start(6000)
+        self.changed.emit()
+
+    def _clear_stop_all_text(self) -> None:
+        self._stop_all_text = ""
+        self._stop_all_detail = ""
+        self._stop_all_severity = ""
+        self.changed.emit()
 
     @Slot(str, result=str)
     def uiText(self, key: str) -> str:

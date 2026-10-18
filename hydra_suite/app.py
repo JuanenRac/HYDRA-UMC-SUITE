@@ -13,12 +13,73 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass, field
 from typing import Callable
 
 from PySide6.QtCore import QObject, Signal
 
 from hydra_suite.models import HydraState, RobotView, ServerInfo
-from hydra_suite.net.client import HydraConnection
+from hydra_suite.i18n import _
+from hydra_suite.net.client import HydraConnection, StopAllResult
+
+
+@dataclass
+class StopAllSummary:
+    """What the last global STOP did across every server of the swarm.
+
+    `state` is "sending" while the calls are on the wire, "done" when every
+    server confirmed, and "not_confirmed" when at least one server did not
+    (no answer, a refusal): that state stays on screen until a later STOP
+    confirms everywhere."""
+
+    state: str
+    results: dict[str, StopAllResult] = field(default_factory=dict)
+    reason: str = ""
+
+    @property
+    def stopped(self) -> int:
+        return sum(r.stopped_count for r in self.results.values() if r.confirmed)
+
+    @property
+    def failed(self) -> int:
+        return sum(r.failed_count for r in self.results.values() if r.confirmed)
+
+    @property
+    def is_clean(self) -> bool:
+        return self.state == "done" and all(r.is_clean for r in self.results.values())
+
+
+def describe_stop_all(summary: StopAllSummary) -> tuple[str, list[str], str]:
+    """(headline, detail lines, severity) of a STOP summary, in the user's
+    language. Severity is "busy", "ok", "warn" or "error" so each shell can
+    pick its own colour; anything but "ok" must stay prominent."""
+    if summary.state == "sending":
+        return _("STOP_ALL_SENDING"), [], "busy"
+    details: list[str] = []
+    for conn_id, result in summary.results.items():
+        if not result.confirmed:
+            details.append(_("STOP_ALL_SERVER_FAILED", server=conn_id, reason=result.reason or "-"))
+            continue
+        if not result.persisted:
+            details.append(_("STOP_ALL_NOT_SAVED", server=conn_id))
+        if result.via_fallback:
+            details.append(_("STOP_ALL_ONE_BY_ONE", server=conn_id))
+        for robot in result.failed_robots:
+            details.append(
+                _("STOP_ALL_ROBOT_FAILED", server=conn_id, name=robot.name or f"#{robot.robot_id}", error=robot.error or "-")
+            )
+        for robot in result.robots:
+            if robot.reserved_by:
+                details.append(
+                    _("STOP_ALL_ROBOT_RESERVED", server=conn_id, name=robot.name or f"#{robot.robot_id}", user=robot.reserved_by)
+                )
+    if summary.state == "not_confirmed":
+        if summary.reason:
+            details.insert(0, summary.reason)
+        return _("STOP_ALL_NOT_CONFIRMED"), details, "error"
+    if summary.is_clean:
+        return _("STOP_ALL_DONE", stopped=summary.stopped), details, "ok"
+    return _("STOP_ALL_INCOMPLETE", stopped=summary.stopped, failed=summary.failed), details, "error"
 
 
 class SuiteController(QObject):
@@ -46,11 +107,15 @@ class SuiteController(QObject):
     # the active one, for the same reason: a background server in the
     # swarm failing to write is just as real as the active one failing.
     connection_error = Signal(str, str)                # (conn_id, message)
+    # The global STOP: emitted with a StopAllSummary when it starts (state
+    # "sending") and again when every server has answered or given up.
+    stop_all_changed = Signal(object)
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self.connections: dict[str, HydraConnection] = {}
         self._active_id: str = ""
+        self.stop_all_summary: StopAllSummary | None = None
 
     # --- connection management --------------------------------------------
 
@@ -141,6 +206,34 @@ class SuiteController(QObject):
         conn = self.active_connection
         if conn is not None:
             asyncio.ensure_future(conn.send_command(robot_id, command, params, local_mutate, debounce_ms))
+
+    # --- global STOP ----------------------------------------------------------
+
+    def stop_all(self) -> None:
+        """The global STOP: stops every robot on every server of the swarm,
+        whichever is active, at once (nothing is awaited first). The result
+        is published through `stop_all_changed`."""
+        asyncio.ensure_future(self._stop_all())
+
+    async def _stop_all(self) -> None:
+        connections = dict(self.connections)
+        if not connections:
+            self._publish_stop_all(StopAllSummary("not_confirmed", reason=_("STOP_ALL_NO_SERVER")))
+            return
+        self._publish_stop_all(StopAllSummary("sending"))
+        outcomes = await asyncio.gather(*(c.stop_all() for c in connections.values()), return_exceptions=True)
+        results: dict[str, StopAllResult] = {}
+        for conn_id, outcome in zip(connections, outcomes):
+            if isinstance(outcome, StopAllResult):
+                results[conn_id] = outcome
+            else:  # an unexpected failure is still "not confirmed", never a silent success
+                results[conn_id] = StopAllResult.not_confirmed(str(outcome) or outcome.__class__.__name__)
+        state = "done" if all(r.confirmed for r in results.values()) else "not_confirmed"
+        self._publish_stop_all(StopAllSummary(state, results))
+
+    def _publish_stop_all(self, summary: StopAllSummary) -> None:
+        self.stop_all_summary = summary
+        self.stop_all_changed.emit(summary)
 
     async def shutdown(self) -> None:
         for conn in list(self.connections.values()):
