@@ -36,7 +36,9 @@ if errorlevel 1 (
 )
 
 echo [2/2] Compiling the installer (windows_installer.iss)...
-for /f "usebackq delims=" %%V in (`python -c "import re,pathlib;print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', pathlib.Path(r'%~dp0..\hydra_suite\__init__.py').read_text(encoding='utf-8')).group(1))"`) do set APP_VERSION=%%V
+for /f "tokens=2 delims==" %%V in ('findstr /b "__version__" "%~dp0..\hydra_suite\__init__.py"') do set APP_VERSION=%%~V
+set APP_VERSION=%APP_VERSION: =%
+set APP_VERSION=%APP_VERSION:"=%
 iscc.exe /DMyAppVersion=%APP_VERSION% windows_installer.iss
 if errorlevel 1 (
     echo ERROR: iscc.exe failed - see its own output above.
