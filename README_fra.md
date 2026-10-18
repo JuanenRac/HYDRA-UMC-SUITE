@@ -29,6 +29,16 @@
 
 ---
 
+## 📋 En un coup d'œil
+
+| | |
+|---|---|
+| Version | `0.6.7` |
+| Maturité | Établi |
+| Technologie | Python 3.12 / PySide6 |
+| Cible | Le PC de la personne qui l'utilise |
+| Sur matériel réel | Pas encore : aucune exécution sur du matériel réel n'est consignée pour cette version |
+
 ## 🎯 Vue d'ensemble
 
 **HYDRA-UMC SUITE** est une application de bureau native Windows/Linux
