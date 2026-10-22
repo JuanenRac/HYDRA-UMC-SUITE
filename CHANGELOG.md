@@ -308,8 +308,6 @@ clicking through the app by hand).
   `tests/verify_send_command_debounce.py` with real regression coverage
   for both (each confirmed to fail without its own fix, and pass with it).
 
-### Tooling - build-test.sh/.bat never activated .venv
-
 Live report: running the documented `build-test.bat` produced a wall of
 `ModuleNotFoundError` (numpy/PySide6/httpx/qasync) across all 27 offline
 verifiers, looking exactly like the project was broken. Root cause:
@@ -1321,23 +1319,6 @@ Builds `0.1.1` and `0.1.2` were bumped automatically by `bump_version.py`
 on routine packaged builds; no additional behavior change is on record for
 either beyond what's already listed under [0.1.0] below.
 
-## Historical versioning notes
-
-- Added `bump_version.py` and wired it into `build_exe.bat` (step 3/6) and
-  `build_exe.sh` (step 4/7), so `hydra_suite/__version__` is bumped
-  automatically before every real packaged build, following the base-10
-  odometer/carry rule described above.
-- The Help > About dialog (`hydra_suite/ui/main_window.py`'s
-  `_show_about()`) now shows the real running `__version__` instead of a
-  static, version-less message, in all 5 languages.
-- Added this CHANGELOG.md; README.md (and its 4 translations) now mention
-  the versioning scheme.
-- `build_exe.bat`/`build_exe.sh` now print a real startup banner (project
-  name, what the script does, author/copyright/license) and no longer
-  close their window on their own - a `pause` (Windows) / an `EXIT` trap
-  reading input (Linux) keeps the window open on both success and failure
-  so the full output, including any error, stays readable.
-
 ## [0.1.0]
 
 Everything below happened while the version was still fixed at the initial
@@ -1420,7 +1401,9 @@ rather than by version:
   in `discover_servers()`), verified end-to-end against a real published
   `_hydra._tcp` service.
 
-## License
+## Earlier history
+
+### License
 
 This file is documentation and, like README.md and its translations, is
 available under CC BY-SA 4.0 (see README.md's "License and Copyright
