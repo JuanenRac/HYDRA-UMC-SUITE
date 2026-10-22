@@ -1244,8 +1244,8 @@ class HydraConnection(QObject):
         if self._ws is not None:
             try:
                 await self._ws.close()
-            except (websockets.WebSocketException, OSError):
-                pass
+            except Exception as error:  # a socket that is already gone must not block the rest of the cleanup
+                logger.info("HydraConnection %s: closing the socket failed (%s)", self.info.host, error)
         if self._recv_task is not None:
             self._recv_task.cancel()
         if self._metrics_task is not None:

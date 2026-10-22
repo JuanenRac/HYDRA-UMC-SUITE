@@ -55,6 +55,27 @@ def _stat_box(label_text: str) -> tuple[QWidget, QLabel]:
     return box, value
 
 
+def _number(value) -> float | None:
+    """A finite number, or None for null, text, booleans, NaN and infinity."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    return number if number == number and number not in (float("inf"), float("-inf")) else None
+
+
+def clean_points(points, time_key: str) -> list[tuple[float, float]]:
+    """(time, value) pairs of the entries that carry both as numbers; a null
+    value, a missing time or an entry that is not an object is left out."""
+    pairs = []
+    for point in points if isinstance(points, list) else []:
+        if not isinstance(point, dict):
+            continue
+        when, value = _number(point.get(time_key)), _number(point.get("value"))
+        if when is not None and value is not None:
+            pairs.append((when, value))
+    return pairs
+
+
 class EcosystemTelemetryPanel(QWidget):
     def __init__(self, controller: SuiteController, parent: QWidget | None = None):
         super().__init__(parent)
@@ -169,8 +190,9 @@ class EcosystemTelemetryPanel(QWidget):
         self._render_empty_chart()
         series = QLineSeries()
         series.setPen(QPen(_SKY, 2))
-        for p in points:
-            series.append(float(p.get("timestamp", 0)), float(p.get("value", 0)))
+        points = clean_points(points, "timestamp")
+        for when, value in points:
+            series.append(when, value)
         self._chart.addSeries(series)
 
         axis_x = QDateTimeAxis()
@@ -178,8 +200,8 @@ class EcosystemTelemetryPanel(QWidget):
         axis_x.setLabelsColor(QColor("#64748b"))
         axis_x.setGridLineColor(QColor("#1e293b"))
         if points:
-            axis_x.setMin(QDateTime.fromMSecsSinceEpoch(int(points[0]["timestamp"])))
-            axis_x.setMax(QDateTime.fromMSecsSinceEpoch(int(points[-1]["timestamp"])))
+            axis_x.setMin(QDateTime.fromMSecsSinceEpoch(int(points[0][0])))
+            axis_x.setMax(QDateTime.fromMSecsSinceEpoch(int(points[-1][0])))
         self._chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
         series.attachAxis(axis_x)
 
@@ -194,9 +216,9 @@ class EcosystemTelemetryPanel(QWidget):
         bar_set = QBarSet("")
         bar_set.setColor(_SKY)
         categories = []
-        for b in buckets:
-            bar_set.append(float(b.get("value", 0)))
-            categories.append(QDateTime.fromMSecsSinceEpoch(int(b.get("bucketStart", 0))).toString("HH:mm"))
+        for start, value in clean_points(buckets, "bucketStart"):
+            bar_set.append(value)
+            categories.append(QDateTime.fromMSecsSinceEpoch(int(start)).toString("HH:mm"))
         series = QBarSeries()
         series.append(bar_set)
         self._chart.addSeries(series)
@@ -275,7 +297,7 @@ class EcosystemTelemetryPanel(QWidget):
         self._status_label.setText("" if body else _("MSG_TELEMETRY_NO_DATA"))
         if is_aggregate:
             self._render_bar_chart(body)
-            self._update_stats([float(b.get("value", 0)) for b in body])
+            self._update_stats([value for _when, value in clean_points(body, "bucketStart")])
         else:
             self._render_line_chart(body)
-            self._update_stats([float(p.get("value", 0)) for p in body])
+            self._update_stats([value for _when, value in clean_points(body, "timestamp")])

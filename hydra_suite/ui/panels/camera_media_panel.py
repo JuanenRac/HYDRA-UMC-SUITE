@@ -154,6 +154,11 @@ class CameraMediaPanel(QWidget):
 
         self._rebuild_filter_row()
         asyncio.ensure_future(self._load_media())
+        # The list belongs to one server: reload it when another one becomes
+        # active and when a login completes (the panel is built before any
+        # server is connected, so its first load can find nothing to ask).
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._load_media()))
+        controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._load_media()))
 
     # --- data loading -----------------------------------------------------
 
@@ -165,6 +170,8 @@ class CameraMediaPanel(QWidget):
         if conn is None:
             return
         result = await conn.list_camera_media()
+        if conn is not self._get_connection():
+            return  # the active server changed while waiting: that answer belongs to another one
         if result is None:
             self._show_error(_("CAMERA_MEDIA_LOAD_FAILED"))
             return

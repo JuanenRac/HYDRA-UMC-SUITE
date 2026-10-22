@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -21,6 +22,24 @@ from PySide6.QtCore import QObject, Signal
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 from hydra_suite.i18n import _
 from hydra_suite.net.client import HydraConnection, StopAllResult
+
+logger = logging.getLogger(__name__)
+
+
+def spawn(coro) -> "asyncio.Future":
+    """Schedules a coroutine and logs whatever it raises, so a failed
+    background task never ends as "Task exception was never retrieved"."""
+    task = asyncio.ensure_future(coro)
+
+    def _report(done: "asyncio.Future") -> None:
+        if done.cancelled():
+            return
+        error = done.exception()
+        if error is not None:
+            logger.warning("background task failed: %s", error)
+
+    task.add_done_callback(_report)
+    return task
 
 
 @dataclass
@@ -130,7 +149,7 @@ class SuiteController(QObject):
         conn.login_changed.connect(lambda ok, detail, cid=conn_id: self.connection_login_changed.emit(cid, ok, detail))
         conn.error.connect(lambda message, cid=conn_id: self.connection_error.emit(cid, message))
         self.connections[conn_id] = conn
-        asyncio.ensure_future(conn.connect())
+        spawn(conn.connect())
         self.connections_changed.emit()
         if not self._active_id:
             self.set_active(conn_id)
@@ -140,7 +159,7 @@ class SuiteController(QObject):
         conn = self.connections.pop(conn_id, None)
         if conn is None:
             return
-        asyncio.ensure_future(conn.disconnect())
+        spawn(conn.disconnect())
         self.connections_changed.emit()
         if self._active_id == conn_id:
             remaining = next(iter(self.connections), "")
@@ -237,4 +256,7 @@ class SuiteController(QObject):
 
     async def shutdown(self) -> None:
         for conn in list(self.connections.values()):
-            await conn.disconnect()
+            try:
+                await conn.disconnect()
+            except Exception as error:  # one stuck server must not keep the others open
+                logger.warning("closing %s failed: %s", conn.info.host, error)

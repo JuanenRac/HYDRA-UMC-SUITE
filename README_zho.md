@@ -72,7 +72,7 @@ python main.py --qtquick
 
 ## 🏭 功能特性
 
-- **🔍 网络发现** —— 并发子网扫描(`GET /api/hydra-info`)与真实的 mDNS/Bonjour(`_hydra._tcp`,与 `server.ts` 发布、HYDRA-UMC-IOS-CONTROL 已经查询的服务相同)共同运行,针对真实的 HYDRA-UMC STUDIO 服务器进行发现,并按 host:port 去重;外加针对两者都无法到达的任何目标(不同子网、VPN 隧道)的手动按地址添加。
+- **🔍 网络发现** —— 并发子网扫描(`GET /api/hydra-info`)与真实的 mDNS/Bonjour(`_hydra._tcp`,与 `server.ts` 发布、HYDRA-UMC-IOS-CONTROL 已经查询的服务相同)共同运行,针对真实的 HYDRA-UMC SERVER 服务器进行发现,并按 host:port 去重;外加针对两者都无法到达的任何目标(不同子网、VPN 隧道)的手动按地址添加。
 - **🐝 集群连接** —— 可同时连接任意数量的 HYDRA-UMC 服务器，每一个都拥有自己独立的实时 WebSocket 同步；可选择哪一个是其他面板的“活动”对象。
 - **📊 概览** —— 逐控制器的机器人名册：型号、角色、在线状态、速度/加速度，一目了然。
 - **🦾 机器人控制** —— 每个关节的旋钮 + 滑块（HYDRA-UMC STUDIO 自身 `RotaryKnob`+`FuturisticSlider` 点动组合的桌面版对应物）、速度/加速度滑块，全部实时写回。
@@ -139,14 +139,14 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
-├── main.py                        # 入口点 - 最小 1280x720 全屏，F11 切换全屏/窗口；--qtquick 切换到下方面板
+├── main.py                        # 入口点 - 以最大化窗口启动，最小 1280x720，F11 切换全屏/窗口；--qtquick 切换到下方面板
 ├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
 ├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行
 ├── requirements.txt
 ├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
 ├── bump_version.py                # 为 hydra_suite/__init__.py 自身的 __version__ 做里程表式版本递增，在每次真实的 PyInstaller 构建前由 build_exe.bat/.sh 运行
 ├── bump_manifest_version.py       # 将 hydra-umc.project.json 的版本与原生版本同步（通用，在整个生态系统中原样复制）
-├── build-test.bat / build-test.sh # venv + 可编辑安装 + 真实测试套件，不产生变更 - 从不递增版本，也不改动 CHANGELOG.md
+├── build-test.bat / build-test.sh # 激活 .venv 并运行 tools/build_test.py（真实测试套件），不产生变更 - 从不递增版本，也不改动 CHANGELOG.md
 ├── run.bat / run.sh               # 通过 venv 启动 main.py
 ├── HYDRA-UMC_SUITE.spec           # PyInstaller 规格文件（见下方 build_exe.bat/.sh）
 ├── build_exe.bat                  # 一步式 Windows 构建 -> dist/HYDRA-UMC_SUITE.exe
@@ -198,7 +198,7 @@ HYDRA-UMC-SUITE/
 ## 🚀 快速开始
 
 ### 系统要求
-- Python 3.12+（开发/测试基于 3.14）
+- Python 3.12+（CI 使用 3.12；本地也在 3.14 上运行）
 - 一台正在运行的 [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) 服务器供连接
 
 ### 安装
@@ -217,7 +217,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-以最小 1280x720 全屏启动（依照本应用自身的设计规范）——随时按 **F11** 在全屏和普通最大化窗口之间切换，因此它绝不会真的把你困住而没有退出方式。使用 **Servers** 面板扫描你的网络，或按地址添加一台 HYDRA-UMC STUDIO 服务器。
+以最小 1280x720 的最大化窗口启动（依照本应用自身的设计规范）——随时按 **F11** 在全屏和普通最大化窗口之间切换，因此它绝不会真的把你困住而没有退出方式。使用 **Servers** 面板扫描你的网络，或按地址添加一台 HYDRA-UMC SERVER 服务器。
 
 随时按 **F12** 发送全局 STOP（顶部栏中的 **STOP** 按钮作用相同）。
 

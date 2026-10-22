@@ -12,6 +12,13 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
+- Closing the window now waits (up to 3 s) for every server connection to be closed before the window goes away; a socket that fails to close, or a server that is stuck, no longer keeps the others open or leaves "Task exception was never retrieved" in the log.
+- Connecting to or leaving a server runs as a logged background task: a failure is written to the log instead of being lost.
+- The camera media list reloads when the active server changes or a login completes (the panel is built before any server is connected, so it used to stay empty), and an answer from a server that is no longer the active one is discarded.
+- The heated bed and vacuum table catalogs fall back to one built-in model when `catalog.json` is missing, damaged or has no usable model, instead of stopping the program at start.
+- The telemetry chart leaves out points whose value or time is null, text, NaN or missing instead of raising, and the statistics use only those points.
+- Documentation: the READMEs now say the window starts maximized (F11 toggles fullscreen), that the CI runs Python 3.12, what `build-test` really does, and that the servers are HYDRA-UMC SERVER; the build script comments list every Qt module the program uses.
+- New verifiers `tests/verify_shutdown_and_media_reload.py` and `tests/verify_tolerant_assets_and_telemetry.py`.
 - The banner follows the animated style of the ecosystem banners, with the name, the kind and the technologies of the project.
 - Added `tools/hydra_project_tool.py`: the same `validate`, `test`, `version`, `status` and `bump` commands in every repository. The checks run with `HYDRA_UMC_CI=1` and fail if the version changes; only `bump` changes it.
 - The live connection no longer falls back to `/ws?token=`: the token travels only as the `hydra.bearer` subprotocol, which every server since the subprotocol was added answers and which the server now requires (it refuses the address form by default). A server that does not answer it is reported as a failed connection instead of being handed the token in the address. `ServerInfo.ws_url()` no longer takes a token.

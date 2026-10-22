@@ -96,7 +96,7 @@ A genuine QML `ApplicationWindow` - not embedded in the classic window at all, u
 - **🔍 Network discovery** - a concurrent subnet scan (`GET /api/hydra-info`)
   and real mDNS/Bonjour (`_hydra._tcp`, the same service `server.ts`
   publishes and HYDRA-UMC-IOS-CONTROL already queries) run together for
-  real HYDRA-UMC STUDIO servers, deduplicated by host:port, plus manual
+  real HYDRA-UMC SERVER instances, deduplicated by host:port, plus manual
   add-by-address for anything neither can reach (a different subnet, a
   VPN tunnel, multicast blocked by the network).
 - **🐝 Swarm connections** - connect to as many HYDRA-UMC servers
@@ -205,14 +205,14 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
-├── main.py                        # Entry point - fullscreen 1280x720 min, F11 toggles fullscreen/windowed; --qtquick switches to the deck below
+├── main.py                        # Entry point - starts maximized, 1280x720 min, F11 toggles fullscreen/windowed; --qtquick switches to the deck below
 ├── qt_suite.py                     # Qt Quick front end - standalone `--qtquick` command deck (all 26 panels), bridges the unchanged SuiteController to QML
 ├── verify_qt_suite_shell.py        # Real, hardware/network-free Qt Quick shell check - deliberately kept outside tests/ (same reason as URTC-TESTER/URTC-FLASHER's own verify_qt_*.py), run with `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Ecosystem manifest - version/family/parent, the source dashboard/updater/OS-REBUILDER read
 ├── bump_version.py                # Odometer version bump for hydra_suite/__init__.py's own __version__, run by build_exe.bat/.sh before every real PyInstaller build
 ├── bump_manifest_version.py       # Syncs hydra-umc.project.json's version to the native one (generic, copied verbatim across the ecosystem)
-├── build-test.bat / build-test.sh # venv + editable install + real test suite, non-mutating - never bumps the version or touches CHANGELOG.md
+├── build-test.bat / build-test.sh # activates .venv and runs tools/build_test.py (the real test suite), non-mutating - never bumps the version or touches CHANGELOG.md
 ├── run.bat / run.sh               # Launches main.py through the venv
 ├── HYDRA-UMC_SUITE.spec           # PyInstaller spec (see build_exe.bat/.sh below)
 ├── build_exe.bat                  # One-shot Windows build -> dist/HYDRA-UMC_SUITE.exe
@@ -264,7 +264,7 @@ HYDRA-UMC-SUITE/
 ## 🚀 Getting Started
 
 ### Requirements
-- Python 3.12+ (developed/tested against 3.14)
+- Python 3.12+ (the CI runs 3.12; also run locally on 3.14)
 - A running [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) server to connect to
 
 ### Installation
@@ -283,11 +283,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Starts fullscreen at a 1280x720 minimum (per this app's own design spec)
-- press **F11** to toggle between fullscreen and a normal maximized
+Starts maximized at a 1280x720 minimum (per this app's own design spec)
+- press **F11** to toggle between fullscreen and the maximized
 window at any time, so it never actually traps you without an escape
 hatch. Use the **Servers** panel to scan your network or add a HYDRA-UMC
-STUDIO server by address.
+SERVER by address.
 
 Press **F12** at any time to send the global STOP (the **STOP** button in the top bar does the same).
 

@@ -127,7 +127,7 @@ através de um `QQuickImageProvider`.
 - **🔍 Descoberta de rede** - uma análise concorrente de sub-redes
   (`GET /api/hydra-info`) e mDNS/Bonjour real (`_hydra._tcp`, o mesmo serviço
   que o `server.ts` publica e que o HYDRA-UMC-IOS-CONTROL já consulta) correm
-  em conjunto à procura de servidores HYDRA-UMC STUDIO reais, desduplicados por
+  em conjunto à procura de servidores HYDRA-UMC SERVER reais, desduplicados por
   anfitrião:porta, mais a adição manual por endereço para tudo o que nenhum dos
   dois alcança (uma sub-rede diferente, um túnel VPN, multicast bloqueado pela
   rede).
@@ -242,14 +242,14 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
-├── main.py                        # Ponto de entrada - ecrã inteiro 1280x720 mínimo, F11 alterna ecrã inteiro/janela; --qtquick muda para o painel abaixo
+├── main.py                        # Ponto de entrada - arranca maximizada, 1280x720 mínimo, F11 alterna ecrã inteiro/janela; --qtquick muda para o painel abaixo
 ├── qt_suite.py                     # Front end Qt Quick - painel de comando `--qtquick` autónomo (todos os 26 painéis), liga o SuiteController inalterado ao QML
 ├── verify_qt_suite_shell.py        # Verificação real do shell Qt Quick, sem hardware nem rede - deliberadamente fora de tests/ (pela mesma razão dos verify_qt_*.py do URTC-TESTER/URTC-FLASHER), execute com `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Manifesto do ecossistema - versão/família/pai, a fonte que o painel/atualizador/OS-REBUILDER leem
 ├── bump_version.py                # Subida de versão em odómetro do __version__ do hydra_suite/__init__.py, executada pelo build_exe.bat/.sh antes de cada compilação real do PyInstaller
 ├── bump_manifest_version.py       # Sincroniza a versão do hydra-umc.project.json com a nativa (genérico, copiado tal como está por todo o ecossistema)
-├── build-test.bat / build-test.sh # venv + instalação editável + suíte de testes real, sem alterações - nunca sobe a versão nem toca no CHANGELOG.md
+├── build-test.bat / build-test.sh # ativa o .venv e executa tools/build_test.py (a suíte de testes real), sem alterações - nunca sobe a versão nem toca no CHANGELOG.md
 ├── run.bat / run.sh               # Lança o main.py através do venv
 ├── HYDRA-UMC_SUITE.spec           # Especificação do PyInstaller (ver build_exe.bat/.sh abaixo)
 ├── build_exe.bat                  # Compilação num só passo para Windows -> dist/HYDRA-UMC_SUITE.exe
@@ -301,7 +301,7 @@ HYDRA-UMC-SUITE/
 ## 🚀 Primeiros passos
 
 ### Requisitos
-- Python 3.12+ (desenvolvido/testado com 3.14)
+- Python 3.12+ (o CI usa 3.12; também testado localmente com 3.14)
 - Um servidor [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) em execução a que se ligar
 
 ### Instalação
@@ -320,11 +320,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Arranca em ecrã inteiro com um mínimo de 1280x720 (segundo a especificação de
+Arranca maximizada com um mínimo de 1280x720 (segundo a especificação de
 desenho desta própria aplicação) - carregue em **F11** para alternar a qualquer
 momento entre ecrã inteiro e uma janela maximizada normal, para que nunca o
 prenda sem uma saída de emergência. Use o painel **Servidores** para analisar a
-rede ou acrescentar um servidor HYDRA-UMC STUDIO por endereço.
+rede ou acrescentar um servidor HYDRA-UMC SERVER por endereço.
 
 Carregue em **F12** a qualquer momento para enviar o STOP global (o botão **STOP** da barra superior faz o mesmo).
 

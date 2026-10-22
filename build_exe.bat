@@ -120,7 +120,7 @@ REM plugins are native Qt plugins loaded dynamically, not importable
 REM Python modules it can trace), which produced a ~270MB .exe - it
 REM copies the ENTIRE PySide6 package (Qt6WebEngineCore.dll ALONE is
 REM ~196MB, plus qml/, translations/, opengl32sw.dll, none of which this
-REM app imports - only QtCore/QtGui/QtWidgets/QtOpenGL/QtOpenGLWidgets
+REM app imports - only QtCore/QtGui/QtWidgets/QtOpenGL/QtOpenGLWidgets/QtCharts/QtSvg/QtQml/QtQuick/QtQuickControls2
 REM are actually used). --exclude-module does NOT fix this - it only
 REM prunes PyInstaller's own Python IMPORT graph, not collect-all's own
 REM raw data-file copy, which still runs regardless (confirmed by
@@ -130,7 +130,7 @@ REM drop collect-all entirely and manually stage only the 4 plugin
 REM subfolders this app's own runtime hook actually needs
 REM (platforms/styles/imageformats/iconengines, ~4.5MB total) via
 REM --add-data, letting PyInstaller's normal binary-dependency scan find
-REM the real Qt6Core/Gui/Widgets/OpenGL DLLs on its own (it can, since
+REM the real Qt6 Core/Gui/Widgets/OpenGL and the other Qt DLLs on its own (it can, since
 REM those ARE real imported Python extension modules) - verified this
 REM produces a working .exe (launches, GL viewport renders) at ~89MB,
 REM roughly a two-thirds reduction.

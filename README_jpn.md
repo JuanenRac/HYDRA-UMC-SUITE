@@ -72,7 +72,7 @@ python main.py --qtquick
 
 ## 🏭 機能
 
-- **🔍 ネットワークディスカバリー** —— 並行サブネットスキャン(`GET /api/hydra-info`)と実際のmDNS/Bonjour(`_hydra._tcp`。`server.ts` が公開し、HYDRA-UMC-IOS-CONTROL がすでに問い合わせているのと同じサービス)が共に実行され、実際の HYDRA-UMC STUDIO サーバーを host:port で重複排除しながら検出する。加えて、どちらも到達できないもの(異なるサブネット、VPN トンネル)向けの手動アドレス追加。
+- **🔍 ネットワークディスカバリー** —— 並行サブネットスキャン(`GET /api/hydra-info`)と実際のmDNS/Bonjour(`_hydra._tcp`。`server.ts` が公開し、HYDRA-UMC-IOS-CONTROL がすでに問い合わせているのと同じサービス)が共に実行され、実際の HYDRA-UMC SERVER サーバーを host:port で重複排除しながら検出する。加えて、どちらも到達できないもの(異なるサブネット、VPN トンネル)向けの手動アドレス追加。
 - **🐝 群接続** —— 好きなだけ多くの HYDRA-UMC サーバーへ同時に接続でき、それぞれが自身のリアルタイム WebSocket 同期を持ちます。他のパネルにとってどれを「アクティブ」にするか選択できます。
 - **📊 概要** —— コントローラーごとのロボット一覧：型式、役割、オンライン状態、速度/加速度を一目で確認できます。
 - **🦾 ロボット制御** —— 各関節ごとのロータリーノブ＋スライダー（HYDRA-UMC STUDIO 自身の `RotaryKnob`+`FuturisticSlider` ジョグペアのデスクトップ版対応物）、速度/加速度スライダー、すべてリアルタイムで書き戻されます。
@@ -139,14 +139,14 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
-├── main.py                        # エントリーポイント - 最小1280x720のフルスクリーン、F11でフルスクリーン/ウィンドウ表示を切替。--qtquickで下記のデッキに切り替え
+├── main.py                        # エントリーポイント - 最大化で起動、最小1280x720、F11でフルスクリーン/ウィンドウ表示を切替。--qtquickで下記のデッキに切り替え
 ├── qt_suite.py                     # Qt Quick フロントエンド —— 独立した `--qtquick` コマンドデッキ(全26パネル)、変更を加えていないSuiteControllerをQMLに接続
 ├── verify_qt_suite_shell.py        # ハードウェア/ネットワーク不要の本物のQt Quickシェルチェック —— tests/ の外に意図的に配置(URTC-TESTER/URTC-FLASHER自身のverify_qt_*.pyと同じ理由)、`QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` で実行
 ├── requirements.txt
 ├── hydra-umc.project.json         # エコシステムマニフェスト - バージョン/ファミリー/親、dashboard/updater/OS-REBUILDERが読み取る実際の情報源
 ├── bump_version.py                # hydra_suite/__init__.py自身の__version__に対するオドメーター式バージョン増分、実際のPyInstallerビルドの前にbuild_exe.bat/.shが実行する
 ├── bump_manifest_version.py       # hydra-umc.project.jsonのバージョンをネイティブのものと同期（汎用、エコシステム全体でそのままコピーされる）
-├── build-test.bat / build-test.sh # venv + 編集可能インストール + 実際のテストスイート、変更を伴わない - バージョンを増分せず、CHANGELOG.mdにも触れない
+├── build-test.bat / build-test.sh # .venv を有効化して tools/build_test.py（実際のテストスイート）を実行、変更を伴わない - バージョンを増分せず、CHANGELOG.mdにも触れない
 ├── run.bat / run.sh               # venv経由でmain.pyを起動
 ├── HYDRA-UMC_SUITE.spec           # PyInstallerスペック（下記build_exe.bat/.sh参照）
 ├── build_exe.bat                  # ワンショットのWindowsビルド -> dist/HYDRA-UMC_SUITE.exe
@@ -198,7 +198,7 @@ HYDRA-UMC-SUITE/
 ## 🚀 はじめに
 
 ### 必要環境
-- Python 3.12 以上（3.14 で開発/テスト済み）
+- Python 3.12 以上（CI は 3.12 を使用、ローカルでは 3.14 でも実行）
 - 接続先となる、稼働中の [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) サーバー
 
 ### インストール
@@ -217,7 +217,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-最小 1280x720 のフルスクリーンで起動します（本アプリ自身の設計仕様に基づく）——いつでも **F11** を押すことでフルスクリーンと通常の最大化ウィンドウを切り替えられるため、逃げ道なくトラップされることは決してありません。**Servers** パネルを使ってネットワークをスキャンするか、アドレスを指定して HYDRA-UMC STUDIO サーバーを追加してください。
+最小 1280x720 の最大化ウィンドウで起動します（本アプリ自身の設計仕様に基づく）——いつでも **F11** を押すことでフルスクリーンと通常の最大化ウィンドウを切り替えられるため、逃げ道なくトラップされることは決してありません。**Servers** パネルを使ってネットワークをスキャンするか、アドレスを指定して HYDRA-UMC SERVER サーバーを追加してください。
 
 いつでも **F12** を押すとグローバル STOP を送信します（上部バーの **STOP** ボタンも同じです）。
 

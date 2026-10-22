@@ -9,7 +9,23 @@ import json
 from pathlib import Path
 
 CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "vacuum-tables" / "default"
-VACUUM_TABLE_MODELS = json.loads((CATALOG_DIR / "catalog.json").read_text(encoding="utf-8"))["models"]
+_FALLBACK_MODEL = {"id": "160x120x15", "label": "160 x 120 x 15 mm", "width": 160, "length": 120, "totalHeight": 15, "file": ""}
+
+
+def _load_models(directory=CATALOG_DIR) -> list:
+    """The catalog models, or a one-model fallback when the file is missing,
+    unreadable or malformed: a damaged asset must not stop the program from starting."""
+    try:
+        data = json.loads((Path(directory) / "catalog.json").read_text(encoding="utf-8"))
+        models = [m for m in data["models"] if isinstance(m, dict) and "id" in m and "width" in m and "length" in m]
+        if models:
+            return models
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return [dict(_FALLBACK_MODEL)]
+
+
+VACUUM_TABLE_MODELS = _load_models()
 
 
 def vacuum_table_model(model_id=None) -> dict:

@@ -558,6 +558,25 @@ class MainWindow(QMainWindow):
         else:
             QMessageBox.critical(self, _("TITLE_COULDNT_SAVE"), _("MSG_LANGUAGE_NOT_SAVED", path=str(CONFIG_FILE_PATH)))
 
+    _SHUTDOWN_TIMEOUT_S = 3.0
+
     def closeEvent(self, event) -> None:
-        asyncio.ensure_future(self.controller.shutdown())
-        super().closeEvent(event)
+        # The sockets are closed before the window goes away: the first close
+        # request is held back, the connections are closed (bounded wait) and
+        # the window is closed again.
+        if getattr(self, "_shutdown_done", False):
+            super().closeEvent(event)
+            return
+        event.ignore()
+        if getattr(self, "_shutdown_started", False):
+            return
+        self._shutdown_started = True
+        asyncio.ensure_future(self._shutdown_then_close())
+
+    async def _shutdown_then_close(self) -> None:
+        try:
+            await asyncio.wait_for(self.controller.shutdown(), self._SHUTDOWN_TIMEOUT_S)
+        except Exception:  # timeout or a failing server: closing the window still has to happen
+            pass
+        self._shutdown_done = True
+        self.close()

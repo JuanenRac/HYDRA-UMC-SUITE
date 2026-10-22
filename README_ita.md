@@ -97,7 +97,7 @@ Una vera `ApplicationWindow` QML - per nulla incorporata nella finestra classica
 
 ## 🏭 Funzionalità
 
-- **🔍 Scoperta di rete** - una scansione concorrente della sottorete (`GET /api/hydra-info`) e il vero mDNS/Bonjour (`_hydra._tcp`, lo stesso servizio pubblicato da `server.ts` e già interrogato da HYDRA-UMC-IOS-CONTROL) vengono eseguiti insieme alla ricerca di server HYDRA-UMC STUDIO reali, deduplicati per host:porta, più aggiunta manuale per indirizzo per tutto ciò che nessuno dei due può raggiungere (una sottorete diversa, un tunnel VPN).
+- **🔍 Scoperta di rete** - una scansione concorrente della sottorete (`GET /api/hydra-info`) e il vero mDNS/Bonjour (`_hydra._tcp`, lo stesso servizio pubblicato da `server.ts` e già interrogato da HYDRA-UMC-IOS-CONTROL) vengono eseguiti insieme alla ricerca di server HYDRA-UMC SERVER reali, deduplicati per host:porta, più aggiunta manuale per indirizzo per tutto ciò che nessuno dei due può raggiungere (una sottorete diversa, un tunnel VPN).
 - **🐝 Connessioni a sciame** - connettiti a tanti server HYDRA-UMC
   contemporaneamente quanti ne vuoi, ognuno con la propria sincronizzazione
   WebSocket in tempo reale; scegli quale sia "attivo" per gli altri
@@ -213,14 +213,14 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
-├── main.py                        # Punto di ingresso - schermo intero 1280x720 min, F11 alterna schermo intero/finestra; --qtquick passa al pannello sotto
+├── main.py                        # Punto di ingresso - si avvia massimizzata, 1280x720 min, F11 alterna schermo intero/finestra; --qtquick passa al pannello sotto
 ├── qt_suite.py                     # Front end Qt Quick - pannello comandi `--qtquick` autonomo (tutti i 26 pannelli), collega l'SuiteController invariato a QML
 ├── verify_qt_suite_shell.py        # Verifica reale della shell Qt Quick senza hardware/rete - deliberatamente fuori da tests/ (stesso motivo dei propri verify_qt_*.py di URTC-TESTER/URTC-FLASHER), eseguita con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Manifesto dell'ecosistema - versione/famiglia/genitore, la fonte letta da dashboard/updater/OS-REBUILDER
 ├── bump_version.py                # Incremento di versione tipo odometro per il __version__ proprio di hydra_suite/__init__.py, eseguito da build_exe.bat/.sh prima di ogni build reale con PyInstaller
 ├── bump_manifest_version.py       # Sincronizza la versione di hydra-umc.project.json con quella nativa (generico, copiato tale e quale in tutto l'ecosistema)
-├── build-test.bat / build-test.sh # venv + installazione editabile + vera suite di test, senza mutazioni - non incrementa mai la versione né tocca CHANGELOG.md
+├── build-test.bat / build-test.sh # attiva .venv ed esegue tools/build_test.py (la vera suite di test), senza mutazioni - non incrementa mai la versione né tocca CHANGELOG.md
 ├── run.bat / run.sh               # Avvia main.py tramite il venv
 ├── HYDRA-UMC_SUITE.spec           # Spec di PyInstaller (vedi build_exe.bat/.sh sotto)
 ├── build_exe.bat                  # Build Windows in un passaggio -> dist/HYDRA-UMC_SUITE.exe
@@ -272,7 +272,7 @@ HYDRA-UMC-SUITE/
 ## 🚀 Per Iniziare
 
 ### Requisiti
-- Python 3.12+ (sviluppato/testato con 3.14)
+- Python 3.12+ (la CI usa 3.12; provato in locale anche con 3.14)
 - Un server [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) in esecuzione a cui connettersi
 
 ### Installazione
@@ -291,12 +291,12 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Si avvia a schermo intero con un minimo di 1280x720 (secondo la stessa
+Si avvia massimizzata con un minimo di 1280x720 (secondo la stessa
 specifica di design di questa app) - premi **F11** per alternare tra
 schermo intero e una normale finestra massimizzata in qualsiasi momento,
 così non ti intrappola mai realmente senza una via d'uscita. Usa il
 pannello **Servers** per scansionare la tua rete o aggiungere un server
-HYDRA-UMC STUDIO per indirizzo.
+HYDRA-UMC SERVER per indirizzo.
 
 Premi **F12** in qualsiasi momento per inviare lo STOP globale (il pulsante **STOP** della barra superiore fa lo stesso).
 

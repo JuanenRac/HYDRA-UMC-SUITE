@@ -7,7 +7,24 @@ import json
 from pathlib import Path
 
 CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "heatedbeds" / "default"
-_catalog = json.loads((CATALOG_DIR / "catalog.json").read_text(encoding="utf-8"))
+_FALLBACK_MODEL = {"id": "200x200x5", "label": "200 x 200 x 5 mm", "width": 200, "length": 200, "totalHeight": 5, "file": ""}
+
+
+def _load_catalog(directory=CATALOG_DIR) -> dict:
+    """The catalog file, or a one-model fallback when it is missing, unreadable
+    or malformed: a damaged asset must not stop the program from starting."""
+    try:
+        data = json.loads((Path(directory) / "catalog.json").read_text(encoding="utf-8"))
+        models = [m for m in data["models"] if isinstance(m, dict) and "id" in m and "width" in m and "length" in m]
+        if models:
+            default = data.get("defaultModelId")
+            return {"models": models, "defaultModelId": default if any(m["id"] == default for m in models) else models[0]["id"]}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        pass
+    return {"models": [dict(_FALLBACK_MODEL)], "defaultModelId": _FALLBACK_MODEL["id"]}
+
+
+_catalog = _load_catalog()
 HEATED_BED_MODELS = _catalog["models"]
 
 
