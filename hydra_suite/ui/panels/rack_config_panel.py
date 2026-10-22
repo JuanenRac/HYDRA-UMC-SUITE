@@ -28,6 +28,8 @@
 # =============================================================================
 from __future__ import annotations
 
+import json
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
@@ -68,6 +70,12 @@ class RackGroupWidget(QGroupBox):
         self._on_slot_toggle = on_slot_toggle
         self._slot_buttons: list[QPushButton] = []
         self._pos_spins: dict[str, QDoubleSpinBox] = {}
+        # What the 3D preview and the slot buttons were last built from: the
+        # panel is refreshed on every state push, and rebuilding them when
+        # nothing about this rack changed would reload the model and recreate
+        # every button for no reason.
+        self._preview_signature: str | None = None
+        self._slots_signature: tuple | None = None
 
         layout = QVBoxLayout(self)
 
@@ -165,7 +173,10 @@ class RackGroupWidget(QGroupBox):
             spin.blockSignals(False)
         self._color = spec["color"]
         self._color_button.setText(_("LBL_RACK_COLOR") + " " + self._color)
-        self._preview.set_attached_module("rack", rack_config=rack)
+        preview_signature = json.dumps(rack, sort_keys=True, default=str)
+        if preview_signature != self._preview_signature:
+            self._preview_signature = preview_signature
+            self._preview.set_attached_module("rack", rack_config=rack)
         self._type_combo.blockSignals(True)
         idx = self._type_combo.findData(rack.get("type", "None"))
         self._type_combo.setCurrentIndex(idx if idx >= 0 else 0)
@@ -183,6 +194,11 @@ class RackGroupWidget(QGroupBox):
         self._capacity_label.setText(str(capacity))
 
         usable_slots = rack.get("usableSlots", [])
+        slots_signature = (capacity, tuple(bool(usable_slots[i]) if i < len(usable_slots) else False for i in range(capacity)))
+        if slots_signature == self._slots_signature:
+            self._fill_pickup_position(rack, has_xy_table)
+            return
+        self._slots_signature = slots_signature
         for btn in self._slot_buttons:
             self._slots_grid.removeWidget(btn)
             btn.deleteLater()
@@ -196,6 +212,9 @@ class RackGroupWidget(QGroupBox):
             self._slots_grid.addWidget(btn, i // SLOT_GRID_COLUMNS, i % SLOT_GRID_COLUMNS)
             self._slot_buttons.append(btn)
 
+        self._fill_pickup_position(rack, has_xy_table)
+
+    def _fill_pickup_position(self, rack: dict, has_xy_table: bool) -> None:
         pos = rack.get("basePickupPos", {})
         for field, spin in self._pos_spins.items():
             spin.blockSignals(True)

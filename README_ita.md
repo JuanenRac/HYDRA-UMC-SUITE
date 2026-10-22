@@ -25,7 +25,7 @@
 </p>
 
 
-**Verifica di onestà - cosa funziona davvero oggi:** la scoperta di rete (scansione di sottorete concorrente + vero mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connessione REST+WebSocket dal vivo e il supporto sciame (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinematica diretta reale del visore 3D per tutti i 24 modelli di robot reali più un fallback "Generic" (`hydra_suite/render/`, verificata numericamente byte per byte contro la vera implementazione TypeScript di HYDRA-UMC STUDIO), tutti gli 11 di 11 pannelli di configurazione degli strumenti, il flashing CAN-OTA/SPI-OTA, e il rendering video MJPEG reale delle telecamere sono reali e testati - 47 script di verifica/smoke sotto `tests/` (`python tools/run_offline_verifiers.py`, Qt headless via `QT_QPA_PLATFORM=offscreen`), tutti superati, più `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` eseguiti contro un vero HYDRA-UMC SERVER in esecuzione e un vero contesto GPU/OpenGL su questa macchina. La shell Qt Quick (`--qtquick`, 27 dei 29 pannelli classici portati, incluso il visore 3D tramite un `OffscreenRobotRenderer` dedicato) è codice reale e funzionante, avviato accanto al punto di ingresso classico invariato. Ciò che esplicitamente NON è ancora fatto, secondo la stessa convenzione di onestà di questo repository: i livelli URTC Tool Head/Advanced Expansion del CAN-OTA non hanno ancora un vero tunnel di relay verso l'hardware; e `combinedWith` (modalità robot combinato) non è esposto nella UI di questa app pur esistendo nel modello dati proprio di STUDIO. `trajectory_panel.py` ora esporta/importa attraverso il vero formato `WORKS/*.json` di HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<cartella>/index.json`) - un punto registrato qui è un Work reale e riproducibile da entrambe le app. Vedi [`docs/ROADMAP.md`](docs/ROADMAP.md) per il quadro completo, voce per voce, del reale rispetto al differito che questo paragrafo riassume, e `CHANGELOG.md` per ciò che è stato consegnato finora esattamente.
+**Verifica di onestà - cosa funziona davvero oggi:** la scoperta di rete (scansione di sottorete concorrente + vero mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connessione REST+WebSocket dal vivo e il supporto sciame (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinematica diretta reale del visore 3D per tutti i 24 modelli di robot reali più un fallback "Generic" (`hydra_suite/render/`, verificata numericamente byte per byte contro la vera implementazione TypeScript di HYDRA-UMC STUDIO), tutti gli 11 di 11 pannelli di configurazione degli strumenti, il flashing CAN-OTA/SPI-OTA, e il rendering video MJPEG reale delle telecamere sono reali e testati - 48 script di verifica/smoke sotto `tests/` (`python tools/run_offline_verifiers.py`, Qt headless via `QT_QPA_PLATFORM=offscreen`), tutti superati, più `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` eseguiti contro un vero HYDRA-UMC SERVER in esecuzione e un vero contesto GPU/OpenGL su questa macchina. La shell Qt Quick (`--qtquick`, 27 dei 29 pannelli classici portati, incluso il visore 3D tramite un `OffscreenRobotRenderer` dedicato) è codice reale e funzionante, avviato accanto al punto di ingresso classico invariato. Ciò che esplicitamente NON è ancora fatto, secondo la stessa convenzione di onestà di questo repository: i livelli URTC Tool Head/Advanced Expansion del CAN-OTA non hanno ancora un vero tunnel di relay verso l'hardware; e `combinedWith` (modalità robot combinato) non è esposto nella UI di questa app pur esistendo nel modello dati proprio di STUDIO. `trajectory_panel.py` ora esporta/importa attraverso il vero formato `WORKS/*.json` di HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<cartella>/index.json`) - un punto registrato qui è un Work reale e riproducibile da entrambe le app. Vedi [`docs/ROADMAP.md`](docs/ROADMAP.md) per il quadro completo, voce per voce, del reale rispetto al differito che questo paragrafo riassume, e `CHANGELOG.md` per ciò che è stato consegnato finora esattamente.
 
 ---
 
@@ -383,14 +383,10 @@ mano.
 
 `hydra_suite/__version__` (mostrato in **Aiuto > Informazioni su**) segue
 uno schema `MAJOR.MINOR.PATCH` in stile contachilometri con regola di
-riporto in base 10: la patch aumenta di 1 a ogni build reale; non appena
+riporto in base 10: la patch aumenta di 1 a ogni bump; non appena
 supererebbe 9, si azzera e la minor aumenta di 1 (es. `0.1.9` -> `0.2.0`).
 "Una build reale" significa un'esecuzione di `build_exe.bat`/`build_exe.sh`
-- **non** una semplice esecuzione di `python main.py`. L'incremento è
-gestito automaticamente da `bump_version.py` (invocato da entrambi gli
-script di build, prima che venga eseguito PyInstaller), cosicché un
-`.exe`/binario impacchettato porti sempre una versione strettamente più
-recente dell'ultima realmente distribuita. Vedi
+- **non** una semplice esecuzione di `python main.py`. L'incremento è il comando esplicito `python tools/hydra_project_tool.py bump`, che esegue `bump_version.py`; compilare con `build_exe.bat`/`build_exe.sh` non cambia mai la versione. Vedi
 [`CHANGELOG.md`](CHANGELOG.md) per il dettaglio di cosa è cambiato in ogni
 punto.
 

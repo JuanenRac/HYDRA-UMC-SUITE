@@ -4,10 +4,13 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- Building no longer changes the version; raising it is the explicit `bump` command (`python tools/hydra_project_tool.py bump`). The build scripts only report the version they built, and CI fails if a build script runs a bump.
+- The build and run scripts use the Python of the `.venv` directly instead of an activate script, and create the venv with the `py` launcher when there is one; CI fails if a script activates a venv.
 - The messages the connection shows in the status bar (a refused write or command, a command that was not applied, a failed login, a STOP that did not get through, the first fetch) come from the language files in the eight languages instead of English literals, and a test fails if a new one is typed into the code.
 - The arrangement of the panels is remembered between sessions and View > Reset panel layout brings the default one back; a stored arrangement from another version or a damaged one is ignored.
 - The Logs panel can export a support bundle (a zip with the versions, the list of servers and the client log). Passwords, user names and tokens are left out, and anything in the log that looks like a credential is hidden.
 - Changing the tool of a robot asks for confirmation before it is sent, like the web dashboard does, and declining puts the selector back (message in the eight languages).
+- The rack panel no longer reloads its 3D preview or recreates its slot buttons on every update from the server when nothing about the rack changed.
 
 ## [0.7.0] - Streamed downloads, panels that poll only while shown, and documentation that matches the code
 

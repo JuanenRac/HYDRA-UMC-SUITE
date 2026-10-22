@@ -25,7 +25,7 @@
 </p>
 
 
-**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 47 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` exercised against a real running HYDRA-UMC SERVER and a real GPU/OpenGL context on this machine. The Qt Quick shell (`--qtquick`, 27 of the 29 classic panels ported, including the 3D viewport through a dedicated `OffscreenRobotRenderer`) is real, working code, launched alongside the unchanged classic entry point. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and `combinedWith` (combined-robot mode) isn't exposed in this app's UI despite existing in STUDIO's own data model. `trajectory_panel.py` now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
+**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 48 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing, plus `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` exercised against a real running HYDRA-UMC SERVER and a real GPU/OpenGL context on this machine. The Qt Quick shell (`--qtquick`, 27 of the 29 classic panels ported, including the 3D viewport through a dedicated `OffscreenRobotRenderer`) is real, working code, launched alongside the unchanged classic entry point. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and `combinedWith` (combined-robot mode) isn't exposed in this app's UI despite existing in STUDIO's own data model. `trajectory_panel.py` now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
 
 ---
 
@@ -369,13 +369,8 @@ safe to delete and regenerate, not hand-maintained.
 ## 🔢 Versioning
 
 `hydra_suite/__version__` (shown in **Help > About**) follows an
-odometer-style `MAJOR.MINOR.PATCH` scheme with a base-10 carry rule: patch
-goes up by 1 on every real build; once it would pass 9, it resets to 0 and
-minor goes up by 1 instead (e.g. `0.1.9` -> `0.2.0`). "A real build" means
-a run of `build_exe.bat`/`build_exe.sh` - **not** every plain
-`python main.py` run. The bump itself is handled automatically by
-`bump_version.py` (called by both build scripts, before PyInstaller runs)
-so a packaged `.exe`/binary always carries a version number strictly newer
+odometer-style `MAJOR.MINOR.PATCH` scheme with a base-10 carry rule: patch goes up by 1 on every bump; once it would pass 9, it resets to 0 and
+minor goes up by 1 instead (e.g. `0.1.9` -> `0.2.0`). The bump itself is the explicit command `python tools/hydra_project_tool.py bump`, which runs `bump_version.py`; building with `build_exe.bat`/`build_exe.sh` never changes the version.exe`/binary always carries a version number strictly newer
 than the last one actually shipped. See [`CHANGELOG.md`](CHANGELOG.md) for
 what changed at each point.
 
