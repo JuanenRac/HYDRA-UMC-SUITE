@@ -3,12 +3,12 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Reads (never runs) the build scripts, which raise the version when run:
+# Reads (never runs) the build scripts, which never change the version:
 #   - the executable carries the window icon files (images/) and, on Windows,
 #     its own icon
 #   - the steps are numbered in order, once each, with the same total
 #   - build_exe.bat does not wait for a key when the installer script calls it
-#   - the Windows script has no unreachable second check of the version bump
+#   - neither script runs a version bump (raising it is the explicit bump command)
 # =============================================================================
 import re
 import sys
@@ -46,7 +46,8 @@ for name, text in (("sh", sh), ("bat", bat)):
 
 check("bat: the pause can be switched off by the installer", 'HYDRA_UMC_NO_PAUSE' in bat, True)
 check("installer: asks the build not to pause", 'set "HYDRA_UMC_NO_PAUSE=1"' in installer, True)
-check("bat: the version bump is checked once", bat.count("bump_version.py failed"), 0)
+check("bat: the build runs no version bump", "bump_version.py" in bat or "bump_manifest_version.py" in bat, False)
+check("sh: the build runs no version bump", "bump_version.py" in sh or "bump_manifest_version.py" in sh, False)
 
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

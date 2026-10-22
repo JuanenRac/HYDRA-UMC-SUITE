@@ -40,15 +40,16 @@ REM correct setup after build_exe.bat), every one of the 27 offline
 REM verifiers failed with ModuleNotFoundError, looking exactly like the
 REM whole build was broken when the real project was fine - a live
 REM report confirmed this exact reproduction.
-if exist .venv\Scripts\activate.bat (
-    call .venv\Scripts\activate.bat
+REM The python of the venv is used directly (no activate script); without a venv the python on the PATH is used.
+set "VPY=python"
+if exist .venv\Scripts\python.exe set "VPY=%CD%\.venv\Scripts\python.exe"
+if not exist .venv\Scripts\python.exe (
+    where py >nul 2>&1
+    if not errorlevel 1 (
+        for /f "delims=" %%P in ('py -3 -c "import sys; print(sys.executable)"') do set "VPY=%%P"
+    )
 )
-where py >nul 2>&1
-if errorlevel 1 (
-    python tools\build_test.py
-) else (
-    py -3 tools\build_test.py
-)
+"%VPY%" tools\build_test.py
 if errorlevel 1 (
     set "RESULT=1"
 ) else (

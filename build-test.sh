@@ -28,21 +28,15 @@ printf '\n'
 # Runs the non-versioning build check. It does not update the manifest or CHANGELOG.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Real bug fixed here: unlike run.sh/build_exe.sh, this never activated
-# .venv before invoking python3 - on a machine where numpy/PySide6/httpx/
-# qasync are only installed in .venv (the normal, correct setup after
-# build_exe.sh/bat), every one of the 27 offline verifiers failed with
-# ModuleNotFoundError, looking exactly like the whole build was broken
-# when the real project was fine - a live report confirmed this exact
-# reproduction.
-if [ -f "$ROOT/.venv/bin/activate" ]; then
-    # shellcheck disable=SC1091
-    source "$ROOT/.venv/bin/activate"
-elif [ -f "$ROOT/.venv/Scripts/activate" ]; then
-    # shellcheck disable=SC1091
-    source "$ROOT/.venv/Scripts/activate"
+# The python of the venv is used directly (no activate script); without a venv the python on the PATH is used.
+if [ -x "$ROOT/.venv/bin/python" ]; then
+    VPY="$ROOT/.venv/bin/python"
+elif [ -x "$ROOT/.venv/Scripts/python.exe" ]; then
+    VPY="$ROOT/.venv/Scripts/python.exe"
+else
+    VPY="python3"
 fi
-python3 "$ROOT/tools/build_test.py"
+"$VPY" "$ROOT/tools/build_test.py"
 status=$?
 echo
 if [ -t 0 ]; then

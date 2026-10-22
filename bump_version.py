@@ -4,23 +4,20 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Ecosystem-wide versioning policy: the version bumps automatically on
-# every REAL build (every run of build_exe.bat/build_exe.sh - the only
-# thing that counts as a "build" for a Python app; just running
-# `python main.py` does NOT bump anything), using an odometer/mileage-
-# counter rule in base 10: the last component (patch) goes up by 1;
-# if it would roll past 9, it resets to 0 and carries 1 into the
-# component to its left (minor), which repeats the same rule leftward
-# (major has no component further left, so it just keeps counting past
-# 9 with no reset - same as a real odometer's leftmost digit never
-# wrapping back to 0 mid-drive).
-# Example: 0.1.9 -> 0.2.0. Another: 0.9.9 -> 1.0.0.
+# Ecosystem-wide versioning policy: the version is raised only by the explicit
+# bump command (`python tools/hydra_project_tool.py bump`), never by a build,
+# using an odometer/mileage- counter rule in base 10: the last component
+# (patch) goes up by 1; if it would roll past 9, it resets to 0 and carries 1
+# into the component to its left (minor), which repeats the same rule leftward
+# (major has no component further left, so it just keeps counting past 9 with
+# no reset - same as a real odometer's leftmost digit never wrapping back to 0
+# mid-drive). Example: 0.1.9 -> 0.2.0. Another: 0.9.9 -> 1.0.0.
 #
-# Called by build_exe.bat/build_exe.sh BEFORE PyInstaller runs, so every
-# packaged .exe/binary carries a version strictly newer than the last one
-# actually shipped. Standalone-runnable too (invoked twice in a row is
-# how this script's own bump logic gets verified without needing a full
-# PyInstaller build each time).
+# Run only by the explicit bump command (`python tools/hydra_project_tool.py
+# bump`); building never runs it, so a build never changes a version.
+# Standalone-runnable too (invoked twice in a row is how this script's own
+# bump logic gets verified without needing a full PyInstaller build each
+# time).
 # =============================================================================
 from __future__ import annotations
 
