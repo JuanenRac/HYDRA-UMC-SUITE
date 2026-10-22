@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.7.0] - Streamed downloads, panels that poll only while shown, and documentation that matches the code
 
 - Saving a camera recording or snapshot streams it to disk in chunks (a long timeout for reading, a temporary file that replaces the destination only when the whole answer arrived) instead of holding the whole file in memory under a 10 s limit; a failed save says so in the panel and leaves nothing behind.
 - The telemetry panel warns when a query has no source, kind or field filter (several series are drawn as one line) and when the result reached the 1000 points the service returns at most; texts in the eight languages.

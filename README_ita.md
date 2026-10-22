@@ -35,7 +35,7 @@
 
 | | |
 |---|---|
-| Versione | `0.6.9` |
+| Versione | `0.7.0` |
 | Maturità | Funzionale |
 | Tecnologia | Python 3.12 / PySide6 |
 | Destinazione | Il PC di chi lo usa |

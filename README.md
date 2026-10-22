@@ -35,7 +35,7 @@
 
 | | |
 |---|---|
-| Version | `0.6.9` |
+| Version | `0.7.0` |
 | Maturity | Functional |
 | Stack | Python 3.12 / PySide6 |
 | Target | The PC of the person using it |
