@@ -13,7 +13,7 @@ import asyncio
 import sys
 
 import httpx
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 sys.path.insert(0, ".")
 from hydra_suite.app import SuiteController
@@ -135,6 +135,15 @@ def _run() -> None:
         # --- Tool selector
         posts.clear()
         panel._tool_combo.setCurrentText("Drill (BL4260)")
+        pump()
+        assert not posts, "changing the tool must ask first, not send at once"
+        panel._pending_tool_box.done(QMessageBox.StandardButton.No)
+        pump()
+        assert not posts, "declining the tool change must send nothing"
+        assert panel._tool_combo.currentText() == panel._current_robot.tool, "declining puts the selector back"
+        panel._tool_combo.setCurrentText("Drill (BL4260)")
+        pump()
+        panel._pending_tool_box.done(QMessageBox.StandardButton.Yes)
         pump()
         assert len(posts) == 1
         assert posts[0]["command"] == "tool"

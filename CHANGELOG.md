@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- The messages the connection shows in the status bar (a refused write or command, a command that was not applied, a failed login, a STOP that did not get through, the first fetch) come from the language files in the eight languages instead of English literals, and a test fails if a new one is typed into the code.
+- The arrangement of the panels is remembered between sessions and View > Reset panel layout brings the default one back; a stored arrangement from another version or a damaged one is ignored.
+- The Logs panel can export a support bundle (a zip with the versions, the list of servers and the client log). Passwords, user names and tokens are left out, and anything in the log that looks like a credential is hidden.
+- Changing the tool of a robot asks for confirmation before it is sent, like the web dashboard does, and declining puts the selector back (message in the eight languages).
+
 ## [0.7.0] - Streamed downloads, panels that poll only while shown, and documentation that matches the code
 
 - Saving a camera recording or snapshot streams it to disk in chunks (a long timeout for reading, a temporary file that replaces the destination only when the whole answer arrived) instead of holding the whole file in memory under a 10 s limit; a failed save says so in the panel and leaves nothing behind.

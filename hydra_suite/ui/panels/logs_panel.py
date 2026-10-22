@@ -16,9 +16,12 @@ from __future__ import annotations
 import html
 from collections import deque
 from dataclasses import dataclass
+from typing import Callable
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -29,7 +32,9 @@ from PySide6.QtWidgets import (
 )
 
 from hydra_suite import logging_handler
+from hydra_suite.diagnostics import build_bundle
 from hydra_suite.i18n import _
+from hydra_suite.ui.dialogs import show_message
 
 _LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 MAX_LOG_ENTRIES = 5000
@@ -54,6 +59,7 @@ class LogsPanel(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._all_entries: deque[_LogEntry] = deque(maxlen=MAX_LOG_ENTRIES)
+        self._servers_provider: Callable[[], list[dict]] = list
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -80,6 +86,10 @@ class LogsPanel(QWidget):
         clear_btn = QPushButton(_("BTN_CLEAR_LOGS"))
         clear_btn.clicked.connect(self._on_clear)
         filter_row.addWidget(clear_btn)
+        export_btn = QPushButton(_("BTN_EXPORT_DIAGNOSTICS"))
+        export_btn.setToolTip(_("TIP_EXPORT_DIAGNOSTICS"))
+        export_btn.clicked.connect(self._on_export_clicked)
+        filter_row.addWidget(export_btn)
         layout.addLayout(filter_row)
 
         self._text = QTextEdit()
@@ -120,6 +130,37 @@ class LogsPanel(QWidget):
         for entry in self._all_entries:
             if self._entry_matches_filters(entry):
                 self._append_line(entry)
+
+    def set_servers_provider(self, provider: Callable[[], list[dict]]) -> None:
+        """Where the diagnostics bundle gets the list of known servers (public facts only)."""
+        self._servers_provider = provider
+
+    def log_lines(self) -> list[str]:
+        return [f"[{e.level}] {e.logger_name}: {e.message}" for e in self._all_entries]
+
+    def export_diagnostics_to(self, path: str) -> None:
+        """Writes the support bundle; raises OSError when the file cannot be written."""
+        data = build_bundle(self._servers_provider(), self.log_lines())
+        with open(path, "wb") as f:
+            f.write(data)
+
+    def _on_export_clicked(self) -> None:
+        dialog = QFileDialog(self, _("TITLE_EXPORT_DIAGNOSTICS"), "hydra-suite-diagnostics.zip", "Zip (*.zip)")
+        dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
+        dialog.setDefaultSuffix("zip")
+        dialog.fileSelected.connect(self._on_export_path_chosen)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.open()
+
+    def _on_export_path_chosen(self, path: str) -> None:
+        if not path:
+            return
+        try:
+            self.export_diagnostics_to(path)
+        except OSError as e:
+            show_message(self, "critical", _("TITLE_EXPORT_DIAGNOSTICS"), _("MSG_DIAGNOSTICS_FAILED", error=str(e)))
+            return
+        show_message(self, "information", _("TITLE_EXPORT_DIAGNOSTICS"), _("MSG_DIAGNOSTICS_SAVED", path=path))
 
     def _on_clear(self) -> None:
         self._all_entries.clear()

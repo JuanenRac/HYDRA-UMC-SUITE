@@ -25,7 +25,7 @@
 </p>
 
 
-**Verificación de honestidad - qué funciona de verdad hoy:** el descubrimiento de red (escaneo de subred concurrente + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), la conexión REST+WebSocket en vivo y el soporte de enjambre (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinemática directa real del visor 3D para los 24 modelos de robot reales más un fallback "Generic" (`hydra_suite/render/`, verificada numéricamente byte a byte contra la propia implementación TypeScript de HYDRA-UMC STUDIO), los 11 de 11 paneles de configuración de herramientas, el flasheo CAN-OTA/SPI-OTA, y el renderizado real de cámaras MJPEG son reales y están probados - 44 scripts de verificación/smoke bajo `tests/` (`python tools/run_offline_verifiers.py`, Qt sin cabeza vía `QT_QPA_PLATFORM=offscreen`), todos pasando, más `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` ejercitados contra un HYDRA-UMC SERVER real en ejecución y un contexto GPU/OpenGL real en esta máquina. La shell Qt Quick (`--qtquick`, 27 de los 29 paneles clásicos portados, incluido el visor 3D mediante un `OffscreenRobotRenderer` dedicado) es código real y funcional, lanzado junto al punto de entrada clásico sin modificar. Lo que explícitamente NO está hecho todavía, según la propia convención de honestidad de este repo: los niveles URTC Tool Head/Advanced Expansion de CAN-OTA no tienen todavía un túnel de relé real hacia el hardware; y `combinedWith` (modo de robot combinado) no está expuesto en la UI de esta app pese a existir en el propio modelo de datos de STUDIO. `trajectory_panel.py` ahora exporta/importa a través del formato `WORKS/*.json` real de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<carpeta>/index.json`) - un punto grabado aquí es un Work real y reproducible desde cualquiera de las dos apps. Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para el desglose completo y detallado de lo real frente a lo diferido que resume este párrafo, y `CHANGELOG.md` para lo que ya se ha entregado exactamente.
+**Verificación de honestidad - qué funciona de verdad hoy:** el descubrimiento de red (escaneo de subred concurrente + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), la conexión REST+WebSocket en vivo y el soporte de enjambre (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinemática directa real del visor 3D para los 24 modelos de robot reales más un fallback "Generic" (`hydra_suite/render/`, verificada numéricamente byte a byte contra la propia implementación TypeScript de HYDRA-UMC STUDIO), los 11 de 11 paneles de configuración de herramientas, el flasheo CAN-OTA/SPI-OTA, y el renderizado real de cámaras MJPEG son reales y están probados - 47 scripts de verificación/smoke bajo `tests/` (`python tools/run_offline_verifiers.py`, Qt sin cabeza vía `QT_QPA_PLATFORM=offscreen`), todos pasando, más `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` ejercitados contra un HYDRA-UMC SERVER real en ejecución y un contexto GPU/OpenGL real en esta máquina. La shell Qt Quick (`--qtquick`, 27 de los 29 paneles clásicos portados, incluido el visor 3D mediante un `OffscreenRobotRenderer` dedicado) es código real y funcional, lanzado junto al punto de entrada clásico sin modificar. Lo que explícitamente NO está hecho todavía, según la propia convención de honestidad de este repo: los niveles URTC Tool Head/Advanced Expansion de CAN-OTA no tienen todavía un túnel de relé real hacia el hardware; y `combinedWith` (modo de robot combinado) no está expuesto en la UI de esta app pese a existir en el propio modelo de datos de STUDIO. `trajectory_panel.py` ahora exporta/importa a través del formato `WORKS/*.json` real de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<carpeta>/index.json`) - un punto grabado aquí es un Work real y reproducible desde cualquiera de las dos apps. Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para el desglose completo y detallado de lo real frente a lo diferido que resume este párrafo, y `CHANGELOG.md` para lo que ya se ha entregado exactamente.
 
 ---
 
@@ -124,6 +124,7 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   funciona de fábrica - Qt/el gestor de ventanas del sistema operativo lo
   coloca como cualquier otra ventana, sin necesitar un "modo
   multi-monitor" aparte.
+- **💾 Disposición recordada y paquete de soporte** - la disposición de los paneles se conserva entre sesiones (Ver > Restablecer la disposición de los paneles recupera la de fábrica), y el panel de Logs puede exportar un zip para soporte con las versiones, la lista de servidores y el registro del cliente, sin contraseñas, nombres de usuario ni tokens.
 - **🌐 8 idiomas** - English, Español, Italiano, Français, Deutsch, 简体中文,
   日本語, Português (misma
   convención `language/*.lng` que URTC-FLASHER/URTC-TESTER), se cambia
@@ -217,7 +218,7 @@ HYDRA-UMC-SUITE/
 ├── verify_qt_suite_shell.py        # Comprobación real de la shell Qt Quick sin hardware/red - deliberadamente fuera de tests/ (mismo motivo que los propios verify_qt_*.py de URTC-TESTER/URTC-FLASHER), se ejecuta con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Manifiesto del ecosistema - versión/familia/padre, la fuente que leen dashboard/updater/OS-REBUILDER
-├── bump_version.py                # Incremento de versión tipo odómetro para el __version__ propio de hydra_suite/__init__.py, ejecutado por build_exe.bat/.sh antes de cada build real con PyInstaller
+├── bump_version.py                # Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)
 ├── bump_manifest_version.py       # Sincroniza la versión de hydra-umc.project.json con la nativa (genérico, copiado tal cual en todo el ecosistema)
 ├── build-test.bat / build-test.sh # activa .venv y ejecuta tools/build_test.py (la suite de tests real), sin mutar - nunca sube la versión ni toca CHANGELOG.md
 ├── run.bat / run.sh               # Lanza main.py a través del venv
@@ -234,6 +235,7 @@ HYDRA-UMC-SUITE/
 │   ├── i18n.py                     # Cargador KEY=Value de 8 idiomas (language/*.lng)
 │   ├── can_ota.py                  # Transporte compartido CAN-OTA/SPI-OTA (port real del propio canOta.ts de STUDIO) - usado por Flasher y Tester
 │   ├── logging_handler.py          # Enruta el logging de Python al panel de Logs
+│   ├── diagnostics.py              # Paquete de soporte (zip con versiones, servidores y registro, sin credenciales)
 │   ├── net/
 │   │   ├── discovery.py             # Escaneo de subred concurrente + mDNS real (_hydra._tcp) contra GET /api/hydra-info, con deduplicación
 │   │   └── client.py                # Conexión REST + WebSocket por servidor, sincronización bidireccional en vivo, login, endpoints de admin/descubrimiento/PTZ
@@ -246,6 +248,7 @@ HYDRA-UMC-SUITE/
 │   │   └── viewport.py              # RobotGLRenderer (pipeline real de shaders GLSL, cámara orbital) + el wrapper QOpenGLWidget clásico + OffscreenRobotRenderer para el panel Viewport 3D del deck `--qtquick`
 │   └── ui/
 │       ├── main_window.py           # QMainWindow + espacio de trabajo QDockWidget
+│       ├── layout_state.py          # Recuerda la disposición de los paneles entre sesiones
 │       ├── about_dialog.py          # Diálogo Acerca de real (versión/autor/licencia)
 │       ├── theme.py                  # Carga assets/qss/industrial_dark.qss
 │       ├── widgets/rotary_knob.py    # Mando rotatorio pintado a medida (contraparte de escritorio de RotaryKnob.tsx)

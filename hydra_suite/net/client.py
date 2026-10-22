@@ -34,6 +34,7 @@ import httpx
 import websockets
 from PySide6.QtCore import QObject, Signal
 
+from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 
 logger = logging.getLogger(__name__)
@@ -199,14 +200,14 @@ def describe_rejection(resp: "httpx.Response", what: str) -> str:
     account (409) each read differently to the operator."""
     status = resp.status_code
     if status == 401 or (status == 403 and _body_code(resp) in _RENEWABLE_TOKEN_CODES):
-        return f"{what} rejected: not authenticated (session expired)"
+        return _("MSG_NET_REJ_AUTH", what=what)
     if status == 403:
-        return f"{what} rejected: permission denied ({_body_error(resp)})"
+        return _("MSG_NET_REJ_DENIED", what=what, detail=_body_error(resp))
     if status == 409:
-        return f"{what} rejected: the robot is reserved by another account ({_body_error(resp)})"
+        return _("MSG_NET_REJ_RESERVED", what=what, detail=_body_error(resp))
     if status == 400:
-        return f"{what} rejected: {_body_error(resp)}"
-    return f"{what} failed: HTTP {status}"
+        return _("MSG_NET_REJ_BAD", what=what, detail=_body_error(resp))
+    return _("MSG_NET_FAILED_HTTP", what=what, status=status)
 
 
 class HydraConnection(QObject):
@@ -352,7 +353,7 @@ class HydraConnection(QObject):
                     self._login_retry_after_s = (
                         float(retry_after_ms) / 1000 if isinstance(retry_after_ms, (int, float)) else RECONNECT_DELAY_S
                     )
-                    detail = (body.get("error") if isinstance(body, dict) else None) or "Too many login attempts"
+                    detail = (body.get("error") if isinstance(body, dict) else None) or _("MSG_NET_TOO_MANY_LOGINS")
                     self.login_ok = False
                     self.error.emit(detail)
                     self.login_changed.emit(False, detail)
@@ -367,7 +368,7 @@ class HydraConnection(QObject):
                 resp.raise_for_status()
                 data = resp.json()
         except (httpx.HTTPError, ValueError) as e:
-            detail = f"Login failed: {e}"
+            detail = _("MSG_NET_LOGIN_FAILED", error=e)
             self.login_ok = False
             self.error.emit(detail)
             self.login_changed.emit(False, detail)
@@ -377,7 +378,7 @@ class HydraConnection(QObject):
             data = {}
         token = data.get("token")
         if not token:
-            detail = "Login failed: no token in response"
+            detail = _("MSG_NET_LOGIN_NO_TOKEN")
             self.login_ok = False
             self.error.emit(detail)
             self.login_changed.emit(False, detail)
@@ -803,10 +804,10 @@ class HydraConnection(QObject):
             else:
                 resp = await self._http("POST", "/api/settings", json=payload)
                 if resp.status_code >= 400:
-                    self.error.emit(describe_rejection(resp, "Write"))
+                    self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_WRITE")))
                     return
         except (httpx.HTTPError, websockets.WebSocketException, OSError) as e:
-            self.error.emit(f"Write failed: {e}")
+            self.error.emit(_("MSG_NET_WRITE_FAILED", error=e))
             return
         self._last_payload_json = payload_json
 
@@ -890,16 +891,16 @@ class HydraConnection(QObject):
                     "POST", f"/api/robot/{robot_id}/command", json={"command": command, "params": params or {}}
                 )
                 if resp.status_code >= 400:
-                    self.error.emit(describe_rejection(resp, "Command"))
+                    self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_COMMAND")))
                     rollback_if_current()
                     return
                 warnings = self._command_warnings(resp)
                 if warnings:
                     # 200 with warnings means the server applied nothing.
-                    self.error.emit(f"Command not applied: {warnings}")
+                    self.error.emit(_("MSG_NET_CMD_NOT_APPLIED", warnings=warnings))
                     rollback_if_current()
             except (httpx.HTTPError, OSError) as e:
-                self.error.emit(f"Command failed: {e}")
+                self.error.emit(_("MSG_NET_CMD_FAILED", error=e))
                 rollback_if_current()
 
         if debounce_ms <= 0:
@@ -967,7 +968,7 @@ class HydraConnection(QObject):
                 # have the route yet. Either way the robots are stopped one by one.
                 return await self._stop_robots_one_by_one()
             if resp.status_code != 200:
-                message = describe_rejection(resp, "STOP")
+                message = describe_rejection(resp, _("MSG_NET_WHAT_STOP"))
                 self.error.emit(message)
                 return StopAllResult.not_confirmed(message)
             try:
@@ -975,11 +976,11 @@ class HydraConnection(QObject):
             except ValueError:
                 body = None
             if not isinstance(body, dict):
-                return StopAllResult.not_confirmed("the server answered with something that is not JSON")
+                return StopAllResult.not_confirmed(_("MSG_NET_NOT_JSON"))
             result = StopAllResult.from_json(body)
             self._apply_stopped(result)
             return result
-        self.error.emit(f"STOP failed: {reason}")
+        self.error.emit(_("MSG_NET_STOP_FAILED", reason=reason))
         return StopAllResult.not_confirmed(reason)
 
     async def _stop_robots_one_by_one(self) -> StopAllResult:
@@ -996,7 +997,7 @@ class HydraConnection(QObject):
                     resp = await self._http(
                         "POST", f"/api/robot/{robot.id}/command", timeout=STOP_ALL_TIMEOUT_S, json={"command": "stop", "params": {}}
                     )
-                    error = None if resp.status_code < 400 else describe_rejection(resp, "STOP")
+                    error = None if resp.status_code < 400 else describe_rejection(resp, _("MSG_NET_WHAT_STOP"))
                     break
                 except (httpx.HTTPError, OSError) as e:
                     error = str(e) or e.__class__.__name__
@@ -1075,7 +1076,7 @@ class HydraConnection(QObject):
             await self.fetch_state()
         except (httpx.HTTPError, ValueError) as e:
             self.status_changed.emit("error")
-            self.error.emit(f"Initial fetch failed: {e}")
+            self.error.emit(_("MSG_NET_FETCH_FAILED", error=e))
             # Still try the WebSocket below - a server that's up but whose
             # REST fetch raced a restart shouldn't be given up on immediately.
 
@@ -1168,7 +1169,7 @@ class HydraConnection(QObject):
             # from a non-admin session, for one). The local mirror may now
             # show a value the server never applied: say so and re-read.
             logger.warning("HydraConnection %s: %s", self.info.host, msg["error"])
-            self.error.emit(f"Write rejected by the server: {msg['error']}")
+            self.error.emit(_("MSG_NET_WRITE_REJECTED_SERVER", error=msg["error"]))
             self._last_payload_json = None
             self._resync_after_error()
             return

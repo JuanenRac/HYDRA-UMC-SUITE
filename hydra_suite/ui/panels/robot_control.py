@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, JOINT_NAMES, SPEED_MAX_PERCENT, SPEED_MIN_PERCENT, RobotView
+from hydra_suite.ui.dialogs import confirm
 from hydra_suite.ui.panels.atc_tools_panel import URTC_TOOLS
 from hydra_suite.ui.widgets.rotary_knob import RotaryKnob
 from hydra_suite.ui.widgets.live_sync import sync_combo
@@ -372,7 +373,24 @@ class RobotControlPanel(QWidget):
     def _on_tool_changed(self, value: str) -> None:
         if self._current_robot is None:
             return
-        self._controller.send_robot_command(self._current_robot.id, "tool", {"tool": value}, lambda r: r.set_tool(value))
+        robot = self._current_robot
+        if value == robot.tool:
+            return
+        # The tool decides what the robot does with the following moves, so
+        # the change is asked for first; declining puts the selector back.
+        self._pending_tool_box = confirm(
+            self,
+            _("TITLE_CONFIRM_TOOL"),
+            _("MSG_CONFIRM_TOOL", tool=value),
+            lambda: self._controller.send_robot_command(robot.id, "tool", {"tool": value}, lambda r: r.set_tool(value)),
+        )
+        self._pending_tool_box.finished.connect(lambda _result: self._show_current_tool())
+
+    def _show_current_tool(self) -> None:
+        """Selector back on the tool the robot really has (after a declined change)."""
+        self._tool_combo.blockSignals(True)
+        self._tool_combo.setCurrentText(self._current_robot.tool if self._current_robot else "None")
+        self._tool_combo.blockSignals(False)
 
     def _on_valve_toggled(self, index: int, checked: bool) -> None:
         if self._current_robot is None:

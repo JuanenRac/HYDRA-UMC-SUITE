@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import QSize, Qt, QTimer
-from PySide6.QtGui import QActionGroup, QIcon, QKeySequence, QShortcut
+from PySide6.QtGui import QActionGroup, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtWidgets import (
     QDockWidget,
@@ -35,7 +35,8 @@ from hydra_suite import __version__
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.ui.about_dialog import AboutDialog
 from hydra_suite.ui.nav_sidebar import NavSidebar
-from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, save_config, CONFIG_FILE_PATH
+from hydra_suite.i18n import _, AVAILABLE_LANGUAGES, current_language, load_config, save_config, CONFIG_FILE_PATH
+from hydra_suite.ui.layout_state import CONFIG_KEY, decode_layout, encode_layout
 from hydra_suite.ui.panels.admin_clients_panel import AdminClientsPanel
 from hydra_suite.ui.panels.admin_logs_panel import AdminLogsPanel
 from hydra_suite.ui.panels.admin_server_panel import AdminServerPanel
@@ -96,6 +97,7 @@ class MainWindow(QMainWindow):
         self._build_nav_sidebar()
         self._build_command_deck()
         self._build_status_bar()
+        self._restore_dock_layout()
 
     def _apply_window_icon(self) -> None:
         """Use the same official HYDRA-UMC mark as the Updater taskbar.
@@ -134,6 +136,7 @@ class MainWindow(QMainWindow):
         self.cameras_panel = CamerasPanel(self.controller)
         self.camera_media_panel = CameraMediaPanel(self.controller)
         self.logs_panel = LogsPanel()
+        self.logs_panel.set_servers_provider(self._diagnostic_servers)
         # Ecosystem-wide panels - visual surface for the whole HYDRA-UMC-*
         # ecosystem the active connection's own Server can see, not just
         # this controller's own robots. See each panel's own header
@@ -295,6 +298,44 @@ class MainWindow(QMainWindow):
             dock_urtc_flasher, dock_hydra_flasher, dock_urtc_tester, dock_hydra_tester,
         ):
             self._view_menu.addAction(dock.toggleViewAction())
+        self._view_menu.addSeparator()
+        reset_layout = self._view_menu.addAction(_("MENU_RESET_LAYOUT"))
+        reset_layout.triggered.connect(self._reset_dock_layout)
+
+    def _diagnostic_servers(self) -> list[dict]:
+        """The servers of the connection list as the public facts the support
+        bundle may carry (never the user name, the password or a token)."""
+        servers = []
+        for conn in self.controller.connections.values():
+            info = conn.info
+            servers.append({
+                "label": info.nickname or info.hostname, "host": info.host, "port": info.port,
+                "status": "connected" if conn.is_connected else "not connected",
+                "app_version": info.app_version, "remote_api_version": info.remote_api_version, "role": conn.role,
+            })
+        return servers
+
+    # --- dock layout kept between sessions ------------------------------------
+
+    def _restore_dock_layout(self) -> None:
+        """Remembers the arrangement the panels had when the window was last
+        closed. The default arrangement is captured first so View > Reset
+        layout can bring it back; a stored value this version cannot read is
+        ignored."""
+        self._default_dock_state = self.saveState()
+        stored = decode_layout(load_config().get(CONFIG_KEY))
+        if stored is not None:
+            self.restoreState(stored)
+
+    def _reset_dock_layout(self) -> None:
+        self.restoreState(self._default_dock_state)
+        save_config({CONFIG_KEY: None})
+
+    def _save_dock_layout(self) -> None:
+        # The headless platform is only used by the automated checks, which must not rewrite a developer's own layout.
+        if QGuiApplication.platformName() == "offscreen" and not getattr(self, "_force_layout_save", False):
+            return
+        save_config({CONFIG_KEY: encode_layout(bytes(self.saveState()))})
 
     # --- navigation sidebar ---------------------------------------------------
 
@@ -569,6 +610,7 @@ class MainWindow(QMainWindow):
         # request is held back, the connections are closed (bounded wait) and
         # the window is closed again.
         if getattr(self, "_shutdown_done", False):
+            self._save_dock_layout()
             super().closeEvent(event)
             return
         event.ignore()
