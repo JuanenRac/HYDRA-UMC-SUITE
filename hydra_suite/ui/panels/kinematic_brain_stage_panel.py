@@ -43,7 +43,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
-from hydra_suite.models import ControllerView, HydraState
+from hydra_suite.models import ControllerView, HydraState, default_kinematic_brain_stage
 
 AXIS_KEYS: tuple[str, ...] = ("x", "y1", "y2", "z")
 JOG_STEPS_MM: tuple[float, ...] = (0.01, 0.1, 1.0, 2.0, 5.0, 10.0, 100.0)
@@ -57,6 +57,30 @@ ENDSTOP_ENTRIES: tuple[tuple[str, str], ...] = (
     ("e0Min", "E0 MIN"), ("e0Max", "E0 MAX"),
     ("e1Min", "E1 MIN"), ("e1Max", "E1 MAX"),
 )
+
+
+def _fill_from(value, default):
+    """`value` with every missing or wrongly typed entry taken from `default`
+    (recursively); the lists keep their own length, only a non-list is replaced."""
+    if isinstance(default, dict):
+        source = value if isinstance(value, dict) else {}
+        return {key: _fill_from(source.get(key), item) for key, item in default.items()} | {
+            key: item for key, item in source.items() if key not in default
+        }
+    if isinstance(default, list):
+        return value if isinstance(value, list) else list(default)
+    if isinstance(default, bool):
+        return value if isinstance(value, bool) else default
+    if isinstance(default, (int, float)):
+        return value if isinstance(value, (int, float)) and not isinstance(value, bool) else default
+    return value if isinstance(value, type(default)) else default
+
+
+def complete_stage(stage) -> dict:
+    """A copy of the controller's stage where whatever the server left out or
+    sent as another type reads as the seed default, so a half-filled record
+    never stops the panel from drawing."""
+    return _fill_from(stage, default_kinematic_brain_stage())
 
 
 def _clamp(value: float, lo: float, hi: float) -> float:
@@ -264,7 +288,7 @@ class KinematicBrainStagePanel(QWidget):
     def _refresh_controls(self, active: ControllerView | None) -> None:
         if active is None:
             return
-        stage = active.kinematic_brain_stage
+        stage = complete_stage(active.kinematic_brain_stage)
 
         xy = stage["xyTable"]
         for axis in AXIS_KEYS:
@@ -380,11 +404,12 @@ class KinematicBrainStagePanel(QWidget):
         active = self._current_controller()
         if active is None:
             return
-        atc = active.kinematic_brain_stage["atcRevolver"]
-        n = atc["toolCount"]
-        next_index = (atc["targetIndex"] + direction) % n
-        if next_index < 0:
-            next_index += n
+        atc = active.kinematic_brain_stage.setdefault("atcRevolver", {})
+        n = atc.get("toolCount")
+        n = n if isinstance(n, int) and not isinstance(n, bool) and n >= 2 else 8
+        target = atc.get("targetIndex")
+        target = target if isinstance(target, int) and not isinstance(target, bool) else 0
+        next_index = (target + direction) % n
         atc["targetIndex"] = next_index
         atc["currentIndex"] = next_index
         atc["homed"] = True
@@ -434,7 +459,9 @@ class KinematicBrainStagePanel(QWidget):
         active = self._current_controller()
         if active is None:
             return
-        fans = active.kinematic_brain_stage["fans"]
+        fans = active.kinematic_brain_stage.get("fans")
+        if not isinstance(fans, list) or not 0 <= index < len(fans):
+            return  # a shorter list than the buttons: nothing to toggle
         fans[index] = not fans[index]
         self._patch({"fans": fans})
 
@@ -442,7 +469,9 @@ class KinematicBrainStagePanel(QWidget):
         active = self._current_controller()
         if active is None:
             return
-        pumps = active.kinematic_brain_stage["pumps"]
+        pumps = active.kinematic_brain_stage.get("pumps")
+        if not isinstance(pumps, list) or not 0 <= index < len(pumps):
+            return  # a shorter list than the buttons: nothing to toggle
         pumps[index] = not pumps[index]
         self._patch({"pumps": pumps})
 
@@ -450,6 +479,8 @@ class KinematicBrainStagePanel(QWidget):
         active = self._current_controller()
         if active is None:
             return
-        valves = active.kinematic_brain_stage["valves"]
+        valves = active.kinematic_brain_stage.get("valves")
+        if not isinstance(valves, list) or not 0 <= index < len(valves):
+            return  # a shorter list than the buttons: nothing to toggle
         valves[index] = not valves[index]
         self._patch({"valves": valves})

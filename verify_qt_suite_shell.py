@@ -55,13 +55,15 @@ def _run() -> None:
         f"QML nav taxonomy must match nav_sidebar.py's own ALL_DOCK_KEYS exactly - "
         f"missing={ALL_DOCK_KEYS - all_keys} extra={all_keys - ALL_DOCK_KEYS}"
     )
-    # All 26 real nav keys are ported now (viewport - a real 3D live
-    # view - was the last one) - a real, strict equality rather than the
-    # subset check this used while the port was still in progress.
-    assert MIGRATED_PANELS == all_keys, (
-        f"every real nav key should be migrated now - "
-        f"missing={all_keys - MIGRATED_PANELS} extra={MIGRATED_PANELS - all_keys}"
+    # Every nav key is ported except these two, which show the honest
+    # placeholder; a panel ported or dropped without this list (and the
+    # README counts, tests/verify_readme_facts.py) changing fails here.
+    NOT_PORTED = {"robots_catalog", "system_supervisor"}
+    assert all_keys - MIGRATED_PANELS == NOT_PORTED, (
+        f"the panels still on the placeholder changed - "
+        f"not ported={all_keys - MIGRATED_PANELS} unknown ported={MIGRATED_PANELS - all_keys}"
     )
+    assert MIGRATED_PANELS <= all_keys
 
     # --- navigation ---
     assert bridge.activePanel == "overview"

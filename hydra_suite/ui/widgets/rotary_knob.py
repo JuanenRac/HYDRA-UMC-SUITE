@@ -34,6 +34,9 @@ class RotaryKnob(QWidget):
         self._drag_start_value = 0.0
         self.setMinimumSize(56, 56)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        # The wheel only turns the knob after it was clicked: scrolling a panel
+        # with the mouse over a knob must not move a joint.
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
     def setRange(self, minimum: float, maximum: float) -> None:
         self._min, self._max = minimum, maximum
@@ -113,8 +116,14 @@ class RotaryKnob(QWidget):
         self._dragging = False
 
     def wheelEvent(self, event) -> None:
+        if not self.hasFocus():
+            event.ignore()  # lets the scroll area under the knob scroll instead
+            return
         span = self._max - self._min
         step = span / 200.0
         direction = 1 if event.angleDelta().y() > 0 else -1
+        before = self._value
         self.setValue(self._value + step * direction)
-        self.valueChanged.emit(self._value)
+        if self._value != before:
+            self.valueChanged.emit(self._value)
+        event.accept()

@@ -26,6 +26,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable
 
@@ -676,6 +677,44 @@ class HydraConnection(QObject):
         if resp.status_code != 200:
             return None  # an error body is not a picture or a recording
         return resp.content
+
+    async def save_camera_media_to(self, camera_id: int, kind: str, filename: str, dest_path: str) -> bool:
+        """Streams one saved snapshot/recording to `dest_path` in chunks, so a
+        long recording neither waits for a whole-body timeout nor sits in
+        memory. The bytes go to a `.part` file first and replace the
+        destination only once the answer was a complete 200; an error answer,
+        a network failure or an unwritable folder leaves nothing behind and
+        returns False."""
+        path = f"/api/camera/media/{camera_id}/{kind}/{filename}"
+        part = f"{dest_path}.part"
+        url = f"{self.info.base_url}{path}"
+        timeout = httpx.Timeout(10.0, read=120.0)
+        try:
+            for attempt in (0, 1):
+                used = self._token
+                headers = {"Authorization": f"Bearer {used}"} if used else {}
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                    async with client.stream("GET", url, headers=headers, timeout=timeout) as resp:
+                        if attempt == 0 and used and (resp.status_code == 401 or (resp.status_code == 403 and _body_code(await _read_json_body(resp)) in _RENEWABLE_TOKEN_CODES)):
+                            pass  # renew below, then repeat once
+                        elif resp.status_code != 200:
+                            return False
+                        else:
+                            with open(part, "wb") as f:
+                                async for chunk in resp.aiter_bytes(65536):
+                                    f.write(chunk)
+                            os.replace(part, dest_path)
+                            return True
+                if not (await self._renew_session(used) and self._token):
+                    return False
+            return False
+        except (httpx.HTTPError, OSError):
+            return False
+        finally:
+            try:
+                os.remove(part)
+            except OSError:
+                pass
 
     async def delete_camera_media(self, camera_id: int, kind: str, filename: str) -> tuple[int, object] | None:
         """DELETE /api/camera/media/:cameraId/:kind/:filename - a real,

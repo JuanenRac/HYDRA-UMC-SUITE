@@ -57,6 +57,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 # Matches XYTableConfig.tsx's own `xyTable?.tableSize.width || 500` -
 # what shows in the size fields before any real xyTable object exists.
@@ -110,14 +111,14 @@ class XYTablePanel(QWidget):
         empty_page = QWidget()
         empty_layout = QVBoxLayout(empty_page)
         empty_layout.addStretch(1)
-        empty_title = QLabel(_("LBL_NO_MODULE_ASSIGNED", machine="XY Table"))
+        empty_title = QLabel(_("LBL_NO_MODULE_ASSIGNED", machine=_("HEADING_XY_TABLE")))
         empty_title.setStyleSheet("font-weight: 600; color: #cfd8e3;")
         empty_layout.addWidget(empty_title)
         empty_desc = QLabel(_("LBL_NO_MODULE_DESC"))
         empty_desc.setWordWrap(True)
         empty_desc.setStyleSheet("color: #7f8ea1;")
         empty_layout.addWidget(empty_desc)
-        self._enable_btn = QPushButton(_("BTN_ENABLE_MODULE", machine="XY Table"))
+        self._enable_btn = QPushButton(_("BTN_ENABLE_MODULE", machine=_("HEADING_XY_TABLE")))
         self._enable_btn.clicked.connect(self._on_enable)
         empty_layout.addWidget(self._enable_btn)
         empty_layout.addStretch(2)
@@ -173,7 +174,7 @@ class XYTablePanel(QWidget):
         axes_row = QHBoxLayout()
 
         x_col = QVBoxLayout()
-        x_col.addWidget(QLabel("X Axis"))
+        x_col.addWidget(QLabel(_("QT_XY_TABLE_X_AXIS")))
         self._x_pos_label = QLabel("0.00")
         self._x_pos_label.setStyleSheet("font-family: monospace; font-size: 16px; color: #f59e0b;")
         x_col.addWidget(self._x_pos_label)
@@ -188,7 +189,7 @@ class XYTablePanel(QWidget):
         axes_row.addLayout(x_col)
 
         y_col = QVBoxLayout()
-        y_col.addWidget(QLabel("Y Axis"))
+        y_col.addWidget(QLabel(_("QT_XY_TABLE_Y_AXIS")))
         self._y_pos_label = QLabel("0.00")
         self._y_pos_label.setStyleSheet("font-family: monospace; font-size: 16px; color: #f59e0b;")
         y_col.addWidget(self._y_pos_label)
@@ -225,17 +226,7 @@ class XYTablePanel(QWidget):
 
         previously_selected_id = self._current_robot.id if self._current_robot is not None else None
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        for r in robots:
-            self._robot_combo.addItem(f"{r.model} (A{r.id})", r.id)
-        restore_index = 0
-        if previously_selected_id is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected_id:
-                    restore_index = i
-                    break
-        if self._robot_combo.count() > 0:
-            self._robot_combo.setCurrentIndex(restore_index)
+        restore_index = sync_combo(self._robot_combo, [((f"{r.model} (A{r.id})"), r.id) for r in robots], previously_selected_id)
         self._robot_combo.blockSignals(False)
 
         self._current_robot = next((r for r in robots if r.id == self._robot_combo.currentData()), None) if robots else None
@@ -265,6 +256,13 @@ class XYTablePanel(QWidget):
         self._length_spin.setValue(int(size.get("length", _DISPLAY_DEFAULT_SIZE_MM)))
         self._width_spin.blockSignals(False)
         self._length_spin.blockSignals(False)
+
+        # Without a stored table the size and jog controls would do nothing (same
+        # as STUDIO); show them as unavailable and say why, instead of ignoring clicks.
+        usable = table is not None
+        for widget in (self._width_spin, self._length_spin, self._step_combo, self._x_minus_btn, self._x_plus_btn, self._y_minus_btn, self._y_plus_btn):
+            widget.setEnabled(usable)
+            widget.setToolTip("" if usable else _("TIP_XY_TABLE_NEEDS_RESET"))
 
         pos = table["pos"] if table else {"x": 0, "y": 0}
         self._x_pos_label.setText(f"{float(pos.get('x', 0)):.2f}")

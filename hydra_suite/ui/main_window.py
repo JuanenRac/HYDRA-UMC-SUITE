@@ -550,7 +550,11 @@ class MainWindow(QMainWindow):
                 app_version = result[1].get("appVersion")
                 if isinstance(app_version, str):
                     server_version = app_version
-        AboutDialog(__version__, server_version, logo_path, self).exec()
+        # open() (not exec()): no nested event loop inside this task
+        self._about_dialog = AboutDialog(__version__, server_version, logo_path, self)
+        self._about_dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self._about_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._about_dialog.open()
 
     def _on_language_change(self, code: str) -> None:
         if save_config({"language": code}):

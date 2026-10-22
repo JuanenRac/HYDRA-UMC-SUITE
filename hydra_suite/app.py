@@ -17,13 +17,15 @@ import logging
 from dataclasses import dataclass, field
 from typing import Callable
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QTimer, Signal
 
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 from hydra_suite.i18n import _
 from hydra_suite.net.client import HydraConnection, StopAllResult
 
 logger = logging.getLogger(__name__)
+
+PUSH_WINDOW_MS = 150  # at most one settings write per server in this time while a control is being dragged
 
 
 def spawn(coro) -> "asyncio.Future":
@@ -135,6 +137,14 @@ class SuiteController(QObject):
         self.connections: dict[str, HydraConnection] = {}
         self._active_id: str = ""
         self.stop_all_summary: StopAllSummary | None = None
+        # Writes of the settings tree are rate limited: the first one goes out
+        # at once, the ones that follow inside the window are merged into a
+        # single write of the latest state when the window ends.
+        self._push_pending: list[HydraConnection] = []
+        self._push_timer = QTimer(self)
+        self._push_timer.setSingleShot(True)
+        self._push_timer.setInterval(PUSH_WINDOW_MS)
+        self._push_timer.timeout.connect(self._on_push_window_end)
 
     # --- connection management --------------------------------------------
 
@@ -200,10 +210,34 @@ class SuiteController(QObject):
     def push_active_state(self) -> None:
         """Call after mutating the active connection's own HydraState in
         place (e.g. a jog slider changed a joint value) - schedules the
-        actual network write."""
+        actual network write. The whole settings tree is sent each time, so
+        while a slider or spin box is dragged the writes are merged: the first
+        goes out at once and the rest become one write of the latest state
+        when PUSH_WINDOW_MS has passed."""
         conn = self.active_connection
-        if conn is not None:
-            asyncio.ensure_future(conn.push_state())
+        if conn is None:
+            return
+        if self._push_timer.isActive():
+            if conn not in self._push_pending:
+                self._push_pending.append(conn)
+            return
+        spawn(conn.push_state())
+        self._push_timer.start()
+
+    def _on_push_window_end(self) -> None:
+        pending, self._push_pending = self._push_pending, []
+        for conn in pending:
+            if conn in self.connections.values():
+                spawn(conn.push_state())
+        if pending:
+            self._push_timer.start()  # keep the rate limit going while writes keep coming
+
+    def flush_pushes(self) -> None:
+        """Sends the merged writes that are still waiting (before closing)."""
+        self._push_timer.stop()
+        pending, self._push_pending = self._push_pending, []
+        for conn in pending:
+            spawn(conn.push_state())
 
     def send_robot_command(
         self,
@@ -255,6 +289,13 @@ class SuiteController(QObject):
         self.stop_all_changed.emit(summary)
 
     async def shutdown(self) -> None:
+        pending, self._push_pending = list(self._push_pending), []
+        self._push_timer.stop()
+        for conn in pending:
+            try:
+                await conn.push_state()
+            except Exception as error:
+                logger.warning("last write to %s failed: %s", conn.info.host, error)
         for conn in list(self.connections.values()):
             try:
                 await conn.disconnect()

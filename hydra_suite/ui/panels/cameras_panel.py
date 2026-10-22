@@ -47,6 +47,8 @@ from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import CAMERA_TYPES, RTSP_DEFAULT_PORT, CameraView, HydraState, RobotView, ip_stream_labels
 from hydra_suite.net.client import HydraConnection
+from hydra_suite.ui.widgets.live_sync import set_text_unless_editing, sync_combo
+from hydra_suite.ui.widgets.live_sync import run_timers_while_visible
 
 # type strings for the USB-only and Thermal option groups, mirroring
 # HYDRA-UMC-STUDIO's own CamerasView.tsx combobox split. The IP group is
@@ -400,36 +402,25 @@ class CameraCard(QFrame):
             self._ptz_button.setChecked(False)  # also hides _ptz_row via _on_ptz_toggled
 
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        self._robot_combo.addItem(_("OPT_NONE_FLOATING"), None)
-        for robot in robots:
-            self._robot_combo.addItem(f"{robot.model} (A{robot.id})", int(robot.id))
-        restore_index = 0
-        if camera.assigned_robot_id is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == camera.assigned_robot_id:
-                    restore_index = i
-                    break
-        self._robot_combo.setCurrentIndex(restore_index)
+        sync_combo(
+            self._robot_combo,
+            [(_("OPT_NONE_FLOATING"), None)] + [(f"{robot.model} (A{robot.id})", int(robot.id)) for robot in robots],
+            camera.assigned_robot_id,
+        )
         self._robot_combo.blockSignals(False)
 
         self._usb_button.setChecked(not is_ip)
         self._ip_button.setChecked(is_ip)
         self._source_stack.setCurrentIndex(_IP_PAGE if is_ip else _USB_PAGE)
 
-        if self._hardware_source_edit.text() != camera.hardware_source:
-            self._hardware_source_edit.setText(camera.hardware_source)
-        if self._ip_host_edit.text() != camera.ip_host:
-            self._ip_host_edit.setText(camera.ip_host)
+        set_text_unless_editing(self._hardware_source_edit, camera.hardware_source)
+        set_text_unless_editing(self._ip_host_edit, camera.ip_host)
         if self._rtsp_port_spin.value() != camera.rtsp_port:
             self._rtsp_port_spin.setValue(camera.rtsp_port)
-        if self._rtsp_path_edit.text() != camera.rtsp_path:
-            self._rtsp_path_edit.setText(camera.rtsp_path)
+        set_text_unless_editing(self._rtsp_path_edit, camera.rtsp_path)
         self._sync_extra_path_fields(camera)
-        if self._ip_username_edit.text() != camera.ip_username:
-            self._ip_username_edit.setText(camera.ip_username)
-        if self._ip_password_edit.text() != camera.ip_password:
-            self._ip_password_edit.setText(camera.ip_password)
+        set_text_unless_editing(self._ip_username_edit, camera.ip_username)
+        set_text_unless_editing(self._ip_password_edit, camera.ip_password)
 
         if camera.connected:
             self._toggle_button.setText(_("BTN_TOGGLE_CONNECTION") + f" ({_('STATUS_CONNECTED')})")
@@ -942,7 +933,7 @@ class CamerasPanel(QWidget):
         self._status_poll_timer = QTimer(self)
         self._status_poll_timer.setInterval(3000)
         self._status_poll_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
-        self._status_poll_timer.start()
+        run_timers_while_visible(self, [self._status_poll_timer], lambda: asyncio.ensure_future(self._poll_camera_status()))
 
     async def _poll_camera_status(self) -> None:
         conn = self._controller.active_connection

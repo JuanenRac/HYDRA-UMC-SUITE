@@ -43,6 +43,7 @@ from typing import Any
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFileDialog,
     QFrame,
@@ -63,6 +64,7 @@ from PySide6.QtWidgets import (
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 # STUDIO's own URTC_TOOLS (ATCToolsConfig.tsx) - deliberately NOT run
 # through _() translation here either: STUDIO's own source never wraps
@@ -150,7 +152,7 @@ class PositionEditor(QWidget):
             table_row = QHBoxLayout()
             for f in TABLE_FIELDS:
                 col = QVBoxLayout()
-                lbl = QLabel(f"Table {f[1].upper()} (mm)")
+                lbl = QLabel(_("LBL_TABLE_AXIS_MM", axis=f[1].upper()))
                 lbl.setStyleSheet("font-size: 9px; font-weight: 600; color: #d97706;")
                 col.addWidget(lbl)
                 spin = QDoubleSpinBox()
@@ -308,14 +310,14 @@ class AtcToolsPanel(QWidget):
         empty_page = QWidget()
         empty_layout = QVBoxLayout(empty_page)
         empty_layout.addStretch(1)
-        empty_title = QLabel(_("LBL_NO_MODULE_ASSIGNED", machine="ATC"))
+        empty_title = QLabel(_("LBL_NO_MODULE_ASSIGNED", machine=_("HEADING_ATC")))
         empty_title.setStyleSheet("font-weight: 600; color: #cfd8e3;")
         empty_layout.addWidget(empty_title)
         empty_desc = QLabel(_("LBL_ATC_EMPTY_DESC"))
         empty_desc.setWordWrap(True)
         empty_desc.setStyleSheet("color: #7f8ea1;")
         empty_layout.addWidget(empty_desc)
-        self._enable_btn = QPushButton(_("BTN_ENABLE_MODULE", machine="ATC"))
+        self._enable_btn = QPushButton(_("BTN_ENABLE_MODULE", machine=_("HEADING_ATC")))
         self._enable_btn.clicked.connect(self._on_enable)
         empty_layout.addWidget(self._enable_btn)
         empty_layout.addStretch(2)
@@ -404,17 +406,7 @@ class AtcToolsPanel(QWidget):
 
         previously_selected_id = self._current_robot.id if self._current_robot else None
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        for r in robots:
-            self._robot_combo.addItem(f"{r.id} — {r.model}", r.id)
-        restore_index = 0
-        if previously_selected_id is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected_id:
-                    restore_index = i
-                    break
-        if robots:
-            self._robot_combo.setCurrentIndex(restore_index)
+        restore_index = sync_combo(self._robot_combo, [((f"{r.id} — {r.model}"), r.id) for r in robots], previously_selected_id)
         self._robot_combo.blockSignals(False)
 
         self._current_robot = robots[restore_index] if robots else None
@@ -472,12 +464,38 @@ class AtcToolsPanel(QWidget):
             grid = config.get("panelGrid", "2x2")
             try:
                 rows, cols = (int(x) for x in grid.split("x"))
-            except ValueError:
+            except (ValueError, AttributeError, TypeError):
                 rows, cols = 2, 2
-            return rows * cols
-        return max(1, int(config.get("revolverSlots", 8) or 8))
+            return max(1, rows * cols)
+        try:
+            return max(1, int(config.get("revolverSlots", 8) or 8))
+        except (ValueError, TypeError):
+            return 8
+
+    def _slots_signature(self, config: dict[str, Any], is_panel: bool) -> tuple:
+        tools_by_slot = {t.get("slot"): t for t in config.get("tools", []) if isinstance(t, dict)}
+        count = self._slot_count(config)
+        return (
+            is_panel,
+            count,
+            self._editing_slot,
+            bool(self._current_robot.has_xy_table) if self._current_robot else False,
+            tuple(str(tools_by_slot.get(i, {}).get("tool", "None")) for i in range(count)),
+        )
 
     def _rebuild_slots(self, config: dict[str, Any], is_panel: bool) -> None:
+        # Rows are rebuilt only when what they show changed (slot count, tool
+        # names, which slot is being edited). A position that changes while
+        # the operator types in the open editor must not delete that editor.
+        signature = self._slots_signature(config, is_panel)
+        if signature == getattr(self, "_slots_shown", None) and self._slots_container.count():
+            editor = self._slot_pos_editors.get(self._editing_slot) if isinstance(self._editing_slot, int) else None
+            focused = QApplication.focusWidget()
+            if editor is not None and not (focused is not None and editor.isAncestorOf(focused)):
+                tools_by_slot = {t.get("slot"): t for t in config.get("tools", []) if isinstance(t, dict)}
+                editor.set_values(tools_by_slot.get(self._editing_slot, {}).get("pos") or _default_pos())
+            return
+        self._slots_shown = signature
         while self._slots_container.count():
             item = self._slots_container.takeAt(0)
             w = item.widget()

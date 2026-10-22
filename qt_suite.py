@@ -8,7 +8,7 @@ this repo's own CHANGELOG.md documents as necessary after BOTH real ways of
 embedding QML inside the established QMainWindow+QDockWidget tree proved
 unsafe (QQuickWidget painted solid black; QQuickView+createWindowContainer
 rendered correctly in isolation but corrupted sibling widgets' real Z-order
-inside this app's actual 26-dock layout - see this session's own memory
+inside this app's actual 29-dock layout - see this session's own memory
 note for the full account). This is a STANDALONE pure-QML
 ApplicationWindow instead, the same real shape as
 HYDRA-UMC-OS-REBUILDER/HYDRA-UMC-UPDATER/URTC-TESTER/URTC-FLASHER (all of
@@ -31,9 +31,9 @@ end too (the global STOP is one of its methods, called by both shells).
 
 REAL, HONEST STATUS (kept current in this repo's own CHANGELOG.md, the
 authoritative source - this docstring is not re-updated per panel to avoid
-drifting out of sync with it): only a subset of the 26 real panels
-main_window.py docks are ported to actual QML content so far; every other
-one shows a real, honest "not yet migrated" placeholder (never a fake,
+drifting out of sync with it): 27 of the 29 real panels
+main_window.py docks are ported to actual QML content; the other two
+(Robots Catalog and System Supervisor) show a real, honest "not yet migrated" placeholder (never a fake,
 empty-but-styled panel pretending to be done) pointing back at the
 existing classic view, which remains fully functional and is still this
 app's own default entry point. Run `python main.py --qtquick` to see this
@@ -453,11 +453,9 @@ class SuiteQtBridge(QObject):
         self._admin_clients_timer = QTimer(self)
         self._admin_clients_timer.setInterval(_ADMIN_CLIENTS_POLL_MS)
         self._admin_clients_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_admin_clients()))
-        self._admin_clients_timer.start()
         self._admin_clients_tick_timer = QTimer(self)
         self._admin_clients_tick_timer.setInterval(1000)
         self._admin_clients_tick_timer.timeout.connect(self.changed.emit)
-        self._admin_clients_tick_timer.start()
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_clients()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
@@ -476,7 +474,6 @@ class SuiteQtBridge(QObject):
         self._admin_logs_timer = QTimer(self)
         self._admin_logs_timer.setInterval(_ADMIN_LOGS_POLL_MS)
         self._admin_logs_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_admin_logs()))
-        self._admin_logs_timer.start()
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_logs()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_logs()))
         asyncio.ensure_future(self._refresh_admin_logs())
@@ -622,7 +619,6 @@ class SuiteQtBridge(QObject):
         self._camera_status_timer = QTimer(self)
         self._camera_status_timer.setInterval(3000)
         self._camera_status_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
-        self._camera_status_timer.start()
         # -- real Camera Media parity gap closed - see camera_media_panel.py's
         # own header comment for the full "why this parses frames itself"
         # reasoning; this reuses the exact same parse_mjpeg_frames() (never
@@ -707,6 +703,7 @@ class SuiteQtBridge(QObject):
         self._viewport_frame_version = 0
         self._viewport_current_model: str | None = None
         controller.active_state_changed.connect(self._on_viewport_state_changed)
+        self._apply_poller_gates()
 
     # -- navigation --------------------------------------------------------
 
@@ -718,10 +715,35 @@ class SuiteQtBridge(QObject):
     def activePanelMigrated(self) -> bool:
         return self._active_key in MIGRATED_PANELS
 
+    def _poller_gates(self) -> dict[str, list]:
+        """The panel each poller belongs to: it only runs while that panel is the
+        one on screen, so the server is not asked for what nobody looks at."""
+        return {
+            "admin_clients": [self._admin_clients_timer, self._admin_clients_tick_timer],
+            "admin_logs": [self._admin_logs_timer],
+            "cameras": [self._camera_status_timer],
+        }
+
+    def _apply_poller_gates(self) -> None:
+        for panel_key, timers in self._poller_gates().items():
+            for timer in timers:
+                if panel_key == self._active_key:
+                    if not timer.isActive():
+                        timer.start()
+                elif timer.isActive():
+                    timer.stop()
+
     @Slot(str)
     def navigatePanel(self, key: str) -> None:
         if key != self._active_key:
             self._active_key = key
+            self._apply_poller_gates()
+            if key == "admin_clients":
+                asyncio.ensure_future(self._refresh_admin_clients())
+            elif key == "admin_logs":
+                asyncio.ensure_future(self._refresh_admin_logs())
+            elif key == "cameras":
+                asyncio.ensure_future(self._poll_camera_status())
             self.changed.emit()
 
     @Property("QVariantList", constant=True)

@@ -54,6 +54,7 @@ set -euo pipefail
 # right before the shell actually exits, regardless of which of those 3
 # triggered it.
 trap 'echo; if [ -t 0 ] && [ "${HYDRA_UMC_CI:-}" != "1" ] && [ -z "${CI:-}" ]; then read -r -p "Press Enter to close..." _ || true; fi' EXIT
+echo "[1/7] Checking system libraries..."
 if ! python3 -c "import ctypes; ctypes.CDLL('libGL.so.1')" 2>/dev/null; then
     echo "      libGL.so.1 not found."
     echo "      On Debian/Ubuntu:  sudo apt install libgl1 libxkbcommon-x11-0 libxcb-cursor0"
@@ -64,7 +65,7 @@ fi
 echo "      Found."
 echo
 
-echo "[2/6] Creating/activating virtual environment..."
+echo "[2/7] Creating/activating virtual environment..."
 # Same reasoning as build_exe.bat's own step 1 - a dedicated venv keeps
 # this build reproducible against exactly requirements.txt's own pinned
 # versions, not whatever else happens to be globally installed.
@@ -91,7 +92,7 @@ echo "[4/7] Bumping version number..."
 # carries the new, not-yet-shipped version number. `set -euo pipefail`
 # above already aborts this script if bump_version.py exits non-zero.
 # HYDRA_UMC_SCRIPT_STANDARD_VERSION_STEP
-printf '%s\n' "[1/6] Incrementing project version and synchronising its manifest..."
+printf '%s\n' "      Incrementing project version and synchronising its manifest..."
 python3 bump_version.py || exit 1
 # HYDRA_UMC_SCRIPT_STANDARD_VERSION_CAPTURE_BEFORE
 HYDRA_UMC_VERSION_BEFORE="$(python3 -c 'import json, pathlib, sys; print(json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))["version"])' "$(dirname "$0")/hydra-umc.project.json")"
@@ -154,6 +155,7 @@ echo "[6/7] Compiling HYDRA-UMC_SUITE with PyInstaller..."
 PYSIDE_DIR=$(python3 -c "import PySide6, os; print(os.path.dirname(PySide6.__file__))")
 python3 -m PyInstaller --onefile --noconfirm --name "HYDRA-UMC_SUITE" \
     --add-data "assets:assets" \
+    --add-data "images:images" \
     --add-data "$PYSIDE_DIR/Qt/plugins/platforms:PySide6/Qt/plugins/platforms" \
     --add-data "$PYSIDE_DIR/Qt/plugins/styles:PySide6/Qt/plugins/styles" \
     --add-data "$PYSIDE_DIR/Qt/plugins/imageformats:PySide6/Qt/plugins/imageformats" \

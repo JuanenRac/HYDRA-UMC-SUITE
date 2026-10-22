@@ -5,6 +5,7 @@ connection - not an automated assertion-based test, a "did it crash"
 check meant to be run and watched by a human, or piped to a log for
 inspection, since headless Qt GUI testing has real limits."""
 import asyncio
+import os
 import sys
 
 import qasync
@@ -15,6 +16,9 @@ sys.path.insert(0, ".")
 from hydra_suite.models import ServerInfo
 from hydra_suite.ui.main_window import MainWindow
 from hydra_suite.ui.theme import apply_theme
+
+
+CODE = {"value": 0}
 
 
 def main():
@@ -30,12 +34,19 @@ def main():
 
     async def run_scenario():
         await asyncio.sleep(0.5)
-        info = ServerInfo(host="127.0.0.1", port=3000, hostname="localhost")
+        info = ServerInfo(host="127.0.0.1", port=3000, hostname="localhost", username=os.environ.get("HYDRA_UMC_USER", ""), password=os.environ.get("HYDRA_UMC_PASSWORD", ""))
         window.controller.add_server(info)
         print("Added server, waiting for connection + state...")
         await asyncio.sleep(2.0)
         conn = window.controller.active_connection
         print("Connection status live:", conn.is_connected if conn else None)
+        # A smoke test that cannot tell a failure from a pass is not one: set
+        # HYDRA_UMC_USER / HYDRA_UMC_PASSWORD for the server on localhost:3000.
+        if conn is None or not conn.is_connected:
+            print("SMOKE TEST FAILED - not connected (are HYDRA_UMC_USER and HYDRA_UMC_PASSWORD set?)")
+            CODE["value"] = 1
+            app.quit()
+            return
         state = window.controller.active_state
         active_controller = state.active_controller if state else None
         print("Robots seen:", [r.model for r in active_controller.robots] if active_controller else None)
@@ -47,7 +58,12 @@ def main():
             print("Selected robot:", window.robot_control._current_robot)
             print("Viewport stack widget:", window.viewport_panel._stack.currentWidget().__class__.__name__)
 
-        print("SMOKE TEST PASSED - no exceptions raised")
+        if not active_controller or not active_controller.robots:
+            print("SMOKE TEST FAILED - the server answered with no robots")
+            CODE["value"] = 1
+            app.quit()
+            return
+        print("SMOKE TEST PASSED - connected, robots read")
         QTimer.singleShot(500, app.quit)
 
     asyncio.ensure_future(run_scenario())
@@ -58,3 +74,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    sys.exit(CODE["value"])

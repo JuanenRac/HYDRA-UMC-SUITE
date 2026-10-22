@@ -26,9 +26,7 @@ import time
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
-    QInputDialog,
     QLabel,
-    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -38,6 +36,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
+from hydra_suite.ui.dialogs import ask_item, ask_text, show_message
 from hydra_suite.models import JOINT_NAMES, RobotView
 
 
@@ -85,7 +84,7 @@ class TrajectoryPanel(QWidget):
 
         works_row = QHBoxLayout()
         export_button = QPushButton(_("BTN_EXPORT_WORK"))
-        export_button.clicked.connect(lambda: asyncio.ensure_future(self._on_export_work()))
+        export_button.clicked.connect(self._on_export_work)
         works_row.addWidget(export_button)
 
         import_button = QPushButton(_("BTN_IMPORT_WORK"))
@@ -167,15 +166,20 @@ class TrajectoryPanel(QWidget):
         robot_name = str(self._current_robot.raw.get("name") or robot_id)
         return f"WORKS/{re.sub(r'\s+', '', robot_name)}"
 
-    async def _on_export_work(self) -> None:
+    def _on_export_work(self) -> None:
         if self._current_robot is None or not self._points:
             return
-        conn = self._controller.active_connection
-        if conn is None:
-            QMessageBox.warning(self, _("HEADING_TRAJECTORY"), _("LBL_ES_NO_ACTIVE_SERVER"))
+        if self._controller.active_connection is None:
+            show_message(self, "warning", _("HEADING_TRAJECTORY"), _("LBL_ES_NO_ACTIVE_SERVER"))
             return
-        file_name, ok = QInputDialog.getText(self, _("DLG_EXPORT_WORK_TITLE"), _("DLG_EXPORT_WORK_LABEL"), text="trajectory_1")
-        if not ok or not file_name.strip():
+        ask_text(
+            self, _("DLG_EXPORT_WORK_TITLE"), _("DLG_EXPORT_WORK_LABEL"), "trajectory_1",
+            lambda name: asyncio.ensure_future(self._export_work_as(name)) if name.strip() else None,
+        )
+
+    async def _export_work_as(self, file_name: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None or self._current_robot is None:
             return
         if not file_name.endswith(".json"):
             file_name += ".json"
@@ -187,37 +191,43 @@ class TrajectoryPanel(QWidget):
         folder_path = self._works_folder_path()
         result = await conn.save_work_file(folder_path, file_name, content)
         if result is None:
-            QMessageBox.critical(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_EXPORT_FAILED", error="network error"))
+            show_message(self, "critical", _("HEADING_TRAJECTORY"), _("MSG_WORK_EXPORT_FAILED", error=_("MSG_WORK_ERR_NETWORK")))
             return
         status, body = result
         if status != 200:
             error = body.get("error") if isinstance(body, dict) else str(body)
-            QMessageBox.critical(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_EXPORT_FAILED", error=error))
+            show_message(self, "critical", _("HEADING_TRAJECTORY"), _("MSG_WORK_EXPORT_FAILED", error=error))
             return
-        QMessageBox.information(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_EXPORTED", file=f"{folder_path}/{file_name}"))
+        show_message(self, "information", _("HEADING_TRAJECTORY"), _("MSG_WORK_EXPORTED", file=f"{folder_path}/{file_name}"))
 
     async def _on_import_work(self) -> None:
         if self._current_robot is None:
             return
         conn = self._controller.active_connection
         if conn is None:
-            QMessageBox.warning(self, _("HEADING_TRAJECTORY"), _("LBL_ES_NO_ACTIVE_SERVER"))
+            show_message(self, "warning", _("HEADING_TRAJECTORY"), _("LBL_ES_NO_ACTIVE_SERVER"))
             return
         folder_path = self._works_folder_path()
         index_result = await conn.fetch_works_index(folder_path)
         if index_result is None or index_result[0] != 200 or not isinstance(index_result[1], list):
-            QMessageBox.warning(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error="no Works found for this robot"))
+            show_message(self, "warning", _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_WORKS")))
             return
         files: list[str] = [f for f in index_result[1] if isinstance(f, str)]
         if not files:
-            QMessageBox.warning(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error="no Works found for this robot"))
+            show_message(self, "warning", _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_WORKS")))
             return
-        file_name, ok = QInputDialog.getItem(self, _("DLG_IMPORT_WORK_TITLE"), _("DLG_IMPORT_WORK_LABEL"), files, 0, False)
-        if not ok or not file_name:
+        ask_item(
+            self, _("DLG_IMPORT_WORK_TITLE"), _("DLG_IMPORT_WORK_LABEL"), files,
+            lambda name: asyncio.ensure_future(self._import_work_file(folder_path, name)) if name else None,
+        )
+
+    async def _import_work_file(self, folder_path: str, file_name: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
             return
         file_result = await conn.fetch_work_file(folder_path, file_name)
         if file_result is None or file_result[0] != 200 or not isinstance(file_result[1], list):
-            QMessageBox.critical(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error=f"could not read {file_name}"))
+            show_message(self, "critical", _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_READ", file=file_name)))
             return
         # A Work point may be joint-space (j1..j6, this panel's own native
         # shape) or a Cartesian x/y/z/a/b/c pose (STUDIO's own recorded-
@@ -235,9 +245,9 @@ class TrajectoryPanel(QWidget):
             point["_time"] = time.strftime("%H:%M:%S")
             imported.append(point)
         if not imported:
-            QMessageBox.warning(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error=f"{file_name} has no native-joint points this panel can jog to"))
+            show_message(self, "warning", _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_JOINTS", file=file_name)))
             return
         self._points = imported
         self._refresh_table()
         if skipped:
-            QMessageBox.information(self, _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_PARTIAL", imported=len(imported), skipped=skipped))
+            show_message(self, "information", _("HEADING_TRAJECTORY"), _("MSG_WORK_IMPORT_PARTIAL", imported=len(imported), skipped=skipped))

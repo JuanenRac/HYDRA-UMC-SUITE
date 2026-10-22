@@ -6,6 +6,7 @@ UR5e: "ur" (UR5e - shared engine, mesh_offsets), "quat" (AR3 - arbitrary
 joint axes, quat_family_link_transforms), and "generic" (no STL at all,
 render/generic_rig.py's own primitive geometry)."""
 import asyncio
+import os
 import sys
 
 import qasync
@@ -30,7 +31,7 @@ def main():
 
     async def run_scenario():
         await asyncio.sleep(0.5)
-        info = ServerInfo(host="127.0.0.1", port=3000, hostname="localhost")
+        info = ServerInfo(host="127.0.0.1", port=3000, hostname="localhost", username=os.environ.get("HYDRA_UMC_USER", ""), password=os.environ.get("HYDRA_UMC_PASSWORD", ""))
         window.controller.add_server(info)
         await asyncio.sleep(1.5)
 

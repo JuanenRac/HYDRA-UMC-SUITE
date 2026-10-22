@@ -38,8 +38,8 @@ def main() -> int:
     if "--qtquick" in sys.argv:
         # The real "redesign from zero" this app's own CHANGELOG.md
         # documents (see qt_suite.py's own module docstring for the
-        # full account) - only a subset of the 26 real panels are
-        # ported so far, every other one shows an honest placeholder.
+        # full account) - 27 of the 29 real panels are
+        # ported; the other two (Robots Catalog, System Supervisor) show an honest placeholder.
         # The classic QMainWindow+QDockWidget app below remains the
         # default until real parity is reached, same opt-in convention
         # URTC-TESTER/URTC-FLASHER used while THEY were mid-migration.
@@ -68,6 +68,9 @@ def main() -> int:
     # rounding it - must be set before QApplication() exists, Qt reads it
     # once at construction time.
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    from hydra_suite.render.gl_format import install_default_surface_format
+
+    install_default_surface_format()  # macOS: the viewport shaders need an OpenGL 3.3 core context
     app = QApplication(sys.argv)
     app.setApplicationName("HYDRA-UMC SUITE")
     app.setOrganizationName("Electro Hobby 3D")

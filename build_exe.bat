@@ -31,6 +31,9 @@ rem Keep the window open for people, never in automation (CI / HYDRA_UMC_CI).
 set "KEEP_OPEN=pause"
 if defined CI set "KEEP_OPEN=ver >nul"
 if "%HYDRA_UMC_CI%"=="1" set "KEEP_OPEN=ver >nul"
+rem build_installer.bat sets this so the build does not wait for a key press.
+if "%HYDRA_UMC_NO_PAUSE%"=="1" set "KEEP_OPEN=ver >nul"
+echo [1/6] Creating/activating virtual environment...
 if not exist .venv (
     python -m venv .venv
 )
@@ -53,18 +56,13 @@ REM carries into minor, e.g. 0.1.9 -> 0.2.0). See bump_version.py itself
 REM for the full rule. Runs BEFORE PyInstaller so the compiled .exe always
 REM carries the new, not-yet-shipped version number.
 REM HYDRA_UMC_SCRIPT_STANDARD_VERSION_STEP
-echo [1/6] Incrementing project version and synchronising its manifest...
+echo       Incrementing project version and synchronising its manifest...
 python bump_version.py
 if errorlevel 1 ( echo NATIVE VERSION BUMP FAILED. & %KEEP_OPEN% & exit /b 1 )
 REM HYDRA_UMC_SCRIPT_STANDARD_VERSION_CAPTURE_BEFORE
 for /f "usebackq delims=" %%V in (`python -c "import json; print(json.load(open(r'%~dp0hydra-umc.project.json', encoding='utf-8'))['version'])"`) do set "HYDRA_UMC_VERSION_BEFORE=%%V"
 python "%~dp0bump_manifest_version.py" --sync
 if errorlevel 1 ( echo VERSION SYNCHRONIZATION FAILED. & %KEEP_OPEN% & exit /b 1 )
-if errorlevel 1 (
-    echo       ERROR: bump_version.py failed - see the output above.
-    %KEEP_OPEN%
-    exit /b 1
-)
 REM HYDRA_UMC_SCRIPT_STANDARD_VERSION_CAPTURE_AFTER
 for /f "usebackq delims=" %%V in (`python -c "import json; print(json.load(open(r'%~dp0hydra-umc.project.json', encoding='utf-8'))['version'])"`) do set "HYDRA_UMC_VERSION_AFTER=%%V"
 if not defined HYDRA_UMC_VERSION_BEFORE set "HYDRA_UMC_VERSION_BEFORE=unknown"
@@ -139,6 +137,8 @@ if not defined PYSIDE_DIR (
 )
 python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" ^
     --add-data "assets;assets" ^
+    --add-data "images;images" ^
+    --icon "images\HYDRA_UMC_ICON.ico" ^
     --add-data "%PYSIDE_DIR%\plugins\platforms;PySide6\plugins\platforms" ^
     --add-data "%PYSIDE_DIR%\plugins\styles;PySide6\plugins\styles" ^
     --add-data "%PYSIDE_DIR%\plugins\imageformats;PySide6\plugins\imageformats" ^

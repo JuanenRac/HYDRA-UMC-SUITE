@@ -52,6 +52,7 @@ from hydra_suite.i18n import _
 from hydra_suite.models import RACK_MAX_CAPACITY, HydraState, RobotView, default_rack_system
 from hydra_suite.racks import rack_geometry, valid_dimension, valid_color
 from hydra_suite.render.viewport import RobotViewport
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 RACK_TYPES: tuple[str, ...] = ("None", "Input", "Output")
 SLOT_GRID_COLUMNS = 6
@@ -142,7 +143,7 @@ class RackGroupWidget(QGroupBox):
         table_row_layout.setContentsMargins(0, 4, 0, 0)
         for field in TABLE_FIELDS:
             col = QVBoxLayout()
-            label = QLabel(f"Table {field[1:].upper()} (mm)")
+            label = QLabel(_("LBL_TABLE_AXIS_MM", axis=field[1:].upper()))
             label.setStyleSheet("color: #d97706;")
             col.addWidget(label)
             spin = QDoubleSpinBox()
@@ -244,14 +245,14 @@ class RackConfigPanel(QWidget):
         empty_page = QWidget()
         empty_layout = QVBoxLayout(empty_page)
         empty_layout.addStretch(1)
-        empty_title = QLabel(_("LBL_NO_MODULE_ASSIGNED", machine="Rack"))
+        empty_title = QLabel(_("LBL_NO_MODULE_ASSIGNED", machine=_("HEADING_RACK_MANAGER")))
         empty_title.setStyleSheet("font-weight: 600; color: #cfd8e3;")
         empty_layout.addWidget(empty_title)
         empty_desc = QLabel(_("LBL_NO_MODULE_DESC"))
         empty_desc.setWordWrap(True)
         empty_desc.setStyleSheet("color: #7f8ea1;")
         empty_layout.addWidget(empty_desc)
-        self._enable_btn = QPushButton(_("BTN_ENABLE_MODULE", machine="Rack"))
+        self._enable_btn = QPushButton(_("BTN_ENABLE_MODULE", machine=_("HEADING_RACK_MANAGER")))
         self._enable_btn.clicked.connect(self._on_enable)
         empty_layout.addWidget(self._enable_btn)
         empty_layout.addStretch(2)
@@ -299,17 +300,7 @@ class RackConfigPanel(QWidget):
 
         previously_selected_id = self._current_robot.id if self._current_robot is not None else None
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        for r in robots:
-            self._robot_combo.addItem(f"{r.model} (A{r.id})", r.id)
-        restore_index = 0
-        if previously_selected_id is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected_id:
-                    restore_index = i
-                    break
-        if self._robot_combo.count() > 0:
-            self._robot_combo.setCurrentIndex(restore_index)
+        restore_index = sync_combo(self._robot_combo, [((f"{r.model} (A{r.id})"), r.id) for r in robots], previously_selected_id)
         self._robot_combo.blockSignals(False)
 
         self._current_robot = next((r for r in robots if r.id == self._robot_combo.currentData()), None) if robots else None

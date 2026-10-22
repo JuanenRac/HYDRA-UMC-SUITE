@@ -76,6 +76,20 @@ def clean_points(points, time_key: str) -> list[tuple[float, float]]:
     return pairs
 
 
+QUERY_POINT_LIMIT = 1000  # what the data service returns at most for one query
+
+
+def telemetry_notices(is_aggregate: bool, params: dict, count: int) -> list[tuple[str, dict]]:
+    """Language keys (with their values) for what the operator should know about
+    a result: series mixed in one line, and a result cut at the service limit."""
+    notices = []
+    if count and not is_aggregate and not any(params.get(k) for k in ("sourceId", "kind", "field")):
+        notices.append(("MSG_TELEMETRY_MIXED_SERIES", {}))
+    if count >= QUERY_POINT_LIMIT:
+        notices.append(("MSG_TELEMETRY_LIMIT_REACHED", {"count": count}))
+    return notices
+
+
 class EcosystemTelemetryPanel(QWidget):
     def __init__(self, controller: SuiteController, parent: QWidget | None = None):
         super().__init__(parent)
@@ -294,7 +308,8 @@ class EcosystemTelemetryPanel(QWidget):
             self._status_label.setText(_("MSG_TELEMETRY_LOAD_ERROR"))
             return
 
-        self._status_label.setText("" if body else _("MSG_TELEMETRY_NO_DATA"))
+        notices = telemetry_notices(is_aggregate, params, len(body))
+        self._status_label.setText(" ".join(_(key, **values) for key, values in notices) if notices else ("" if body else _("MSG_TELEMETRY_NO_DATA")))
         if is_aggregate:
             self._render_bar_chart(body)
             self._update_stats([value for _when, value in clean_points(body, "bucketStart")])

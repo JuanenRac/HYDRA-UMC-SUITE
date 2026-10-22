@@ -48,7 +48,9 @@ def discover_verifiers() -> list[Path]:
     excluded by the glob itself, not by an exception list that could go
     stale.
     """
-    return sorted(TESTS_DIR.glob("verify_*.py"))
+    # verify_qt_suite_shell.py lives in the repository root on purpose (it loads
+    # the real QML); it is part of the same gate.
+    return sorted(TESTS_DIR.glob("verify_*.py")) + [ROOT / "verify_qt_suite_shell.py"]
 
 
 def main() -> int:

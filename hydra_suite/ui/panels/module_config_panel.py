@@ -58,6 +58,7 @@ from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
 from hydra_suite.render.viewport import RobotViewport
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 DEFAULT_SIZE_MM = 500
 
@@ -181,17 +182,7 @@ class ModuleConfigPanel(QWidget):
 
         previously_selected_id = self._current_robot.id if self._current_robot else None
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        for r in robots:
-            self._robot_combo.addItem(f"{r.id} — {r.model}", r.id)
-        restore_index = 0
-        if previously_selected_id is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected_id:
-                    restore_index = i
-                    break
-        if robots:
-            self._robot_combo.setCurrentIndex(restore_index)
+        restore_index = sync_combo(self._robot_combo, [((f"{r.id} — {r.model}"), r.id) for r in robots], previously_selected_id)
         self._robot_combo.blockSignals(False)
 
         self._current_robot = robots[restore_index] if robots else None

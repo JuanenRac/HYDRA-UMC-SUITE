@@ -17,6 +17,7 @@ if defined CI set "KEEP_OPEN=ver >nul"
 if "%HYDRA_UMC_CI%"=="1" set "KEEP_OPEN=ver >nul"
 
 echo [1/2] Building HYDRA-UMC_SUITE.exe (..\build_exe.bat)...
+set "HYDRA_UMC_NO_PAUSE=1"
 pushd ..
 call build_exe.bat
 if errorlevel 1 (

@@ -26,7 +26,7 @@
 </p>
 
 
-**Verificação de honestidade - o que realmente funciona hoje:** a descoberta de rede (análise concorrente de sub-redes + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), a ligação REST+WebSocket em direto e o suporte a enxames (`hydra_suite/net/client.py`, `hydra_suite/app.py`), a cinemática direta real da vista 3D para os 24 modelos de robô reais mais um recurso «Genérico» construído com primitivas (`hydra_suite/render/`, verificada numericamente, bit a bit, contra a FK em TypeScript do próprio HYDRA-UMC STUDIO), os 11 de 11 painéis de configuração de ferramentas acopláveis, a gravação CAN-OTA/SPI-OTA e a renderização MJPEG real das câmaras são reais e testados - 29 scripts offline de verificação/smoke em `tests/` (`python tools/run_offline_verifiers.py`, Qt sem cabeça via `QT_QPA_PLATFORM=offscreen`), todos a passar, mais o `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` exercitados contra um HYDRA-UMC SERVER real em execução e um contexto GPU/OpenGL real nesta máquina. O shell Qt Quick (`--qtquick`, com os 26 painéis clássicos portados, incluindo a vista 3D através de um `OffscreenRobotRenderer` dedicado) é código real e funcional, lançado ao lado do ponto de entrada clássico inalterado. O que explicitamente AINDA NÃO está feito, segundo a convenção de honestidade deste repositório: os níveis CAN-OTA da cabeça de ferramenta URTC/Expansão avançada não têm túnel de retransmissão de hardware real; e o `combinedWith` (modo de robôs combinados) não está exposto na interface desta aplicação apesar de existir no modelo de dados do próprio STUDIO. O `trajectory_panel.py` exporta/importa agora através do formato real `WORKS/*.json` do próprio HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<folder>/index.json`) - um ponto gravado aqui é um Work real e reproduzível a partir de qualquer das aplicações. Consulte o [`docs/ROADMAP.md`](docs/ROADMAP.md) para o desdobramento completo e itemizado do real versus adiado que este parágrafo resume, e o `CHANGELOG.md` para saber exatamente o que já foi entregue.
+**Verificação de honestidade - o que realmente funciona hoje:** a descoberta de rede (análise concorrente de sub-redes + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), a ligação REST+WebSocket em direto e o suporte a enxames (`hydra_suite/net/client.py`, `hydra_suite/app.py`), a cinemática direta real da vista 3D para os 24 modelos de robô reais mais um recurso «Genérico» construído com primitivas (`hydra_suite/render/`, verificada numericamente, bit a bit, contra a FK em TypeScript do próprio HYDRA-UMC STUDIO), os 11 de 11 painéis de configuração de ferramentas acopláveis, a gravação CAN-OTA/SPI-OTA e a renderização MJPEG real das câmaras são reais e testados - 44 scripts offline de verificação/smoke em `tests/` (`python tools/run_offline_verifiers.py`, Qt sem cabeça via `QT_QPA_PLATFORM=offscreen`), todos a passar, mais o `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` exercitados contra um HYDRA-UMC SERVER real em execução e um contexto GPU/OpenGL real nesta máquina. O shell Qt Quick (`--qtquick`, com 27 dos 29 painéis clássicos portados, incluindo a vista 3D através de um `OffscreenRobotRenderer` dedicado) é código real e funcional, lançado ao lado do ponto de entrada clássico inalterado. O que explicitamente AINDA NÃO está feito, segundo a convenção de honestidade deste repositório: os níveis CAN-OTA da cabeça de ferramenta URTC/Expansão avançada não têm túnel de retransmissão de hardware real; e o `combinedWith` (modo de robôs combinados) não está exposto na interface desta aplicação apesar de existir no modelo de dados do próprio STUDIO. O `trajectory_panel.py` exporta/importa agora através do formato real `WORKS/*.json` do próprio HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<folder>/index.json`) - um ponto gravado aqui é um Work real e reproduzível a partir de qualquer das aplicações. Consulte o [`docs/ROADMAP.md`](docs/ROADMAP.md) para o desdobramento completo e itemizado do real versus adiado que este parágrafo resume, e o `CHANGELOG.md` para saber exatamente o que já foi entregue.
 
 ---
 
@@ -79,13 +79,7 @@ dedicado.
 
 ## ✨ Painel de comando visual
 
-O desktop tem agora um painel de comando persistente, inspirado em consolas de
-jogos, que usa o ícone oficial do HYDRA-UMC e a linguagem azul-marinho
-profundo/ciano do HYDRA-UMC-UPDATER. Os seus controlos Dashboard, Controlo do
-robô, Câmaras, Trajetória e Registos levantam os painéis acopláveis reais
-correspondentes; o seu lado direito mostra o estado de ligação em direto, o
-servidor de destino selecionado e a hora UTC. É uma camada visual sobre as
-funções existentes do Suite, não um painel simulado.
+O desktop tem um painel de comando persistente, inspirado em consolas de jogos, que usa o ícone oficial do HYDRA-UMC e a linguagem azul-marinho/ciano do HYDRA-UMC-UPDATER. Mostra o nome do produto, o estado da ligação, o servidor selecionado e a hora UTC, e tem o botão STOP global e Acerca de. A navegação para os painéis acopláveis é a barra lateral esquerda (`nav_sidebar.py`), não o painel de comando. É uma camada visual sobre as funções reais do Suite, não um dashboard simulado.
 
 ### 🛑 STOP global
 
@@ -106,13 +100,13 @@ dentro da árvore clássica `QMainWindow`/`QDockWidget` foram tentadas e
 abandonadas: o `QQuickWidget` pintava tudo de preto sólido, e o
 `QQuickView`+`createWindowContainer()` renderizava corretamente isolado, mas
 corrompia a ordem Z real dos painéis irmãos assim que era colocado na
-disposição real de 26 painéis acopláveis desta aplicação). O mesmo padrão real e
+disposição real de 29 painéis acopláveis desta aplicação). O mesmo padrão real e
 comprovado que o HYDRA-UMC-OS-REBUILDER, o HYDRA-UMC-UPDATER, o URTC-TESTER, o
 URTC-FLASHER e o HYDRA-UMC-EDITOR-URDF já usam, lançado ao lado do ponto de
 entrada clássico inalterado em vez de o substituir. Troca a flexibilidade de
 flutuar/dividir/juntar em separadores do `QDockWidget` pela forma mais simples
 de barra lateral de navegação mais painel de conteúdo único do próprio STUDIO
-(espelhando, item a item, a taxonomia real do próprio `nav_sidebar.py`) - os 26
+(espelhando, item a item, a taxonomia real do próprio `nav_sidebar.py`) - 27 dos 29
 painéis clássicos reais estão portados para conteúdo QML real, incluindo a Vista
 3D, cuja pré-visualização em direto é alimentada por um `OffscreenRobotRenderer`
 dedicado (um `QOpenGLContext`/`QOffscreenSurface`/framebuffer separado e
@@ -243,7 +237,7 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
 ├── main.py                        # Ponto de entrada - arranca maximizada, 1280x720 mínimo, F11 alterna ecrã inteiro/janela; --qtquick muda para o painel abaixo
-├── qt_suite.py                     # Front end Qt Quick - painel de comando `--qtquick` autónomo (todos os 26 painéis), liga o SuiteController inalterado ao QML
+├── qt_suite.py                     # Front end Qt Quick - painel de comando `--qtquick` autónomo (27 dos 29 painéis), liga o SuiteController inalterado ao QML
 ├── verify_qt_suite_shell.py        # Verificação real do shell Qt Quick, sem hardware nem rede - deliberadamente fora de tests/ (pela mesma razão dos verify_qt_*.py do URTC-TESTER/URTC-FLASHER), execute com `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Manifesto do ecossistema - versão/família/pai, a fonte que o painel/atualizador/OS-REBUILDER leem
@@ -282,7 +276,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # Um ficheiro por painel acoplável - paridade real 1:1 com os separadores do próprio STUDIO: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ controlo PTZ real), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, system_supervisor_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # A folha de estilos Qt industrial-futurista
-│   ├── qml/Main.qml                 # Interface Qt Quick do painel de comando `--qtquick` (todos os 26 painéis)
+│   ├── qml/Main.qml                 # Interface Qt Quick do painel de comando `--qtquick` (27 dos 29 painéis)
 │   └── meshes/                      # Malhas STL reais, uma pasta por robô/módulo, copiadas do public/models/ do próprio HYDRA-UMC-STUDIO (cada uma com o seu ATTRIBUTION.txt)
 ├── language/                        # ficheiros .lng english/spanish/french/german/italian/japanese/chinese/portuguese
 ├── docs/

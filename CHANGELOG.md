@@ -12,6 +12,22 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 
 ## [Unreleased]
 
+- Saving a camera recording or snapshot streams it to disk in chunks (a long timeout for reading, a temporary file that replaces the destination only when the whole answer arrived) instead of holding the whole file in memory under a 10 s limit; a failed save says so in the panel and leaves nothing behind.
+- The telemetry panel warns when a query has no source, kind or field filter (several series are drawn as one line) and when the result reached the 1000 points the service returns at most; texts in the eight languages.
+- The Kinematic Brain panel and the ATC panel no longer fail on a half-filled controller record (missing revolver fields, shorter fan / pump / valve lists, a grid that is not text).
+- The installer README says the `language` folder is shipped and must be present after installing.
+- Pollers (admin clients, admin logs, camera status, system supervisor) run only while their panel is shown, in the classic window and in the `--qtquick` shell, instead of asking the server all the time.
+- Robot selectors and camera fields stay calm under live updates: a combo box is rebuilt only when its list changed, and a camera field being typed in is not overwritten by an incoming state.
+- Writes of the settings tree are rate limited to one per 150 ms per server while a slider or spin box is dragged (the first goes out at once, the rest become one write of the latest state, and the last one is sent when the window closes); the ATC slot rows and the position editor being typed in are kept when a refresh changes nothing they show.
+- Dialogs no longer run a nested event loop inside a coroutine (About, camera media delete, work export and import): they open without blocking and hand the answer to a callback.
+- The error texts of the work export and import, the XY table axis names, the table axis labels of the rack and ATC panels and the machine names in the "enable module" buttons come from the language files.
+- The XY table size and jog controls are shown as unavailable, with the reason, until the table has been created with Reset, instead of ignoring clicks.
+- The rotary knob turns with the mouse wheel only after it was clicked, so scrolling a panel does not move a joint, and it sends a value only when it changed.
+- On macOS the 3D viewport asks for an OpenGL 3.3 core context before the application starts.
+- The executable carries the `images` folder (window icon, logo) and, on Windows, its own icon; the build scripts number their steps in order, `build_exe.bat` no longer waits for a key when the installer script calls it, and a repeated check of the version bump was removed.
+- The smoke scripts read the login from `HYDRA_UMC_USER` and `HYDRA_UMC_PASSWORD`, and `smoke_test_app.py` fails when it cannot connect; `verify_qt_suite_shell.py` is part of the offline verifier run and states which two panels still show a placeholder.
+- The READMEs state the real number of verify scripts and of ported panels (27 of 29), describe the command deck as it is, and a verifier keeps those numbers in step with the code; the changelog sections that had no version are placed under the release they belong to.
+- New verifiers: `verify_live_updates.py`, `verify_damaged_panel_data_and_downloads.py`, `verify_no_nested_loops.py`, `verify_build_scripts.py` and `verify_readme_facts.py`.
 - Closing the window now waits (up to 3 s) for every server connection to be closed before the window goes away; a socket that fails to close, or a server that is stuck, no longer keeps the others open or leaves "Task exception was never retrieved" in the log.
 - Connecting to or leaving a server runs as a logged background task: a failure is written to the log instead of being lost.
 - The camera media list reloads when the active server changes or a login completes (the panel is built before any server is connected, so it used to stay empty), and an answer from a server that is no longer the active one is discarded.
@@ -58,36 +74,7 @@ before every PyInstaller build - not on a plain `python main.py` run. See
 - **Window and tools:** the minimum window size is 1280x720; the ATC pickup positions keep their decimals; the log panel keeps the latest 5000 lines and shows server text as plain text; scanning ends even if one discovery source fails; a very large WebSocket message is refused instead of exhausting memory.
 - **Language files:** a duplicate `LBL_BASE_PICKUP_POS` key is removed, the `&` of "Tool & Accessories" is shown, and `tests/verify_language_files.py` now checks line breaks and duplicate keys.
 - **Tests:** `tests/verify_session_and_errors.py` runs the session, refusal and WebSocket behaviour against a small local server.
-- The admin logs have a small copy button (an icon of two sheets) that puts every line on the clipboard, so it can be pasted into a message; it turns green for a moment when it has copied.
-
-## QtQuick mode: real Camera Media panel + snapshot/recording controls
-
-The `--qtquick` shell had no way at all to take a snapshot, start/stop a
-recording, or browse/play back/delete a saved one - only the default
-Widgets UI had this. Closed the gap in one pass: `SuiteQtBridge` gained
-real snapshot/recording Slots on each camera card (reusing the same
-`net/client.py` methods the Widgets panel already calls), plus a full
-Camera Media panel (filter by camera, browse saved snapshots/recordings,
-play back a recording frame-by-frame at its real recorded rate, delete)
-backed by a new `MediaFrameProvider` and the same real MJPEG frame-marker
-parser the Widgets panel already uses - never a second, independent copy
-of that parsing logic.
-
-## Tooling - real bug: build-test.sh/.bat never activated .venv
-
-Live report: running the documented `build-test.bat` produced a wall of
-`ModuleNotFoundError` (numpy/PySide6/httpx/qasync) across all 27 offline
-verifiers, looking exactly like the project was broken. Root cause:
-unlike `run.sh`/`run.bat`/`build_exe.sh`/`build_exe.bat` (which all
-correctly activate `.venv` first), `build-test.sh`/`build-test.bat`
-called the bare `python3`/`python`/`py -3` launcher directly - on any
-machine following the normal, correct workflow (`build_exe` creates
-`.venv` and installs `requirements.txt` into it, nothing is installed
-globally), this reliably fails every dependency-requiring verifier.
-Fixed to activate `.venv` first, exactly like the other 4 scripts
-already do. Tooling-only fix (dev scripts, not shipped application
-code) - no version bump, matching this repo's own convention for
-non-runtime changes.
+- The admin logs of the `--qtquick` shell have a small copy button (an icon of two sheets) that puts every line on the clipboard, so it can be pasted into a message; it turns green for a moment when it has copied.
 
 ## [0.6.5] - Portuguese interface
 
@@ -114,7 +101,18 @@ fixed at once) and `module_rig.py`'s heated-bed/vacuum-table/rack
 segment builders now use a saved color per part when one exists, never
 inventing one when the sidecar simply doesn't exist yet.
 
-## [0.6.1]
+## [0.6.1] - Qt Quick shell: Camera Media panel and snapshot/recording controls
+
+The `--qtquick` shell had no way at all to take a snapshot, start/stop a
+recording, or browse/play back/delete a saved one - only the default
+Widgets UI had this. Closed the gap in one pass: `SuiteQtBridge` gained
+real snapshot/recording Slots on each camera card (reusing the same
+`net/client.py` methods the Widgets panel already calls), plus a full
+Camera Media panel (filter by camera, browse saved snapshots/recordings,
+play back a recording frame-by-frame at its real recorded rate, delete)
+backed by a new `MediaFrameProvider` and the same real MJPEG frame-marker
+parser the Widgets panel already uses - never a second, independent copy
+of that parsing logic.
 
 - Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
@@ -317,6 +315,22 @@ clicking through the app by hand).
 - Add `tests/verify_delta_settings_convergence.py` and extend
   `tests/verify_send_command_debounce.py` with real regression coverage
   for both (each confirmed to fail without its own fix, and pass with it).
+
+### Tooling - build-test.sh/.bat never activated .venv
+
+Live report: running the documented `build-test.bat` produced a wall of
+`ModuleNotFoundError` (numpy/PySide6/httpx/qasync) across all 27 offline
+verifiers, looking exactly like the project was broken. Root cause:
+unlike `run.sh`/`run.bat`/`build_exe.sh`/`build_exe.bat` (which all
+correctly activate `.venv` first), `build-test.sh`/`build-test.bat`
+called the bare `python3`/`python`/`py -3` launcher directly - on any
+machine following the normal, correct workflow (`build_exe` creates
+`.venv` and installs `requirements.txt` into it, nothing is installed
+globally), this reliably fails every dependency-requiring verifier.
+Fixed to activate `.venv` first, exactly like the other 4 scripts
+already do. Tooling-only fix (dev scripts, not shipped application
+code) - no version bump, matching this repo's own convention for
+non-runtime changes.
 
 ## [0.5.1] - Table model configuration: heated beds, racks, vacuum tables, CAD module STL
 

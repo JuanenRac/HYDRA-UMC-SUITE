@@ -4,6 +4,7 @@ connects to the real local server, and confirms real camera metadata
 toggle (connect/disconnect) through the real server and back, verifying
 the change is genuinely persisted (not just local UI state)."""
 import asyncio
+import os
 import sys
 
 import qasync
@@ -28,7 +29,7 @@ def main():
 
     async def run_scenario():
         await asyncio.sleep(0.5)
-        info = ServerInfo(host="127.0.0.1", port=3000, hostname="localhost")
+        info = ServerInfo(host="127.0.0.1", port=3000, hostname="localhost", username=os.environ.get("HYDRA_UMC_USER", ""), password=os.environ.get("HYDRA_UMC_PASSWORD", ""))
         window.controller.add_server(info)
         await asyncio.sleep(1.5)
 

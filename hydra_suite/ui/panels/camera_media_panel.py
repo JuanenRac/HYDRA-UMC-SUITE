@@ -29,7 +29,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPushButton,
     QSlider,
     QVBoxLayout,
@@ -39,6 +38,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
+from hydra_suite.ui.dialogs import confirm
 from hydra_suite.net.client import HydraConnection
 
 _JPEG_SOI = b"\xff\xd8"
@@ -147,7 +147,7 @@ class CameraMediaPanel(QWidget):
         self._save_btn.setEnabled(False)
         actions.addWidget(self._save_btn)
         self._delete_btn = QPushButton(_("CAMERA_MEDIA_DELETE"))
-        self._delete_btn.clicked.connect(lambda: asyncio.ensure_future(self._delete_selected()))
+        self._delete_btn.clicked.connect(self._on_delete_clicked)
         self._delete_btn.setEnabled(False)
         actions.addWidget(self._delete_btn)
         viewer_col.addLayout(actions)
@@ -358,25 +358,22 @@ class CameraMediaPanel(QWidget):
         asyncio.ensure_future(self._save_as_real(path, self._selected))
 
     async def _save_as_real(self, path: str, item: dict) -> None:
-        data = await self._fetch_selected_bytes(item)
-        if not data:
+        conn = self._get_connection()
+        if conn is None:
             return
-        try:
-            with open(path, "wb") as f:
-                f.write(data)
-        except OSError:
-            return  # unwritable destination: nothing was saved, and nothing here to crash on
+        saved = await conn.save_camera_media_to(item["cameraId"], item["kind"], item["filename"], path)
+        if not saved:
+            self._show_error(_("CAMERA_MEDIA_SAVE_FAILED"))
+        else:
+            self._error_label.setVisible(False)
 
-    async def _delete_selected(self) -> None:
+    def _on_delete_clicked(self) -> None:
         if self._selected is None:
             return
         item = self._selected
-        confirmed = QMessageBox.question(
-            self, _("CAMERA_MEDIA_DELETE"), _("CAMERA_MEDIA_DELETE_CONFIRM"),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if confirmed != QMessageBox.StandardButton.Yes:
-            return
+        confirm(self, _("CAMERA_MEDIA_DELETE"), _("CAMERA_MEDIA_DELETE_CONFIRM"), lambda: asyncio.ensure_future(self._delete_item(item)))
+
+    async def _delete_item(self, item: dict) -> None:
         conn = self._get_connection()
         if conn is None:
             return

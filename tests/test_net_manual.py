@@ -1,4 +1,5 @@
 import asyncio
+import os
 import sys
 sys.path.insert(0, ".")
 
@@ -29,6 +30,9 @@ async def main():
     try:
         from PySide6.QtCore import QCoreApplication
         app = QCoreApplication.instance() or QCoreApplication([])
+        # The login is the operator's: HYDRA_UMC_USER / HYDRA_UMC_PASSWORD.
+        info.username = os.environ.get("HYDRA_UMC_USER", "")
+        info.password = os.environ.get("HYDRA_UMC_PASSWORD", "")
         conn = HydraConnection(info)
         received = []
         conn.state_changed.connect(lambda s: received.append(s))

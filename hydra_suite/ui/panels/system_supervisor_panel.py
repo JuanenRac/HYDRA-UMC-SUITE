@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
+from hydra_suite.ui.widgets.live_sync import run_timers_while_visible
 
 # 2 minutes of history at 2s polling - same window STUDIO's own
 # SystemSupervisor.tsx keeps (long enough for the shape of a real
@@ -278,7 +279,7 @@ class SystemSupervisorPanel(QWidget):
         self._timer = QTimer(self)
         self._timer.setInterval(POLL_MS)
         self._timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh()))
-        self._timer.start()
+        run_timers_while_visible(self, [self._timer], lambda: asyncio.ensure_future(self._refresh()))
 
         controller.active_connection_changed.connect(self._on_connection_changed)
         self._on_connection_changed(None)

@@ -67,6 +67,7 @@ from hydra_suite.can_ota import (
 )
 from hydra_suite.i18n import _
 from hydra_suite.models import ControllerView, HydraState, RobotView
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 # Matches HYDRA-UMC-STUDIO's own Dashboard.tsx exactly - two real, separate
 # instance configurations, not one panel switching between tier sets.
@@ -209,18 +210,11 @@ class FlasherPanel(QWidget):
         robots = self._active_controller.robots if self._active_controller is not None else []
         previously_selected = self._robot_id
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
+        entries = []
         for i, r in enumerate(robots):
             unreachable = "" if r.urtc_connected else f" ({_('LBL_URTC_UNREACHABLE')})"
-            self._robot_combo.addItem(f"{slot_label(i)} - {r.model}{unreachable}", r.id)
-        restore_index = 0
-        if previously_selected is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected:
-                    restore_index = i
-                    break
-        if self._robot_combo.count() > 0:
-            self._robot_combo.setCurrentIndex(restore_index)
+            entries.append(((f"{slot_label(i)} - {r.model}{unreachable}"), r.id))
+        restore_index = sync_combo(self._robot_combo, entries, previously_selected)
         self._robot_combo.blockSignals(False)
         self._robot_id = self._robot_combo.currentData() if self._robot_combo.count() > 0 else None
 

@@ -69,6 +69,7 @@ from hydra_suite.can_ota import (
 )
 from hydra_suite.i18n import _
 from hydra_suite.models import ControllerView, HydraState, RobotView
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 ALL_TIERS: tuple[CanOtaTier, ...] = ("kinematicBrain", "controllerBoard", "urtcHead", "urtcExpansion")
 
@@ -268,17 +269,7 @@ class TesterPanel(QWidget):
         robots = self._active_controller.robots if self._active_controller is not None else []
         previously_selected = self._robot_id
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        for i, r in enumerate(robots):
-            self._robot_combo.addItem(f"{slot_label(i)} - {r.model}", r.id)
-        restore_index = 0
-        if previously_selected is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected:
-                    restore_index = i
-                    break
-        if self._robot_combo.count() > 0:
-            self._robot_combo.setCurrentIndex(restore_index)
+        restore_index = sync_combo(self._robot_combo, [((f"{slot_label(i)} - {r.model}"), r.id) for i, r in enumerate(robots)], previously_selected)
         self._robot_combo.blockSignals(False)
         self._robot_id = self._robot_combo.currentData() if self._robot_combo.count() > 0 else None
 

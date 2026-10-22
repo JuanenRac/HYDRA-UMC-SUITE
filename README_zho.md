@@ -25,7 +25,7 @@
 </p>
 
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 29 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，全部 26 个经典面板均已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。`trajectory_panel.py` 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 44 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行），全部通过；此外 `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` 已针对一个真实运行中的 HYDRA-UMC SERVER 以及本机真实的 GPU/OpenGL 上下文验证过。Qt Quick 外壳（`--qtquick`，29 个经典面板中的 27 个已移植，包括通过专门的 `OffscreenRobotRenderer` 实现的 3D 视口）是真实可用的代码，与未改动的经典入口点一起启动。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。`trajectory_panel.py` 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -53,7 +53,7 @@
 
 ## ✨ 可视化指挥台
 
-桌面现已提供一个常驻、带有游戏菜单风格的指挥台，使用官方 HYDRA-UMC 图标以及 HYDRA-UMC-UPDATER 的深海军蓝/青色视觉语言。仪表板、机器人控制、相机、轨迹和日志按钮会打开对应的真实可停靠面板；右侧显示实时连接状态、活动服务器目标和 UTC 时钟。这是 Suite 真实功能上的视觉层，而不是模拟仪表板。
+桌面提供一个常驻、带有游戏菜单风格的指挥台，使用官方 HYDRA-UMC 图标以及 HYDRA-UMC-UPDATER 的深海军蓝/青色视觉语言。它显示产品名称、实时连接状态、所选服务器目标和 UTC 时间，并带有全局 STOP 按钮和“关于”。进入可停靠面板的导航是左侧边栏（`nav_sidebar.py`），而不是指挥台。这是 Suite 真实功能上的视觉层，而不是模拟仪表板。
 
 ### 🛑 全局 STOP
 
@@ -67,7 +67,7 @@
 python main.py --qtquick
 ~~~
 
-一个真正的 QML `ApplicationWindow`——与上面的指挥台不同，它完全没有嵌入经典窗口中（在经典 `QMainWindow`/`QDockWidget` 树中嵌入 QML 的两种真实方式都曾尝试过并被放弃：`QQuickWidget` 会显示纯黑色，而 `QQuickView`+`createWindowContainer()` 在隔离环境下渲染正确，但一旦放入这个应用真实的 26 个停靠面板布局中，就会破坏相邻停靠面板真实的 Z 顺序）。这与 HYDRA-UMC-OS-REBUILDER、HYDRA-UMC-UPDATER、URTC-TESTER、URTC-FLASHER 和 HYDRA-UMC-EDITOR-URDF 已经使用的、经过验证的同一种真实模式一致，与经典入口点并行启动，而不是取代它。它用 STUDIO 自身更简单的导航侧边栏加单一内容面板的形式（逐项复刻 `nav_sidebar.py` 自身真实的分类体系），取代了 `QDockWidget` 浮动/拆分/合并为标签页的灵活性——全部 26 个经典面板都被移植为真正的 QML 内容，包括 3D Viewport，其实时预览通过一个专用的 `OffscreenRobotRenderer` 提供（一个真正独立的 `QOpenGLContext`/`QOffscreenSurface`/帧缓冲，刻意不使用 Qt Quick 自身的 `QQuickFramebufferObject`，因为那会迫使整个应用的 Quick 后端从 Windows 真实的默认 Direct3D11 切换到 OpenGL），复用与经典视口控件相同的真实渲染代码（`RobotGLRenderer`），通过 `QQuickImageProvider` 传入 QML。
+一个真正的 QML `ApplicationWindow`——与上面的指挥台不同，它完全没有嵌入经典窗口中（在经典 `QMainWindow`/`QDockWidget` 树中嵌入 QML 的两种真实方式都曾尝试过并被放弃：`QQuickWidget` 会显示纯黑色，而 `QQuickView`+`createWindowContainer()` 在隔离环境下渲染正确，但一旦放入这个应用真实的 29 个停靠面板布局中，就会破坏相邻停靠面板真实的 Z 顺序）。这与 HYDRA-UMC-OS-REBUILDER、HYDRA-UMC-UPDATER、URTC-TESTER、URTC-FLASHER 和 HYDRA-UMC-EDITOR-URDF 已经使用的、经过验证的同一种真实模式一致，与经典入口点并行启动，而不是取代它。它用 STUDIO 自身更简单的导航侧边栏加单一内容面板的形式（逐项复刻 `nav_sidebar.py` 自身真实的分类体系），取代了 `QDockWidget` 浮动/拆分/合并为标签页的灵活性——29 个经典面板中的 27 个被移植为真正的 QML 内容，包括 3D Viewport，其实时预览通过一个专用的 `OffscreenRobotRenderer` 提供（一个真正独立的 `QOpenGLContext`/`QOffscreenSurface`/帧缓冲，刻意不使用 Qt Quick 自身的 `QQuickFramebufferObject`，因为那会迫使整个应用的 Quick 后端从 Windows 真实的默认 Direct3D11 切换到 OpenGL），复用与经典视口控件相同的真实渲染代码（`RobotGLRenderer`），通过 `QQuickImageProvider` 传入 QML。
 
 
 ## 🏭 功能特性
@@ -140,7 +140,7 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
 ├── main.py                        # 入口点 - 以最大化窗口启动，最小 1280x720，F11 切换全屏/窗口；--qtquick 切换到下方面板
-├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（全部 26 个面板），将未改动的 SuiteController 接入 QML
+├── qt_suite.py                     # Qt Quick 前端 —— 独立的 `--qtquick` 命令面板（29 个面板中的 27 个），将未改动的 SuiteController 接入 QML
 ├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行
 ├── requirements.txt
 ├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
@@ -179,7 +179,7 @@ HYDRA-UMC-SUITE/
 │       └── panels/                   # 每个可停靠面板一个文件 —— 与 STUDIO 自身标签页真正做到 1:1 对等：server_browser、overview、robot_control、viewport_panel、trajectory_panel、cameras_panel（+真实 PTZ 控制）、ai_family_status_panel、ecosystem_services_panel、ecosystem_telemetry_panel、admin_clients_panel、admin_logs_panel、admin_server_panel、system_supervisor_panel、logs_panel、module_config_panel（+cnc/laser/heated_bed/vacuum_table）、atc_tools_panel、xy_table_panel、rack_config_panel、pick_and_place_panel、kinematic_brain_stage_panel、flasher_panel、tester_panel
 ├── assets/
 │   ├── qss/industrial_dark.qss     # 未来工业风格的 Qt 样式表
-│   ├── qml/Main.qml                 # `--qtquick` 命令面板的 Qt Quick 界面（全部 26 个面板）
+│   ├── qml/Main.qml                 # `--qtquick` 命令面板的 Qt Quick 界面（29 个面板中的 27 个）
 │   └── meshes/                      # 真实 STL 网格，每个机器人/模块一个文件夹，复制自 HYDRA-UMC-STUDIO 自身的 public/models/（各自附带 ATTRIBUTION.txt）
 ├── language/                        # english/spanish/french/german/italian/japanese/chinese/portuguese 的 .lng 文件
 ├── docs/

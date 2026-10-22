@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
+from hydra_suite.ui.widgets.live_sync import run_timers_while_visible
 
 POLL_MS = 5000
 
@@ -97,14 +98,13 @@ class AdminClientsPanel(QWidget):
         self._timer = QTimer(self)
         self._timer.setInterval(POLL_MS)
         self._timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh()))
-        self._timer.start()
 
         # Ticks the "Xm ago" durations forward once a second, independent
         # of the 5s data poll - same reasoning as STUDIO's own redesign.
         self._tick_timer = QTimer(self)
         self._tick_timer.setInterval(1000)
         self._tick_timer.timeout.connect(self._rebuild)
-        self._tick_timer.start()
+        run_timers_while_visible(self, [self._timer, self._tick_timer], lambda: asyncio.ensure_future(self._refresh()))
 
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh()))

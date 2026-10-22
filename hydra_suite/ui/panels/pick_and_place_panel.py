@@ -58,6 +58,7 @@ from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView
 from hydra_suite.render.viewport import RobotViewport
+from hydra_suite.ui.widgets.live_sync import sync_combo
 
 MACHINE_TYPES: tuple[str, ...] = ("juanenPnP", "lumenPnP")
 MACHINE_LABELS: dict[str, str] = {"juanenPnP": "JuanenPnP", "lumenPnP": "LumenPnP"}
@@ -228,17 +229,7 @@ class PickAndPlacePanel(QWidget):
 
         previously_selected_id = self._current_robot.id if self._current_robot is not None else None
         self._robot_combo.blockSignals(True)
-        self._robot_combo.clear()
-        for r in robots:
-            self._robot_combo.addItem(f"{r.model} (A{r.id})", r.id)
-        restore_index = 0
-        if previously_selected_id is not None:
-            for i in range(self._robot_combo.count()):
-                if self._robot_combo.itemData(i) == previously_selected_id:
-                    restore_index = i
-                    break
-        if self._robot_combo.count() > 0:
-            self._robot_combo.setCurrentIndex(restore_index)
+        restore_index = sync_combo(self._robot_combo, [((f"{r.model} (A{r.id})"), r.id) for r in robots], previously_selected_id)
         self._robot_combo.blockSignals(False)
 
         self._current_robot = next((r for r in robots if r.id == self._robot_combo.currentData()), None) if robots else None

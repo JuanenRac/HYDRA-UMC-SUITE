@@ -25,6 +25,10 @@ sudo dpkg -i installer/output/hydra-umc-suite_<version>_amd64.deb
 
 Needs `dpkg-deb` (part of the standard `dpkg` package - already present on virtually every Debian-family system). Run on a real Linux machine (or WSL) - `dpkg-deb` doesn't exist on Windows.
 
+## Language files
+
+The window text lives in the `language` folder next to the program (`hydra_suite/i18n.py`). Both installers copy that folder (`windows_installer.iss` into `{app}\language`, `build_deb.sh` into `/usr/share/hydra-umc-suite/language`); a package built without it would show every label as its key. Check that the folder is present after installing.
+
 ## Verification status
 
 Neither script was run end-to-end in the session that wrote them - Inno Setup wasn't installed (and installing new system-wide tooling wasn't done without asking first), and `dpkg-deb` only exists on Linux, unavailable from that Windows dev machine. What *was* verified there: `build_deb.sh` passes `bash -n` (syntax check), and its version-extraction + package-tree-assembly logic was dry-run in isolation with a placeholder binary, producing the exact expected file tree and a correct `DEBIAN/control`. Treat both scripts as **written and reasoned through, not yet proven** until someone with the right tooling actually runs one end to end and smoke-tests the result (install, launch, uninstall).
