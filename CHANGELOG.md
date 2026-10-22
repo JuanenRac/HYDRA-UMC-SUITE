@@ -1,14 +1,6 @@
 # Changelog
 
-All notable changes to HYDRA-UMC SUITE are documented in this file.
-
-Versioning: starting with this entry, `hydra_suite/__version__` follows an
-odometer-style `MAJOR.MINOR.PATCH` scheme with a base-10 carry rule - patch
-goes up by 1 on every real build; once it would pass 9 it resets to 0 and
-minor goes up by 1 instead (e.g. `0.1.9` -> `0.2.0`). The version is bumped
-automatically by `bump_version.py`, invoked by `build_exe.bat`/`build_exe.sh`
-before every PyInstaller build - not on a plain `python main.py` run. See
-"Historical versioning notes" below for the change that introduced this.
+All notable changes to this project are documented here.
 
 ## [Unreleased]
 
