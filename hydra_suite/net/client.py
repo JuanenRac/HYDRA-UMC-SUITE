@@ -256,9 +256,6 @@ class HydraConnection(QObject):
         # server's login rate limit, so the reconnect loop waits for the
         # operator to edit them (which reconnects from scratch).
         self._login_rejected = False
-        # True after a server that predates the "hydra.bearer" subprotocol
-        # refused the upgrade - the token then goes in the address as before.
-        self._ws_query_token = False
         # None = never attempted yet, then True/False after every login()
         # call - lets the server list show a real per-server "login failed"
         # state instead of every non-active server just sitting at whatever
@@ -1096,15 +1093,9 @@ class HydraConnection(QObject):
                 rejected = isinstance(e, websockets.InvalidHandshake) or (
                     isinstance(e, websockets.ConnectionClosed) and e.rcvd is not None and e.rcvd.code == 1008
                 )
-                if not connected_once and not self._ws_query_token and isinstance(e, websockets.InvalidHandshake):
-                    # Probably a server from before the subprotocol: try the
-                    # token in the address once, right away.
-                    self._ws_query_token = True
-                    continue
                 if rejected:
                     # The server refused this token (expired, revoked): the
                     # next pass renews it (refresh token first, then login).
-                    self._ws_query_token = False
                     self._token = None
                 # Anything else (server down, link dropped) keeps the session:
                 # logging in again on every blip would spend the server's
@@ -1118,12 +1109,8 @@ class HydraConnection(QObject):
 
     def _open_ws(self):
         token = self._token
-        if self._ws_query_token:
-            return websockets.connect(
-                self.info.ws_url(token, token_in_query=True), open_timeout=5.0, max_size=WS_MAX_MESSAGE_BYTES
-            )
         return websockets.connect(
-            self.info.ws_url(token, token_in_query=False),
+            self.info.ws_url(),
             subprotocols=self.info.ws_subprotocols(token),
             open_timeout=5.0,
             max_size=WS_MAX_MESSAGE_BYTES,

@@ -13,7 +13,7 @@
 #   - a 400 / 409 / role-403 answer to a command reads differently, and a
 #     200 that carries warnings counts as "not applied" (rolled back)
 #   - the WebSocket sends the token as the "hydra.bearer" subprotocol (never
-#     in the address) and falls back to ?token= for a server without it
+#     in the address); a server that only reads ?token= is never given it
 #   - an error message pushed over the WebSocket is reported and re-read
 #   - the version tag "1.2.0" gives bootloader version 1.2 (not 1.0)
 # =============================================================================
@@ -194,7 +194,7 @@ async def run():
 
     http_server.shutdown()
 
-    # --- WebSocket: subprotocol first, ?token= for an older server ---------
+    # --- WebSocket: the token travels as a subprotocol and never in the address -----
     seen = {"modern": None, "old": None}
 
     async def modern(ws):
@@ -208,7 +208,7 @@ async def run():
         await asyncio.sleep(0.3)
 
     def old_process_request(connection, request):
-        # A server from before the subprotocol: it only accepts ?token=
+        # A server from before the subprotocol: it only accepts ?token=, which this client no longer sends
         if "token=" not in request.path:
             return connection.respond(401, "token required\n")
         return None
@@ -230,10 +230,10 @@ async def run():
         conn = make_conn(old_port, username="a", password="b")
         conn._token = "tok.en-2"
         task = asyncio.ensure_future(conn._run())
-        await wait_for_key(seen, "old")
+        await asyncio.sleep(1.5)
         conn._closing = True
         task.cancel()
-        check("WS fallback: an older server gets ?token=", bool(seen["old"]) and "token=tok.en-2" in seen["old"], True)
+        check("WS: a server that only reads ?token= is never given the token in the address", seen["old"], None)
 
     # --- the bootloader version -------------------------------------------
     check("version tag 1.2.0 -> (1, 2)", parse_version_tag("1.2.0"), (1, 2))

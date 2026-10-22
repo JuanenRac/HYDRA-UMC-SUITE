@@ -11,7 +11,7 @@ and the `/ws` upgrade, so nothing works until login succeeds. The credentials
 are always typed by the operator (a server found by the scan is listed but not
 logged in to until then); a rejected login is not retried, an expired access
 token is renewed through `/api/refresh`, and the WebSocket carries the token as
-the `hydra.bearer` subprotocol (falling back to `?token=` for an older server).
+the `hydra.bearer` subprotocol (never in the address).
 
 The WebSocket connection allows messages up to 128 MB: the server sends the
 FULL settings tree (1.6MB+ on a populated swarm, and only grows with more
