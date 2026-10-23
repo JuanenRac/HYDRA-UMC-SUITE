@@ -396,6 +396,14 @@ ApplicationWindow {
         onAccepted: suiteBackend.saveXyTableConfig(selectedFile.toString())
     }
 
+    FileDialog {
+        id: auditExportDialog
+        title: suiteBackend.uiText("AUDIT_EXPORT")
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["JSON Lines (*.jsonl)"]
+        onAccepted: suiteBackend.exportAudit(selectedFile.toString())
+    }
+
     Dialog {
         id: confirmDialog
         anchors.centerIn: parent
@@ -581,6 +589,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "viewport") return viewportComponent
                     if (suiteBackend.activePanel === "robots_catalog") return robotsCatalogComponent
                     if (suiteBackend.activePanel === "safety_limits") return safetyLimitsComponent
+                    if (suiteBackend.activePanel === "audit_record") return auditRecordComponent
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
                     return null
                 }
@@ -863,6 +872,22 @@ ApplicationWindow {
                             checked: suiteBackend.defaultRobotModeSim
                             palette.windowText: window.muted
                             onToggled: suiteBackend.setDefaultRobotModeSim(checked)
+                        }
+                        RowLayout {
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("ACCESS_CONDITIONAL_LABEL"); color: window.muted; font.pixelSize: 11 }
+                            ComboBox {
+                                id: conditionalCombo
+                                objectName: "conditionalModeCombo"
+                                Layout.preferredWidth: 340
+                                model: suiteBackend.conditionalModeOptions
+                                textRole: "label"
+                                valueRole: "value"
+                                Component.onCompleted: currentIndex = indexOfValue(suiteBackend.conditionalMode)
+                                onActivated: suiteBackend.setConditionalMode(currentValue)
+                                ToolTip.visible: hovered
+                                ToolTip.text: suiteBackend.uiText("ACCESS_CONDITIONAL_HINT")
+                            }
                         }
                     }
                 }
@@ -4864,6 +4889,119 @@ ApplicationWindow {
                         }
                         Text { visible: suiteBackend.safetyMessage !== ""; text: suiteBackend.safetyMessage; color: window.green; font.bold: true; font.pixelSize: 11 }
                         Text { visible: suiteBackend.safetyError !== ""; text: suiteBackend.safetyError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11 }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: auditRecordComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            Text { text: suiteBackend.uiText("HEADING_AUDIT_RECORD"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text {
+                visible: !suiteBackend.auditHasServer
+                text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
+                color: window.muted
+            }
+            Text {
+                visible: suiteBackend.auditHasServer && !suiteBackend.auditIsAdmin
+                text: suiteBackend.uiText("AUDIT_ADMIN_ONLY")
+                color: window.amber
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            ColumnLayout {
+                visible: suiteBackend.auditHasServer && suiteBackend.auditIsAdmin
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 8
+                Text { text: suiteBackend.uiText("AUDIT_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    ComboBox {
+                        id: auditTypeCombo
+                        objectName: "auditTypeCombo"
+                        Layout.preferredWidth: 220
+                        model: suiteBackend.auditTypeOptions
+                        textRole: "label"
+                        valueRole: "value"
+                        Component.onCompleted: currentIndex = indexOfValue(suiteBackend.auditType)
+                        onActivated: suiteBackend.setAuditType(currentValue)
+                    }
+                    ComboBox {
+                        id: auditRobotCombo
+                        objectName: "auditRobotCombo"
+                        Layout.preferredWidth: 220
+                        model: suiteBackend.auditRobotOptions
+                        textRole: "label"
+                        valueRole: "value"
+                        Component.onCompleted: currentIndex = Math.max(0, indexOfValue(suiteBackend.auditRobot))
+                        onActivated: suiteBackend.setAuditRobot(currentValue)
+                    }
+                    ComboBox {
+                        id: auditLimitCombo
+                        Layout.preferredWidth: 100
+                        model: suiteBackend.auditLimits
+                        Component.onCompleted: currentIndex = model.indexOf(suiteBackend.auditLimit)
+                        onActivated: suiteBackend.setAuditLimit(model[currentIndex])
+                        ToolTip.visible: hovered
+                        ToolTip.text: suiteBackend.uiText("AUDIT_FILTER_LIMIT")
+                    }
+                    Button { objectName: "auditRefreshButton"; text: suiteBackend.uiText("AUDIT_REFRESH"); enabled: !suiteBackend.auditBusy; onClicked: suiteBackend.refreshAudit() }
+                    Button { objectName: "auditVerifyButton"; text: suiteBackend.uiText("AUDIT_VERIFY"); enabled: !suiteBackend.auditBusy; onClicked: suiteBackend.verifyAudit() }
+                    Button { objectName: "auditExportButton"; text: suiteBackend.uiText("AUDIT_EXPORT"); enabled: !suiteBackend.auditBusy; onClicked: auditExportDialog.open() }
+                }
+                Text { visible: suiteBackend.auditMessage !== ""; text: suiteBackend.auditMessage; color: window.green; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.auditError !== ""; text: suiteBackend.auditError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Repeater {
+                    model: suiteBackend.auditChain
+                    delegate: Text {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        text: modelData.text
+                        color: modelData.ok ? window.green : "#ee6b80"
+                        font.bold: true
+                        font.pixelSize: 11
+                        wrapMode: Text.WordWrap
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("AUDIT_COL_SEQ"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 40 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_TIME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_TYPE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_OUTCOME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 70 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_ACCOUNT"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_CONTROLLER"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_ADDRESS"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_ROBOT"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_DETAIL"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                }
+                ListView {
+                    objectName: "auditList"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    model: suiteBackend.auditRows
+                    delegate: RowLayout {
+                        required property var modelData
+                        width: ListView.view.width
+                        spacing: 8
+                        Text { text: modelData.seq; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 40 }
+                        Text { text: modelData.time; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                        Text { text: modelData.type; color: window.textPrimary; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 130; elide: Text.ElideRight }
+                        Text { text: modelData.outcome; color: modelData.outcomeKind === "ok" ? window.green : (modelData.outcomeKind === "refused" ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 70 }
+                        Text { text: modelData.account; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90; elide: Text.ElideRight }
+                        Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 110; elide: Text.ElideRight }
+                        Text { text: modelData.address; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 100; elide: Text.ElideRight }
+                        Text { text: modelData.robot; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90; elide: Text.ElideRight }
+                        Text { text: modelData.detail; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
                     }
                 }
             }

@@ -81,6 +81,9 @@ class ClaimEntry:
     controller_id: str | None = None
     claimed_at: float | None = None
     expires_at: float | None = None
+    # Until when the jog of this robot is armed (the server puts it in every reservation of GET /api/claims
+    # and of the `claims` message); None when it is not armed or the server predates the field.
+    jog_armed_until: float | None = None
 
     def seconds_left(self, now: float | None = None) -> int | None:
         """Seconds left of the reservation, never negative; None when it has no expiry."""
@@ -131,6 +134,7 @@ def parse_claims(body: object) -> list[ClaimEntry]:
                 controller_id=_text(raw.get("controllerId")),
                 claimed_at=_millis(raw.get("claimedAt")),
                 expires_at=_millis(raw.get("expiresAt")),
+                jog_armed_until=_millis(raw.get("jogArmedUntil")),
             )
         )
     return out
@@ -151,7 +155,8 @@ def claim_standing(claim: ClaimEntry | None, my_controller: str, my_username: st
 
 def failure_code_for(status: int, server_code: str | None) -> str:
     """The failure of a refused request, refined by the stable `code` of the answer when the server gave one:
-    "claim_other_account", "claim_other_controller", "claim_controller_required", "jog_not_armed", or the plain
+    "claim_other_account", "claim_other_controller", "claim_controller_required", "jog_not_armed",
+    "revision_changed" (412: the robot changed since this program read it), or the plain
     class of the status ("network", "session_expired", "forbidden", "not_found", "claimed", "rejected", "server")."""
     if server_code == "other-account":
         return "claim_other_account"
@@ -161,6 +166,8 @@ def failure_code_for(status: int, server_code: str | None) -> str:
         return "claim_controller_required"
     if server_code == "jog-not-armed":
         return "jog_not_armed"
+    if server_code == "revision-mismatch" or status == 412:
+        return "revision_changed"
     if status == 0:
         return "network"
     if status == 401:
@@ -501,7 +508,7 @@ def parse_warnings(body: object) -> list[ServerWarning]:
 # --- Live or Sim -------------------------------------------------------------------------------------------------
 
 #: The commands that move a robot or switch something on: refused while the robot is in Sim.
-REAL_COMMANDS = frozenset({"jog", "play", "reset", "tool", "valve", "pump", "trajectory", "speed"})
+REAL_COMMANDS = frozenset({"jog", "table", "play", "reset", "tool", "valve", "pump", "trajectory", "speed"})
 
 
 def is_real_command(command: str) -> bool:
@@ -556,3 +563,341 @@ class ModeState:
 
 #: The Live or Sim choices of this program (one for all servers), loaded from the configuration at start.
 MODES = ModeState()
+
+
+# --- conditional writes (contract v2, block 2) ---------------------------------------------------------------
+#
+# The server gives every robot a revision (GET /api/robot/:id, and every answer of a command, a reservation or a
+# release carries the new one). A write that sends it back as If-Match is refused with 412 when the robot changed
+# in between, so this program never overwrites what someone else did to the robot without knowing it. The tracker
+# keeps the last revision seen for each robot of one server and decides when it is sent:
+#   - never when none is known (the first write learns it), when another write to the same robot is still on its
+#     way (its answer is what makes the revision stale, not a change by someone else), or after this program
+#     saved the whole settings tree (that save changes the robot too);
+#   - never for STOP, which is never conditional;
+#   - by the mode chosen in this program: off, standard (reservations, the table and the discrete commands; the
+#     continuous ones - jog and speed - go unconditional) or strict (everything but STOP). The default is standard.
+
+CONDITIONAL_MODES = ("off", "standard", "strict")
+DEFAULT_CONDITIONAL_MODE = "standard"
+#: Commands sent many times a second while a control is held: a revision can not follow them.
+CONTINUOUS_COMMANDS = frozenset({"jog", "speed", "jogStep"})
+
+_REVISION_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def is_conditional(mode: str, command: str) -> bool:
+    """Whether a command carries If-Match in a mode. Reservations are "claim" and "release". STOP never does."""
+    if command == "stop" or mode == "off":
+        return False
+    if mode == "strict":
+        return True
+    return command not in CONTINUOUS_COMMANDS
+
+
+def revision_of(body: object) -> str | None:
+    """The revision in the body of an answer (`revision`), or None."""
+    value = body.get("revision") if isinstance(body, dict) else None
+    return value if isinstance(value, str) and _REVISION_PATTERN.fullmatch(value) else None
+
+
+def if_match_header(revision: str) -> str:
+    """The value of the If-Match header for a revision (quoted, as an ETag is)."""
+    return f'"{revision}"'
+
+
+@dataclass
+class ConditionalSetting:
+    """The mode of this program, one for every server (kept in the configuration)."""
+
+    mode: str = DEFAULT_CONDITIONAL_MODE
+
+    def set(self, mode: str) -> None:
+        if mode in CONDITIONAL_MODES:
+            self.mode = mode
+
+    def to_config(self) -> dict:
+        return {"conditionalWrites": self.mode}
+
+    @classmethod
+    def from_config(cls, config: object) -> "ConditionalSetting":
+        value = config.get("conditionalWrites") if isinstance(config, dict) else None
+        return cls(value if value in CONDITIONAL_MODES else DEFAULT_CONDITIONAL_MODE)
+
+
+#: The mode of this program, loaded from the configuration at start.
+CONDITIONAL = ConditionalSetting()
+
+
+@dataclass
+class RevisionTicket:
+    if_match: str | None
+    seq: int
+
+
+class RevisionTracker:
+    """The last revision seen of each robot of one server. `begin` before a write, `finish` when it was answered."""
+
+    def __init__(self, setting: ConditionalSetting | None = None) -> None:
+        self._setting = setting if setting is not None else CONDITIONAL
+        self._counter = 0
+        self._known: dict[str, tuple[str, int]] = {}
+        self._in_flight: dict[str, int] = {}
+
+    def begin(self, robot_id: int | str, command: str) -> RevisionTicket:
+        """The If-Match value for a write to a robot (None when none must be sent). Counts the write as on its way."""
+        robot_id = str(robot_id)
+        self._counter += 1
+        seq = self._counter
+        busy = self._in_flight.get(robot_id, 0) > 0
+        self._in_flight[robot_id] = self._in_flight.get(robot_id, 0) + 1
+        entry = self._known.get(robot_id)
+        if not busy and entry is not None and is_conditional(self._setting.mode, command):
+            return RevisionTicket(if_match_header(entry[0]), seq)
+        return RevisionTicket(None, seq)
+
+    def finish(self, robot_id: int | str, seq: int, revision: str | None) -> None:
+        """The write was answered: keep the revision it carried (when it is the newest answer) and stop counting it."""
+        robot_id = str(robot_id)
+        left = self._in_flight.get(robot_id, 1) - 1
+        if left <= 0:
+            self._in_flight.pop(robot_id, None)
+        else:
+            self._in_flight[robot_id] = left
+        if revision is None:
+            # An answer without a revision (a refusal, an older server): what was known may be stale now.
+            if left <= 0:
+                self._known.pop(robot_id, None)
+            return
+        entry = self._known.get(robot_id)
+        if entry is None or seq >= entry[1]:
+            self._known[robot_id] = (revision, seq)
+
+    def learn(self, robot_id: int | str, revision: str | None) -> None:
+        """A revision learned some other way (the 412 answer, GET /api/robot/:id)."""
+        robot_id = str(robot_id)
+        if revision is None:
+            self._known.pop(robot_id, None)
+            return
+        self._counter += 1
+        self._known[robot_id] = (revision, self._counter)
+
+    def forget(self, robot_id: int | str | None = None) -> None:
+        """Forgets what was known (the whole tree was saved from this program)."""
+        if robot_id is None:
+            self._known.clear()
+        else:
+            self._known.pop(str(robot_id), None)
+
+    def known(self, robot_id: int | str) -> str | None:
+        entry = self._known.get(str(robot_id))
+        return entry[0] if entry is not None else None
+
+
+# --- the atomic move of the XY table (contract v2, block 3) ------------------------------------------------------
+#
+# The "table" command of the server moves the XY table of one robot in one request ({x, y, rz?, mode}) instead of
+# one jog per axis: the server checks the whole move against the jog limits of the model and applies all of it or
+# none of it. These helpers build and check that request here (the server checks again) and, for a server that
+# predates the command, turn it into the jogs that did the same before.
+
+
+def _finite(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value == value and value not in (float("inf"), float("-inf"))
+
+
+def table_params(x: object, y: object, mode: str, rz: object = None) -> dict | None:
+    """The parameters of a table move, or None when they are not numbers."""
+    if not _finite(x) or not _finite(y) or (rz is not None and not _finite(rz)) or mode not in ("absolute", "relative"):
+        return None
+    params: dict = {"x": x, "y": y, "mode": mode}
+    if rz is not None:
+        params["rz"] = rz
+    return params
+
+
+def check_table(limits: SafetyLimits, model: object, params: dict | None, current: dict | None = None) -> JogCheck:
+    """Whether a table move is inside the limits of the model before it is sent: every number of a relative move
+    within the largest jog, every number of an absolute move (and the position a relative one ends in) within the
+    largest absolute position."""
+    max_amount, max_absolute = jog_limits_for(limits, model)
+    params = params or {}
+    relative = params.get("mode") == "relative"
+    requested = [(axis, params.get(axis)) for axis in ("x", "y", "rz") if params.get(axis) is not None]
+    limit = max_amount if relative else max_absolute
+    for _axis, value in requested:
+        if _finite(value) and abs(value) > limit:
+            return JogCheck(False, limit, "amount" if relative else "absolute")
+    if relative and current:
+        for axis, value in requested:
+            if _finite(value):
+                base = current.get(axis)
+                base = float(base) if _finite(base) else 0.0
+                if abs(base + value) > max_absolute:
+                    return JogCheck(False, max_absolute, "absolute")
+    return JogCheck(True, limit, None)
+
+
+def is_unknown_command(status: int, server_code: str | None, detail: str | None) -> bool:
+    """An older server answers 400 "unknown command" to a command it does not have."""
+    return status == 400 and server_code is None and "unknown command" in (detail or "").lower()
+
+
+def table_as_jogs(params: dict) -> list[dict]:
+    """The jogs that did the same on a server without the table command (one per axis that moves; no rotation)."""
+    absolute = params.get("mode") != "relative"
+    jogs: list[dict] = []
+    for axis in ("x", "y"):
+        amount = params.get(axis)
+        if not _finite(amount):
+            continue
+        if not absolute and amount == 0:
+            continue
+        jog = {"axis": axis, "amount": amount, "target": "xytable"}
+        if absolute:
+            jog["absolute"] = True
+        jogs.append(jog)
+    return jogs
+
+
+# --- the audit record (contract v2, block 4) -----------------------------------------------------------------------
+#
+# GET /api/audit (administrators only) gives the newest entries of an append-only log: every line carries the SHA-256
+# of the line before it (`prev`) and its own (`hash`), so a line that is changed or removed later shows when the
+# chain is checked. The server can check the whole record (?verify=1); this program can also check what it was
+# given: every hash is computed again here and every line that follows its predecessor directly must name it.
+
+AUDIT_TYPES = ("claim", "force-claim", "release", "force-release", "jog-arm", "safety-limits", "stop-all")
+
+
+@dataclass
+class AuditEntry:
+    seq: int
+    ts: str
+    type: str
+    outcome: str
+    username: str | None
+    controller_id: str | None
+    ip: str | None
+    robot_id: int | None
+    detail: dict | None
+    prev: str
+    hash: str
+    # The line as the server sent it, without the hash: what the hash is the SHA-256 of.
+    raw: dict = field(default_factory=dict)
+
+
+@dataclass
+class AuditRead:
+    enabled: bool = True
+    locked_off: bool = False
+    entries: list[AuditEntry] = field(default_factory=list)
+    # The verification of the server over the whole record ({"ok", "entries", "brokenAtSeq", "reason"}), if asked.
+    verification: dict | None = None
+
+
+def _parse_audit_entry(value: object) -> AuditEntry | None:
+    if not isinstance(value, dict):
+        return None
+    seq, ts, kind, prev, digest = value.get("seq"), value.get("ts"), value.get("type"), value.get("prev"), value.get("hash")
+    if isinstance(seq, bool) or not isinstance(seq, int) or not isinstance(ts, str) or not isinstance(kind, str):
+        return None
+    if not isinstance(prev, str) or not isinstance(digest, str):
+        return None
+    robot_id = value.get("robotId")
+    outcome = value.get("outcome")
+    return AuditEntry(
+        seq=seq,
+        ts=ts,
+        type=kind,
+        outcome=outcome if outcome in ("refused", "failed") else "ok",
+        username=_text(value.get("username")),
+        controller_id=_text(value.get("controllerId")),
+        ip=_text(value.get("ip")),
+        robot_id=int(robot_id) if isinstance(robot_id, (int, float)) and not isinstance(robot_id, bool) else None,
+        detail=value["detail"] if isinstance(value.get("detail"), dict) else None,
+        prev=prev,
+        hash=digest,
+        raw={k: v for k, v in value.items() if k != "hash"},
+    )
+
+
+def parse_audit(body: object) -> AuditRead:
+    """The answer of GET /api/audit; lines that are not entries are dropped."""
+    if not isinstance(body, dict):
+        return AuditRead()
+    listed = body.get("entries") if isinstance(body.get("entries"), list) else []
+    entries = [entry for entry in (_parse_audit_entry(item) for item in listed) if entry is not None]
+    verification = body.get("verification") if isinstance(body.get("verification"), dict) else None
+    return AuditRead(
+        enabled=body.get("enabled") is not False,
+        locked_off=body.get("lockedOff") is True,
+        entries=entries,
+        verification=verification,
+    )
+
+
+@dataclass(frozen=True)
+class ChainCheck:
+    #: Every hash matched and every line that follows directly names its predecessor.
+    ok: bool
+    checked: int
+    #: Links between neighbours that could be compared (a filter or a rotated file leaves gaps that can not).
+    links: int
+    gaps: int
+    broken_at_seq: int | None = None
+    reason: str | None = None  # "changed" | "link"
+
+
+def hash_of_line(raw: dict) -> str:
+    """The SHA-256 the server wrote for a line: of the line without `hash`, as compact JSON in the order it was written."""
+    import hashlib
+    import json
+
+    return hashlib.sha256(json.dumps(raw, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def check_chain(entries: list[AuditEntry]) -> ChainCheck:
+    """Checks the hash of every line and the link between lines that are neighbours (sequence numbers one apart)."""
+    links = 0
+    gaps = 0
+    for index, entry in enumerate(entries):
+        if hash_of_line(entry.raw) != entry.hash:
+            return ChainCheck(False, index, links, gaps, entry.seq, "changed")
+        if index == 0:
+            continue
+        before = entries[index - 1]
+        if entry.seq == before.seq + 1:
+            links += 1
+            if entry.prev != before.hash:
+                return ChainCheck(False, index + 1, links, gaps, entry.seq, "link")
+        else:
+            gaps += 1
+    return ChainCheck(True, len(entries), links, gaps)
+
+
+def detail_line(detail: dict | None, maximum: int = 140) -> str:
+    """A short line of the detail of an entry for the table: key=value pairs, bounded."""
+    if not detail:
+        return ""
+    import json
+
+    parts = [f"{k}={json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v}" for k, v in detail.items()]
+    joined = " ".join(parts)
+    return joined if len(joined) <= maximum else joined[: maximum - 3] + "..."
+
+
+def audit_query(limit: int | None = None, type: str | None = None, robot_id: int | None = None, verify: bool = False) -> str:
+    """The query string of GET /api/audit for a filter (limit 1 to 1000)."""
+    from urllib.parse import urlencode
+
+    pairs: list[tuple[str, str]] = []
+    if limit is not None:
+        pairs.append(("limit", str(min(1000, max(1, int(limit))))))
+    if type:
+        pairs.append(("type", type))
+    if robot_id is not None:
+        pairs.append(("robotId", str(int(robot_id))))
+    if verify:
+        pairs.append(("verify", "1"))
+    return "?" + urlencode(pairs) if pairs else ""

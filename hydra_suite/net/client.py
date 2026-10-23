@@ -27,6 +27,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable
 
@@ -205,6 +206,8 @@ def describe_rejection(resp: "httpx.Response", what: str) -> str:
     code = _body_code(resp)
     if status == 401 or (status == 403 and code in _RENEWABLE_TOKEN_CODES):
         return _("MSG_NET_REJ_AUTH", what=what)
+    if status == 412 or code == "revision-mismatch":
+        return _("MSG_NET_REJ_REVISION", what=what)
     if code == "jog-not-armed":
         return _("MSG_NET_REJ_NOT_ARMED", what=what, detail=_body_error(resp))
     if code == "controller-id-required":
@@ -252,6 +255,7 @@ class HydraConnection(QObject):
     # detail was `error`'s free-form text. Emitted once per login() attempt,
     # success or not.
     login_changed = Signal(bool, str)        # (ok, detail) - detail is "" on success
+    claims_changed = Signal()                # the server pushed the list of reservations (WebSocket message `claims`)
 
     def __init__(self, info: ServerInfo, parent: QObject | None = None):
         super().__init__(parent)
@@ -337,6 +341,12 @@ class HydraConnection(QObject):
         self.safety = access.SafetyState()
         self.claims: list[access.ClaimEntry] = []
         self.jog_armed_until: dict[int, float | None] = {}
+        # The revision last seen of each robot (If-Match on the writes) and when the server last pushed the
+        # reservations (time.monotonic()), so the poll of GET /api/claims can rest while the pushes arrive.
+        self.revisions = access.RevisionTracker()
+        self.claims_pushed_at = 0.0
+        # Whether the server was last seen to understand the "table" command (true until it says otherwise).
+        self.has_table_command = True
 
     @property
     def is_connected(self) -> bool:
@@ -849,6 +859,8 @@ class HydraConnection(QObject):
             self.error.emit(_("MSG_NET_WRITE_FAILED", error=e))
             return
         self._last_payload_json = payload_json
+        # Saving the whole tree changes the robots on the server too: what was known of their revisions is stale.
+        self.revisions.forget()
 
     async def send_command(
         self,
@@ -905,10 +917,17 @@ class HydraConnection(QObject):
         if access.MODES.blocked(scope, [robot_id], command):
             self.error.emit(_("MSG_NET_SIM_BLOCKED", command=command, robot=robot_id))
             return
-        if command == "jog":
+        if command in ("jog", "table"):
             active_controller = self.state.active_controller
             robot_view = active_controller.robot_by_id(str(robot_id)) if active_controller is not None else None
-            check = access.check_jog(self.safety.limits, robot_view.model if robot_view is not None else None, params)
+            model = robot_view.model if robot_view is not None else None
+            if command == "jog":
+                check = access.check_jog(self.safety.limits, model, params)
+            else:
+                # A table move is checked as a whole, and a relative one also by where it ends.
+                table = robot_view.xy_table if robot_view is not None else None
+                pos = table.get("pos") if isinstance(table, dict) and isinstance(table.get("pos"), dict) else {}
+                check = access.check_table(self.safety.limits, model, params, {"x": pos.get("x"), "y": pos.get("y")})
             if not check.ok:
                 self.error.emit(_("MSG_NET_JOG_LIMIT", limit=f"{'abs ' if check.kind == 'absolute' else ''}{check.limit:g}"))
                 return
@@ -938,15 +957,42 @@ class HydraConnection(QObject):
                 target.raw.update(json.loads(snapshot_json))
                 self.state_changed.emit(self.state)
 
-        async def send_now() -> None:
+        async def post_command(name: str, body_params: dict) -> httpx.Response:
+            """One POST of a command with the revision this program last saw of the robot as If-Match (never for
+            STOP): a 412 means someone else changed the robot in between and nothing was applied."""
+            ticket = self.revisions.begin(robot_id, name)
+            headers = {"If-Match": ticket.if_match} if ticket.if_match else None
             try:
                 resp = await self._http(
-                    "POST", f"/api/robot/{robot_id}/command",
-                    json={"command": command, "params": params or {}, "controllerId": access.get_controller_id()},
+                    "POST", f"/api/robot/{robot_id}/command", headers=headers,
+                    json={"command": name, "params": body_params, "controllerId": access.get_controller_id()},
                 )
+            except BaseException:
+                self.revisions.finish(robot_id, ticket.seq, None)
+                raise
+            try:
+                body = resp.json()
+            except ValueError:
+                body = None
+            self.revisions.finish(robot_id, ticket.seq, access.revision_of(body))
+            return resp
+
+        async def send_now() -> None:
+            try:
+                if command == "table" and not self.has_table_command:
+                    resp = await send_table_as_jogs()
+                else:
+                    resp = await post_command(command, params or {})
+                    if command == "table" and resp.status_code == 400 and access.is_unknown_command(resp.status_code, _body_code(resp), _body_error(resp)):
+                        # A server that predates the table command: remember it and do the same with the jogs it understands.
+                        self.has_table_command = False
+                        resp = await send_table_as_jogs()
                 if resp.status_code >= 400:
                     self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_COMMAND")))
                     rollback_if_current()
+                    if resp.status_code == 412:
+                        # The robot changed under this program: read it again so the screen shows what it is now.
+                        await self.refresh_robot(robot_id)
                     return
                 warnings = self._command_warnings(resp)
                 if warnings:
@@ -956,6 +1002,14 @@ class HydraConnection(QObject):
             except (httpx.HTTPError, OSError) as e:
                 self.error.emit(_("MSG_NET_CMD_FAILED", error=e))
                 rollback_if_current()
+
+        async def send_table_as_jogs() -> httpx.Response:
+            last: httpx.Response | None = None
+            for jog in access.table_as_jogs(params or {}):
+                last = await post_command("jog", jog)
+                if last.status_code >= 400:
+                    return last
+            return last if last is not None else httpx.Response(200, json={"success": True})
 
         if debounce_ms <= 0:
             await send_now()
@@ -1000,21 +1054,28 @@ class HydraConnection(QObject):
 
     # --- reservations, jog arming and safety limits (contract v2, block 1) ---------------------------
 
-    async def _access_request(self, method: str, path: str, body: dict | None = None) -> AccessResult:
+    async def _access_request(self, method: str, path: str, body: dict | None = None, conditional: tuple[int, str] | None = None) -> AccessResult:
         """One request of the reservation/limits family, answered as an AccessResult: it never raises, and a
         refusal carries the stable code the server gave (other-account, other-controller, controller-id-required,
         jog-not-armed) so the caller can say which."""
+        ticket = self.revisions.begin(*conditional) if conditional is not None else None
         try:
             kwargs: dict = {}
             if body is not None:
                 kwargs["json"] = {**body, "controllerId": access.get_controller_id()} if method == "POST" else body
+            if ticket is not None and ticket.if_match:
+                kwargs["headers"] = {"If-Match": ticket.if_match}
             resp = await self._http(method, path, **kwargs)
         except (httpx.HTTPError, OSError) as e:
+            if ticket is not None and conditional is not None:
+                self.revisions.finish(conditional[0], ticket.seq, None)
             return AccessResult(False, 0, access.failure_code_for(0, None), str(e) or e.__class__.__name__)
         try:
             data = resp.json()
         except ValueError:
             data = None
+        if ticket is not None and conditional is not None:
+            self.revisions.finish(conditional[0], ticket.seq, access.revision_of(data))
         if resp.status_code < 400:
             expires = data.get("expiresAt") if isinstance(data, dict) else None
             return AccessResult(True, resp.status_code, "", "", float(expires) if isinstance(expires, (int, float)) and not isinstance(expires, bool) else None, data)
@@ -1022,8 +1083,11 @@ class HydraConnection(QObject):
         detail = data.get("error") if isinstance(data, dict) and isinstance(data.get("error"), str) else f"HTTP {resp.status_code}"
         return AccessResult(False, resp.status_code, access.failure_code_for(resp.status_code, server_code), detail, None, data)
 
-    async def claim_robot(self, robot_id: int, *, ttl_ms: int | None = None, force: bool = False, reason: str = "") -> AccessResult:
-        """POST /api/robot/:id/claim - reserves the robot for this account and this program."""
+    async def claim_robot(
+        self, robot_id: int, *, ttl_ms: int | None = None, force: bool = False, reason: str = "", unconditional: bool = False
+    ) -> AccessResult:
+        """POST /api/robot/:id/claim - reserves the robot for this account and this program. A renewal of one's own
+        reservation (`unconditional`) and a take-over (`force`) never carry If-Match."""
         body: dict = {}
         if ttl_ms:
             body["ttlMs"] = ttl_ms
@@ -1031,11 +1095,12 @@ class HydraConnection(QObject):
             body["force"] = True
         if reason:
             body["reason"] = reason
-        return await self._access_request("POST", f"/api/robot/{robot_id}/claim", body)
+        conditional = None if (unconditional or force) else (robot_id, "claim")
+        return await self._access_request("POST", f"/api/robot/{robot_id}/claim", body, conditional)
 
     async def release_robot(self, robot_id: int, reason: str = "") -> AccessResult:
         """POST /api/robot/:id/release."""
-        return await self._access_request("POST", f"/api/robot/{robot_id}/release", {"reason": reason} if reason else {})
+        return await self._access_request("POST", f"/api/robot/{robot_id}/release", {"reason": reason} if reason else {}, (robot_id, "release"))
 
     async def arm_jog(self, robot_id: int, armed: bool, ttl_ms: int | None = None) -> AccessResult:
         """POST /api/robot/:id/jog-arm - arms or disarms the jog of one robot (`expires_at` says until when)."""
@@ -1047,13 +1112,14 @@ class HydraConnection(QObject):
             self.jog_armed_until[robot_id] = result.expires_at if armed else None
         return result
 
-    async def refresh_access(self, robot_id: int | None = None) -> bool:
-        """Reads GET /api/claims and GET /api/safety-limits (with the robot, also until when its jog is armed).
-        A server that predates a route keeps what this program already had. Returns False when neither could be read."""
+    async def refresh_access(self, robot_id: int | None = None, *, claims: bool = True) -> bool:
+        """Reads GET /api/claims (unless `claims` is False: the server pushes them and the push is fresh) and
+        GET /api/safety-limits (with the robot, also until when its jog is armed). A server that predates a route
+        keeps what this program already had. Returns False when nothing could be read."""
         got = False
-        claims = await self._access_request("GET", "/api/claims")
-        if claims.ok:
-            self.claims = access.parse_claims(claims.body)
+        listed = await self._access_request("GET", "/api/claims") if claims else None
+        if listed is not None and listed.ok:
+            self.claims = access.parse_claims(listed.body)
             got = True
         path = "/api/safety-limits" if robot_id is None else f"/api/safety-limits?robotId={robot_id}"
         limits = await self._access_request("GET", path)
@@ -1065,6 +1131,51 @@ class HydraConnection(QObject):
                 self.jog_armed_until[robot_id] = float(until) if isinstance(until, (int, float)) and not isinstance(until, bool) else None
             got = True
         return got
+
+    async def fetch_robot(self, robot_id: int) -> dict | None:
+        """GET /api/robot/:id - one robot with its revision (kept for the next write); None when it could not be
+        read or the server predates the route."""
+        result = await self._access_request("GET", f"/api/robot/{robot_id}")
+        if not result.ok or not isinstance(result.body, dict) or not isinstance(result.body.get("robot"), dict):
+            return None
+        self.revisions.learn(robot_id, access.revision_of(result.body))
+        return result.body["robot"]
+
+    async def refresh_robot(self, robot_id: int) -> bool:
+        """Reads one robot again and puts it in the local mirror. Called after a 412: the robot changed under this
+        program, and what is shown may be behind."""
+        robot = await self.fetch_robot(robot_id)
+        if robot is None:
+            return False
+        for controller in self.state.raw.get("controllers") or []:
+            if not isinstance(controller, dict):
+                continue
+            for existing in controller.get("robots") or []:
+                if isinstance(existing, dict) and existing.get("id") == robot_id:
+                    existing.update(robot)
+                    self._last_payload_json = json.dumps(self.state.raw, sort_keys=True)
+                    self.state_changed.emit(self.state)
+                    return True
+        return False
+
+    async def fetch_audit(self, limit: int | None = None, type: str | None = None, robot_id: int | None = None, verify: bool = False) -> tuple[AccessResult, access.AuditRead | None]:
+        """GET /api/audit (administrators only): the newest lines of the audit record, with the verification of the
+        server over the whole record when asked."""
+        result = await self._access_request("GET", "/api/audit" + access.audit_query(limit, type, robot_id, verify))
+        return result, (access.parse_audit(result.body) if result.ok else None)
+
+    async def fetch_audit_jsonl(self, limit: int | None = None, type: str | None = None, robot_id: int | None = None) -> str | None:
+        """The lines as the server stores them (?format=jsonl), for saving to a file; None when they could not be read."""
+        query = access.audit_query(limit, type, robot_id)
+        try:
+            resp = await self._http("GET", "/api/audit" + query + ("&" if query else "?") + "format=jsonl")
+        except (httpx.HTTPError, OSError):
+            return None
+        return resp.text if resp.status_code == 200 else None
+
+    def claims_are_pushed(self, within_s: float = 30.0) -> bool:
+        """Whether the server pushed the reservations recently, so the poll of GET /api/claims can rest."""
+        return self.claims_pushed_at > 0 and time.monotonic() - self.claims_pushed_at < within_s
 
     async def put_safety_limits(self, patch: dict) -> AccessResult:
         """PUT /api/admin/safety-limits (administrators only); on success the state this connection holds is the one
@@ -1310,6 +1421,16 @@ class HydraConnection(QObject):
         # schema-1 "delta"/"settings" message.
         if msg.get("type") == "delta" and msg.get("schema") == 2 and "robotId" in msg:
             self._apply_robot_delta(msg)
+            return
+        # Who reserves which robot, pushed when a reservation, an arming or a stop changes (only to a connection that
+        # asked for remoteApiVersion=2): the same list as GET /api/claims, so the poll need not run.
+        if msg.get("type") == "claims":
+            self.claims = access.parse_claims(msg)
+            self.claims_pushed_at = time.monotonic()
+            for claim in self.claims:
+                if claim.controller_id == access.get_controller_id():
+                    self.jog_armed_until[claim.robot_id] = claim.jog_armed_until
+            self.claims_changed.emit()
             return
         # "delta" (schema 1 - a full-tree write from a client that didn't
         # ask for the real delta, or an older server) and "settings" (a

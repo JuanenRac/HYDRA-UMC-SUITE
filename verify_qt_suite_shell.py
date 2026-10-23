@@ -412,7 +412,17 @@ def _run() -> None:
     assert bridge.xyWidth == 1200
 
     bridge.setXyJogStep(10.0)
+    # A jog is one atomic "table" command to the position reached, with the local table following at once.
+    table_calls = []
+
+    def _fake_send(robot_id, command, params=None, local_mutate=None, debounce_ms=0):
+        table_calls.append((robot_id, command, params))
+        if local_mutate is not None:
+            local_mutate(xy_robot)
+
+    controller.send_robot_command = _fake_send
     bridge.jogXyTable("x", 1)
+    assert table_calls == [("x1", "table", {"x": 10.0, "y": 0.0, "mode": "absolute"})], table_calls
     assert bridge.xyPosX == "10.00"
     bridge.jogXyTable("x", -1)
     assert bridge.xyPosX == "0.00"
@@ -420,6 +430,7 @@ def _run() -> None:
     for _ in range(200):
         bridge.jogXyTable("x", 1)
     assert float(bridge.xyPosX) == 1200.0, "jog must clamp at the real configured width, not overshoot"
+    assert all(call[1] == "table" and call[2]["mode"] == "absolute" and call[2]["x"] <= 1200.0 for call in table_calls)
 
     bridge.disableXyTable()
     assert bridge.xyHasTable is False

@@ -179,7 +179,7 @@ def reservations(loop):
     conn.role = "operator"
     renewals = []
 
-    async def refresh_with_claim(robot_id=None):
+    async def refresh_with_claim(robot_id=None, claims=True):
         conn.claims = [claim(1, "ana", "suite-here", seconds=30)]
         return True
 
@@ -196,7 +196,7 @@ def reservations(loop):
     renewals.clear()
     conn.claims = []
 
-    async def refresh_other(robot_id=None):
+    async def refresh_other(robot_id=None, claims=True):
         conn.claims = [claim(1, "bob", "suite-x", seconds=30)]
         return True
 
@@ -221,7 +221,7 @@ def arming(loop):
         conn.jog_armed_until[robot_id] = time.time() * 1000 + 30000 if armed else None
         return AccessResult(True, 200)
 
-    async def refresh(robot_id=None):
+    async def refresh(robot_id=None, claims=True):
         return True
 
     conn.arm_jog = arm_jog

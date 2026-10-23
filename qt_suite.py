@@ -77,6 +77,7 @@ from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
 from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
+from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic.ai_family_status import AI_FAMILIES
 from hydra_suite.panel_logic.atc_tools import (
     JOINT_FIELDS as _ATC_JOINT_FIELDS,
@@ -689,7 +690,7 @@ class SuiteQtBridge(QObject):
         self._access_busy = False
         self._access_robot_timer = QTimer(self)
         self._access_robot_timer.setInterval(_ACCESS_POLL_MS)
-        self._access_robot_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access()))
+        self._access_robot_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
         self._access_tick_timer = QTimer(self)
         self._access_tick_timer.setInterval(1000)
         self._access_tick_timer.timeout.connect(self.changed.emit)
@@ -700,9 +701,23 @@ class SuiteQtBridge(QObject):
         self._safety_loading = False
         self._safety_timer = QTimer(self)
         self._safety_timer.setInterval(_ACCESS_POLL_MS)
-        self._safety_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access()))
+        self._safety_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
         self._safety_version = 0
         self._safety_form_cache: dict = {}
+        # The server pushes the reservations when they change: the screen follows at once.
+        controller.connection_claims_changed.connect(lambda _cid: self.changed.emit())
+
+        # -- Audit record (administrators): the lines the server wrote down about the changes that matter, with the
+        # chain check. Read when the screen is opened and on demand. --
+        self._audit_rows: list[dict[str, object]] = []
+        self._audit_chain: list[dict[str, object]] = []
+        self._audit_message = ""
+        self._audit_error = ""
+        self._audit_busy = False
+        self._audit_type = ""
+        self._audit_robot = ""
+        self._audit_limit = audit_record.DEFAULT_LIMIT
+        self._audit_last_query: dict = {}
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_access()))
         controller.connection_login_changed.connect(lambda _cid, ok, _detail: asyncio.ensure_future(self._refresh_access()) if ok else None)
 
@@ -770,6 +785,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._poll_camera_status())
             elif key in ("robot", "safety_limits"):
                 asyncio.ensure_future(self._refresh_access())
+            elif key == "audit_record":
+                asyncio.ensure_future(self._refresh_audit(False))
             elif key == "system_supervisor":
                 asyncio.ensure_future(self._refresh_supervisor())
             elif key == "robots_catalog":
@@ -1342,19 +1359,20 @@ class SuiteQtBridge(QObject):
         armed = access.is_armed(conn.jog_armed_until.get(robot_id))
         asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_ARM"), lambda: conn.arm_jog(robot_id, not armed)))
 
-    async def _refresh_access(self) -> None:
+    async def _refresh_access(self, poll: bool = False) -> None:
         conn, robot_id = self._access_target()
         if conn is None:
             conn = self._controller.active_connection
         if conn is None or conn.login_ok is not True:
             return
-        await conn.refresh_access(robot_id)
+        # The server pushes the reservations when they change: while a push is fresh the poll does not ask for them.
+        await conn.refresh_access(robot_id, claims=not (poll and conn.claims_are_pushed()))
         # A reservation of this program is renewed while it is kept (re-claiming one's own robot refreshes it).
         claim = self._selected_claim()
         if robot_id is not None and claim is not None and self._standing() == "mine":
             left = claim.seconds_left()
             if left is not None and left <= _CLAIM_RENEW_BELOW_S:
-                renewed = await conn.claim_robot(robot_id)
+                renewed = await conn.claim_robot(robot_id, unconditional=True)
                 if renewed.ok:
                     await conn.refresh_access(robot_id)
         self._safety_version += 1
@@ -1435,6 +1453,184 @@ class SuiteQtBridge(QObject):
     def _bed_ceiling(self) -> float:
         conn = self._controller.active_connection
         return access.highest_bed_max(conn.safety.limits) if conn is not None else access.SafetyLimits().bed_default_c
+
+    # -- Conditional writes: whether a write checks that the robot has not changed (this program) --------------------
+
+    @Property(str, notify=changed)
+    def conditionalMode(self) -> str:
+        return access.CONDITIONAL.mode
+
+    @Property("QVariantList", constant=True)
+    def conditionalModeOptions(self) -> list[dict[str, str]]:
+        return [
+            {"value": "standard", "label": _("ACCESS_CONDITIONAL_STANDARD")},
+            {"value": "strict", "label": _("ACCESS_CONDITIONAL_STRICT")},
+            {"value": "off", "label": _("ACCESS_CONDITIONAL_OFF")},
+        ]
+
+    @Slot(str)
+    def setConditionalMode(self, mode: str) -> None:
+        access.CONDITIONAL.set(mode)
+        save_config(access.CONDITIONAL.to_config())
+        self.changed.emit()
+
+    # -- Audit record (administrators) -------------------------------------------------------------------------------
+
+    @Property(bool, notify=changed)
+    def auditIsAdmin(self) -> bool:
+        return self.safetyIsAdmin
+
+    @Property(bool, notify=changed)
+    def auditHasServer(self) -> bool:
+        return self._controller.active_connection is not None
+
+    @Property("QVariantList", notify=changed)
+    def auditRows(self) -> list[dict[str, object]]:
+        return self._audit_rows
+
+    @Property("QVariantList", notify=changed)
+    def auditChain(self) -> list[dict[str, object]]:
+        return self._audit_chain
+
+    @Property(str, notify=changed)
+    def auditMessage(self) -> str:
+        return self._audit_message
+
+    @Property(str, notify=changed)
+    def auditError(self) -> str:
+        return self._audit_error
+
+    @Property(bool, notify=changed)
+    def auditBusy(self) -> bool:
+        return self._audit_busy
+
+    @Property("QVariantList", constant=True)
+    def auditTypeOptions(self) -> list[dict[str, str]]:
+        return audit_record.type_options()
+
+    @Property("QVariantList", constant=True)
+    def auditLimits(self) -> list[int]:
+        return list(audit_record.LIMITS)
+
+    @Property("QVariantList", notify=changed)
+    def auditRobotOptions(self) -> list[dict[str, str]]:
+        return [{"value": "", "label": _("AUDIT_ALL_ROBOTS")}] + [
+            {"value": str(robot_id), "label": name} for robot_id, name in self._audit_robot_names().items()
+        ]
+
+    @Property(str, notify=changed)
+    def auditType(self) -> str:
+        return self._audit_type
+
+    @Property(str, notify=changed)
+    def auditRobot(self) -> str:
+        return self._audit_robot
+
+    @Property(int, notify=changed)
+    def auditLimit(self) -> int:
+        return self._audit_limit
+
+    def _audit_robot_names(self) -> dict[int, str]:
+        state = self._controller.active_state
+        controller = state.active_controller if state is not None else None
+        names: dict[int, str] = {}
+        for robot in controller.robots if controller is not None else []:
+            try:
+                names[int(robot.id)] = str(robot.raw.get("name") or f"#{robot.id}")
+            except (TypeError, ValueError):
+                continue
+        return names
+
+    def _audit_query(self) -> dict:
+        query: dict = {"limit": self._audit_limit}
+        if self._audit_type:
+            query["type"] = self._audit_type
+        if self._audit_robot:
+            try:
+                query["robot_id"] = int(self._audit_robot)
+            except ValueError:
+                pass
+        return query
+
+    @Slot(str)
+    def setAuditType(self, kind: str) -> None:
+        self._audit_type = kind
+        self.changed.emit()
+        asyncio.ensure_future(self._refresh_audit(False))
+
+    @Slot(str)
+    def setAuditRobot(self, robot_id: str) -> None:
+        self._audit_robot = robot_id
+        self.changed.emit()
+        asyncio.ensure_future(self._refresh_audit(False))
+
+    @Slot(int)
+    def setAuditLimit(self, limit: int) -> None:
+        if limit in audit_record.LIMITS:
+            self._audit_limit = limit
+            self.changed.emit()
+            asyncio.ensure_future(self._refresh_audit(False))
+
+    @Slot()
+    def refreshAudit(self) -> None:
+        asyncio.ensure_future(self._refresh_audit(False))
+
+    @Slot()
+    def verifyAudit(self) -> None:
+        asyncio.ensure_future(self._refresh_audit(True))
+
+    async def _refresh_audit(self, verify: bool) -> None:
+        conn = self._controller.active_connection
+        self._audit_message = ""
+        self._audit_error = ""
+        if conn is None or not conn.is_admin or conn.login_ok is not True:
+            self._audit_rows = []
+            self._audit_chain = []
+            self.changed.emit()
+            return
+        self._audit_busy = True
+        self.changed.emit()
+        try:
+            query = self._audit_query()
+            result, read = await conn.fetch_audit(verify=verify, **query)
+            if read is None:
+                self._audit_rows = []
+                self._audit_chain = []
+                self._audit_error = audit_record.failure_text(result.status, result.code)
+                return
+            self._audit_last_query = query
+            self._audit_rows = audit_record.rows(read.entries, self._audit_robot_names())
+            self._audit_chain = audit_record.chain_lines(read) if verify else []
+            if not read.enabled:
+                self._audit_message = _("AUDIT_LOCKED_OFF") if read.locked_off else _("AUDIT_SWITCHED_OFF")
+            elif not read.entries:
+                self._audit_message = _("AUDIT_EMPTY")
+        finally:
+            self._audit_busy = False
+            self.changed.emit()
+
+    @Slot(str)
+    def exportAudit(self, path: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        asyncio.ensure_future(self._export_audit(conn, path))
+
+    async def _export_audit(self, conn, path: str) -> None:
+        text = await conn.fetch_audit_jsonl(**self._audit_query())
+        if text is None:
+            self._audit_error = _("AUDIT_FAILURE_OTHER")
+            self.changed.emit()
+            return
+        local_path = QUrl(path).toLocalFile() or path
+        try:
+            with open(local_path, "w", encoding="utf-8", newline="") as f:
+                f.write(text)
+        except OSError as error:
+            self._audit_error = _("AUDIT_EXPORT_FAILED", error=error)
+        else:
+            self._audit_message = _("AUDIT_EXPORTED", path=local_path)
+        self.changed.emit()
 
     # -- Robots Catalog -------------------------------------------------------------
 
@@ -2811,9 +3007,24 @@ class SuiteQtBridge(QObject):
         new_value = table["pos"][axis] + direction * self._xy_jog_step_mm
         bound = table["tableSize"]["width" if axis == "x" else "length"]
         new_value = max(0.0, min(new_value, float(bound)))
-        table["pos"][axis] = new_value
-        robot.set_xy_table(table)
-        self._controller.push_active_state()
+        # One atomic "table" move to the position reached (the other axis stays where it is): the server checks the
+        # whole move against the limits of the model and applies all of it or none of it, and a robot in Sim does not
+        # receive it. The local table follows at once and is put back if the server refuses.
+        params = access.table_params(
+            new_value if axis == "x" else float(table["pos"].get("x", 0)),
+            new_value if axis == "y" else float(table["pos"].get("y", 0)),
+            "absolute",
+        )
+        if params is None:
+            return
+
+        def follow(r: RobotView, value: float = new_value, name: str = axis) -> None:
+            current = r.xy_table
+            if current:
+                current["pos"][name] = value
+                r.set_xy_table(current)
+
+        self._controller.send_robot_command(robot.id, "table", params, follow)
         self.changed.emit()
 
     @Slot(str)
@@ -5764,6 +5975,7 @@ def run_qtquick() -> int:
     controller = SuiteController()
     # The Live / Sim choices and the servers the operator asked to remember come back from the configuration file;
     # a remembered password comes from the secure store of the computer (never from the file).
+    access.CONDITIONAL.set(access.ConditionalSetting.from_config(load_config()).mode)
     loaded_modes = access.ModeState.from_config(load_config())
     access.MODES.modes.update(loaded_modes.modes)
     access.MODES.default_mode = loaded_modes.default_mode

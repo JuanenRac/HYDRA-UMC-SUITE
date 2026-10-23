@@ -113,7 +113,7 @@ def main():
     now = time.time() * 1000
     conn.claims = [access.ClaimEntry(2, robot_name="Zed", owner_username="bob", controller_id="x", expires_at=now + 90000)]
 
-    async def refresh(robot_id=None):
+    async def refresh(robot_id=None, claims=True):
         return True
 
     conn.refresh_access = refresh
@@ -182,6 +182,86 @@ def main():
     QMetaObject.invokeMethod(find(root, "safetySaveButton"), "click")
     settle(loop, 6)
     check("safety: Save sends the form", (len(puts), puts[0]["jog"]["armRequired"]) if puts else None, (1, True))
+
+    # --- the audit record screen ---
+    conn.role = "operator"
+    bridge.navigatePanel("audit_record")
+    settle(loop)
+    check("audit: an operator does not get the controls", find(root, "auditVerifyButton").property("visible"), False)
+    conn.role = "admin"
+    fetched = []
+    lines = []
+    previous = "0" * 64
+    for seq in (1, 2):
+        body = {"seq": seq, "ts": f"2030-01-01T00:00:0{seq}.000Z", "type": "claim", "outcome": "ok", "username": "ana", "controllerId": "w1", "ip": "10.0.0.5", "robotId": 1, "detail": {"ttlMs": 60000}, "prev": previous}
+        import hashlib
+        import json as _json
+        digest = hashlib.sha256(_json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+        lines.append({**body, "hash": digest})
+        previous = digest
+
+    async def fetch_audit(limit=None, type=None, robot_id=None, verify=False):
+        fetched.append((limit, type, robot_id, verify))
+        body = {"enabled": True, "entries": lines}
+        if verify:
+            body["verification"] = {"ok": True, "entries": 2}
+        return AccessResult(True, 200, body=body), access.parse_audit(body)
+
+    conn.fetch_audit = fetch_audit
+    bridge.navigatePanel("robot")
+    bridge.navigatePanel("audit_record")
+    settle(loop, 6)
+    check("audit: opening the screen reads the record", fetched[:1], [(100, None, None, False)])
+    check("audit: the screen has the controls for an administrator", (find(root, "auditVerifyButton").property("visible"), find(root, "auditList") is not None), (True, True))
+    check("audit: the newest line comes first", [row["seq"] for row in bridge.auditRows], [2, 1])
+    QMetaObject.invokeMethod(find(root, "auditVerifyButton"), "click")
+    settle(loop, 6)
+    check("audit: Verify asks the server to verify", fetched[-1][3], True)
+    check("audit: and both chain checks pass", [line["ok"] for line in bridge.auditChain], [True, True])
+    bridge.setAuditType("release")
+    settle(loop, 6)
+    check("audit: the filter goes to the server", fetched[-1][:2], (100, "release"))
+    bridge.setAuditType("")
+    bridge.setAuditLimit(250)
+    settle(loop, 6)
+    check("audit: and so does the number of lines", fetched[-1][0], 250)
+    bridge.setAuditLimit(7)
+    check("audit: a number that is not offered changes nothing", bridge.auditLimit, 250)
+    bridge.setAuditLimit(100)
+    settle(loop, 4)
+
+    # --- the setting of conditional writes ---
+    bridge.navigatePanel("robot")
+    settle(loop)
+    combo = find(root, "conditionalModeCombo")
+    check("conditional: the selector exists and shows the default", (combo is not None, bridge.conditionalMode), (True, "standard"))
+    bridge.setConditionalMode("strict")
+    check("conditional: choosing a mode takes effect", (bridge.conditionalMode, access.CONDITIONAL.mode), ("strict", "strict"))
+    bridge.setConditionalMode("nonsense")
+    check("conditional: an unknown mode changes nothing", access.CONDITIONAL.mode, "strict")
+    bridge.setConditionalMode("standard")
+
+    # --- the XY table jog goes out as one atomic table move ---
+    sent_commands = []
+
+    async def send_command(robot_id, command, params=None, local_mutate=None, debounce_ms=0):
+        sent_commands.append((robot_id, command, params))
+        if local_mutate is not None:
+            target = conn.state.active_controller.robot_by_id(str(robot_id))
+            local_mutate(target)
+
+    conn.send_command = send_command
+    bridge.navigatePanel("xy_table")
+    settle(loop)
+    robot = conn.state.active_controller.robot_by_id("1")
+    robot.set_xy_table({"pos": {"x": 10.0, "y": 20.0}, "tableSize": {"width": 300, "length": 300}})
+    bridge._xy_robots_cache = conn.state.active_controller.robots
+    bridge._xy_selected_robot_id = "1"
+    bridge.setXyJogStep(5.0)
+    bridge.jogXyTable("x", 1)
+    settle(loop, 4)
+    check("xy table: a jog is one table command with the position reached", sent_commands, [("1", "table", {"x": 15.0, "y": 20.0, "mode": "absolute"})])
+    check("xy table: the local table follows at once", robot.xy_table["pos"]["x"], 15.0)
 
     # --- notices ---
     controller.connection_error.emit("10.0.0.9:3000", "robot Parol is reserved by bob")

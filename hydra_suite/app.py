@@ -128,6 +128,8 @@ class SuiteController(QObject):
     # the active one, for the same reason: a background server in the
     # swarm failing to write is just as real as the active one failing.
     connection_error = Signal(str, str)                # (conn_id, message)
+    # The server pushed the list of reservations (WebSocket message `claims`) on one of the connections.
+    connection_claims_changed = Signal(str)            # (conn_id)
     # The global STOP: emitted with a StopAllSummary when it starts (state
     # "sending") and again when every server has answered or given up.
     stop_all_changed = Signal(object)
@@ -158,6 +160,7 @@ class SuiteController(QObject):
         conn.metrics_changed.connect(lambda metrics, cid=conn_id: self._on_metrics_changed(cid, metrics))
         conn.login_changed.connect(lambda ok, detail, cid=conn_id: self.connection_login_changed.emit(cid, ok, detail))
         conn.error.connect(lambda message, cid=conn_id: self.connection_error.emit(cid, message))
+        conn.claims_changed.connect(lambda cid=conn_id: self.connection_claims_changed.emit(cid))
         self.connections[conn_id] = conn
         spawn(conn.connect())
         self.connections_changed.emit()
