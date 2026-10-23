@@ -415,6 +415,14 @@ ApplicationWindow {
         }
     }
 
+    // A Work with points out of reach that could be loaded scaled about the base of the robot asks first.
+    Connections {
+        target: suiteBackend
+        function onWorkScaleOffered(title, body, label) {
+            window.requestConfirm(title, body, function() { suiteBackend.applyWorkScale() }, label)
+        }
+    }
+
     // What a server reported back (a refusal, a limit, a lowered target) stays here until dismissed.
     Rectangle {
         id: noticeBar
@@ -633,6 +641,7 @@ ApplicationWindow {
                 CheckBox {
                     id: rememberBox
                     objectName: "rememberBox"
+                    checked: true
                     text: suiteBackend.uiText("LBL_REMEMBER_SERVER")
                     palette.windowText: window.textPrimary
                 }

@@ -5,7 +5,7 @@
 #
 # The servers a person asks the program to remember, with a fake secure store (the real one of the computer is
 # never touched):
-#   - nothing is remembered unless asked; what is remembered is the address, nickname, user name and TLS, in the
+#   - a server is remembered when the choice is on (ticked by default); what is remembered is the address, nickname, user name and TLS, in the
 #     configuration, and never the password
 #   - the password goes to the secure store, under the name of this program, one per server and account
 #   - with no secure store (or one that refuses) the server is still remembered, the password is not, and the

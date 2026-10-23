@@ -501,7 +501,7 @@ def parse_warnings(body: object) -> list[ServerWarning]:
 # --- Live or Sim -------------------------------------------------------------------------------------------------
 
 #: The commands that move a robot or switch something on: refused while the robot is in Sim.
-REAL_COMMANDS = frozenset({"jog", "play", "reset", "tool", "valve", "pump"})
+REAL_COMMANDS = frozenset({"jog", "play", "reset", "tool", "valve", "pump", "trajectory", "speed"})
 
 
 def is_real_command(command: str) -> bool:

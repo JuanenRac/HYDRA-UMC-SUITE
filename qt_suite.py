@@ -57,6 +57,7 @@ from hydra_suite.can_ota import (
 from hydra_suite.credentials import CredentialStore, keyring_backend
 from hydra_suite.diagnostics import build_bundle
 from hydra_suite.i18n import AVAILABLE_LANGUAGES, CONFIG_FILE_PATH, _, current_language, load_config, save_config
+from hydra_suite import reach
 from hydra_suite.joint_limits import joint_range_deg
 from hydra_suite.models import (
     CAMERA_TYPES,
@@ -284,6 +285,8 @@ class SuiteQtBridge(QObject):
     changed = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
+    # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
+    workScaleOffered = Signal(str, str, str)
     # Own dedicated signal (not the shared `changed` above) - a live MJPEG
     # feed can update several times a SECOND per camera, and `changed` is
     # read by dozens of unrelated Properties across every other panel;
@@ -392,6 +395,7 @@ class SuiteQtBridge(QObject):
         # _select_robot below), never on every swarm tick.
         self._trajectory_points: list[dict[str, object]] = []
         self._work_files: list[str] = []
+        self._pending_work_scale: dict[str, object] | None = None
         controller.active_state_changed.connect(self._on_robot_state_changed)
 
         # -- AI Family Status (ported from the former ai_family_status panel's
@@ -1846,7 +1850,8 @@ class SuiteQtBridge(QObject):
         if not name.endswith(".json"):
             name += ".json"
         # The local "_time" column is not part of a Work: STUDIO's files never carry it.
-        content = [{joint: point[joint] for joint in JOINT_NAMES} for point in self._trajectory_points]
+        # The joints are this robot's own, so STUDIO must not read them as the portable joints of the generic arm.
+        content = [{"motionType": "model-joints", **{joint: point[joint] for joint in JOINT_NAMES}} for point in self._trajectory_points]
         folder = self._works_folder_path(robot)
         result = await conn.save_work_file(folder, name, content)
         if result is None:
@@ -1861,7 +1866,7 @@ class SuiteQtBridge(QObject):
     def importWork(self, name: str) -> None:
         asyncio.ensure_future(self._import_work(name))
 
-    async def _import_work(self, name: str) -> None:
+    async def _import_work(self, name: str, scale: float | None = None) -> None:
         conn, robot = self._controller.active_connection, self._selected_robot()
         if conn is None or robot is None or not name:
             return
@@ -1869,34 +1874,92 @@ class SuiteQtBridge(QObject):
         if result is None or result[0] != 200 or not isinstance(result[1], list):
             self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_READ", file=name)), "warn")
             return
-        # A point may be joint-space (j1..j6) or a Cartesian pose; only a point that already carries every joint can
-        # be used here (this program has no inverse kinematics), so a Cartesian-only point is skipped, never
-        # imported as all zeros.
-        imported: list[dict[str, object]] = []
+        model = robot.model
+        # A point is native (joints of this robot, "motionType": "model-joints"), or portable like STUDIO's: joints of
+        # the generic arm or a Cartesian pose, which the inverse kinematics of the model turns into its own joints.
+        entries: list[dict[str, object]] = []
         skipped = 0
         outside: list[int] = []
+        can_solve = reach.is_supported(model)
         for number, raw_point in enumerate(result[1], start=1):
-            if not isinstance(raw_point, dict) or not all(isinstance(raw_point.get(joint), (int, float)) and not isinstance(raw_point.get(joint), bool) for joint in JOINT_NAMES):
+            if not isinstance(raw_point, dict):
                 skipped += 1
                 continue
-            point: dict[str, object] = {joint: float(raw_point[joint]) for joint in JOINT_NAMES}
-            if any(not (joint_range_deg(robot.model, joint)[0] - 0.5 <= point[joint] <= joint_range_deg(robot.model, joint)[1] + 0.5) for joint in JOINT_NAMES):
-                outside.append(number)
+            has_joints = all(isinstance(raw_point.get(joint), (int, float)) and not isinstance(raw_point.get(joint), bool) for joint in JOINT_NAMES)
+            if raw_point.get("motionType") == "model-joints" or (not can_solve and has_joints):
+                if not has_joints:
+                    skipped += 1
+                    continue
+                point: dict[str, object] = {joint: float(raw_point[joint]) for joint in JOINT_NAMES}
+                if any(not (joint_range_deg(model, joint)[0] - 0.5 <= point[joint] <= joint_range_deg(model, joint)[1] + 0.5) for joint in JOINT_NAMES):
+                    outside.append(number)
+                    continue
+                entries.append({"number": number, "joints": point})
                 continue
-            point["_time"] = time.strftime("%H:%M:%S")
-            imported.append(point)
+            pose = reach.portable_pose(raw_point) if can_solve else None
+            if pose is None:
+                skipped += 1
+                continue
+            entries.append({"number": number, "pose": pose})
         if outside:
             # A Work made for another robot: refused as a whole, with the list of the points this model cannot reach.
             listed = ", ".join(str(n) for n in outside[:12]) + (f" (+{len(outside) - 12})" if len(outside) > 12 else "")
-            self._set_notice(_("MSG_WORK_OUT_OF_RANGE", file=name, model=robot.model, count=len(outside), points=listed), "warn")
+            self._set_notice(_("MSG_WORK_OUT_OF_RANGE", file=name, model=model, count=len(outside), points=listed), "warn")
             return
-        if not imported:
+        if not entries:
             self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_JOINTS", file=name)), "warn")
             return
+        loop = asyncio.get_running_loop()
+        tolerance = reach.DEFAULT_REACH_TOLERANCE_MM
+        factor = 1.0 if scale is None else scale
+        solved = await loop.run_in_executor(None, self._solve_work_entries, model, entries, factor, tolerance)
+        over = [(e["number"], mm) for e, mm in solved["residuals"] if mm > tolerance]
+        if over and scale is None:
+            # Points the arm cannot reach: the Work is refused as a whole, with those points and how far they are, and
+            # the operator is offered the same Work scaled about the base to the reach of the model.
+            listed = ", ".join(str(n) for n, _mm in over[:12]) + (f" (+{len(over) - 12})" if len(over) > 12 else "")
+            worst = max(mm for _n, mm in over)
+            self._set_notice(_("MSG_WORK_OUT_OF_REACH", file=name, model=model, count=len(over), tolerance=f"{tolerance:g}", worst=f"{worst:.0f}", points=listed), "warn")
+            poses = [e["pose"] for e in entries if "pose" in e]
+            fit = await loop.run_in_executor(None, reach.find_scale, model, poses, tolerance)
+            if fit.scale < 1.0 and fit.remaining < len(over):
+                self._pending_work_scale = {"robot": robot.id, "file": name, "scale": fit.scale}
+                key = "MSG_WORK_SCALE_OFFER" if fit.fits else "MSG_WORK_SCALE_OFFER_PARTIAL"
+                self.workScaleOffered.emit(_("TITLE_WORK_SCALE"), _(key, file=name, model=model, percent=f"{fit.scale * 100:.0f}", remaining=fit.remaining), _("BTN_WORK_SCALE"))
+            return
+        imported = solved["points"]
+        for point in imported:
+            point["_time"] = time.strftime("%H:%M:%S")
         self._trajectory_points = imported
         self._trajectoryChanged.emit()
-        if skipped:
+        if scale is not None:
+            self._set_notice(_("MSG_WORK_SCALED", file=name, percent=f"{scale * 100:.0f}", imported=len(imported)), "info")
+        elif skipped:
             self._set_notice(_("MSG_WORK_IMPORT_PARTIAL", imported=len(imported), skipped=skipped), "info")
+
+    @staticmethod
+    def _solve_work_entries(model: str, entries: list[dict[str, object]], factor: float, tolerance: float) -> dict:
+        """Turns the entries of a Work into points of this robot (runs off the interface thread)."""
+        points: list[dict[str, object]] = []
+        residuals: list[tuple[dict[str, object], float]] = []
+        seed = None
+        for entry in entries:
+            if "joints" in entry:
+                points.append(dict(entry["joints"]))  # type: ignore[arg-type]
+                continue
+            joints, residual = reach.solve_pose(model, reach.scaled(entry["pose"], factor), seed)  # type: ignore[arg-type]
+            seed = (joints["j1"], joints["j2"], joints["j3"])
+            residuals.append((entry, residual))
+            points.append({name: float(value) for name, value in joints.items()})
+        return {"points": points, "residuals": residuals}
+
+    @Slot()
+    def applyWorkScale(self) -> None:
+        pending, self._pending_work_scale = self._pending_work_scale, None
+        robot = self._selected_robot()
+        if pending is None or robot is None or robot.id != pending["robot"]:
+            return
+        asyncio.ensure_future(self._import_work(str(pending["file"]), float(pending["scale"])))
 
     # -- Trajectory --------------------------------------------------------
 

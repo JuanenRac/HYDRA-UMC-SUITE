@@ -198,6 +198,7 @@ def main():
     bridge.navigatePanel("servers")
     settle(loop)
     check("servers: the Remember choice exists", find(root, "rememberBox") is not None, True)
+    check("servers: and is ticked by default", find(root, "rememberBox").property("checked"), True)
 
     check("finally: nothing printed a QML warning or error", MESSAGES, [])
     for message in MESSAGES:

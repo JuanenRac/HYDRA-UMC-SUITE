@@ -5,7 +5,7 @@
 #
 # The servers of this program and their passwords, kept between runs only when the operator asks for it.
 #
-# - A server is remembered only when its "remember" choice is on (off by default). What is remembered is its
+# - A server is remembered when its "remember" choice is on (ticked by default when a server is added). What is remembered is its
 #   address, nickname, user name and whether it speaks TLS, in the program's configuration file; never the password.
 # - The password goes to the secure store of the operating system (Windows Credential Manager, macOS Keychain,
 #   the Secret Service of the Linux desktop) through the keyring library, under the service name of this program.
