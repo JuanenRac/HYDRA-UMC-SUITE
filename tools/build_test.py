@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # =============================================================================
-# HYDRA-UMC-SUITE - tools/build_test.py
+# HYDRA-UMC - tools/build_test.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """Run a non-versioning build check for this repository.
 
@@ -59,16 +59,6 @@ def main() -> int:
 
     if stack in {"python", "python-bare"}:
         compile_python_sources()
-        # this
-        # branch used to only compile Python sources - the real
-        # tests/verify_*.py Qt/backend control verifiers never ran here
-        # (or in CI), so a broken button connection or a control that
-        # stopped reflecting real state could pass this "build test"
-        # cleanly. `is_file()`-gated so this stays a no-op default for
-        # any other "python"-stack repo that hasn't added this runner.
-        offline_verifiers = ROOT / "tools" / "run_offline_verifiers.py"
-        if offline_verifiers.is_file():
-            run(sys.executable, str(offline_verifiers))
     elif stack == "node":
         npm = "npm.cmd" if os.name == "nt" else "npm"
         # Reuse an existing local dependency tree so a running editor/linter
@@ -127,6 +117,13 @@ def main() -> int:
             run("bash", "build_firmware.sh", env=environment)
     else:
         fail(f"unsupported stack: {stack}")
+
+    # The steps a repository has of its own (its tests, its verifiers, a second toolchain) live in
+    # tools/extra_build_steps.py, so this file stays identical everywhere. It runs from the repository root with the
+    # same environment, after the build of the stack above, and a non-zero exit fails the build test.
+    extra_steps = ROOT / "tools" / "extra_build_steps.py"
+    if extra_steps.is_file():
+        run(sys.executable, str(extra_steps))
 
     print("BUILD_TEST=PASS versioning=unchanged changelog=unchanged")
     return 0
