@@ -62,8 +62,7 @@ robot's real trajectory or slot pickup positions.
 Assets: assets/meshes/racks/default/. Source contract: hydra_suite/racks.py.
 
 STUDIO offers independent 3D previews on both rack cards and reuses the same
-assembly in its existing cell view. SUITE classic offers a preview per rack;
-Qt Quick has a shared preview with a Preview rack button on each card, orbit and
+assembly in its existing cell view. SUITE has a shared preview with a Preview rack button on each card, orbit and
 zoom. SUITE slot indicators are opaque; STUDIO uses translucent indicators.
 
 The STUDIO STL download is the **default** assembly, explicitly labelled

@@ -17,23 +17,12 @@
 # Y-up world (matches Three.js/HYDRA-UMC-STUDIO, see kinematics.py's own
 # header) - the camera's own up vector and pan axes below are Y-up too.
 #
-# RobotGLRenderer below owns every real GL call and every piece of pose/
-# camera state - genuinely context-agnostic (it never touches
-# QOpenGLWidget itself), driven entirely through the `make_current`/
-# `done_current` callables its own constructor takes. RobotViewport (the
-# classic QOpenGLWidget the whole QDockWidget app already uses in 13
-# places) is now a thin wrapper delegating initializeGL/resizeGL/paintGL/
-# every public setter to one RobotGLRenderer instance, with IDENTICAL
-# real behavior to the pre-refactor version (including the "skip a
-# repaint when the pose didn't actually change" optimization - see
-# set_joints_deg's own comment). OffscreenRobotRenderer (bottom of this
-# file) is the SAME split's other real owner - the Qt Quick shell's own
-# 3D Viewport panel (qt_suite.py) renders through it instead of a widget's
-# own compositor, reusing this exact rendering code rather than a second,
-# drifting copy - see that class's own header for why it's a genuinely
-# separate QOpenGLContext/QOffscreenSurface/FBO rather than Qt Quick's own
-# QQuickFramebufferObject (which would force the whole app off Windows'
-# real default Direct3D11 Quick backend onto OpenGL just for one panel).
+# RobotGLRenderer below owns every GL call and all the pose and camera state; it is independent of any window
+# toolkit and is driven through the `make_current` / `done_current` callables of its constructor.
+# OffscreenRobotRenderer (bottom of this file) is its owner in the Qt Quick interface: a separate
+# QOpenGLContext, QOffscreenSurface and framebuffer object that render to a QImage handed to QML through an
+# image provider, instead of Qt Quick's own QQuickFramebufferObject (which would force the whole application off
+# the Direct3D 11 backend Qt Quick uses by default on Windows onto OpenGL just for the 3D panels).
 # =============================================================================
 from __future__ import annotations
 
@@ -42,10 +31,8 @@ from typing import Callable
 
 import numpy as np
 from OpenGL import GL as gl
-from PySide6.QtCore import Qt, QPointF
-from PySide6.QtGui import QImage, QMouseEvent, QOffscreenSurface, QOpenGLContext, QSurfaceFormat, QWheelEvent
+from PySide6.QtGui import QImage, QOffscreenSurface, QOpenGLContext, QSurfaceFormat
 from PySide6.QtOpenGL import QOpenGLFramebufferObject, QOpenGLFramebufferObjectFormat
-from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
 from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
@@ -251,7 +238,7 @@ class RobotGLRenderer:
 
         # PnP module-only mode (render/pnp_rig.py) - a separate real-mesh
         # sibling of the module-only mode above, used by
-        # ui/panels/pick_and_place_panel.py's own embedded viewport
+        # the former embedded viewport
         # instead of set_attached_module(): juanenPnP/lumenPnP have a real
         # STL rig (assets/meshes/machine-pnp/lumenpnp/), not primitive box/cylinder
         # geometry, and a real 2-axis-plus-2-nozzle pose rather than a
@@ -619,83 +606,6 @@ class RobotGLRenderer:
         gl.glDeleteShader(vs)
         gl.glDeleteShader(fs)
         return program
-
-
-class RobotViewport(QOpenGLWidget):
-    """Orbit camera (left-drag rotate, wheel zoom, right/middle-drag pan)
-    over a live-posed robot - any of the 24 real STL-backed models
-    (ROBOT_REGISTRY in kinematics.py) plus a primitive-built "Generic"
-    fallback (generic_rig.py), switched at runtime via set_robot_model().
-    A thin QOpenGLWidget wrapper around one real RobotGLRenderer - see
-    this module's own header for why the GL logic itself lives there now,
-    not here."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMinimumSize(320, 240)
-        self._renderer = RobotGLRenderer(self.makeCurrent, self.doneCurrent)
-        self._last_mouse_pos: QPointF | None = None
-        self._drag_button: Qt.MouseButton | None = None
-
-    def set_joints_deg(self, joints: dict[str, float]) -> None:
-        if self._renderer.set_joints_deg(joints):
-            self.update()
-
-    def set_robot_model(self, model_name: str) -> None:
-        if self._renderer.set_robot_model(model_name):
-            self.update()
-
-    def set_attached_module(self, module_type: str | None, width_mm: float = 500.0, length_mm: float = 500.0, model_id: str | None = None, rack_config: dict | None = None) -> None:
-        self._renderer.set_attached_module(module_type, width_mm, length_mm, model_id, rack_config)
-        self.update()
-
-    def set_attached_pnp(
-        self,
-        machine_type: str | None,
-        axis_x_mm: float = 0.0,
-        axis_y_mm: float = 0.0,
-        axis_z_mm: float = 0.0,
-        nozzle1_deg: float = 0.0,
-        nozzle2_deg: float = 0.0,
-    ) -> None:
-        self._renderer.set_attached_pnp(machine_type, axis_x_mm, axis_y_mm, axis_z_mm, nozzle1_deg, nozzle2_deg)
-        self.update()
-
-    # --- Qt/OpenGL lifecycle -------------------------------------------------
-
-    def initializeGL(self) -> None:
-        self._renderer.initialize_gl()
-
-    def resizeGL(self, w: int, h: int) -> None:
-        self._renderer.resize_gl(w, h)
-
-    def paintGL(self) -> None:
-        self._renderer.paint_gl()
-
-    def mousePressEvent(self, event: QMouseEvent) -> None:
-        self._last_mouse_pos = event.position()
-        self._drag_button = event.button()
-
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        self._last_mouse_pos = None
-        self._drag_button = None
-
-    def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self._last_mouse_pos is None:
-            return
-        delta = event.position() - self._last_mouse_pos
-        self._last_mouse_pos = event.position()
-        if self._drag_button == Qt.MouseButton.LeftButton:
-            self._renderer.orbit(delta.x(), delta.y())
-            self.update()
-        elif self._drag_button in (Qt.MouseButton.RightButton, Qt.MouseButton.MiddleButton):
-            self._renderer.pan(delta.x(), delta.y())
-            self.update()
-
-    def wheelEvent(self, event: QWheelEvent) -> None:
-        factor = 0.9 if event.angleDelta().y() > 0 else 1.1
-        self._renderer.zoom(factor)
-        self.update()
 
 
 class OffscreenRobotRenderer:

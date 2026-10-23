@@ -5,7 +5,7 @@
 #
 # Real port of HYDRA-UMC-STUDIO's own src/lib/canOta.ts (510 lines) - the
 # shared CAN-OTA (and, for the Kinematic Brain, SPI-OTA) transport used by
-# both flasher_panel.py and tester_panel.py, mirroring how Flasher.tsx/
+# both the former flasher panel and the former tester panel, mirroring how Flasher.tsx/
 # Tester.tsx both import from the one canOta.ts module rather than each
 # having their own copy.
 #
@@ -372,7 +372,7 @@ async def download_github_firmware(asset: GithubFirmwareAsset) -> bytes:
 # /api/hardware/canota/{version,flash} relay to HYDRA-UMC's
 # src/cm5_host/spi_bridge/ local service, itself the real SPI1 +
 # HYDRA_DATA_READY GPIO link to the STM32H745. `transport == 'hardware'`
-# reaches this real path - see flasher_panel.py/tester_panel.py for where
+# reaches this real path - see the former flasher panel/the former tester panel for where
 # the switch is read.
 # ---------------------------------------------------------------------------
 
@@ -405,7 +405,7 @@ def resolve_hardware_target(target: CanOtaTarget) -> HardwareTargetResolution | 
 async def hardware_query_version(conn, target: CanOtaTarget) -> VersionQueryResult:
     """Real GET /api/hardware/canota/version via the given HydraConnection
     (net/client.py) - same VersionQueryResult shape mock_query_version()
-    returns, so flasher_panel.py/tester_panel.py don't need a separate
+    returns, so the former flasher panel/the former tester panel don't need a separate
     result type for the hardware path."""
     resolved = resolve_hardware_target(target)
     if not resolved:

@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, ".")
 
 from hydra_suite import heated_beds, vacuum_tables
-from hydra_suite.ui.panels.ecosystem_telemetry_panel import clean_points
+from hydra_suite.panel_logic.ecosystem_telemetry import clean_points
 
 failures = 0
 

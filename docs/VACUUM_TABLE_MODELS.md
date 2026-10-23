@@ -74,8 +74,8 @@ The first CAD dimension maps to application width/X; the second maps to length
 
 STUDIO loads binary STL on demand in both the dedicated panel and robot-cell view;
 a loading error is displayed without replacing the model with a fake table.
-SUITE loads the same STL using its existing mesh loader, in the classic panel and
-the Qt Quick vacuum-table preview. Drag to orbit and use the wheel to zoom.
+SUITE loads the same STL using its existing mesh loader, in the Qt Quick
+vacuum-table preview. Drag to orbit and use the wheel to zoom.
 An unavailable asset/OpenGL context is reported by the Qt Quick preview.
 
 These are original user-authored designs, not Opulo's machine CAD. Export preserves

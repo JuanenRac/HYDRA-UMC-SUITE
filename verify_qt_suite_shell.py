@@ -21,12 +21,12 @@ from PySide6.QtGui import QGuiApplication
 
 from hydra_suite.app import SuiteController
 from hydra_suite.models import RACK_MAX_CAPACITY, HydraState
-from hydra_suite.ui.nav_sidebar import ALL_DOCK_KEYS
-from hydra_suite.ui.panels.admin_server_panel import _format_uptime
+from hydra_suite.nav_items import ALL_DOCK_KEYS
+from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.can_ota import GithubFirmwareAsset, VersionQueryResult
-from hydra_suite.ui.panels.atc_tools_panel import URTC_TOOLS
+from hydra_suite.panel_logic.atc_tools import URTC_TOOLS
 import qt_suite as qs
-from qt_suite import MIGRATED_PANELS, SuiteQtBridge
+from qt_suite import SuiteQtBridge
 
 
 def _run() -> None:
@@ -47,32 +47,21 @@ def _run() -> None:
     bridge._admin_logs_timer.stop()
     bridge._camera_status_timer.stop()
 
-    # --- nav taxonomy real parity with nav_sidebar.py's own real dock keys ---
+    # --- nav taxonomy: the bridge offers exactly the panels of nav_items.py ---
     all_keys = set()
     for items in (bridge.rootItems, bridge.industrialItems, bridge.urtcItems, bridge.hydraumcItems, bridge.hydraumcEcosystemItems):
         all_keys.update(item["key"] for item in items)
     assert all_keys == set(ALL_DOCK_KEYS), (
-        f"QML nav taxonomy must match nav_sidebar.py's own ALL_DOCK_KEYS exactly - "
+        f"the navigation must match nav_items.py's ALL_DOCK_KEYS exactly - "
         f"missing={ALL_DOCK_KEYS - all_keys} extra={all_keys - ALL_DOCK_KEYS}"
     )
-    # Every nav key is ported except these two, which show the honest
-    # placeholder; a panel ported or dropped without this list (and the
-    # README counts, tests/verify_readme_facts.py) changing fails here.
-    NOT_PORTED = {"robots_catalog", "system_supervisor"}
-    assert all_keys - MIGRATED_PANELS == NOT_PORTED, (
-        f"the panels still on the placeholder changed - "
-        f"not ported={all_keys - MIGRATED_PANELS} unknown ported={MIGRATED_PANELS - all_keys}"
-    )
-    assert MIGRATED_PANELS <= all_keys
 
     # --- navigation ---
     assert bridge.activePanel == "overview"
-    assert bridge.activePanelMigrated is True
     bridge.navigatePanel("viewport")
     assert bridge.activePanel == "viewport"
-    assert bridge.activePanelMigrated is True, "the last real panel - viewport - is migrated too"
     bridge.navigatePanel("logs")
-    assert bridge.activePanelMigrated is True
+    assert bridge.activePanel == "logs"
 
     # --- logs: real logging.Logger records reach the bridge, real filters apply ---
     log = logging.getLogger("verify_qt_suite_shell")
@@ -92,18 +81,18 @@ def _run() -> None:
 
     # --- servers: real ServerInfo/HydraConnection objects, no network ---
     assert bridge.serverRows == []
-    bridge.addManualServer("", 3000, "u", "p")  # empty host must be rejected
+    bridge.addManualServer("", 3000, "u", "p", False)  # empty host must be rejected
     assert bridge.serverRows == []
-    bridge.addManualServer("10.0.0.9", 3000, "", "p")  # missing username must be rejected
+    bridge.addManualServer("10.0.0.9", 3000, "", "p", False)  # missing username must be rejected
     assert bridge.serverRows == []
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     assert len(bridge.serverRows) == 1
     conn_id = bridge.serverRows[0]["connId"]
     assert bridge.serverRows[0]["hostPort"] == "10.0.0.9:3000"
     assert bridge.serverRows[0]["active"] is True, "the first server added becomes active automatically"
     creds = bridge.serverCredentials(conn_id)
     assert creds["username"] == "admin" and creds["password"] == "hunter2"
-    bridge.saveServerCredentials(conn_id, "admin2", "newpass")
+    bridge.saveServerCredentials(conn_id, "admin2", "newpass", False)
     assert bridge.serverCredentials(conn_id)["username"] == "admin2"
     bridge.removeServer(conn_id)
     assert bridge.serverRows == []
@@ -111,7 +100,7 @@ def _run() -> None:
     # --- ai family: real HydraConnection.fetch_ecosystem_status() shape,
     # network call itself stubbed (this bridge's own real responsibility
     # is grouping/labeling the response, not the HTTP call) ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     ai_conn_id = bridge.serverRows[0]["connId"]
     ai_conn = controller.connections[ai_conn_id]
 
@@ -140,7 +129,7 @@ def _run() -> None:
     bridge.removeServer(ai_conn_id)
 
     # --- admin clients: real admin gate + sort + relative duration ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     ac_conn_id = bridge.serverRows[0]["connId"]
     ac_conn = controller.connections[ac_conn_id]
     ac_conn.role = None  # not an admin session yet
@@ -168,7 +157,7 @@ def _run() -> None:
 
     # --- admin logs: real tag extraction, filtering, and the real
     # "clear the screen, keep tailing" anchor trick ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     al_conn_id = bridge.serverRows[0]["connId"]
     al_conn = controller.connections[al_conn_id]
     al_conn.role = "admin"
@@ -213,7 +202,7 @@ def _run() -> None:
     bridge.removeServer(al_conn_id)
 
     # --- admin server: real port config load/save + hydra-info snapshot ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     as_conn_id = bridge.serverRows[0]["connId"]
     as_conn = controller.connections[as_conn_id]
     as_conn.role = "admin"
@@ -266,7 +255,7 @@ def _run() -> None:
     # --- ecosystem services: real grouping/filtering/stats, and the
     # real start/stop/restart routing (control_service is stubbed - the
     # HTTP call itself isn't this bridge's own surface) ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     es_conn_id = bridge.serverRows[0]["connId"]
     es_conn = controller.connections[es_conn_id]
     es_conn.role = "admin"
@@ -321,7 +310,7 @@ def _run() -> None:
     # normalization math, and stats - fetch_telemetry_query/_aggregate
     # are stubbed (the HTTP call itself isn't this bridge's own
     # surface), the normalization/validation logic is. ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     tel_conn_id = bridge.serverRows[0]["connId"]
     tel_conn = controller.connections[tel_conn_id]
 
@@ -573,7 +562,10 @@ def _run() -> None:
 
     endstops = {e["key"]: e for e in bridge.kbsEndstopData}
     assert len(endstops) == 12 and endstops["xMin"]["active"] is False
-    bridge.toggleKbsEndstop("xMin")
+    assert not hasattr(bridge, "toggleKbsEndstop"), "endstops are inputs read from the machine: they are shown, never set from here"
+    stage = bridge._kbs_controller.kinematic_brain_stage
+    stage["endstops"]["xMin"] = True  # what the machine reports
+    bridge._kbs_controller.set_kinematic_brain_stage(stage)
     endstops = {e["key"]: e for e in bridge.kbsEndstopData}
     assert endstops["xMin"]["active"] is True
 
@@ -749,7 +741,7 @@ def _run() -> None:
     # discovery/PTZ/status wiring against a real HydraConnection (only
     # the network transport is stubbed - iter_mjpeg_frames() itself has
     # its own dedicated real test, verify_mjpeg_stream.py) ---
-    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2")
+    bridge.addManualServer("10.0.0.9", 3000, "admin", "hunter2", False)
     cam_conn_id = bridge.serverRows[0]["connId"]
     cam_conn = controller.connections[cam_conn_id]
     cam_conn.state = HydraState({
@@ -1097,10 +1089,13 @@ def _run() -> None:
     assert len(bridge.trajectoryPoints) == 2
     assert "30.0" in bridge.trajectoryPoints[1]["joints"]
 
-    push_calls = []
-    controller.push_active_state = lambda: push_calls.append(True)
+    # Applying a point is a jog command (so Sim, the limits and the arming apply), not a write of the whole tree.
+    sent_before = len(calls)
     bridge.applyTrajectoryPoint(0)  # point 0 was recorded before the j2=30 edit -> j2 back to 0.0
-    assert len(push_calls) == 1
+    assert len(calls) == sent_before + 1
+    args, kwargs = calls[-1]
+    assert args[1] == "jog" and args[2]["joints"]["j2"] == 0.0 and args[2]["amount"] == 0
+    args[3](bridge._selected_robot())  # the optimistic change the connection applies before the request
     assert bridge._selected_robot().raw["joints"]["j2"] == 0.0
 
     bridge.deleteTrajectoryPoint(0)

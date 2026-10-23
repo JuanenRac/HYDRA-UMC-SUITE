@@ -25,7 +25,7 @@
 </p>
 
 
-**Verificación de honestidad - qué funciona de verdad hoy:** el descubrimiento de red (escaneo de subred concurrente + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), la conexión REST+WebSocket en vivo y el soporte de enjambre (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinemática directa real del visor 3D para los 24 modelos de robot reales más un fallback "Generic" (`hydra_suite/render/`, verificada numéricamente byte a byte contra la propia implementación TypeScript de HYDRA-UMC STUDIO), los 11 de 11 paneles de configuración de herramientas, el flasheo CAN-OTA/SPI-OTA, y el renderizado real de cámaras MJPEG son reales y están probados - 48 scripts de verificación/smoke bajo `tests/` (`python tools/run_offline_verifiers.py`, Qt sin cabeza vía `QT_QPA_PLATFORM=offscreen`), todos pasando, más `tests/smoke_test_app.py`/`tests/smoke_test_viewport.py` ejercitados contra un HYDRA-UMC SERVER real en ejecución y un contexto GPU/OpenGL real en esta máquina. La shell Qt Quick (`--qtquick`, 27 de los 29 paneles clásicos portados, incluido el visor 3D mediante un `OffscreenRobotRenderer` dedicado) es código real y funcional, lanzado junto al punto de entrada clásico sin modificar. Lo que explícitamente NO está hecho todavía, según la propia convención de honestidad de este repo: los niveles URTC Tool Head/Advanced Expansion de CAN-OTA no tienen todavía un túnel de relé real hacia el hardware; y `combinedWith` (modo de robot combinado) no está expuesto en la UI de esta app pese a existir en el propio modelo de datos de STUDIO. `trajectory_panel.py` ahora exporta/importa a través del formato `WORKS/*.json` real de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<carpeta>/index.json`) - un punto grabado aquí es un Work real y reproducible desde cualquiera de las dos apps. Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para el desglose completo y detallado de lo real frente a lo diferido que resume este párrafo, y `CHANGELOG.md` para lo que ya se ha entregado exactamente.
+**Verificación de honestidad - qué funciona de verdad hoy:** el descubrimiento de red (escaneo de subred concurrente + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), la conexión REST+WebSocket en vivo y el soporte de enjambre (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinemática directa real del visor 3D para los 24 modelos de robot reales más un fallback "Generic" (`hydra_suite/render/`, verificada numéricamente byte a byte contra la propia implementación TypeScript de HYDRA-UMC STUDIO), los 11 de 11 paneles de configuración de herramientas, el flasheo CAN-OTA/SPI-OTA, y el renderizado real de cámaras MJPEG son reales y están probados - 37 scripts de verificación/smoke bajo `tests/` (`python tools/run_offline_verifiers.py`, Qt sin cabeza vía `QT_QPA_PLATFORM=offscreen`), todos pasando. La interfaz es solo Qt Quick (`qt_suite.py`): los 30 paneles de la navegación son código real y funcional, incluido el visor 3D mediante un `OffscreenRobotRenderer` dedicado; la ventana clásica se ha retirado. Lo que explícitamente NO está hecho todavía, según la propia convención de honestidad de este repo: los niveles URTC Tool Head/Advanced Expansion de CAN-OTA no tienen todavía un túnel de relé real hacia el hardware; y `combinedWith` (modo de robot combinado) no está expuesto en la UI de esta app pese a existir en el propio modelo de datos de STUDIO. El panel Trayectoria ahora exporta/importa a través del formato `WORKS/*.json` real de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<carpeta>/index.json`) - un punto grabado aquí es un Work real y reproducible desde cualquiera de las dos apps. Ver [`docs/ROADMAP.md`](docs/ROADMAP.md) para el desglose completo y detallado de lo real frente a lo diferido que resume este párrafo, y `CHANGELOG.md` para lo que ya se ha entregado exactamente.
 
 ---
 
@@ -79,21 +79,15 @@ propio.
 
 ## ✨ Consola visual de mando
 
-El escritorio incorpora una consola de mando persistente, inspirada en un menú de videojuego, con el icono oficial HYDRA-UMC y la paleta azul marino/cian de HYDRA-UMC-UPDATER. Muestra el nombre del producto, el estado de conexión, el servidor activo y la hora UTC, y lleva el botón STOP global y Acerca de. La navegación a los paneles acoplables es la barra lateral izquierda (`nav_sidebar.py`), no la consola. Es una capa visual sobre funciones reales de Suite, no un dashboard simulado.
+La ventana incorpora una cabecera persistente, inspirada en un menú de videojuego, con el icono oficial HYDRA-UMC y la paleta azul marino/cian de HYDRA-UMC-UPDATER. Muestra el nombre del producto, el estado de conexión y la versión, y lleva el botón STOP global y el menú de la aplicación (idioma, paquete de soporte, atajos de teclado, Acerca de). La navegación a los paneles es la barra lateral izquierda. No es un dashboard simulado: cada panel trabaja sobre los servidores reales.
 
 ### 🛑 STOP global
 
-El botón **STOP** está siempre en la parte superior de la ventana (en la consola de mando y, en el modo `--qtquick`, en la cabecera), en todos los paneles. Un clic, sin confirmación: llama a `POST /api/stop-all` en cada servidor conectado y detiene todos los robots, aunque los tenga reservados otra cuenta. Muestra el resultado: un mensaje verde cuando todo se ha detenido y uno rojo, que se queda hasta el siguiente STOP, cuando un robot no se detuvo, no se pudo guardar el estado de parada o nada confirmó el stop (**STOP NO CONFIRMADO**). Si el servidor limita la llamada, los robots se detienen uno a uno. **F12** hace lo mismo desde el teclado (aparece en **Ayuda > Atajos de teclado**); es una tecla de función sola, así que nunca pulsa un botón con el foco ni cierra nada.
+El botón **STOP** está siempre en la parte superior de la ventana, en todos los paneles. Un clic, sin confirmación: llama a `POST /api/stop-all` en cada servidor conectado y detiene todos los robots, aunque los tenga reservados otra cuenta. Muestra el resultado: un mensaje verde cuando todo se ha detenido y uno rojo, que se queda hasta el siguiente STOP, cuando un robot no se detuvo, no se pudo guardar el estado de parada o nada confirmó el stop (**STOP NO CONFIRMADO**). Si el servidor limita la llamada, los robots se detienen uno a uno. **F12** hace lo mismo desde el teclado (aparece en **≡ > Atajos de teclado**); es una tecla de función sola, así que nunca pulsa un botón con el foco ni cierra nada.
 
-### Rediseño completo en Qt Quick (`--qtquick`)
+### La interfaz Qt Quick
 
-Esa consola de mando es una capa sobre el `QMainWindow` clásico. Esta app también tiene un shell Qt Quick totalmente independiente:
-
-~~~
-python main.py --qtquick
-~~~
-
-Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, a diferencia de la consola de arriba (se probaron las dos formas reales de embeber QML en el árbol clásico `QMainWindow`/`QDockWidget` y ambas se descartaron: `QQuickWidget` pintaba negro sólido, y `QQuickView`+`createWindowContainer()` renderizaba bien de forma aislada pero corrompía el Z-order real de los paneles hermanos una vez colocado dentro del layout real de 29 docks de esta app). El mismo patrón real y ya probado que usan HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER, URTC-TESTER, URTC-FLASHER y HYDRA-UMC-EDITOR-URDF, lanzado junto al punto de entrada clásico sin reemplazarlo. Cambia la flexibilidad de flotar/dividir/fusionar en pestañas de `QDockWidget` por la disposición más simple de barra lateral de navegación más un único panel de contenido de STUDIO (reproduciendo la propia taxonomía real de `nav_sidebar.py` punto por punto) - 27 de los 29 paneles clásicos reales están portados a contenido QML real, incluido el Viewport 3D, cuya vista previa en vivo se alimenta mediante un `OffscreenRobotRenderer` dedicado (un `QOpenGLContext`/`QOffscreenSurface`/framebuffer genuinamente separado, deliberadamente no el propio `QQuickFramebufferObject` de Qt Quick, que forzaría todo el backend de Quick de la app a pasar del Direct3D11 real por defecto de Windows a OpenGL) reutilizando el mismo código de renderizado real (`RobotGLRenderer`) que usa el widget de viewport clásico, mediante un `QQuickImageProvider`.
+HYDRA-UMC SUITE tiene una única interfaz, escrita en Qt Quick (QML): una `ApplicationWindow` independiente (`assets/qml/Main.qml`) que `qt_suite.py` conecta con el `SuiteController` sin cambios. Es el mismo patrón que usan HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER, URTC-TESTER, URTC-FLASHER y HYDRA-UMC-EDITOR-URDF, y la misma forma que HYDRA-UMC-STUDIO: una barra lateral de navegación (un menú raíz más los submenús Industrial, URTC y HYDRA-UMC, en `hydra_suite/nav_items.py`) y un único área de contenido que muestra uno de los 30 paneles cada vez. El visor 3D y las vistas previas las dibuja un `OffscreenRobotRenderer` dedicado (un `QOpenGLContext`, un `QOffscreenSurface` y un framebuffer separados, no el `QQuickFramebufferObject` propio de Qt Quick, que obligaría a toda la interfaz a pasar del backend Direct3D 11 que Qt Quick usa por defecto en Windows a OpenGL) con el mismo código de renderizado (`RobotGLRenderer`), y se entregan a QML como imagen. La antigua ventana clásica (un `QMainWindow` con paneles acoplables) se ha retirado; todo lo que hacía vive en esta interfaz, y `python main.py` la inicia.
 
 ## 🏭 Funcionalidades
 
@@ -103,10 +97,8 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   WebSocket en vivo; elige cuál está "activo" para el resto de paneles.
 - **📊 Resumen general** - listado de robots por controladora: modelo, rol,
   estado en línea, velocidad/aceleración, de un vistazo.
-- **🦾 Control de robot** - rotario + slider por cada joint (el equivalente
-  de escritorio del propio par de control `RotaryKnob`+`FuturisticSlider` de
-  HYDRA-UMC STUDIO), sliders de velocidad/aceleración, todo escribiendo de
-  vuelta en vivo.
+- **🦾 Control de robot** - un deslizador por articulación dentro del rango del modelo, deslizadores de velocidad/aceleración, reproducir / pausar / detener la trayectoria grabada, la herramienta (con confirmación), las válvulas y las bombas, todo escribiendo de vuelta en vivo como comandos atómicos.
+- **🔐 Reservas, límites de seguridad y Live / Sim** - el panel Control de robot tiene una barra de acceso: reserva o libera el robot seleccionado para este programa (se renueva mientras se mantiene), ve quién tiene los demás y, como administrador, toma el control de uno. Cada reserva, liberación, armado del jog y comando lleva el identificador de controlador que este programa eligió al arrancar, y un rechazo (otra cuenta, la misma cuenta en otro sitio, falta de identificador de controlador, un jog sin armar) llega a la pantalla con su propia frase. El tamaño de un jog y la temperatura objetivo máxima de la cama se leen del servidor (`GET /api/safety-limits`) y se comprueban antes de enviar nada; un administrador los edita por modelo en el panel **Límites de seguridad**, junto con el armado opcional del jog (desactivado por defecto) y el identificador de controlador obligatorio. Cada robot tiene un interruptor **Live / Sim** (Live por defecto): en Sim nada que mueva el robot o encienda algo sale de este programa, mientras que STOP siempre sale. Los deslizadores de articulación siguen el rango del modelo, un Work con puntos fuera de él se rechaza con su lista, y encender el calefactor de la cama pregunta antes.
 - **🧊 Viewport 3D real** - OpenGL 3.3, mallas STL reales, cinemática
   directa real para los 24 modelos de robot reales (verificada
   numéricamente contra la propia implementación TypeScript de HYDRA-UMC
@@ -115,16 +107,8 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   ellos.
 - **📍 Puntos de trayectoria** - graba la pose en vivo del robot
   seleccionado, vuelve a cualquier punto grabado bajo demanda.
-- **🪟 Espacio de trabajo acoplable estilo Photoshop** - cada panel es un
-  `QDockWidget` real: arrastra para flotar libremente, arrastra de vuelta
-  para acoplar o fusionar en un grupo de pestañas, divide el espacio de
-  trabajo, ciérralo y vuelve a mostrarlo desde el menú Ver. Al flotar un
-  panel se convierte en una ventana de nivel superior genuina, así que
-  arrastrarlo a un segundo (o tercer) monitor físico y dejarlo ahí
-  funciona de fábrica - Qt/el gestor de ventanas del sistema operativo lo
-  coloca como cualquier otra ventana, sin necesitar un "modo
-  multi-monitor" aparte.
-- **💾 Disposición recordada y paquete de soporte** - la disposición de los paneles se conserva entre sesiones (Ver > Restablecer la disposición de los paneles recupera la de fábrica), y el panel de Logs puede exportar un zip para soporte con las versiones, la lista de servidores y el registro del cliente, sin contraseñas, nombres de usuario ni tokens.
+- **🧭 Una barra lateral, un área de contenido** - a los paneles se llega desde la navegación de la izquierda (menú raíz más los submenús Industrial, URTC y HYDRA-UMC), de uno en uno, agrupados como en la barra lateral de HYDRA-UMC-STUDIO. La ventana arranca maximizada con su barra de título nativa, y **F11** alterna la pantalla completa real.
+- **💾 Servidores recordados y paquete de soporte** - un servidor solo se recuerda si marcas *Recordar*: su dirección, apodo y usuario van al archivo de configuración y su contraseña al almacén seguro del sistema operativo (Administrador de credenciales de Windows, Llavero de macOS, el Secret Service del escritorio Linux) mediante `keyring`, nunca al archivo; sin almacén seguro la contraseña se vuelve a pedir. El menú de la aplicación exporta un zip para soporte con las versiones, la lista de servidores y el registro del cliente, sin contraseñas, usuarios ni tokens.
 - **🌐 8 idiomas** - English, Español, Italiano, Français, Deutsch, 简体中文,
   日本語, Português (misma
   convención `language/*.lng` que URTC-FLASHER/URTC-TESTER), se cambia
@@ -150,10 +134,10 @@ Una `ApplicationWindow` QML real - nada embebido dentro de la ventana clásica, 
   real, a veces peculiar, que el propio código fuente de STUDIO tiene,
   reproducido a propósito en vez de "arreglado" aquí) con su propia
   cobertura de test real sin interfaz gráfica. CNC/Láser/Cama Caliente/
-  Mesa de Vacío comparten una única implementación `ModuleConfigPanel`
+  Mesa de Vacío comparten una única implementación `moduleConfigComponent`
   (el propio `CNC.tsx`/`Laser.tsx` de STUDIO son componentes idénticos
   salvo por la clave del módulo); los otros 7 necesitaron cada uno su
-  propio panel real, construido a medida. La cama calefactada y la mesa de vacío usan STL en `render/module_rig.py`. PnP, CNC y láser usan `render/pnp_rig.py`: 7 mallas articuladas y 160 piezas individuales por carpeta independiente. `RobotViewport` representa cada conjunto. Consulta [los modelos](docs/MACHINE_ASSETS.md).
+  propio panel real, construido a medida. La cama calefactada y la mesa de vacío usan STL en `render/module_rig.py`. PnP, CNC y láser usan `render/pnp_rig.py`: 7 mallas articuladas y 160 piezas individuales por carpeta independiente. `OffscreenRobotRenderer` representa cada conjunto. Consulta [los modelos](docs/MACHINE_ASSETS.md).
 
 ---
 
@@ -213,8 +197,8 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_vacuum_tables.py
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
-├── main.py                        # Punto de entrada - arranca maximizada, 1280x720 min, F11 alterna pantalla completa/ventana; --qtquick cambia al panel de abajo
-├── qt_suite.py                     # Interfaz Qt Quick - panel de comandos `--qtquick` independiente (27 de los 29 paneles), conecta el SuiteController sin tocar con QML
+├── main.py                        # Punto de entrada - arranca la interfaz Qt Quick (maximizada, 1280x720 mín.; F11 alterna la pantalla completa real)
+├── qt_suite.py                     # Interfaz Qt Quick - conecta el SuiteController sin cambios con QML (los 30 paneles)
 ├── verify_qt_suite_shell.py        # Comprobación real de la shell Qt Quick sin hardware/red - deliberadamente fuera de tests/ (mismo motivo que los propios verify_qt_*.py de URTC-TESTER/URTC-FLASHER), se ejecuta con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
 ├── requirements.txt
 ├── hydra-umc.project.json         # Manifiesto del ecosistema - versión/familia/padre, la fuente que leen dashboard/updater/OS-REBUILDER
@@ -245,17 +229,14 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # Geometría de módulos de herramienta (CNC/Láser/Cama Caliente/Mesa de Vacío)
 │   │   ├── pnp_rig.py               # Cadena cinemática cartesiana real del rig de malla LumenPnP/JuanenPnP
 │   │   ├── mesh.py                  # Carga de STL (numpy-stl)
-│   │   └── viewport.py              # RobotGLRenderer (pipeline real de shaders GLSL, cámara orbital) + el wrapper QOpenGLWidget clásico + OffscreenRobotRenderer para el panel Viewport 3D del deck `--qtquick`
-│   └── ui/
-│       ├── main_window.py           # QMainWindow + espacio de trabajo QDockWidget
-│       ├── layout_state.py          # Recuerda la disposición de los paneles entre sesiones
-│       ├── about_dialog.py          # Diálogo Acerca de real (versión/autor/licencia)
-│       ├── theme.py                  # Carga assets/qss/industrial_dark.qss
-│       ├── widgets/rotary_knob.py    # Mando rotatorio pintado a medida (contraparte de escritorio de RotaryKnob.tsx)
-│       └── panels/                   # Un archivo por panel acoplable - paridad real 1:1 con las pestañas de STUDIO: server_browser, overview, robot_control, viewport_panel, trajectory_panel, cameras_panel (+ control PTZ real), ai_family_status_panel, ecosystem_services_panel, ecosystem_telemetry_panel, admin_clients_panel, admin_logs_panel, admin_server_panel, system_supervisor_panel, logs_panel, module_config_panel (+cnc/laser/heated_bed/vacuum_table), atc_tools_panel, xy_table_panel, rack_config_panel, pick_and_place_panel, kinematic_brain_stage_panel, flasher_panel, tester_panel
+│   │   └── viewport.py              # RobotGLRenderer (pipeline real de shaders GLSL, cámara orbital) + OffscreenRobotRenderer, que dibuja el visor 3D y las vistas previas de la interfaz Qt Quick
+│   ├── access.py                   # Identificador de controlador, reservas, límites de seguridad leídos del servidor, Live / Sim - sin Qt, sin red
+│   ├── credentials.py              # Servidores recordados: el archivo de configuración y el almacén seguro del sistema operativo (keyring)
+│   ├── joint_limits.py             # Rango de cada articulación de los modelos que lo publican
+│   ├── nav_items.py                # La navegación: menú raíz y submenús Industrial / URTC / HYDRA-UMC
+│   └── panel_logic/                # Lo que necesitan los paneles y no depende de una ventana: niveles, valores por defecto, lectura MJPEG, gráficas del supervisor
 ├── assets/
-│   ├── qss/industrial_dark.qss     # La hoja de estilos Qt de estética industrial-futurista
-│   ├── qml/Main.qml                 # UI Qt Quick del panel de comandos `--qtquick` (27 de los 29 paneles)
+│   ├── qml/Main.qml                 # La interfaz Qt Quick (los 30 paneles)
 │   └── meshes/                      # Mallas STL reales, una carpeta por robot/módulo, copiadas del propio public/models/ de HYDRA-UMC-STUDIO (cada una con su ATTRIBUTION.txt)
 ├── language/                        # Archivos .lng english/spanish/french/german/italian/japanese/chinese/portuguese
 ├── docs/
@@ -306,8 +287,7 @@ Pulsa **F12** en cualquier momento para enviar el STOP global (el botón **STOP*
 
 ## 🛠️ Pila Tecnológica
 
-- **Framework de UI:** PySide6 (Qt6) - paneles acoplables nativos, sin un
-  framework de acoplamiento propio reinventado
+- **Framework de UI:** PySide6 (Qt6) con Qt Quick (QML) - una única interfaz, sin reinventar un framework de acoplamiento propio
 - **Renderizado 3D:** PyOpenGL (shaders GLSL de perfil core) + numpy-stl
 - **Red:** `httpx` (REST) + `websockets` (sincronización en vivo),
   integrado con el propio bucle de eventos de Qt mediante `qasync` - sin

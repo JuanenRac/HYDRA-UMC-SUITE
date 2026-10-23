@@ -12,7 +12,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, ".")
-from hydra_suite.ui.panels.cameras_panel import iter_mjpeg_frames, _MJPEG_MAX_FRAME_BYTES
+from hydra_suite.panel_logic.cameras import iter_mjpeg_frames, _MJPEG_MAX_FRAME_BYTES
 
 SOI = b"\xff\xd8"
 EOI = b"\xff\xd9"

@@ -128,7 +128,7 @@ echo "[6/7] Compiling HYDRA-UMC_SUITE with PyInstaller..."
 # find its own Qt platform plugin at runtime), which produced a ~270MB
 # binary - it copies the ENTIRE PySide6 package (Qt6WebEngineCore alone
 # is ~196MB, plus qml/, translations/, none of which this app imports -
-# only QtCore/QtGui/QtWidgets/QtOpenGL/QtOpenGLWidgets/QtCharts/QtSvg/QtQml/QtQuick/QtQuickControls2 are actually
+# only QtCore/QtGui/QtOpenGL/QtSvg/QtQml/QtQuick/QtQuickControls2 are actually
 # used). A follow-up attempt added --exclude-module for every unused Qt
 # submodule on TOP of --collect-all, which does NOT fix this -
 # --exclude-module only prunes PyInstaller's own Python IMPORT graph,
@@ -140,7 +140,7 @@ echo "[6/7] Compiling HYDRA-UMC_SUITE with PyInstaller..."
 # (platforms/styles/imageformats/iconengines under Qt/plugins/ on Linux
 # - note the extra "Qt/" level PySide6's own Linux layout has, unlike
 # Windows' flat PySide6/plugins/) via --add-data, letting PyInstaller's
-# normal binary-dependency scan find the real Qt6 Core/Gui/Widgets/OpenGL and the other Qt
+# normal binary-dependency scan find the real Qt6 Core/Gui/OpenGL and the other Qt
 # .so files on its own (it can, since those ARE real imported Python
 # extension modules) - verified on Windows this produces a working,
 # ~89MB binary (roughly a two-thirds reduction); the same approach here.
@@ -158,11 +158,17 @@ PYSIDE_DIR=$("$VPY" -c "import PySide6, os; print(os.path.dirname(PySide6.__file
     --hidden-import zeroconf.asyncio \
     --hidden-import zeroconf._utils.ipaddress \
     --hidden-import ifaddr \
+    --hidden-import keyring \
+    --hidden-import keyring.backends \
+    --hidden-import keyring.backends.Windows \
+    --hidden-import keyring.backends.macOS \
+    --hidden-import keyring.backends.SecretService \
+    --hidden-import keyring.backends.kwallet \
+    --hidden-import keyring.backends.fail \
+    --hidden-import keyring.backends.null \
     --hidden-import PySide6.QtOpenGL \
-    --hidden-import PySide6.QtOpenGLWidgets \
     --hidden-import PySide6.QtQml \
     --hidden-import PySide6.QtQuick \
-    --hidden-import PySide6.QtQuickWidgets \
     main.py
 # UPX (https://upx.github.io/) shrinks the final binary further (30-50
 # percent typical) at zero functional cost - PyInstaller auto-detects

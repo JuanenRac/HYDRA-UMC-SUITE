@@ -3,13 +3,10 @@
 // Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 // GPL-3.0 - see LICENSE
 //
-// Real "redesign from zero" - see qt_suite.py's own module docstring for
-// the full account of why (both real ways of embedding QML inside the
-// classic QMainWindow+QDockWidget tree failed) and what "not yet
-// migrated" placeholders mean here. Same dark navy/cyan "command deck"
-// look already established across HYDRA-UMC-OS-REBUILDER/HYDRA-UMC-
-// UPDATER/URTC-TESTER/URTC-FLASHER, for ecosystem-wide visual
-// consistency - not a new visual language invented for this one app.
+// The one interface of HYDRA-UMC SUITE: a navigation sidebar and a single
+// content area, bridged to Python by qt_suite.py. Same dark navy/cyan
+// "command deck" look as HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER,
+// URTC-TESTER and URTC-FLASHER, for ecosystem-wide visual consistency.
 // =============================================================================
 import QtQuick
 import QtQuick.Controls
@@ -29,6 +26,14 @@ ApplicationWindow {
 
     Component.onCompleted: showMaximized()
 
+    // Closing the window first sends the writes that are waiting and closes the connections, then quits.
+    onClosing: function(close) {
+        if (!suiteBackend.shutdownDone) {
+            close.accepted = false
+            suiteBackend.shutdownAndQuit()
+        }
+    }
+
     // Documented single shortcut of the global STOP (Help/README): a bare
     // function key, application-wide, so it works on every panel; it does not
     // press a focused button (unlike Space) and closes nothing (unlike Esc).
@@ -37,6 +42,14 @@ ApplicationWindow {
         context: Qt.ApplicationShortcut
         autoRepeat: false
         onActivated: suiteBackend.stopAll()
+    }
+
+    // F11 toggles real full screen (the window starts maximized, with its native title bar).
+    Shortcut {
+        sequence: "F11"
+        context: Qt.ApplicationShortcut
+        autoRepeat: false
+        onActivated: window.visibility = (window.visibility === Window.FullScreen ? Window.Maximized : Window.FullScreen)
     }
 
     property color panel: "#101d30"
@@ -62,11 +75,14 @@ ApplicationWindow {
     property string pendingConfirmTitle: ""
     property string pendingConfirmBody: ""
     property var pendingConfirmAction: null
+    property string pendingConfirmLabel: ""
 
-    function requestConfirm(title, body, action) {
+    // label is optional: the button says "Save" unless the caller names what it confirms.
+    function requestConfirm(title, body, action, label) {
         pendingConfirmTitle = title
         pendingConfirmBody = body
         pendingConfirmAction = action
+        pendingConfirmLabel = label ? label : ""
         confirmDialog.open()
     }
 
@@ -75,6 +91,7 @@ ApplicationWindow {
         window.credentialsConnId = connId
         credentialsUsernameField.text = creds.username
         credentialsPasswordField.text = creds.password
+        credentialsRememberBox.checked = creds.remember
         credentialsDialog.open()
     }
 
@@ -94,16 +111,11 @@ ApplicationWindow {
         Layout.leftMargin: 10
     }
 
-    // One real nav leaf (a panel to show) or category (drills into a
-    // submenu) - migrated:false shows a small amber dot rather than
-    // hiding the item, so every one of the real 26 panels is always
-    // reachable and honestly labeled, matching this project's own
-    // "never invent/fake completion" convention.
+    // One nav leaf (a panel to show) or category (drills into a submenu).
     component NavButton: Rectangle {
         id: navBtn
         property string label: ""
         property bool active: false
-        property bool migrated: true
         property bool isCategory: false
         signal activated()
         Layout.fillWidth: true
@@ -119,17 +131,12 @@ ApplicationWindow {
             spacing: 6
             Text {
                 text: navBtn.label
-                color: navBtn.isCategory ? window.cyan : (navBtn.migrated ? window.textPrimary : window.muted)
+                color: navBtn.isCategory ? window.cyan : window.textPrimary
                 font.family: "Bahnschrift"
                 font.bold: navBtn.isCategory
                 font.pixelSize: 12
                 Layout.fillWidth: true
                 elide: Text.ElideRight
-            }
-            Rectangle {
-                visible: !navBtn.migrated && !navBtn.isCategory
-                width: 6; height: 6; radius: 3
-                color: window.amber
             }
             Text {
                 visible: navBtn.isCategory
@@ -236,6 +243,37 @@ ApplicationWindow {
                     font.pixelSize: 11
                 }
                 Text { text: "v" + suiteBackend.version; color: window.muted; font.family: "Bahnschrift"; font.pixelSize: 10 }
+                Button {
+                    id: appMenuButton
+                    objectName: "appMenuButton"
+                    text: "\u2261"
+                    font.pixelSize: 18
+                    implicitWidth: 40
+                    implicitHeight: 40
+                    Accessible.name: suiteBackend.uiText("MENU_FILE").replace("&", "")
+                    onClicked: appMenu.popup()
+                    Menu {
+                        id: appMenu
+                        Menu {
+                            title: suiteBackend.uiText("MENU_LANGUAGE").replace("&", "")
+                            Repeater {
+                                model: suiteBackend.languageOptions
+                                delegate: MenuItem {
+                                    required property var modelData
+                                    text: modelData.label
+                                    checkable: true
+                                    checked: modelData.current
+                                    onTriggered: suiteBackend.setLanguage(modelData.code)
+                                }
+                            }
+                        }
+                        MenuItem { text: suiteBackend.uiText("BTN_EXPORT_DIAGNOSTICS"); onTriggered: diagnosticsDialog.open() }
+                        MenuItem { text: suiteBackend.uiText("MENU_SHORTCUTS").replace("&", ""); onTriggered: shortcutsDialog.open() }
+                        MenuItem { text: suiteBackend.uiText("MENU_ABOUT"); onTriggered: aboutDialog.open() }
+                        MenuSeparator {}
+                        MenuItem { text: suiteBackend.uiText("MENU_QUIT"); onTriggered: window.close() }
+                    }
+                }
             }
         }
     }
@@ -273,8 +311,81 @@ ApplicationWindow {
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
             }
+            CheckBox {
+                id: credentialsRememberBox
+                objectName: "credentialsRememberBox"
+                text: suiteBackend.uiText("LBL_REMEMBER_SERVER")
+                palette.windowText: window.textPrimary
+            }
+            Text {
+                text: suiteBackend.secureStoreAvailable ? suiteBackend.uiText("HINT_REMEMBER_SECURE") : suiteBackend.uiText("HINT_REMEMBER_NO_STORE")
+                color: suiteBackend.secureStoreAvailable ? window.muted : window.amber
+                font.pixelSize: 10
+                wrapMode: Text.WordWrap
+                Layout.preferredWidth: 330
+            }
         }
-        onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text)
+        onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text, credentialsRememberBox.checked)
+    }
+
+    FileDialog {
+        id: diagnosticsDialog
+        title: suiteBackend.uiText("TITLE_EXPORT_DIAGNOSTICS")
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["Zip (*.zip)"]
+        onAccepted: suiteBackend.exportDiagnostics(selectedFile.toString())
+    }
+
+    Dialog {
+        id: shortcutsDialog
+        anchors.centerIn: parent
+        modal: true
+        width: 420
+        title: suiteBackend.uiText("TITLE_SHORTCUTS")
+        standardButtons: Dialog.Close
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+        contentItem: Text { text: suiteBackend.uiText("MSG_SHORTCUTS"); color: window.textPrimary; wrapMode: Text.WordWrap }
+    }
+
+    Dialog {
+        id: aboutDialog
+        objectName: "aboutDialog"
+        anchors.centerIn: parent
+        modal: true
+        width: 440
+        title: suiteBackend.uiText("TITLE_ABOUT")
+        standardButtons: Dialog.Close
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+        contentItem: ColumnLayout {
+            spacing: 8
+            VectorImage { Layout.alignment: Qt.AlignHCenter; Layout.preferredWidth: 88; Layout.preferredHeight: 88; source: suiteBackend.iconSource; visible: suiteBackend.iconSource !== "" }
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                textFormat: Text.RichText
+                text: "HYDRA<span style=\"color:#43db9b\">-UM</span><span style=\"color:#ee6b80\">C</span> <span style=\"color:#38d4e6\">SUITE</span>"
+                color: window.textPrimary
+                font.family: "Bahnschrift"
+                font.bold: true
+                font.pixelSize: 22
+            }
+            Text { text: suiteBackend.uiText("ABOUT_TAGLINE"); color: window.cyan; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("ABOUT_DESCRIPTION"); color: window.muted; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; font.pixelSize: 11 }
+            GridLayout {
+                columns: 2
+                columnSpacing: 12
+                Layout.alignment: Qt.AlignHCenter
+                Text { text: suiteBackend.uiText("ABOUT_VERSION_SUITE"); color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.aboutInfo.version; color: window.textPrimary; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("ABOUT_VERSION_SERVER"); color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.aboutInfo.serverVersion; color: window.textPrimary; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("ABOUT_AUTHOR"); color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.aboutInfo.author; color: window.textPrimary; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("ABOUT_EMAIL"); color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.aboutInfo.email; color: window.textPrimary; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("ABOUT_LICENSE"); color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.aboutInfo.license; color: window.textPrimary; font.pixelSize: 11 }
+            }
+        }
     }
 
     FileDialog {
@@ -297,9 +408,49 @@ ApplicationWindow {
             spacing: 14
             Text { text: window.pendingConfirmBody; color: window.textPrimary; wrapMode: Text.WordWrap; Layout.preferredWidth: 380 }
             Button {
-                text: suiteBackend.uiText("BTN_SAVE")
+                text: window.pendingConfirmLabel !== "" ? window.pendingConfirmLabel : suiteBackend.uiText("BTN_SAVE")
                 Layout.fillWidth: true
                 onClicked: { confirmDialog.close(); if (window.pendingConfirmAction) window.pendingConfirmAction() }
+            }
+        }
+    }
+
+    // What a server reported back (a refusal, a limit, a lowered target) stays here until dismissed.
+    Rectangle {
+        id: noticeBar
+        objectName: "noticeBar"
+        visible: suiteBackend.noticeText !== ""
+        z: 100
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 18
+        width: Math.min(parent.width - 60, 900)
+        height: noticeLabel.implicitHeight + 24
+        radius: 10
+        color: suiteBackend.noticeSeverity === "info" ? "#0e2f3d" : "#3a2c0a"
+        border.width: 1
+        border.color: suiteBackend.noticeSeverity === "info" ? window.cyan : window.amber
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 10
+            Text {
+                id: noticeLabel
+                objectName: "noticeText"
+                text: suiteBackend.noticeText
+                color: suiteBackend.noticeSeverity === "info" ? "#d8f6ff" : "#ffe9b8"
+                font.bold: true
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            Button {
+                objectName: "noticeDismiss"
+                text: "×"
+                implicitWidth: 30
+                implicitHeight: 30
+                Accessible.name: suiteBackend.uiText("BTN_CLOSE")
+                onClicked: suiteBackend.dismissNotice()
             }
         }
     }
@@ -311,7 +462,7 @@ ApplicationWindow {
 
         // -- Nav sidebar - real taxonomy from qt_suite.py's own
         // rootItems/industrialItems/urtcItems/hydraumcItems/
-        // hydraumcEcosystemItems, transcribed from nav_sidebar.py's own
+        // hydraumcEcosystemItems, transcribed from nav_items.py's
         // ROOT_ITEMS/etc. (see that module's own comment). --
         Card {
             Layout.preferredWidth: 260
@@ -331,7 +482,6 @@ ApplicationWindow {
                         delegate: NavButton {
                             required property var modelData
                             label: modelData.label
-                            migrated: modelData.migrated
                             active: suiteBackend.activePanel === modelData.key
                             onActivated: suiteBackend.navigatePanel(modelData.key)
                         }
@@ -343,7 +493,7 @@ ApplicationWindow {
                 }
 
                 // Industrial / URTC / HYDRA-UMC submenus - same real
-                // back-to-root control nav_sidebar.py's own
+                // back-to-root control nav_items.py's
                 // _build_submenu_page gives each one.
                 ColumnLayout {
                     visible: window.navPage !== "root"
@@ -362,7 +512,6 @@ ApplicationWindow {
                         delegate: NavButton {
                             required property var modelData
                             label: modelData.label
-                            migrated: modelData.migrated
                             active: suiteBackend.activePanel === modelData.key
                             onActivated: suiteBackend.navigatePanel(modelData.key)
                         }
@@ -376,7 +525,6 @@ ApplicationWindow {
                         delegate: NavButton {
                             required property var modelData
                             label: modelData.label
-                            migrated: modelData.migrated
                             active: suiteBackend.activePanel === modelData.key
                             onActivated: suiteBackend.navigatePanel(modelData.key)
                         }
@@ -386,9 +534,8 @@ ApplicationWindow {
             }
         }
 
-        // -- Content area - one real panel at a time, matching
-        // STUDIO's own nav+single-content-pane shape (see qt_suite.py's
-        // own module docstring for why, vs QDockWidget's float/split). --
+        // -- Content area - one panel at a time, the same
+        // sidebar-plus-single-content-pane shape as HYDRA-UMC-STUDIO. --
         Card {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -397,7 +544,6 @@ ApplicationWindow {
                 anchors.fill: parent
                 anchors.margins: 16
                 sourceComponent: {
-                    if (!suiteBackend.activePanelMigrated) return notMigratedComponent
                     if (suiteBackend.activePanel === "logs") return logsComponent
                     if (suiteBackend.activePanel === "overview") return overviewComponent
                     if (suiteBackend.activePanel === "servers") return serversComponent
@@ -425,23 +571,11 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "urtc_tester") return testerComponent
                     if (suiteBackend.activePanel === "hydra_tester") return testerComponent
                     if (suiteBackend.activePanel === "viewport") return viewportComponent
-                    return notMigratedComponent
+                    if (suiteBackend.activePanel === "robots_catalog") return robotsCatalogComponent
+                    if (suiteBackend.activePanel === "safety_limits") return safetyLimitsComponent
+                    if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
+                    return null
                 }
-            }
-        }
-    }
-
-    Component {
-        id: notMigratedComponent
-        ColumnLayout {
-            spacing: 12
-            Text { text: suiteBackend.uiText("QT_NOT_YET_MIGRATED_TITLE"); color: window.amber; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 18 }
-            Text {
-                text: suiteBackend.uiText("QT_NOT_YET_MIGRATED_BODY")
-                color: window.muted
-                font.family: "Bahnschrift"
-                wrapMode: Text.WordWrap
-                Layout.preferredWidth: 480
             }
         }
     }
@@ -496,13 +630,26 @@ ApplicationWindow {
                     Layout.preferredWidth: 110
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
+                CheckBox {
+                    id: rememberBox
+                    objectName: "rememberBox"
+                    text: suiteBackend.uiText("LBL_REMEMBER_SERVER")
+                    palette.windowText: window.textPrimary
+                }
                 Button {
                     text: suiteBackend.uiText("BTN_ADD")
                     onClicked: {
-                        suiteBackend.addManualServer(hostField.text, portSpin.value, userField.text, passField.text)
+                        suiteBackend.addManualServer(hostField.text, portSpin.value, userField.text, passField.text, rememberBox.checked)
                         hostField.text = ""
                     }
                 }
+            }
+            Text {
+                text: suiteBackend.secureStoreAvailable ? suiteBackend.uiText("HINT_REMEMBER_SECURE") : suiteBackend.uiText("HINT_REMEMBER_NO_STORE")
+                color: suiteBackend.secureStoreAvailable ? "#556070" : window.amber
+                font.pixelSize: 10
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
             }
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
             RowLayout {
@@ -543,6 +690,13 @@ ApplicationWindow {
                             ToolTip.text: modelData.loginDetail
                             HoverHandler { id: statusHover }
                         }
+                        CheckBox {
+                            checked: modelData.remembered
+                            text: suiteBackend.uiText("LBL_REMEMBERED")
+                            palette.windowText: window.muted
+                            font.pixelSize: 10
+                            onToggled: suiteBackend.setServerRemembered(modelData.connId, checked)
+                        }
                         Button { text: suiteBackend.uiText("BTN_SET_ACTIVE"); implicitHeight: 26; onClicked: suiteBackend.setActiveServer(modelData.connId) }
                         Button { text: suiteBackend.uiText("BTN_EDIT_CREDENTIALS"); implicitHeight: 26; onClicked: window.openCredentials(modelData.connId) }
                         Button { text: suiteBackend.uiText("BTN_REMOVE_SELECTED"); implicitHeight: 26; onClicked: suiteBackend.removeServer(modelData.connId) }
@@ -575,6 +729,136 @@ ApplicationWindow {
                 onActivated: suiteBackend.selectRobot(currentValue)
             }
             Card {
+                id: accessCard
+                objectName: "accessCard"
+                Layout.fillWidth: true
+                Layout.preferredHeight: accessColumn.implicitHeight + 24
+                property bool showList: false
+                ColumnLayout {
+                    id: accessColumn
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    spacing: 8
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Row {
+                            spacing: 0
+                            Button {
+                                objectName: "modeLiveButton"
+                                text: suiteBackend.uiText("ACCESS_MODE_LIVE")
+                                checkable: true
+                                checked: suiteBackend.selectedRobotMode === "live"
+                                ToolTip.visible: hovered
+                                ToolTip.text: suiteBackend.uiText("ACCESS_MODE_LIVE_HINT")
+                                onClicked: suiteBackend.setSelectedRobotMode("live")
+                            }
+                            Button {
+                                objectName: "modeSimButton"
+                                text: suiteBackend.uiText("ACCESS_MODE_SIM")
+                                checkable: true
+                                checked: suiteBackend.selectedRobotMode === "sim"
+                                ToolTip.visible: hovered
+                                ToolTip.text: suiteBackend.uiText("ACCESS_MODE_SIM_HINT")
+                                onClicked: suiteBackend.setSelectedRobotMode("sim")
+                            }
+                        }
+                        Text {
+                            visible: suiteBackend.selectedRobotMode === "sim"
+                            text: suiteBackend.uiText("ACCESS_SIM_NOTICE")
+                            color: window.amber
+                            font.bold: true
+                            font.pixelSize: 11
+                            height: 32
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        Rectangle {
+                            height: 32
+                            width: badgeText.implicitWidth + 20
+                            radius: 8
+                            color: suiteBackend.selectedRobotAccess.standing === "mine" ? "#123a1c"
+                                : (suiteBackend.selectedRobotAccess.standing === "free" ? window.panelAlt
+                                : (suiteBackend.selectedRobotAccess.standing === "other-controller" ? "#3a2c0a" : "#3a1018"))
+                            Text {
+                                id: badgeText
+                                objectName: "accessBadge"
+                                anchors.centerIn: parent
+                                text: suiteBackend.selectedRobotAccess.text
+                                color: window.textPrimary
+                                font.bold: true
+                                font.pixelSize: 11
+                            }
+                        }
+                        Button {
+                            objectName: "reserveButton"
+                            visible: suiteBackend.selectedRobotAccess.canReserve
+                            enabled: !suiteBackend.accessBusy
+                            text: suiteBackend.uiText("ACCESS_RESERVE")
+                            onClicked: suiteBackend.claimSelectedRobot()
+                        }
+                        Button {
+                            objectName: "releaseButton"
+                            visible: suiteBackend.selectedRobotAccess.canRelease
+                            enabled: !suiteBackend.accessBusy
+                            text: suiteBackend.uiText("ACCESS_RELEASE")
+                            onClicked: suiteBackend.releaseSelectedRobot()
+                        }
+                        Button {
+                            objectName: "takeOverButton"
+                            visible: suiteBackend.selectedRobotAccess.canTakeOver
+                            enabled: !suiteBackend.accessBusy
+                            text: suiteBackend.uiText("ACCESS_TAKE_OVER")
+                            onClicked: window.requestConfirm(
+                                suiteBackend.uiText("ACCESS_TAKE_OVER"),
+                                suiteBackend.uiText("ACCESS_CONFIRM_TAKE_OVER"),
+                                function() { suiteBackend.takeOverSelectedRobot() },
+                                suiteBackend.uiText("ACCESS_TAKE_OVER"))
+                        }
+                        Button {
+                            objectName: "jogArmButton"
+                            visible: suiteBackend.jogArmRequired
+                            enabled: !suiteBackend.accessBusy && suiteBackend.selectedRobotArm.canToggle
+                            text: suiteBackend.selectedRobotArm.armed
+                                ? suiteBackend.uiText("ACCESS_DISARM") + " (" + suiteBackend.selectedRobotArm.seconds + " s)"
+                                : suiteBackend.uiText("ACCESS_ARM")
+                            ToolTip.visible: hovered
+                            ToolTip.text: suiteBackend.uiText("ACCESS_ARM_HINT")
+                            onClicked: suiteBackend.toggleJogArm()
+                        }
+                        Button {
+                            objectName: "claimsListButton"
+                            flat: true
+                            text: suiteBackend.uiText("ACCESS_LIST_TOGGLE") + " (" + suiteBackend.claimsRows.length + ")"
+                            onClicked: accessCard.showList = !accessCard.showList
+                        }
+                    }
+                    ColumnLayout {
+                        visible: accessCard.showList
+                        Layout.fillWidth: true
+                        spacing: 3
+                        Text { visible: suiteBackend.claimsRows.length === 0; text: suiteBackend.uiText("ACCESS_LIST_EMPTY"); color: "#556070"; font.pixelSize: 11 }
+                        Repeater {
+                            model: suiteBackend.claimsRows
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                spacing: 10
+                                Text { text: modelData.robot; color: modelData.mine ? window.green : window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 150 }
+                                Text { text: modelData.owner; color: window.muted; font.pixelSize: 11; Layout.preferredWidth: 130 }
+                                Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData.left; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10 }
+                            }
+                        }
+                        CheckBox {
+                            text: suiteBackend.uiText("ACCESS_DEFAULT_SIM")
+                            checked: suiteBackend.defaultRobotModeSim
+                            palette.windowText: window.muted
+                            onToggled: suiteBackend.setDefaultRobotModeSim(checked)
+                        }
+                    }
+                }
+            }
+            Card {
                 Layout.fillWidth: true
                 Layout.preferredHeight: jointsColumn.implicitHeight + 28
                 ColumnLayout {
@@ -592,7 +876,7 @@ ApplicationWindow {
                             Text { text: modelData.name.toUpperCase(); color: window.muted; font.bold: true; Layout.preferredWidth: 30 }
                             Slider {
                                 Layout.fillWidth: true
-                                from: -180; to: 180
+                                from: modelData.min; to: modelData.max
                                 value: modelData.value
                                 enabled: suiteBackend.canControlRobot
                                 onMoved: suiteBackend.setJoint(modelData.name, value)
@@ -604,12 +888,18 @@ ApplicationWindow {
             }
             Card {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 100
+                Layout.preferredHeight: 150
                 ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 8
                     Text { text: suiteBackend.uiText("GROUP_PLAYBACK"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    RowLayout {
+                        spacing: 8
+                        Button { objectName: "playButton"; text: suiteBackend.uiText("BTN_PLAYBACK_PLAY"); enabled: suiteBackend.selectedRobotTransport.canPlay; onClicked: suiteBackend.playSelectedRobot() }
+                        Button { objectName: "pauseButton"; text: suiteBackend.selectedRobotTransport.paused ? suiteBackend.uiText("BTN_PLAYBACK_CONTINUE") : suiteBackend.uiText("BTN_PLAYBACK_PAUSE"); enabled: suiteBackend.selectedRobotTransport.canPause; onClicked: suiteBackend.pauseSelectedRobot() }
+                        Button { objectName: "stopButton"; text: suiteBackend.uiText("BTN_PLAYBACK_STOP"); enabled: suiteBackend.selectedRobotTransport.canStop; onClicked: suiteBackend.stopSelectedRobot() }
+                    }
                     RowLayout {
                         Layout.fillWidth: true
                         Text { text: suiteBackend.uiText("LBL_SPEED"); color: window.muted; Layout.preferredWidth: 90 }
@@ -621,6 +911,71 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_ACCELERATION"); color: window.muted; Layout.preferredWidth: 90 }
                         Slider { Layout.fillWidth: true; from: 10; to: 500; value: suiteBackend.selectedRobotAcceleration; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotAcceleration(Math.round(value)) }
                         Text { text: suiteBackend.selectedRobotAcceleration + "%"; color: window.textPrimary; Layout.preferredWidth: 45 }
+                    }
+                }
+            }
+            Card {
+                Layout.fillWidth: true
+                Layout.preferredHeight: ioColumn.implicitHeight + 28
+                ColumnLayout {
+                    id: ioColumn
+                    anchors.fill: parent
+                    anchors.margins: 14
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("GROUP_TOOL_ACCESSORIES"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    RowLayout {
+                        spacing: 8
+                        Text { text: suiteBackend.uiText("LBL_URTC_TOOL"); color: window.muted; Layout.preferredWidth: 90 }
+                        ComboBox {
+                            id: toolCombo
+                            objectName: "toolCombo"
+                            Layout.preferredWidth: 320
+                            enabled: suiteBackend.canControlRobot
+                            model: suiteBackend.toolOptions
+                            currentIndex: model.indexOf(suiteBackend.selectedRobotTool)
+                            Connections {
+                                target: suiteBackend
+                                function onChanged() { toolCombo.currentIndex = toolCombo.model.indexOf(suiteBackend.selectedRobotTool) }
+                            }
+                            // The tool decides what the robot does with the following moves: it asks first, and
+                            // declining puts the selector back on the tool the robot really has.
+                            onActivated: {
+                                var chosen = model[currentIndex]
+                                currentIndex = model.indexOf(suiteBackend.selectedRobotTool)
+                                if (chosen !== suiteBackend.selectedRobotTool) {
+                                    window.requestConfirm(
+                                        suiteBackend.uiText("TITLE_CONFIRM_TOOL"),
+                                        suiteBackend.uiText("MSG_CONFIRM_TOOL").replace("{tool}", chosen),
+                                        function() { suiteBackend.setSelectedRobotTool(chosen) },
+                                        suiteBackend.uiText("TITLE_CONFIRM_TOOL"))
+                                }
+                            }
+                        }
+                    }
+                    RowLayout {
+                        spacing: 8
+                        Repeater {
+                            model: 2
+                            delegate: Button {
+                                required property int index
+                                text: suiteBackend.uiText(index === 0 ? "LBL_VALVE_1" : "LBL_VALVE_2")
+                                checkable: true
+                                checked: suiteBackend.selectedRobotValves[index] === true
+                                enabled: suiteBackend.canControlRobot
+                                onClicked: suiteBackend.setSelectedValve(index, checked)
+                            }
+                        }
+                        Repeater {
+                            model: 2
+                            delegate: Button {
+                                required property int index
+                                text: suiteBackend.uiText(index === 0 ? "LBL_PUMP_1" : "LBL_PUMP_2")
+                                checkable: true
+                                checked: suiteBackend.selectedRobotPumps[index] === true
+                                enabled: suiteBackend.canControlRobot
+                                onClicked: suiteBackend.setSelectedPump(index, checked)
+                            }
+                        }
                     }
                 }
             }
@@ -689,6 +1044,74 @@ ApplicationWindow {
                     onClicked: {
                         suiteBackend.deleteTrajectoryPoint(trajectoryRoot.selectedRow)
                         trajectoryRoot.selectedRow = -1
+                    }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Button {
+                    objectName: "exportWorkButton"
+                    text: suiteBackend.uiText("BTN_EXPORT_WORK")
+                    enabled: suiteBackend.trajectoryPoints.length > 0
+                    onClicked: { workNameField.text = "trajectory_1"; exportWorkDialog.open() }
+                }
+                Button {
+                    objectName: "importWorkButton"
+                    text: suiteBackend.uiText("BTN_IMPORT_WORK")
+                    enabled: suiteBackend.canControlRobot
+                    onClicked: { suiteBackend.refreshWorkFiles(); importWorkDialog.open() }
+                }
+            }
+            Dialog {
+                id: exportWorkDialog
+                anchors.centerIn: Overlay.overlay
+                modal: true
+                width: 380
+                title: suiteBackend.uiText("DLG_EXPORT_WORK_TITLE")
+                standardButtons: Dialog.Ok | Dialog.Cancel
+                background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+                contentItem: ColumnLayout {
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("DLG_EXPORT_WORK_LABEL"); color: window.muted }
+                    TextField {
+                        id: workNameField
+                        objectName: "workNameField"
+                        Layout.fillWidth: true
+                        color: window.textPrimary
+                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    }
+                }
+                onAccepted: suiteBackend.exportWork(workNameField.text)
+            }
+            Dialog {
+                id: importWorkDialog
+                anchors.centerIn: Overlay.overlay
+                modal: true
+                width: 380
+                height: 360
+                title: suiteBackend.uiText("DLG_IMPORT_WORK_TITLE")
+                standardButtons: Dialog.Cancel
+                background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+                contentItem: ColumnLayout {
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("DLG_IMPORT_WORK_LABEL"); color: window.muted }
+                    ListView {
+                        objectName: "workFilesList"
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: 3
+                        model: suiteBackend.workFiles
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: ListView.view.width
+                            height: 30
+                            radius: 6
+                            color: window.panelAlt
+                            Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8; text: modelData; color: window.textPrimary; font.pixelSize: 11 }
+                            MouseArea { anchors.fill: parent; onClicked: { importWorkDialog.close(); suiteBackend.importWork(modelData) } }
+                        }
                     }
                 }
             }
@@ -821,7 +1244,7 @@ ApplicationWindow {
             }
             Text {
                 // Same real unconditional behavior as
-                // admin_clients_panel.py's own _rebuild(): shown
+                // the former admin_clients panel's _rebuild(): shown
                 // whenever the list is empty, whatever the reason
                 // (no active server / not admin / genuinely zero
                 // clients) - the status text above already explains why.
@@ -1406,6 +1829,7 @@ ApplicationWindow {
                 visible: suiteBackend.xyHasTable
                 spacing: 10
                 Card {
+                    enabled: suiteBackend.xyTableControlsEnabled
                     Layout.fillWidth: true
                     Layout.preferredHeight: 110
                     ColumnLayout {
@@ -1431,6 +1855,7 @@ ApplicationWindow {
                     }
                 }
                 Card {
+                    enabled: suiteBackend.xyTableControlsEnabled
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
                     ColumnLayout {
@@ -1796,6 +2221,7 @@ ApplicationWindow {
                 model: suiteBackend.overviewRobots
                 delegate: Rectangle {
                     required property var modelData
+                    required property int index
                     width: ListView.view.width
                     height: 28
                     radius: 6
@@ -2099,8 +2525,15 @@ ApplicationWindow {
                             RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm2; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 12 } }
                             RowLayout {
                                 Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: 10 }
-                                SpinBox { from: 0; to: 150; value: suiteBackend.kbsTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setKbsTargetTemp(value) }
-                                Button { text: suiteBackend.kbsSsrOn ? suiteBackend.uiText("BTN_SSR_ON") : suiteBackend.uiText("BTN_SSR_OFF"); onClicked: suiteBackend.toggleKbsSsr() }
+                                SpinBox { from: 0; to: suiteBackend.kbsBedCeiling; value: suiteBackend.kbsTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setKbsTargetTemp(value) }
+                                Button {
+                                    objectName: "kbsSsrButton"
+                                    text: suiteBackend.kbsSsrOn ? suiteBackend.uiText("BTN_SSR_ON") : suiteBackend.uiText("BTN_SSR_OFF")
+                                    // Switching the heater on switches 230 V mains: it asks first. Off never asks.
+                                    onClicked: suiteBackend.kbsSsrOn
+                                        ? suiteBackend.toggleKbsSsr()
+                                        : window.requestConfirm(suiteBackend.uiText("LBL_SSR_CONFIRM_TITLE"), suiteBackend.uiText("MSG_SSR_CONFIRM"), function() { suiteBackend.toggleKbsSsr() }, suiteBackend.uiText("BTN_SSR_ON"))
+                                }
                             }
                         }
                     }
@@ -2169,13 +2602,23 @@ ApplicationWindow {
                             rowSpacing: 6
                             Repeater {
                                 model: suiteBackend.kbsEndstopData
-                                delegate: Button {
+                                // Endstops are inputs read from the machine: shown, never set from here.
+                                delegate: Rectangle {
                                     required property var modelData
-                                    checkable: true
-                                    checked: modelData.active
-                                    text: modelData.label
-                                    font.pixelSize: 9
-                                    onClicked: suiteBackend.toggleKbsEndstop(modelData.key)
+                                    objectName: "endstop_" + modelData.key
+                                    implicitWidth: 120
+                                    implicitHeight: 28
+                                    radius: 6
+                                    color: modelData.active ? "#3a1018" : window.panelAlt
+                                    border.width: 1
+                                    border.color: modelData.active ? "#ee6b80" : window.panelBorder
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.label
+                                        color: modelData.active ? "#ee6b80" : window.muted
+                                        font.pixelSize: 9
+                                        font.bold: modelData.active
+                                    }
                                 }
                             }
                         }
@@ -2229,7 +2672,7 @@ ApplicationWindow {
     }
 
     // Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
-    // module_config_panel.py's own ModuleConfigPanel exactly (robot
+    // the former ModuleConfigPanel exactly (robot
     // selector, enable/disable, width/length, reset), with the two real
     // "extra" shapes (heated_bed/vacuum_table) gated by
     // suiteBackend.moduleExtraKind instead of 4 separate QML files. The
@@ -2355,8 +2798,14 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("GROUP_HEATING_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
                         RowLayout {
                             Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: 10 }
-                            SpinBox { from: 0; to: 300; value: suiteBackend.moduleTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setModuleTargetTemp(value) }
-                            Button { text: suiteBackend.moduleSsrOn ? suiteBackend.uiText("BTN_SSR_ON") : suiteBackend.uiText("BTN_SSR_OFF"); onClicked: suiteBackend.toggleModuleSsr() }
+                            SpinBox { from: 0; to: suiteBackend.moduleBedCeiling; value: suiteBackend.moduleTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setModuleTargetTemp(value) }
+                            Button {
+                                objectName: "moduleSsrButton"
+                                text: suiteBackend.moduleSsrOn ? suiteBackend.uiText("BTN_SSR_ON") : suiteBackend.uiText("BTN_SSR_OFF")
+                                onClicked: suiteBackend.moduleSsrOn
+                                    ? suiteBackend.toggleModuleSsr()
+                                    : window.requestConfirm(suiteBackend.uiText("LBL_SSR_CONFIRM_TITLE"), suiteBackend.uiText("MSG_SSR_CONFIRM"), function() { suiteBackend.toggleModuleSsr() }, suiteBackend.uiText("BTN_SSR_ON"))
+                            }
                         }
                         RowLayout {
                             spacing: 20
@@ -2444,7 +2893,7 @@ ApplicationWindow {
 
     // Real 6-joint (+ optional table tx/ty) position editor, reused for
     // both a panel slot's own position AND the revolver's base pickup
-    // position - mirrors atc_tools_panel.py's own reusable PositionEditor
+    // position - mirrors the former atc_tools panel's reusable PositionEditor
     // widget. Integer degrees/mm, matching the classic panel's own
     // QSpinBox (not a DecimalSpinBox - ATC positions are whole numbers
     // there too).
@@ -2477,7 +2926,7 @@ ApplicationWindow {
 
     // Real from-scratch 2D graphic (grid of tool slots, or a circular
     // revolver layout) - a hand-drawn QML Canvas mirroring
-    // atc_tools_panel.py's own AtcGraphicsWidget (QPainter) 1:1 in
+    // the former atc_tools panel's AtcGraphicsWidget (QPainter) 1:1 in
     // structure and color, same "Canvas over a 3D/charting dependency"
     // choice already used by ecosystem_telemetry's own chart.
     Component {
@@ -2764,7 +3213,7 @@ ApplicationWindow {
         }
     }
 
-    // Real MJPEG-fed camera grid - mirrors cameras_panel.py's own
+    // Real MJPEG-fed camera grid - mirrors the former cameras panel's
     // CamerasPanel/CameraCard 1:1 (real metadata + live feed + PTZ +
     // USB/RTSP discovery, not a placeholder). Each card's own live frame
     // comes from CameraFrameProvider (qt_suite.py) via
@@ -3063,7 +3512,7 @@ ApplicationWindow {
     }
 
     // Real Camera Media panel - QtQuick-mode counterpart to
-    // camera_media_panel.py's own CameraMediaPanel (Widgets mode), same
+    // the former CameraMediaPanel (Widgets mode), same
     // real browse/filter/play/delete capability, driven entirely by
     // SuiteQtBridge's cameraMedia* Properties/Slots.
     Component {
@@ -3209,6 +3658,11 @@ ApplicationWindow {
                             visible: suiteBackend.cameraMediaHasSelection
                             Item { Layout.fillWidth: true }
                             Button {
+                                objectName: "cameraMediaSaveButton"
+                                text: suiteBackend.uiText("CAMERA_MEDIA_SAVE_AS")
+                                onClicked: cameraMediaSaveDialog.open()
+                            }
+                            Button {
                                 text: suiteBackend.uiText("CAMERA_MEDIA_DELETE")
                                 onClicked: cameraMediaDeleteConfirm.open()
                             }
@@ -3224,6 +3678,13 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+
+            FileDialog {
+                id: cameraMediaSaveDialog
+                title: suiteBackend.uiText("CAMERA_MEDIA_SAVE_AS")
+                fileMode: FileDialog.SaveFile
+                onAccepted: suiteBackend.saveCameraMedia(selectedFile.toString())
             }
 
             MessageDialog {
@@ -3246,7 +3707,7 @@ ApplicationWindow {
     }
 
     // Real CAN-OTA (and, for the Kinematic Brain, SPI-OTA) firmware
-    // flasher - mirrors flasher_panel.py's own FlasherPanel 1:1 (mock
+    // flasher - mirrors the former FlasherPanel 1:1 (mock
     // simulation client-side, a real hardware path for kinematicBrain/
     // controllerBoard). NOT an embed of the separate URTC-FLASHER app -
     // this panel's own real logic lives in can_ota.py, imported directly,
@@ -3451,7 +3912,7 @@ ApplicationWindow {
         onAccepted: suiteBackend.setTesterStatusColor(selectedColor.toString())
     }
 
-    // Real CAN-OTA runtime diagnostics - mirrors tester_panel.py's own
+    // Real CAN-OTA runtime diagnostics - mirrors the former tester panel's
     // TesterPanel 1:1: global LED/OLED/F-RAM controls, per-tool
     // telemetry, safe self-test, raw CAN bus monitor. Deliberately
     // duplicates flasherComponent's own target-selection block rather
@@ -3686,7 +4147,7 @@ ApplicationWindow {
     // Real live 3D robot viewport - orbit camera (left-drag rotate, wheel
     // zoom, right/middle-drag pan), any of the 24 real STL-backed models
     // plus the primitive-built "Generic" fallback, matching
-    // viewport_panel.py's own ViewportPanel/RobotViewport 1:1. The one
+    // the former ViewportPanel/RobotViewport 1:1. The one
     // real 3D panel in this whole shell - see
     // render/viewport.py's own OffscreenRobotRenderer for why this is a
     // genuinely separate QOpenGLContext/FBO rather than Qt Quick 3D or
@@ -3776,6 +4237,627 @@ ApplicationWindow {
             }
 
             Text { text: suiteBackend.uiText("HINT_CONTROLS"); color: "#4a5563"; font.pixelSize: 10 }
+        }
+    }
+
+    // A small line chart drawn on a Canvas: one polyline per series (a null value leaves a gap), scaled to
+    // 0..maxValue, or to the largest value when maxValue is 0.
+    component LineChart: Canvas {
+        id: chart
+        property var seriesList: []
+        property var colors: []
+        property var dashed: []
+        property real maxValue: 0
+        property string unit: ""
+        onSeriesListChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.reset()
+            ctx.fillStyle = "#0d1117"
+            ctx.fillRect(0, 0, width, height)
+            var top = maxValue
+            if (top <= 0) {
+                top = 1
+                for (var s0 = 0; s0 < seriesList.length; s0++)
+                    for (var i0 = 0; i0 < seriesList[s0].length; i0++)
+                        if (seriesList[s0][i0] !== null && seriesList[s0][i0] > top) top = seriesList[s0][i0]
+            }
+            ctx.strokeStyle = "#1e293b"
+            ctx.lineWidth = 1
+            for (var g = 0; g <= 4; g++) {
+                var gy = Math.round(4 + (height - 8) * g / 4) + 0.5
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(width, gy); ctx.stroke()
+            }
+            ctx.fillStyle = "#64748b"
+            ctx.font = "9px sans-serif"
+            ctx.fillText(Math.round(top) + chart.unit, 4, 12)
+            ctx.fillText("0", 4, height - 3)
+            for (var s = 0; s < seriesList.length; s++) {
+                var data = seriesList[s]
+                var count = data.length
+                if (count < 2) continue
+                ctx.strokeStyle = colors[s] || "#22d3ee"
+                ctx.lineWidth = dashed[s] ? 1 : 2
+                ctx.setLineDash(dashed[s] ? [4, 3] : [])
+                ctx.beginPath()
+                var pen = false
+                for (var i = 0; i < count; i++) {
+                    var v = data[i]
+                    if (v === null || v === undefined) { pen = false; continue }
+                    var x = 4 + (width - 8) * i / (count - 1)
+                    var y = 4 + (height - 8) * (1 - Math.min(v, top) / top)
+                    if (!pen) { ctx.moveTo(x, y); pen = true } else ctx.lineTo(x, y)
+                }
+                ctx.stroke()
+            }
+        }
+    }
+
+    component StatTile: Card {
+        id: tile
+        property string label: ""
+        property string value: "-"
+        property string sub: ""
+        Layout.preferredHeight: 74
+        Layout.fillWidth: true
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 1
+            Text { text: tile.label; color: window.muted; font.pixelSize: 9; font.bold: true }
+            Text { text: tile.value; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 18; font.bold: true }
+            Text { text: tile.sub; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+        }
+    }
+
+    Component {
+        id: robotsCatalogComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            Text { text: suiteBackend.uiText("DOCK_ROBOTS_CATALOG"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 12
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 1
+                    Rectangle { anchors.fill: parent; color: "#0a0f14"; border.width: 1; border.color: "#1a2530" }
+                    Image {
+                        id: catalogImage
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectFit
+                        cache: false
+                        asynchronous: true
+                        visible: suiteBackend.catalogPreviewError === "" && suiteBackend.catalogPreviewVersion > 0
+                        source: visible ? ("image://catalogFrame/" + suiteBackend.catalogPreviewVersion) : ""
+                        MouseArea {
+                            anchors.fill: parent
+                            property real lastX: 0
+                            property real lastY: 0
+                            onPressed: function(mouse) { lastX = mouse.x; lastY = mouse.y }
+                            onPositionChanged: function(mouse) {
+                                suiteBackend.catalogPreviewOrbit(mouse.x - lastX, mouse.y - lastY)
+                                lastX = mouse.x; lastY = mouse.y
+                            }
+                            onWheel: function(wheel) { suiteBackend.catalogPreviewZoom(wheel.angleDelta.y > 0 ? 0.9 : 1.1) }
+                        }
+                    }
+                    Text {
+                        anchors.fill: parent
+                        anchors.margins: 20
+                        visible: !catalogImage.visible
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.WordWrap
+                        text: suiteBackend.catalogPreviewError
+                        color: window.muted
+                    }
+                    Component.onCompleted: suiteBackend.refreshCatalogPreview()
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: 1
+                    spacing: 8
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: suiteBackend.catalogManufacturers
+                            textRole: "label"
+                            valueRole: "value"
+                            onActivated: suiteBackend.setCatalogManufacturer(currentValue)
+                        }
+                        ComboBox {
+                            Layout.preferredWidth: 130
+                            model: [suiteBackend.uiText("OPT_ALL_DOF"), "5-DOF", "6-DOF"]
+                            onActivated: suiteBackend.setCatalogDof(currentIndex === 1 ? 5 : (currentIndex === 2 ? 6 : 0))
+                        }
+                    }
+                    ListView {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: 3
+                        model: suiteBackend.catalogRows
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: ListView.view.width
+                            height: 34
+                            radius: 8
+                            color: modelData.selected ? "#1a4967" : window.panelAlt
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+                                CheckBox {
+                                    checked: modelData.enabled
+                                    onToggled: suiteBackend.setCatalogModelEnabled(modelData.model, checked)
+                                }
+                                Text { text: modelData.model; color: window.textPrimary; font.pixelSize: 11; font.bold: modelData.selected; Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData.manufacturer; color: window.muted; font.pixelSize: 10 }
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                anchors.leftMargin: 40
+                                onClicked: suiteBackend.selectCatalogModel(modelData.model)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: supervisorComponent
+        ScrollView {
+            id: supervisorScroll
+            width: contentLoader.width
+            height: contentLoader.height
+            clip: true
+            contentWidth: availableWidth
+            ColumnLayout {
+                id: supervisorBody
+                width: supervisorScroll.availableWidth
+                spacing: 10
+                property var view: suiteBackend.supervisorView
+                property var ver: suiteBackend.supervisorVersion
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 14
+                    Text { text: suiteBackend.uiText("HEADING_SYSTEM_SUPERVISOR"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                    Item { Layout.fillWidth: true }
+                    Text { text: suiteBackend.supervisorLive; color: window.muted; font.pixelSize: 10 }
+                    Text { text: supervisorBody.view.uptime ? supervisorBody.view.uptime : ""; color: window.muted; font.pixelSize: 10 }
+                    Repeater {
+                        model: [
+                            { name: suiteBackend.uiText("LBL_SUPERVISOR_WIFI"), state: supervisorBody.view.wifi },
+                            { name: suiteBackend.uiText("LBL_SUPERVISOR_BLUETOOTH"), state: supervisorBody.view.bluetooth },
+                            { name: suiteBackend.uiText("LBL_SUPERVISOR_ETHERNET"), state: supervisorBody.view.ethernet }
+                        ]
+                        delegate: Text {
+                            required property var modelData
+                            text: modelData.name
+                            font.pixelSize: 9
+                            font.bold: true
+                            color: modelData.state === "on" ? window.green : (modelData.state === "off" ? "#e05050" : "#3a4250")
+                        }
+                    }
+                }
+                Text { visible: suiteBackend.supervisorStatus !== ""; text: suiteBackend.supervisorStatus; color: window.amber; font.pixelSize: 11 }
+                GridLayout {
+                    Layout.fillWidth: true
+                    columns: 6
+                    columnSpacing: 8
+                    Repeater {
+                        model: supervisorBody.view.tiles ? supervisorBody.view.tiles : []
+                        delegate: StatTile {
+                            required property var modelData
+                            label: modelData.label
+                            value: modelData.value
+                            sub: modelData.sub
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.preferredHeight: 190
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_CPU_TREND"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            LineChart {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                maxValue: 100
+                                unit: "%"
+                                colors: ["#22d3ee"]
+                                seriesList: supervisorBody.view.cpuSeries ? [supervisorBody.view.cpuSeries] : []
+                            }
+                        }
+                    }
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.preferredHeight: 190
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 3
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_CPU_CORES"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            Flickable {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+                                contentHeight: coresColumn.implicitHeight
+                                ColumnLayout {
+                                    id: coresColumn
+                                    width: parent.width
+                                    spacing: 3
+                                    Repeater {
+                                        model: supervisorBody.view.cores ? supervisorBody.view.cores : []
+                                        delegate: RowLayout {
+                                            required property var modelData
+                                            Layout.fillWidth: true
+                                            Text { text: modelData.name; color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 24 }
+                                            ProgressBar { Layout.fillWidth: true; from: 0; to: 100; value: modelData.percent }
+                                            Text { text: modelData.frequency; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.preferredHeight: 170
+                        visible: supervisorBody.view.hasMemory === true
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_MEMORY_TREND"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            LineChart {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                maxValue: 100
+                                unit: "%"
+                                colors: ["#fbbf24", "#94a3b8"]
+                                dashed: [false, true]
+                                seriesList: supervisorBody.view.memUsedSeries ? [supervisorBody.view.memUsedSeries, supervisorBody.view.memCachedSeries] : []
+                            }
+                        }
+                    }
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.preferredHeight: 170
+                        visible: supervisorBody.view.hasTemps === true
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_TEMP_TREND"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            LineChart {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                unit: "°C"
+                                colors: ["#fb7185", "#f472b6"]
+                                seriesList: supervisorBody.view.cpuTempSeries ? [supervisorBody.view.cpuTempSeries, supervisorBody.view.rp1TempSeries] : []
+                            }
+                        }
+                    }
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    visible: supervisorBody.view.hasTraffic === true
+                    spacing: 8
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        StatTile {
+                            visible: supervisorBody.view.wifiTotal !== undefined && supervisorBody.view.wifiTotal !== null
+                            label: suiteBackend.uiText("LBL_SUPERVISOR_WIFI_TOTAL")
+                            value: supervisorBody.view.wifiTotal ? supervisorBody.view.wifiTotal.total : "-"
+                            sub: supervisorBody.view.wifiTotal ? supervisorBody.view.wifiTotal.sub : ""
+                        }
+                        StatTile {
+                            visible: supervisorBody.view.ethernetTotal !== undefined && supervisorBody.view.ethernetTotal !== null
+                            label: suiteBackend.uiText("LBL_SUPERVISOR_ETHERNET_TOTAL")
+                            value: supervisorBody.view.ethernetTotal ? supervisorBody.view.ethernetTotal.total : "-"
+                            sub: supervisorBody.view.ethernetTotal ? supervisorBody.view.ethernetTotal.sub : ""
+                        }
+                    }
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 170
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_NETWORK_THROUGHPUT"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            LineChart {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                unit: " B/s"
+                                colors: ["#38bdf8", "#38bdf8", "#fbbf24", "#fbbf24"]
+                                dashed: [false, true, false, true]
+                                seriesList: supervisorBody.view.rates ? [supervisorBody.view.rates.wifiRx, supervisorBody.view.rates.wifiTx, supervisorBody.view.rates.ethRx, supervisorBody.view.rates.ethTx] : []
+                            }
+                        }
+                    }
+                }
+                Card {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 60 + 24 * (supervisorBody.view.processes ? supervisorBody.view.processes.length : 0)
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 4
+                        Text { text: suiteBackend.uiText("LBL_SUPERVISOR_PROCESSES"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_PID"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_PROCESS"); color: window.muted; font.pixelSize: 9; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_CPU_PERCENT"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_MEM_PERCENT"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_RSS"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 80 }
+                        }
+                        Repeater {
+                            model: supervisorBody.view.processes ? supervisorBody.view.processes : []
+                            delegate: RowLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Text { text: modelData.pid; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 70 }
+                                Text { text: modelData.name; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData.cpu; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 70 }
+                                Text { text: modelData.mem; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 70 }
+                                Text { text: modelData.rss; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 80 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: safetyLimitsComponent
+        ScrollView {
+            id: safetyScroll
+            width: contentLoader.width
+            height: contentLoader.height
+            clip: true
+            contentWidth: availableWidth
+            ColumnLayout {
+                id: safetyBody
+                width: safetyScroll.availableWidth
+                spacing: 12
+                // The values being edited. They follow the server until the administrator touches something.
+                property var form: suiteBackend.safetyForm
+                property bool dirty: false
+                property var hard: suiteBackend.safetyHard
+                property string newModel: ""
+                function edit(patch) {
+                    var next = Object.assign({}, safetyBody.form, patch)
+                    safetyBody.form = next
+                    safetyBody.dirty = true
+                }
+                function editRow(index, patch) {
+                    var rows = safetyBody.form.rows.slice()
+                    rows[index] = Object.assign({}, rows[index], patch)
+                    edit({ rows: rows })
+                }
+                Connections {
+                    target: suiteBackend
+                    function onChanged() {
+                        if (suiteBackend.safetyMessage !== "") safetyBody.dirty = false
+                        if (!safetyBody.dirty) safetyBody.form = suiteBackend.safetyForm
+                        safetyBody.hard = suiteBackend.safetyHard
+                    }
+                }
+                Text { text: suiteBackend.uiText("HEADING_SAFETY_LIMITS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text {
+                    visible: !suiteBackend.safetyHasServer
+                    text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
+                    color: window.muted
+                }
+                Text {
+                    visible: suiteBackend.safetyHasServer && !suiteBackend.safetyIsAdmin
+                    text: suiteBackend.uiText("MSG_SAFETY_ADMIN_ONLY")
+                    color: window.amber
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+                ColumnLayout {
+                    visible: suiteBackend.safetyHasServer && suiteBackend.safetyIsAdmin
+                    Layout.fillWidth: true
+                    spacing: 12
+                    Text { text: suiteBackend.uiText("MSG_SAFETY_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: armColumn.implicitHeight + 28
+                        ColumnLayout {
+                            id: armColumn
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("GROUP_SAFETY_ARMING"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            CheckBox {
+                                id: armRequiredBox
+                                objectName: "armRequiredBox"
+                                text: suiteBackend.uiText("LBL_SAFETY_ARM_REQUIRED")
+                                checked: safetyBody.form.armRequired === true
+                                onToggled: safetyBody.edit({ armRequired: checked })
+                                palette.windowText: window.textPrimary
+                            }
+                            Text { text: suiteBackend.uiText("HINT_SAFETY_ARM_REQUIRED"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            RowLayout {
+                                spacing: 8
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_ARM_TTL"); color: window.muted; Layout.preferredWidth: 260 }
+                                TextField {
+                                    objectName: "armTtlField"
+                                    text: safetyBody.form.armTtlSeconds !== undefined ? safetyBody.form.armTtlSeconds : ""
+                                    onTextEdited: safetyBody.edit({ armTtlSeconds: text })
+                                    Layout.preferredWidth: 90
+                                    color: window.textPrimary
+                                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                }
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_BETWEEN") + " " + safetyBody.hard.armTtlMinS + " - " + safetyBody.hard.armTtlMaxS; color: "#556070"; font.pixelSize: 10 }
+                            }
+                            CheckBox {
+                                id: requireControllerBox
+                                objectName: "requireControllerBox"
+                                text: suiteBackend.uiText("LBL_SAFETY_REQUIRE_CONTROLLER")
+                                checked: safetyBody.form.requireControllerId === true
+                                onToggled: safetyBody.edit({ requireControllerId: checked })
+                                palette.windowText: window.textPrimary
+                            }
+                            Text { text: suiteBackend.uiText("HINT_SAFETY_REQUIRE_CONTROLLER"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        }
+                    }
+                    Card {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: limitsColumn.implicitHeight + 28
+                        ColumnLayout {
+                            id: limitsColumn
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 6
+                            Text { text: suiteBackend.uiText("GROUP_SAFETY_LIMITS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text {
+                                text: suiteBackend.uiText("HINT_SAFETY_CEILINGS") + " " + safetyBody.hard.jogMaxAmount + " / " + safetyBody.hard.jogMaxAbsolute + " / " + safetyBody.hard.bedMaxC + " °C"
+                                color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Text { text: suiteBackend.uiText("COL_SAFETY_MODEL"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_JOG_RELATIVE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_JOG_ABSOLUTE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_BED"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_DEFAULT_ROW"); color: window.textPrimary; font.bold: true; Layout.preferredWidth: 150 }
+                                TextField {
+                                    objectName: "defaultAmountField"
+                                    text: safetyBody.form.defaultMaxAmount !== undefined ? safetyBody.form.defaultMaxAmount : ""
+                                    onTextEdited: safetyBody.edit({ defaultMaxAmount: text })
+                                    Layout.preferredWidth: 130; color: window.textPrimary
+                                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                }
+                                TextField {
+                                    text: safetyBody.form.defaultMaxAbsolute !== undefined ? safetyBody.form.defaultMaxAbsolute : ""
+                                    onTextEdited: safetyBody.edit({ defaultMaxAbsolute: text })
+                                    Layout.preferredWidth: 130; color: window.textPrimary
+                                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                }
+                                TextField {
+                                    text: safetyBody.form.defaultBedMaxC !== undefined ? safetyBody.form.defaultBedMaxC : ""
+                                    onTextEdited: safetyBody.edit({ defaultBedMaxC: text })
+                                    Layout.preferredWidth: 130; color: window.textPrimary
+                                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                }
+                            }
+                            Repeater {
+                                model: safetyBody.form.rows ? safetyBody.form.rows : []
+                                delegate: RowLayout {
+                                    id: modelRow
+                                    required property var modelData
+                                    required property int index
+                                    Layout.fillWidth: true
+                                    spacing: 6
+                                    Text { text: modelRow.modelData.model; color: window.textPrimary; font.family: "Cascadia Mono"; Layout.preferredWidth: 150; elide: Text.ElideRight }
+                                    TextField {
+                                        text: modelRow.modelData.maxAmount
+                                        placeholderText: suiteBackend.uiText("LBL_SAFETY_INHERIT")
+                                        onTextEdited: safetyBody.editRow(modelRow.index, { maxAmount: text })
+                                        Layout.preferredWidth: 130; color: window.textPrimary
+                                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                    }
+                                    TextField {
+                                        text: modelRow.modelData.maxAbsolute
+                                        placeholderText: suiteBackend.uiText("LBL_SAFETY_INHERIT")
+                                        onTextEdited: safetyBody.editRow(modelRow.index, { maxAbsolute: text })
+                                        Layout.preferredWidth: 130; color: window.textPrimary
+                                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                    }
+                                    TextField {
+                                        text: modelRow.modelData.bedMaxC
+                                        placeholderText: suiteBackend.uiText("LBL_SAFETY_INHERIT")
+                                        onTextEdited: safetyBody.editRow(modelRow.index, { bedMaxC: text })
+                                        Layout.preferredWidth: 130; color: window.textPrimary
+                                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                    }
+                                    Button {
+                                        text: "×"
+                                        implicitHeight: 26
+                                        Accessible.name: suiteBackend.uiText("BTN_SAFETY_REMOVE_MODEL")
+                                        onClicked: {
+                                            var rows = safetyBody.form.rows.slice()
+                                            rows.splice(modelRow.index, 1)
+                                            safetyBody.edit({ rows: rows })
+                                        }
+                                    }
+                                }
+                            }
+                            RowLayout {
+                                spacing: 6
+                                TextField {
+                                    id: newModelField
+                                    objectName: "newModelField"
+                                    placeholderText: suiteBackend.uiText("PLACEHOLDER_SAFETY_MODEL")
+                                    Layout.preferredWidth: 260
+                                    color: window.textPrimary
+                                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                }
+                                Button {
+                                    text: suiteBackend.uiText("BTN_SAFETY_ADD_MODEL")
+                                    onClicked: {
+                                        var name = newModelField.text.trim()
+                                        if (name === "") return
+                                        var rows = safetyBody.form.rows.slice()
+                                        rows.push({ model: name, maxAmount: "", maxAbsolute: "", bedMaxC: "" })
+                                        safetyBody.edit({ rows: rows })
+                                        newModelField.text = ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    RowLayout {
+                        spacing: 10
+                        Button {
+                            objectName: "safetySaveButton"
+                            text: suiteBackend.uiText("BTN_SAFETY_SAVE")
+                            enabled: safetyBody.dirty
+                            onClicked: suiteBackend.saveSafetyLimits(safetyBody.form)
+                        }
+                        Button {
+                            text: suiteBackend.uiText("BTN_SAFETY_DEFAULTS")
+                            onClicked: { safetyBody.form = suiteBackend.safetyDefaultsForm(); safetyBody.dirty = true }
+                        }
+                        Text { visible: suiteBackend.safetyMessage !== ""; text: suiteBackend.safetyMessage; color: window.green; font.bold: true; font.pixelSize: 11 }
+                        Text { visible: suiteBackend.safetyError !== ""; text: suiteBackend.safetyError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11 }
+                    }
+                }
+            }
         }
     }
 }

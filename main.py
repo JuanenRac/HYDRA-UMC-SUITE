@@ -4,118 +4,26 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Starts MAXIMIZED (not true OS-level fullscreen) with a 1280x720 minimum
-# window size (so it still fits a 1080p screen with a taskbar, or a laptop
-# at 125-150 % scaling), while keeping the native title bar
-# and its minimize/maximize/close buttons visible - true showFullScreen()
-# hides that title bar entirely on Windows, which read as "missing window
-# controls" rather than "running fullscreen". F11 still toggles into real
-# borderless fullscreen for whoever wants that, and back out again.
-#
-# qasync's QEventLoop is what lets every `async def` elsewhere in this
-# app (net/client.py, net/discovery.py, app.py) run on the SAME event
-# loop Qt's own GUI thread uses - no separate worker thread, no manual
-# thread-safe signal bridging needed to get network results back onto
-# the GUI thread safely.
+# Starts the Qt Quick interface (qt_suite.py): a maximized window with the native title bar, a sidebar of panels
+# and a single content area. qasync's QEventLoop lets every `async def` of net/client.py, net/discovery.py and
+# app.py run on the same event loop as Qt's own GUI thread, so network results reach the screen without a worker
+# thread or any thread-safe bridging.
 # =============================================================================
-import asyncio
 import sys
-from pathlib import Path
-
-import qasync
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication
-
-from hydra_suite.ui.main_window import MainWindow
-from hydra_suite.ui.theme import apply_theme
-
-
-IMAGES_DIR = Path(__file__).resolve().parent / "images"
 
 
 def main() -> int:
-    if "--qtquick" in sys.argv:
-        # The real "redesign from zero" this app's own CHANGELOG.md
-        # documents (see qt_suite.py's own module docstring for the
-        # full account) - 27 of the 29 real panels are
-        # ported; the other two (Robots Catalog, System Supervisor) show an honest placeholder.
-        # The classic QMainWindow+QDockWidget app below remains the
-        # default until real parity is reached, same opt-in convention
-        # URTC-TESTER/URTC-FLASHER used while THEY were mid-migration.
-        try:
-            from qt_suite import run_qtquick
-        except ImportError as exc:
-            print(
-                "ERROR: Qt Quick mode requires PySide6 and qasync. "
-                "Install this repository's requirements.txt first. "
-                f"Details: {exc}",
-                file=sys.stderr,
-            )
-            return 2
-        return run_qtquick()
-
-    # Qt6 auto-scales by physical DPI by default (no AA_EnableHighDpiScaling
-    # flag needed anymore, unlike Qt5), but its DEFAULT rounding policy snaps
-    # a fractional OS scale factor (125%/150%/175% - Windows's own recommended
-    # setting for most 27"-32" 4K monitors, not just 100%/200%) to the nearest
-    # whole integer before applying it. That mismatch between the requested
-    # and applied factor is exactly what makes fixed-pixel controls (the jog
-    # knobs/sliders in ui/panels/robot_control.py, sized in logical px) read
-    # as too-small-or-too-large and slightly blurry on a real 4K display set
-    # to one of those in-between scales, which is the common case, not the
-    # exception. PassThrough applies the OS's exact factor instead of
-    # rounding it - must be set before QApplication() exists, Qt reads it
-    # once at construction time.
-    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    from hydra_suite.render.gl_format import install_default_surface_format
-
-    install_default_surface_format()  # macOS: the viewport shaders need an OpenGL 3.3 core context
-    app = QApplication(sys.argv)
-    app.setApplicationName("HYDRA-UMC SUITE")
-    app.setOrganizationName("Electro Hobby 3D")
-    # Apply the official ecosystem mark before the main window exists so
-    # Windows taskbar grouping and any future dialogs inherit it too.
-    for icon_path in (IMAGES_DIR / "HYDRA_UMC_ICON.ico", IMAGES_DIR / "HYDRA_UMC_ICON.svg"):
-        if icon_path.is_file():
-            icon = QIcon(str(icon_path))
-            if not icon.isNull():
-                app.setWindowIcon(icon)
-                break
-    apply_theme(app)
-
-    loop = qasync.QEventLoop(app)
-    asyncio.set_event_loop(loop)
-
-    window = MainWindow()
-
-    # Remembers whether the window was maximized (vs. a plain resized/
-    # moved "normal" geometry) the moment F11 was pressed to ENTER
-    # fullscreen, so leaving fullscreen restores that exact prior state
-    # instead of always snapping back to showMaximized() - which used to
-    # silently discard any manual resize/move the user had done before
-    # their first F11 press (window.showNormal() restores Qt's own
-    # tracked normalGeometry() correctly, but only if it's actually
-    # called instead of being skipped in favor of always-maximize).
-    fullscreen_state = {"was_maximized": True}
-
-    def toggle_fullscreen() -> None:
-        if window.isFullScreen():
-            if fullscreen_state["was_maximized"]:
-                window.showMaximized()
-            else:
-                window.showNormal()
-        else:
-            fullscreen_state["was_maximized"] = window.isMaximized()
-            window.showFullScreen()
-
-    shortcut = QShortcut(QKeySequence(Qt.Key.Key_F11), window)
-    shortcut.activated.connect(toggle_fullscreen)
-
-    window.showMaximized()
-
-    with loop:
-        return loop.run_forever()
+    try:
+        from qt_suite import run_qtquick
+    except ImportError as exc:
+        print(
+            "ERROR: HYDRA-UMC SUITE needs PySide6 and qasync. "
+            "Install this repository's requirements.txt first. "
+            f"Details: {exc}",
+            file=sys.stderr,
+        )
+        return 2
+    return run_qtquick()
 
 
 if __name__ == "__main__":

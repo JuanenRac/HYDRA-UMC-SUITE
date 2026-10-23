@@ -12,7 +12,7 @@
 # joint chain (see kinematics.py's own UR/quaternion families), and not a
 # flat WORLD-space Segment list either (module_rig.py's modules are
 # static; this one actually moves per axisX/axisY/axisZ/nozzle1Rotation/
-# nozzle2Rotation, same fields ui/panels/pick_and_place_panel.py's own
+# nozzle2Rotation, same fields the former pick_and_place panel's
 # PNP_AXES sliders already write).
 #
 # STUDIO's original LumenPnP path loads a pre-merged .glb (a browser-specific
@@ -180,7 +180,7 @@ PNP_ALL_MESH_NAMES: tuple[str, ...] = PNP_LINK_NAMES + tuple(PNP_STATIC_PART_OWN
 PNP_ALL_MESH_FILES: dict[str, str] = {**PNP_MESH_FILES, **PNP_STATIC_PART_FILES}
 
 # Real fixed hardware travel bounds (openpnp/machine.xml) - same values
-# ui/panels/pick_and_place_panel.py's own PNP_AXES sliders already clamp
+# the former PNP_AXES sliders already clamp
 # to; kept here too since a caller driving this module directly (rather
 # than through that panel) should have the real bounds available without
 # reaching into UI code for them.

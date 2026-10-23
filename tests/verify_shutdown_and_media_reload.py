@@ -8,11 +8,10 @@
 #     raises something that is not a WebSocket error
 #   - SuiteController.shutdown() closes every server even when one fails
 #   - closing the window waits for the connections to be closed before the
-#     window really closes (the sockets used to be left to a task that the
+#     program really quits (the sockets used to be left to a task that the
 #     ending loop never ran)
 #   - background tasks started through spawn() log their failure instead of
 #     leaving "Task exception was never retrieved"
-#   - the camera media panel reloads its list when the active server changes
 # Run headless: QT_QPA_PLATFORM=offscreen.
 # =============================================================================
 import asyncio
@@ -23,7 +22,7 @@ import types
 sys.path.insert(0, ".")
 
 import qasync
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QGuiApplication
 
 from hydra_suite.app import SuiteController, spawn
 from hydra_suite.models import ServerInfo
@@ -89,22 +88,33 @@ def run_controller_shutdown(loop):
 
 
 def run_window_close(loop):
-    from hydra_suite.ui.main_window import MainWindow
+    from PySide6.QtGui import QGuiApplication
 
-    window = MainWindow()
+    import qt_suite as qs
+
+    controller = SuiteController()
+    bridge = qs.SuiteQtBridge(controller)
     done = []
+    quits = []
 
     async def slow_disconnect():
         await asyncio.sleep(0.05)
         done.append("closed")
 
-    window.controller.connections["z"] = types.SimpleNamespace(disconnect=slow_disconnect, info=types.SimpleNamespace(host="z"))
-    window.show()
-    window.close()
-    check("window: the first close request is held back", window.isVisible(), True)
-    loop.run_until_complete(asyncio.sleep(0.3))
-    check("window: the connections were closed before the window", done, ["closed"])
-    check("window: the window closes afterwards", window.isVisible(), False)
+    controller.connections["z"] = types.SimpleNamespace(disconnect=slow_disconnect, info=types.SimpleNamespace(host="z"))
+    real_quit = QGuiApplication.quit
+    QGuiApplication.quit = staticmethod(lambda: quits.append("quit"))
+    try:
+        check("window: it may not close before the connections are closed", bridge.shutdownDone, False)
+        bridge.shutdownAndQuit()
+        bridge.shutdownAndQuit()  # asked twice: still one shutdown
+        check("window: the first close request does not quit at once", quits, [])
+        loop.run_until_complete(asyncio.sleep(0.3))
+    finally:
+        QGuiApplication.quit = real_quit
+    check("window: the connections were closed before quitting", done, ["closed"])
+    check("window: it quits afterwards, once", quits, ["quit"])
+    check("window: and then lets the window close", bridge.shutdownDone, True)
 
 
 def run_spawn(loop):
@@ -124,34 +134,14 @@ def run_spawn(loop):
     logger.removeHandler(handler)
 
 
-def run_media_reload(loop):
-    from hydra_suite.ui.panels.camera_media_panel import CameraMediaPanel
-
-    controller = SuiteController()
-    panel = CameraMediaPanel(controller)  # built with no server at all
-    loop.run_until_complete(asyncio.sleep(0))
-    check("media: nothing to list before a server exists", panel._items, [])
-
-    async def list_media():
-        return 200, {"items": [{"cameraId": 1, "kind": "snapshots", "filename": "a.jpg", "sizeBytes": 1, "capturedAt": "x", "recording": False}]}
-
-    controller.connections["s"] = types.SimpleNamespace(list_camera_media=list_media, info=types.SimpleNamespace(base_url="http://fake"))
-    controller._active_id = "s"
-    controller.active_connection_changed.emit("s")
-    loop.run_until_complete(asyncio.sleep(0.05))
-    check("media: the list loads when the active server changes", len(panel._items), 1)
-
-
 def main():
-    app = QApplication.instance() or QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)  # the test keeps its loop after the window closes
+    app = QGuiApplication.instance() or QGuiApplication(sys.argv)
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
     run_disconnect(loop)
     run_controller_shutdown(loop)
     run_window_close(loop)
     run_spawn(loop)
-    run_media_reload(loop)
     print("FAILURES:", failures)
     return 1 if failures else 0
 

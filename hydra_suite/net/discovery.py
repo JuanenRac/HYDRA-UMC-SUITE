@@ -4,7 +4,7 @@
 # GPL-3.0 - see LICENSE
 #
 # Two independent discovery paths, merged by discover_servers() at the
-# bottom of this file into the one stream ui/panels/server_browser.py's
+# bottom of this file into the one stream the former server browser's
 # scan button actually consumes:
 #   - scan_subnets(): brute-force GET /api/hydra-info
 #     (HYDRA-UMC-SERVER/docs/REMOTE_API.md section 1) against every
@@ -113,7 +113,7 @@ def candidate_hosts_for(local_ip: str) -> list[str]:
     case for a home/lab/office LAN. A HYDRA-UMC reachable only through a
     differently-sized subnet or a routed VPN tunnel won't be found by this
     scan - use the manual "Add server by address" path in the UI for
-    those instead (see ui/panels/server_browser.py), which needs no
+    those instead (see the former server browser), which needs no
     special VPN-aware code at all: a VPN tunnel just makes a remote
     address reachable as if local, so a plain host:port connect already
     works through it once the tunnel itself is up."""
@@ -325,7 +325,7 @@ async def discover_mdns(timeout: float = MDNS_TIMEOUT_S) -> AsyncIterator[Server
 async def discover_servers(
     hosts: list[str] | None = None, port: int = DEFAULT_PORT, mdns_timeout: float = MDNS_TIMEOUT_S
 ) -> AsyncIterator[ServerInfo]:
-    """What ui/panels/server_browser.py's scan button actually calls:
+    """What the former server browser's scan button actually calls:
     scan_subnets() (the guaranteed brute-force fallback) and
     discover_mdns() (near-instant when multicast delivery works) running
     CONCURRENTLY - not one after the other, and mDNS is additive here,

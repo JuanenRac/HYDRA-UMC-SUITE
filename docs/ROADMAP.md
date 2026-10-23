@@ -25,7 +25,7 @@ for the payload size is a smaller wire format server-side.
 
 - **Global STOP** (`hydra_suite/net/client.py` `HydraConnection.stop_all()`,
   `hydra_suite/app.py` `SuiteController.stop_all()`) - the **STOP** button in
-  the command deck (classic window) and in the header (`--qtquick`), plus the
+  the header of the window, plus the
   application-wide **F12** shortcut, call `POST /api/stop-all` on every
   connected server: one click, no confirmation, every robot, reservations of
   other accounts ignored. It is sent at once with a 2 s timeout and retried
@@ -109,8 +109,8 @@ for the payload size is a smaller wire format server-side.
   (`render/pnp_rig.py` + `set_attached_pnp()`, a real port of STUDIO's
   own `LumenPnPRig.tsx`: 7 articulated groups plus 160 individual STL parts
   in independent `lumenpnp/` and `juanenpnp/` directories, posed through a Cartesian-gantry chain,
-  not primitives). Both modes are drawn by a `RobotViewport` instance
-  embedded directly in the owning panel's own layout, live-updating on
+  not primitives). Both modes are drawn by the preview of the owning panel (an
+  `OffscreenRobotRenderer` image), live-updating on
   enable/disable and on relevant edits (footprint/model for heated beds and
   vacuum tables; X/Y/Z/nozzle1/nozzle2 for Pick & Place). CNC/Laser now retain
   authored CAD dimensions; legacy size settings do not stretch these assemblies.
@@ -120,10 +120,22 @@ for the payload size is a smaller wire format server-side.
 - **Jog controls, Overview, Server Browser, local trajectory point
   recorder** - all read/write against the real live state of whichever
   server is active.
-- **Photoshop-style dockable workspace** - real `QDockWidget`s (Qt's own
-  mature docking system), not a custom-built one - float, dock, tab
-  together, split, close, and re-show via the View menu all work because
-  Qt itself already implements them correctly.
+- **One Qt Quick interface** - a navigation sidebar and one content area for
+  all the panels (the earlier classic window with dockable `QDockWidget`s was
+  removed; floating and splitting panels is not offered). The application menu
+  holds the language, the support bundle, the keyboard shortcuts and About.
+- **Reservations, safety limits and Live / Sim** - the controller id of this
+  program travels with every claim, release, jog arming and command; the
+  refusals of the server (other account, other controller, controller id
+  required, jog not armed) are told apart; the size of a jog and the heated-bed
+  ceiling are read from `GET /api/safety-limits` and checked before sending; an
+  administrator edits them in the Safety limits panel; a robot in Sim sends
+  nothing that moves it. Covered by `tests/verify_access.py`,
+  `tests/verify_access_network.py`, `tests/verify_bridge_access.py` and
+  `tests/verify_qml_panels.py`.
+- **Remembered servers** - address, nickname and user name in the configuration
+  file, the password only in the secure store of the operating system
+  (`keyring`); off by default. Covered by `tests/verify_credentials.py`.
 - **All 11 of 11 tool-attachment config panels** - CNC, Laser, Heated
   Bed, Vacuum Table, ATC (Automatic Tool Changer), XY Table, Rack
   Manager, Pick & Place, Kinematic Brain Stage (the controller-level

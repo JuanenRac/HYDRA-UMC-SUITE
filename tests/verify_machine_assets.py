@@ -7,10 +7,9 @@ import sys
 from pathlib import Path
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from PySide6.QtWidgets import QApplication
 from hydra_suite.render.pnp_rig import MACHINE_MESH_DIRS, machine_mesh_dir, PNP_ALL_MESH_FILES
 from hydra_suite.render.mesh import load_link_set
-from hydra_suite.render.viewport import ASSETS_DIR, RobotViewport
+from hydra_suite.render.viewport import ASSETS_DIR, RobotGLRenderer
 
 
 def main():
@@ -26,19 +25,17 @@ def main():
         raise AssertionError("Unknown machine must not fall back")
     except ValueError:
         pass
-    app=QApplication.instance() or QApplication([])
-    view=RobotViewport()
+    renderer=RobotGLRenderer(lambda: None, lambda: None)  # no GL context is needed to choose what to draw
     for machine in MACHINE_MESH_DIRS:
         if machine in ("juanenCNC","juanenLaser"):
-            view.set_attached_module(machine)
+            renderer.set_attached_module(machine)
         else:
-            view.set_attached_pnp(machine, 10, 20, 5, 30, 40)
-        assert view._renderer._pnp_machine_type == machine
-        assert view._renderer._pending_pnp_mesh_load
-    view.set_attached_module("heatedBed",100,100)
-    assert view._renderer._pnp_machine_type is None
-    assert view._renderer._attached_module_type == "heatedBed"
-    view.close()
+            renderer.set_attached_pnp(machine, 10, 20, 5, 30, 40)
+        assert renderer._pnp_machine_type == machine
+        assert renderer._pending_pnp_mesh_load
+    renderer.set_attached_module("heatedBed",100,100)
+    assert renderer._pnp_machine_type is None
+    assert renderer._attached_module_type == "heatedBed"
     print("VERIFY_MACHINE_ASSETS=PASS roots=4 meshes=668 dispatch=PASS")
 
 

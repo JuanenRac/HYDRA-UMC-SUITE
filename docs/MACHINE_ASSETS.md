@@ -77,7 +77,7 @@ three editable variants. SUITE caches GPU buffers by directory, not one shared
 LumenPnP key. Selection therefore cannot reuse another machine's modified mesh.
 
 STUDIO uses the same renderer in menu previews and the cell view.
-SUITE classic previews and Qt Quick previews select the appropriate directory.
+SUITE's Qt Quick previews select the appropriate directory.
 STL assets retain the current application materials; standard STL does not
 provide a portable color channel.
 

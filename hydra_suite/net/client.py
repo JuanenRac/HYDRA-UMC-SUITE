@@ -34,6 +34,7 @@ import httpx
 import websockets
 from PySide6.QtCore import QObject, Signal
 
+from hydra_suite import access
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 
@@ -196,18 +197,42 @@ def _body_error(resp: "httpx.Response") -> str:
 
 def describe_rejection(resp: "httpx.Response", what: str) -> str:
     """The message for a 4xx answer to a write: a stale session, a missing
-    permission, a refused command (400) and a robot reserved by another
-    account (409) each read differently to the operator."""
+    permission, a refused command (400), a jog that was not armed, and a robot
+    reserved by another account, by the same account on another controller or
+    by a controller this request did not name (409) each read differently to
+    the operator."""
     status = resp.status_code
-    if status == 401 or (status == 403 and _body_code(resp) in _RENEWABLE_TOKEN_CODES):
+    code = _body_code(resp)
+    if status == 401 or (status == 403 and code in _RENEWABLE_TOKEN_CODES):
         return _("MSG_NET_REJ_AUTH", what=what)
+    if code == "jog-not-armed":
+        return _("MSG_NET_REJ_NOT_ARMED", what=what, detail=_body_error(resp))
+    if code == "controller-id-required":
+        return _("MSG_NET_REJ_CONTROLLER_REQUIRED", what=what, detail=_body_error(resp))
     if status == 403:
         return _("MSG_NET_REJ_DENIED", what=what, detail=_body_error(resp))
     if status == 409:
+        if code == "other-account":
+            return _("MSG_NET_REJ_OTHER_ACCOUNT", what=what, detail=_body_error(resp))
+        if code == "other-controller":
+            return _("MSG_NET_REJ_OTHER_CONTROLLER", what=what, detail=_body_error(resp))
         return _("MSG_NET_REJ_RESERVED", what=what, detail=_body_error(resp))
     if status == 400:
         return _("MSG_NET_REJ_BAD", what=what, detail=_body_error(resp))
     return _("MSG_NET_FAILED_HTTP", what=what, status=status)
+
+
+@dataclass
+class AccessResult:
+    """The answer of a reservation, arming or limits request: `code` is "" on success, otherwise one of
+    access.failure_code_for()'s codes; `detail` is the server's own explanation when it gave one."""
+
+    ok: bool
+    status: int = 0
+    code: str = ""
+    detail: str = ""
+    expires_at: float | None = None
+    body: object = None
 
 
 class HydraConnection(QObject):
@@ -262,7 +287,7 @@ class HydraConnection(QObject):
         # call - lets the server list show a real per-server "login failed"
         # state instead of every non-active server just sitting at whatever
         # the row said when it was first added (see
-        # ui/panels/server_browser.py's own use of this).
+        # the former server browser's own use of this).
         self.login_ok: bool | None = None
         # Set only when the server's own login rate limiter (server.ts's
         # loginRateLimiter, default 5 attempts/15min/IP) rejects a login
@@ -289,7 +314,7 @@ class HydraConnection(QObject):
         # Per-(robot, command-name) THROTTLE (see send_command()'s own
         # comment on why this is a throttle and not a debounce) for
         # send_command()'s own network send - a dragged RotaryKnob/QSlider
-        # (robot_control.py's own JointRow/speed slider) emits continuously,
+        # (the former robot control panel's JointRow/speed slider) emits continuously,
         # and until this existed each of HYDRA-UMC-ANDROID-CONTROL's own
         # equivalent sendAtomicCommand() already debounces its speed command
         # 300ms for exactly this reason - this desktop client had the same
@@ -306,6 +331,12 @@ class HydraConnection(QObject):
         # recent send_now() closure that timer will call once it fires.
         self._throttle_tasks: dict[tuple[int, str], asyncio.Task] = {}
         self._throttle_latest_send: dict[tuple[int, str], Callable[[], Awaitable[None]]] = {}
+        # The limits the server reports (jog size, bed temperature, arming, mandatory
+        # controller id), the reservations it lists, and until when the jog of each robot
+        # is armed - refreshed by refresh_access(), never guessed.
+        self.safety = access.SafetyState()
+        self.claims: list[access.ClaimEntry] = []
+        self.jog_armed_until: dict[int, float | None] = {}
 
     @property
     def is_connected(self) -> bool:
@@ -660,7 +691,7 @@ class HydraConnection(QObject):
         bytes of one saved snapshot (a plain JPEG) or recording (raw
         multipart/x-mixed-replace framing, the same real boundary/
         Content-Length framing every live camera stream already uses -
-        see camera_media_panel.py's own MjpegRecordingPlayer for how a
+        see the former camera_media panel's MjpegRecordingPlayer for how a
         recording's own individual frames get parsed back out of it).
         Deliberately NOT sent with an auth header - this route is
         intentionally open server-side (see server.ts's own comment on
@@ -750,7 +781,7 @@ class HydraConnection(QObject):
         HYDRA-UMC-STUDIO's own RobotDetail.tsx handleSaveWorkFile() makes.
         `content` must already be in STUDIO's own WORKS point shape
         (native j1..j6 joints, which is exactly what this app's own
-        RobotView.joints/trajectory_panel.py already record - no
+        RobotView.joints/the former trajectory panel already record - no
         Cartesian conversion needed for a point recorded here to be a
         real, playable Work on Server or in STUDIO's own browser UI)."""
         return await self._request_json(
@@ -806,6 +837,14 @@ class HydraConnection(QObject):
                 if resp.status_code >= 400:
                     self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_WRITE")))
                     return
+                # The server lowers a bed target above the ceiling of its model and says so.
+                try:
+                    answer = resp.json()
+                except ValueError:
+                    answer = None
+                for warning in access.parse_warnings(answer):
+                    if warning.is_temperature:
+                        self.error.emit(_("MSG_NET_TEMP_LOWERED", requested=f"{warning.requested:g}" if warning.requested is not None else "?", applied=f"{warning.applied:g}" if warning.applied is not None else "?"))
         except (httpx.HTTPError, websockets.WebSocketException, OSError) as e:
             self.error.emit(_("MSG_NET_WRITE_FAILED", error=e))
             return
@@ -822,7 +861,7 @@ class HydraConnection(QObject):
         """POSTs the atomic /api/robot/:id/command instead of push_state()'s
         own full-tree read-modify-write - for the handful of discrete
         actions that already have an exact 1:1 case in server.ts's own
-        switch (today: jog/speed/acceleration from robot_control.py's
+        switch (today: jog/speed/acceleration from the former robot control panel's
         knob/sliders). See HYDRA-UMC-STUDIO's own store.tsx
         sendRobotCommand(), the same fix mirrored here.
 
@@ -842,7 +881,7 @@ class HydraConnection(QObject):
 
         `debounce_ms`, when positive, throttles only the real network POST -
         `local_mutate` above still applies immediately on every call, so a
-        dragged RotaryKnob/QSlider (robot_control.py's own JointRow/speed
+        dragged RotaryKnob/QSlider (the former robot control panel's JointRow/speed
         controls, both of which emit continuously) still gets instant
         per-tick visual feedback. This is a real THROTTLE, not a debounce
         (see the implementation's own comment for the real bug that fixed):
@@ -859,6 +898,20 @@ class HydraConnection(QObject):
         debounce, not this throttle), which likely has the same
         continuous-drag gap for whichever of their own controls emits
         continuously; not fixed here, out of this repo's scope."""
+        # A robot put in Sim never receives a command that moves it or switches something on, and a jog
+        # above the limit of its model is not sent: both are refused here, before any local change or
+        # network traffic, and the operator is told why.
+        scope = f"{self.info.host}:{self.info.port}"
+        if access.MODES.blocked(scope, [robot_id], command):
+            self.error.emit(_("MSG_NET_SIM_BLOCKED", command=command, robot=robot_id))
+            return
+        if command == "jog":
+            active_controller = self.state.active_controller
+            robot_view = active_controller.robot_by_id(str(robot_id)) if active_controller is not None else None
+            check = access.check_jog(self.safety.limits, robot_view.model if robot_view is not None else None, params)
+            if not check.ok:
+                self.error.emit(_("MSG_NET_JOG_LIMIT", limit=f"{'abs ' if check.kind == 'absolute' else ''}{check.limit:g}"))
+                return
         snapshot_json: str | None = None
         my_generation: int | None = None
         if local_mutate is not None:
@@ -888,7 +941,8 @@ class HydraConnection(QObject):
         async def send_now() -> None:
             try:
                 resp = await self._http(
-                    "POST", f"/api/robot/{robot_id}/command", json={"command": command, "params": params or {}}
+                    "POST", f"/api/robot/{robot_id}/command",
+                    json={"command": command, "params": params or {}, "controllerId": access.get_controller_id()},
                 )
                 if resp.status_code >= 400:
                     self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_COMMAND")))
@@ -943,6 +997,82 @@ class HydraConnection(QObject):
                 await latest()
 
         self._throttle_tasks[throttle_key] = asyncio.ensure_future(fire_throttled())
+
+    # --- reservations, jog arming and safety limits (contract v2, block 1) ---------------------------
+
+    async def _access_request(self, method: str, path: str, body: dict | None = None) -> AccessResult:
+        """One request of the reservation/limits family, answered as an AccessResult: it never raises, and a
+        refusal carries the stable code the server gave (other-account, other-controller, controller-id-required,
+        jog-not-armed) so the caller can say which."""
+        try:
+            kwargs: dict = {}
+            if body is not None:
+                kwargs["json"] = {**body, "controllerId": access.get_controller_id()} if method == "POST" else body
+            resp = await self._http(method, path, **kwargs)
+        except (httpx.HTTPError, OSError) as e:
+            return AccessResult(False, 0, access.failure_code_for(0, None), str(e) or e.__class__.__name__)
+        try:
+            data = resp.json()
+        except ValueError:
+            data = None
+        if resp.status_code < 400:
+            expires = data.get("expiresAt") if isinstance(data, dict) else None
+            return AccessResult(True, resp.status_code, "", "", float(expires) if isinstance(expires, (int, float)) and not isinstance(expires, bool) else None, data)
+        server_code = data.get("code") if isinstance(data, dict) and isinstance(data.get("code"), str) else None
+        detail = data.get("error") if isinstance(data, dict) and isinstance(data.get("error"), str) else f"HTTP {resp.status_code}"
+        return AccessResult(False, resp.status_code, access.failure_code_for(resp.status_code, server_code), detail, None, data)
+
+    async def claim_robot(self, robot_id: int, *, ttl_ms: int | None = None, force: bool = False, reason: str = "") -> AccessResult:
+        """POST /api/robot/:id/claim - reserves the robot for this account and this program."""
+        body: dict = {}
+        if ttl_ms:
+            body["ttlMs"] = ttl_ms
+        if force:
+            body["force"] = True
+        if reason:
+            body["reason"] = reason
+        return await self._access_request("POST", f"/api/robot/{robot_id}/claim", body)
+
+    async def release_robot(self, robot_id: int, reason: str = "") -> AccessResult:
+        """POST /api/robot/:id/release."""
+        return await self._access_request("POST", f"/api/robot/{robot_id}/release", {"reason": reason} if reason else {})
+
+    async def arm_jog(self, robot_id: int, armed: bool, ttl_ms: int | None = None) -> AccessResult:
+        """POST /api/robot/:id/jog-arm - arms or disarms the jog of one robot (`expires_at` says until when)."""
+        body: dict = {"armed": armed}
+        if armed and ttl_ms:
+            body["ttlMs"] = ttl_ms
+        result = await self._access_request("POST", f"/api/robot/{robot_id}/jog-arm", body)
+        if result.ok:
+            self.jog_armed_until[robot_id] = result.expires_at if armed else None
+        return result
+
+    async def refresh_access(self, robot_id: int | None = None) -> bool:
+        """Reads GET /api/claims and GET /api/safety-limits (with the robot, also until when its jog is armed).
+        A server that predates a route keeps what this program already had. Returns False when neither could be read."""
+        got = False
+        claims = await self._access_request("GET", "/api/claims")
+        if claims.ok:
+            self.claims = access.parse_claims(claims.body)
+            got = True
+        path = "/api/safety-limits" if robot_id is None else f"/api/safety-limits?robotId={robot_id}"
+        limits = await self._access_request("GET", path)
+        if limits.ok:
+            self.safety = access.parse_safety_limits(limits.body)
+            robot = limits.body.get("robot") if isinstance(limits.body, dict) else None
+            until = robot.get("jogArmedUntil") if isinstance(robot, dict) else None
+            if robot_id is not None:
+                self.jog_armed_until[robot_id] = float(until) if isinstance(until, (int, float)) and not isinstance(until, bool) else None
+            got = True
+        return got
+
+    async def put_safety_limits(self, patch: dict) -> AccessResult:
+        """PUT /api/admin/safety-limits (administrators only); on success the state this connection holds is the one
+        the server now has."""
+        result = await self._access_request("PUT", "/api/admin/safety-limits", patch)
+        if result.ok:
+            self.safety = access.parse_safety_limits(result.body)
+        return result
 
     async def stop_all(self) -> StopAllResult:
         """The global STOP: POST /api/stop-all stops every robot of this

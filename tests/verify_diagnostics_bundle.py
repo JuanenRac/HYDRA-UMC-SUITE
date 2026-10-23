@@ -21,37 +21,45 @@ def check(label: str, condition: bool) -> None:
     assert condition, label
 
 
-def panel_cases() -> None:
-    """The Logs panel writes the bundle with its own lines and the window's servers."""
+def bridge_cases() -> None:
+    """The interface writes the bundle with its own log lines and the servers of the list."""
     import asyncio
+    import logging
     import tempfile
     from pathlib import Path
 
     import qasync
-    from PySide6.QtWidgets import QApplication
+    from PySide6.QtGui import QGuiApplication
 
-    from hydra_suite.ui.panels.logs_panel import LogsPanel
+    from hydra_suite.app import SuiteController
+    from qt_suite import SuiteQtBridge
 
-    app = QApplication.instance() or QApplication(sys.argv)
+    app = QGuiApplication.instance() or QGuiApplication(sys.argv)
     asyncio.set_event_loop(qasync.QEventLoop(app))
-    panel = LogsPanel()
-    panel.set_servers_provider(lambda: [{"host": "10.1.1.1", "port": 3000, "password": "hunter2"}])
-    panel._on_record("WARNING", "net", "refused: token=abc999secret")
+    controller = SuiteController()
+    bridge = SuiteQtBridge(controller)
+    bridge.addManualServer("10.1.1.1", 3000, "root", "hunter2", False)
+    logging.getLogger("net").warning("refused: token=abc999secret")
     with tempfile.TemporaryDirectory() as folder:
         target = Path(folder) / "out.zip"
-        panel.export_diagnostics_to(str(target))
+        bridge.export_diagnostics_to(str(target))
         with zipfile.ZipFile(target) as archive:
             log, report = archive.read("client_log.txt"), archive.read("report.txt")
-        check("the panel's lines are in the bundle", b"refused" in log)
-        check("the panel's secrets are not", b"abc999secret" not in log and b"hunter2" not in report)
+        check("the log lines are in the bundle", b"refused" in log)
+        check("the secrets are not", b"abc999secret" not in log and b"hunter2" not in report and b"root" not in report)
         check("the server is listed", b"10.1.1.1" in report)
         try:
-            panel.export_diagnostics_to(str(Path(folder) / "missing" / "out.zip"))
+            bridge.export_diagnostics_to(str(Path(folder) / "missing" / "out.zip"))
         except OSError:
             pass
         else:
             raise AssertionError("an unwritable path must raise OSError")
-    panel.deleteLater()
+        bridge.exportDiagnostics(str(Path(folder) / "missing" / "again.zip"))
+        check("an unwritable path is said to the operator, not raised", bridge.noticeText != "" and bridge.noticeSeverity == "warn")
+        good = Path(folder) / "second"
+        bridge.exportDiagnostics(good.as_uri())
+        check("the bundle is written from a file address", (Path(folder) / "second.zip").is_file())
+        check("and the operator is told where", bridge.noticeSeverity == "info" and "second.zip" in bridge.noticeText)
 
 
 def main() -> None:
@@ -88,7 +96,7 @@ def main() -> None:
             check(f"{secret[:8]!r} never reaches the bundle", secret not in text)
     check("the log keeps its lines", "login password=" + REDACTED in log)
     check("an empty list is said plainly", "No server in the list." in zipfile.ZipFile(io.BytesIO(build_bundle([], []))).read("report.txt").decode())
-    panel_cases()
+    bridge_cases()
     print("verify_diagnostics_bundle: OK")
 
 

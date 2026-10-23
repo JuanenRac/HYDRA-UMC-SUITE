@@ -51,7 +51,7 @@ because heated-bed sizes were already configurable. Invalid dimensions fall back
 to the selected catalog footprint. Invalid IDs passed to selection are ignored,
 never interpreted as file paths. Reading settings does not rewrite them.
 
-STUDIO's panel and cell view, SUITE's classic panel and its Qt Quick preview use
+STUDIO's panel and cell view and SUITE's Qt Quick preview use
 the same catalog and STL. SERVER's hosted STUDIO needs the updated client build;
 changing server documentation alone does not update a deployed web UI. Older
 clients can display the old primitive and should be upgraded together.

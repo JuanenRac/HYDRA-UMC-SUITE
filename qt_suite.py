@@ -3,46 +3,20 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 # =============================================================================
-"""Qt Quick front end for HYDRA-UMC SUITE - the real "redesign from zero"
-this repo's own CHANGELOG.md documents as necessary after BOTH real ways of
-embedding QML inside the established QMainWindow+QDockWidget tree proved
-unsafe (QQuickWidget painted solid black; QQuickView+createWindowContainer
-rendered correctly in isolation but corrupted sibling widgets' real Z-order
-inside this app's actual 29-dock layout - see this session's own memory
-note for the full account). This is a STANDALONE pure-QML
-ApplicationWindow instead, the same real shape as
-HYDRA-UMC-OS-REBUILDER/HYDRA-UMC-UPDATER/URTC-TESTER/URTC-FLASHER (all of
-which already render correctly) - not an embed, so the mixing problem
-those two failed attempts hit doesn't apply here at all.
+"""Qt Quick interface of HYDRA-UMC SUITE: a standalone ApplicationWindow with a navigation sidebar (the same
+root menu and Industrial / URTC / HYDRA-UMC submenus as HYDRA-UMC-STUDIO) and a single content area that shows one
+panel at a time. This module is the bridge between that QML and the rest of the program.
 
-Navigation trades QDockWidget's float/split/tab-merge flexibility for
-HYDRA-UMC-STUDIO's own simpler nav-sidebar-plus-single-content-pane shape
-(nav_sidebar.py's own real taxonomy - ROOT_ITEMS/INDUSTRIAL_ITEMS/
-URTC_ITEMS/HYDRA_ITEMS/HYDRA_ECOSYSTEM_ITEMS - is mirrored here item for
-item) - a deliberate real design choice per the STUDIO<->SUITE parity
-rule, not an oversight: most users never actually float/split these docks,
-and a hand-built docking system in QML would be a second, much bigger real
-engineering project of its own (see e.g. KDDockWidgets existing as a whole
-separate library for exactly this reason).
-
-hydra_suite.app.SuiteController is reused here as it is - it is a plain
-QObject with Qt Signals, never tied to QtWidgets, so it serves a QML front
-end too (the global STOP is one of its methods, called by both shells).
-
-REAL, HONEST STATUS (kept current in this repo's own CHANGELOG.md, the
-authoritative source - this docstring is not re-updated per panel to avoid
-drifting out of sync with it): 27 of the 29 real panels
-main_window.py docks are ported to actual QML content; the other two
-(Robots Catalog and System Supervisor) show a real, honest "not yet migrated" placeholder (never a fake,
-empty-but-styled panel pretending to be done) pointing back at the
-existing classic view, which remains fully functional and is still this
-app's own default entry point. Run `python main.py --qtquick` to see this
-one instead - exactly the same opt-in convention URTC-TESTER/URTC-FLASHER
-used while THEY were mid-migration.
+hydra_suite.app.SuiteController is a plain QObject with Qt signals and no widget code, so it serves this interface
+directly (the global STOP is one of its methods). SuiteQtBridge below only owns what has no meaning outside a screen:
+which panel is open, the display state of each panel, the notices shown to the operator, and the translated texts.
+Everything about the servers themselves (state, commands, reservations, limits) stays in SuiteController and
+HydraConnection, so a check can exercise it without a window.
 """
 from __future__ import annotations
 
 import asyncio
+import logging
 import json
 import os
 import random
@@ -58,7 +32,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from hydra_suite import __version__, logging_handler
+from hydra_suite import __version__, access, logging_handler
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.can_ota import (
     GITHUB_FIRMWARE_REPO,
@@ -80,7 +54,10 @@ from hydra_suite.can_ota import (
     resolve_hardware_target,
     slot_label,
 )
-from hydra_suite.i18n import _
+from hydra_suite.credentials import CredentialStore, keyring_backend
+from hydra_suite.diagnostics import build_bundle
+from hydra_suite.i18n import AVAILABLE_LANGUAGES, CONFIG_FILE_PATH, _, current_language, load_config, save_config
+from hydra_suite.joint_limits import joint_range_deg
 from hydra_suite.models import (
     CAMERA_TYPES,
     JOINT_NAMES,
@@ -96,11 +73,11 @@ from hydra_suite.models import (
 )
 from hydra_suite.net.client import HydraConnection
 from hydra_suite.net.discovery import DEFAULT_PORT, discover_servers
-from hydra_suite.ui.panels.admin_clients_panel import _relative_duration
-from hydra_suite.ui.panels.admin_logs_panel import _extract_tag
-from hydra_suite.ui.panels.admin_server_panel import _format_uptime
-from hydra_suite.ui.panels.ai_family_status_panel import AI_FAMILIES
-from hydra_suite.ui.panels.atc_tools_panel import (
+from hydra_suite.panel_logic.admin_clients import _relative_duration
+from hydra_suite.panel_logic.admin_logs import _extract_tag
+from hydra_suite.panel_logic.admin_server import _format_uptime
+from hydra_suite.panel_logic.ai_family_status import AI_FAMILIES
+from hydra_suite.panel_logic.atc_tools import (
     JOINT_FIELDS as _ATC_JOINT_FIELDS,
     JOINT_RANGE_DEG as _ATC_JOINT_RANGE_DEG,
     PANEL_GRIDS,
@@ -110,44 +87,43 @@ from hydra_suite.ui.panels.atc_tools_panel import (
     _default_atc_config,
     _default_pos,
 )
-from hydra_suite.ui.panels.camera_media_panel import parse_mjpeg_frames
-from hydra_suite.ui.panels.cameras_panel import (
+from hydra_suite.panel_logic.camera_media import parse_mjpeg_frames
+from hydra_suite.panel_logic.cameras import (
     GRID_COLUMNS as _CAM_GRID_COLUMNS,
     _STATUS_COLORS as _CAM_STATUS_COLORS,
     _THERMAL_TYPE_OPTIONS as _CAM_THERMAL_TYPE_OPTIONS,
     _USB_TYPE_OPTIONS as _CAM_USB_TYPE_OPTIONS,
     iter_mjpeg_frames,
 )
-from hydra_suite.ui.panels.ecosystem_services_panel import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
-from hydra_suite.ui.panels.ecosystem_telemetry_panel import _AGGREGATES, _RANGE_PRESETS
-from hydra_suite.ui.panels.flasher_panel import HYDRA_BRAIN_TIERS, URTC_TIERS, _TIER_LABEL_KEYS
-from hydra_suite.ui.panels.heated_bed_panel import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
-from hydra_suite.ui.panels.kinematic_brain_stage_panel import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp
-from hydra_suite.ui.panels.module_config_panel import DEFAULT_SIZE_MM
-from hydra_suite.ui.panels.pick_and_place_panel import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
-from hydra_suite.ui.panels.tester_panel import _category_for
+from hydra_suite.panel_logic.ecosystem_services import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
+from hydra_suite.panel_logic.ecosystem_telemetry import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.panel_logic.flasher import HYDRA_BRAIN_TIERS, URTC_TIERS, _TIER_LABEL_KEYS
+from hydra_suite.panel_logic.heated_bed import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
+from hydra_suite.panel_logic.kinematic_brain_stage import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp, complete_stage
+from hydra_suite.panel_logic.module_config import DEFAULT_SIZE_MM
+from hydra_suite.panel_logic.pick_and_place import MACHINE_LABELS, MACHINE_TYPES, PNP_AXES
+from hydra_suite.panel_logic.tester import _category_for
 from hydra_suite.vacuum_tables import VACUUM_TABLE_MODELS, vacuum_table_model, select_vacuum_table, vacuum_table_size, resize_vacuum_table
 from hydra_suite.heated_beds import HEATED_BED_MODELS, heated_bed_model, heated_bed_size, select_heated_bed, resize_heated_bed
 from hydra_suite.racks import rack_geometry, valid_dimension, valid_color
-from hydra_suite.ui.panels.viewport_panel import SUPPORTED_MODELS as _VIEWPORT_SUPPORTED_MODELS
-from hydra_suite.ui.panels.xy_table_panel import (
+from hydra_suite.panel_logic.viewport import SUPPORTED_MODELS as _VIEWPORT_SUPPORTED_MODELS
+from hydra_suite.panel_logic.xy_table import (
     _DISPLAY_DEFAULT_SIZE_MM as _XY_DISPLAY_DEFAULT_SIZE_MM,
     JOG_STEPS_MM as _XY_JOG_STEPS_MM,
     _default_xy_table,
 )
-from hydra_suite.ui.panels.server_browser import STATUS_DISPLAY_KEYS
+from hydra_suite.panel_logic.server_browser import STATUS_DISPLAY_KEYS
+from hydra_suite.panel_logic import system_supervisor as supervisor_logic
+from hydra_suite.robot_catalog import REAL_ROBOT_MODELS, ROBOT_MANUFACTURERS, robot_model_dof
+
+logger = logging.getLogger(__name__)
 
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
 QML_PATH = Path(__file__).resolve().parent / "assets" / "qml" / "Main.qml"
 
-# Real taxonomy - kept in exact lockstep with nav_sidebar.py's own
-# ROOT_ITEMS/INDUSTRIAL_ITEMS/URTC_ITEMS/HYDRAUMC_ITEMS/
-# HYDRAUMC_ECOSYSTEM_ITEMS (that file's own real test,
-# tests/test_nav_sidebar.py, already guards against those drifting from
-# main_window.py's own dock keys - this constant is a second, independent
-# real transcription of the SAME source of truth for the QML nav, not a
-# third invented taxonomy).
-from hydra_suite.ui.nav_sidebar import (
+# The navigation (root menu and the three submenus) lives in hydra_suite/nav_items.py; the bridge offers exactly those panels
+# (tests/verify_qt_suite_shell.py checks it).
+from hydra_suite.nav_items import (
     HYDRAUMC_ECOSYSTEM_ITEMS,
     HYDRAUMC_ITEMS,
     INDUSTRIAL_ITEMS,
@@ -155,38 +131,17 @@ from hydra_suite.ui.nav_sidebar import (
     URTC_ITEMS,
 )
 
-# Real panels actually ported to Qt Quick content so far - every other key
-# in the taxonomy above falls back to the honest "not yet migrated"
-# placeholder (see NotMigratedPanel in Main.qml). Update this set as more
-# real panels are ported; it is the ONE place that decides which content
-# the QML content area shows for a given nav key.
-MIGRATED_PANELS = frozenset({"logs", "overview", "servers", "robot", "trajectory", "ai_family", "admin_clients", "admin_logs", "admin_server", "ecosystem_services", "ecosystem_telemetry", "xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "camera_media", "urtc_flasher", "hydra_flasher", "urtc_tester", "hydra_tester", "viewport"})
-
-# Real per-instance tier set - matches main_window.py's own two separate
-# FlasherPanel(tiers=...) instances exactly (URTC_TIERS/HYDRA_BRAIN_TIERS,
-# imported, never redeclared), not one panel switching between both.
+# Each of the two flasher screens has its own tier set (URTC_TIERS or HYDRA_BRAIN_TIERS, imported, never redeclared).
 _FLASHER_TIERS: dict[str, tuple] = {"urtc_flasher": URTC_TIERS, "hydra_flasher": HYDRA_BRAIN_TIERS}
-# main_window.py's own TesterPanel(tiers=...) instances reuse the SAME
-# real URTC_TIERS/HYDRA_BRAIN_TIERS constants Flasher does (tester_panel.py's
-# own header: it deliberately duplicates the target-selection shape rather
-# than sharing a base class with FlasherPanel, matching STUDIO's own
-# Tester.tsx/Flasher.tsx - so the Qt Quick bridge duplicates it too).
+# The two tester screens use the same tier sets as the flashers and, like STUDIO's Tester and Flasher, keep their own
+# target selection instead of sharing it.
 _TESTER_TIERS: dict[str, tuple] = {"urtc_tester": URTC_TIERS, "hydra_tester": HYDRA_BRAIN_TIERS}
 _ATC_TYPE_KEYS: tuple[str, ...] = ("vertical_panel", "horizontal_panel", "revolver")
 
-# Shared shape behind CNC/Laser/HeatedBed/VacuumTable - mirrors
-# module_config_panel.py's own ModuleConfigPanel(module_key, heading_key,
-# machine_name) parameterization exactly (see that file's own header for
-# why one implementation covers all 4 real panels instead of duplicating
-# the robot-selector/enable-disable/size/reset shape 4 times). "extra"
-# names which of the two extension shapes (if any) this nav key's own
-# classic subclass adds - heated_bed_panel.py's/vacuum_table_panel.py's
-# own _build_extra_settings()/_refresh_extra_controls()/
-# _extra_default_fields()/_extra_reset_fields() overrides, reproduced
-# generically in SuiteQtBridge's own _module_extra_defaults() below
-# rather than as 4 separate Python subclasses (QML has no notion of
-# those anyway - one shared Component with an `extra` gate does the
-# same job).
+# Shared shape behind CNC/Laser/HeatedBed/VacuumTable: one parameterization (module key, heading key, machine name) covers all four
+# panels instead of repeating the robot selector, enable/disable, size and reset four times. "extra" names which of the two extensions
+# (if any) a nav key adds on top (the heated bed's temperature controls, the vacuum table's model list); one shared QML component with
+# an `extra` gate does the same job as four subclasses would.
 _MODULE_CONFIGS: dict[str, dict[str, object]] = {
     "cnc": {"module_key": "juanenCNC", "machine": "JuanenCNC", "heading": "HEADING_CNC", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
     "laser": {"module_key": "juanenLaser", "machine": "JuanenLaser", "heading": "HEADING_LASER", "reset_size": (DEFAULT_SIZE_MM, DEFAULT_SIZE_MM), "extra": ""},
@@ -196,6 +151,9 @@ _MODULE_CONFIGS: dict[str, dict[str, object]] = {
 }
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
+_ACCESS_POLL_MS = 10000
+#: A reservation of this program is renewed when it has less than this left.
+_CLAIM_RENEW_BELOW_S = 90
 _ADMIN_LOGS_POLL_MS = 3000
 _ADMIN_LOGS_LINES = 300
 
@@ -224,7 +182,7 @@ class CameraFrameProvider(QQuickImageProvider):
     """Feeds the Cameras panel's own real MJPEG frames into QML - a
     `QImage` per camera id, refreshed by SuiteQtBridge's own real
     `_run_camera_stream()` task every time `iter_mjpeg_frames()` yields a
-    new real frame (cameras_panel.py's own function, imported directly,
+    new real frame (the former cameras panel's function, imported directly,
     never duplicated). QML re-fetches on every frame by requesting
     `image://cameraFrames/<id>/<frameVersion>` - a changing suffix per
     frame, since QQuickImageProvider results are otherwise cached by
@@ -345,9 +303,13 @@ class SuiteQtBridge(QObject):
         frame_provider: "CameraFrameProvider | None" = None,
         viewport_frame_provider: "ViewportFrameProvider | None" = None,
         media_frame_provider: "MediaFrameProvider | None" = None,
+        credential_store: "CredentialStore | None" = None,
+        catalog_frame_provider: "ViewportFrameProvider | None" = None,
     ) -> None:
         super().__init__()
         self._controller = controller
+        self._credentials = credential_store
+        self._catalog_frame_provider = catalog_frame_provider
         self._frame_provider = frame_provider
         self._viewport_frame_provider = viewport_frame_provider
         self._media_frame_provider = media_frame_provider
@@ -361,7 +323,7 @@ class SuiteQtBridge(QObject):
         self._active_key = "overview"
         self._connection_status = "disconnected"
 
-        # -- Logs (ported from logs_panel.py's own LogsPanel - same real
+        # -- Logs (ported from the former LogsPanel - same real
         # algorithmic shape: an unbounded _all_entries plus a
         # currently-matching-filter _displayed_entries, both appended to
         # in O(1) per new record; only a filter change re-derives
@@ -378,7 +340,7 @@ class SuiteQtBridge(QObject):
         handler = logging_handler.install()
         handler.emitter.record_logged.connect(self._on_log_record)
 
-        # -- Overview (ported from overview.py's own OverviewPanel) --
+        # -- Overview (ported from the former overview's OverviewPanel) --
         self._overview_name = "-"
         self._overview_ip = "-"
         self._overview_robot_count = "-"
@@ -404,7 +366,7 @@ class SuiteQtBridge(QObject):
         self._stop_all_clean_timer.timeout.connect(self._clear_stop_all_text)
         controller.stop_all_changed.connect(self._on_stop_all_changed)
 
-        # -- Servers (ported from server_browser.py's own ServerBrowserPanel -
+        # -- Servers (ported from the former server browser's ServerBrowserPanel -
         # STATUS_DISPLAY_KEYS is imported from there directly rather than
         # copied, so both UIs always agree on the same real status wording). --
         self._server_statuses: dict[str, str] = {}
@@ -416,22 +378,23 @@ class SuiteQtBridge(QObject):
         controller.connection_status_changed.connect(self._on_server_status)
         controller.connection_login_changed.connect(self._on_server_login)
 
-        # -- Robot Control (ported from robot_control.py's own
+        # -- Robot Control (ported from the former robot control panel's
         # RobotControlPanel - RotaryKnob's own custom-painted dial is not
         # reproduced here, a Slider alone already sets the exact same
         # real value the classic panel's knob+slider pair redundantly
         # show, so nothing real is lost). --
         self._selected_robot_id: str | None = None
         self._active_robots_cache: list[RobotView] = []
-        # Trajectory (ported from trajectory_panel.py's own TrajectoryPanel -
+        # Trajectory (ported from the former TrajectoryPanel -
         # a real local-only point recorder, NOT yet HYDRA-UMC-STUDIO's own
         # WORKS/*.json format, same real scope note that file's own header
         # gives). Reset only when the SELECTED ROBOT ITSELF changes (see
         # _select_robot below), never on every swarm tick.
         self._trajectory_points: list[dict[str, object]] = []
+        self._work_files: list[str] = []
         controller.active_state_changed.connect(self._on_robot_state_changed)
 
-        # -- AI Family Status (ported from ai_family_status_panel.py's own
+        # -- AI Family Status (ported from the former ai_family_status panel's
         # AiFamilyStatusPanel - AI_FAMILIES imported directly from there,
         # never duplicated). --
         self._ai_family_projects: list[dict] = []
@@ -442,7 +405,7 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_ai_family()))
         asyncio.ensure_future(self._refresh_ai_family())
 
-        # -- Admin Clients (ported from admin_clients_panel.py's own
+        # -- Admin Clients (ported from the former admin_clients panel's
         # AdminClientsPanel - _relative_duration imported directly from
         # there, never duplicated). Real 5s data poll + a separate 1s
         # tick that only re-emits changed so the "Xm ago" durations
@@ -460,7 +423,7 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
 
-        # -- Admin Logs (ported from admin_logs_panel.py's own
+        # -- Admin Logs (ported from the former admin_logs panel's
         # AdminLogsPanel - _extract_tag imported directly from there,
         # never duplicated). Same real "clear the screen, keep tailing"
         # anchor trick, live/pause, and tag+search filtering. --
@@ -478,7 +441,7 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_logs()))
         asyncio.ensure_future(self._refresh_admin_logs())
 
-        # -- Admin Server (ported from admin_server_panel.py's own
+        # -- Admin Server (ported from the former admin_server panel's
         # AdminServerPanel - _format_uptime imported directly from
         # there, never duplicated). --
         self._admin_server_status_text = _("MSG_ADMIN_ONLY")
@@ -489,7 +452,7 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_server()))
         asyncio.ensure_future(self._refresh_admin_server())
 
-        # -- Ecosystem Services (ported from ecosystem_services_panel.py's
+        # -- Ecosystem Services (ported from the former ecosystem_services panel's
         # own EcosystemServicesPanel - _health/_badge_label/_HEALTH_COLOR/
         # _STACK_COLOR imported directly from there, never duplicated). --
         self._es_projects: list[dict] = []
@@ -501,7 +464,7 @@ class SuiteQtBridge(QObject):
         self._es_refreshing = False
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: self.changed.emit())
 
-        # -- Ecosystem Telemetry (ported from ecosystem_telemetry_panel.py's
+        # -- Ecosystem Telemetry (ported from the former ecosystem_telemetry panel's
         # own EcosystemTelemetryPanel - _AGGREGATES/_RANGE_PRESETS imported
         # directly from there, never duplicated). Real chart rendering
         # uses a hand-drawn QML Canvas, NOT `import QtCharts` in QML -
@@ -516,7 +479,7 @@ class SuiteQtBridge(QObject):
         self._tel_bars: list[dict[str, object]] = []
         self._tel_stats: dict[str, str] = {}
 
-        # -- XY Table (ported from xy_table_panel.py's own XYTablePanel -
+        # -- XY Table (ported from the former XYTablePanel -
         # _default_xy_table/_DISPLAY_DEFAULT_SIZE_MM/JOG_STEPS_MM
         # imported directly from there, never duplicated. Own real,
         # independent robot selection - NOT shared with Robot Control/
@@ -527,7 +490,7 @@ class SuiteQtBridge(QObject):
         self._xy_robots_cache: list[RobotView] = []
         controller.active_state_changed.connect(self._on_xy_state_changed)
 
-        # -- Rack Manager (ported from rack_config_panel.py's own
+        # -- Rack Manager (ported from the former rack_config panel's
         # RackConfigPanel - RACK_MAX_CAPACITY/default_rack_system
         # imported directly from there, never duplicated). Own real,
         # independent robot selection, matching that panel's own
@@ -536,7 +499,7 @@ class SuiteQtBridge(QObject):
         self._rack_robots_cache: list[RobotView] = []
         controller.active_state_changed.connect(self._on_rack_state_changed)
 
-        # -- Pick and Place (ported from pick_and_place_panel.py's own
+        # -- Pick and Place (ported from the former pick_and_place panel's
         # PickAndPlacePanel - MACHINE_TYPES/MACHINE_LABELS/PNP_AXES
         # imported directly from there, never duplicated. Own real,
         # independent robot selection, matching that panel's own
@@ -554,7 +517,7 @@ class SuiteQtBridge(QObject):
         controller.active_state_changed.connect(self._on_pnp_state_changed)
 
         # -- Kinematic Brain Stage (ported from
-        # kinematic_brain_stage_panel.py's own KinematicBrainStagePanel -
+        # the former KinematicBrainStagePanel -
         # AXIS_KEYS/JOG_STEPS_MM/ENDSTOP_ENTRIES/_clamp imported directly
         # from there, never duplicated). UNLIKE every other panel ported
         # so far, this is CONTROLLER-level state (one Kinematic Brain per
@@ -566,7 +529,7 @@ class SuiteQtBridge(QObject):
 
         # -- Module Config (CNC/Laser/HeatedBed/VacuumTable, generic over
         # _MODULE_CONFIGS above). Each of the 4 nav keys keeps its own
-        # real, independent robot selection (matching module_config_panel.py's
+        # real, independent robot selection (matching the former module_config panel's
         # own separate QComboBox per panel instance) - one dict entry per
         # key rather than 4 sets of named attributes. Properties/Slots
         # below always operate on whichever key is `self._active_key`
@@ -576,7 +539,7 @@ class SuiteQtBridge(QObject):
         self._module_robots_cache: dict[str, list[RobotView]] = {k: [] for k in _MODULE_CONFIGS}
         controller.active_state_changed.connect(self._on_module_state_changed)
 
-        # -- ATC Tools (ported from atc_tools_panel.py's own AtcToolsPanel -
+        # -- ATC Tools (ported from the former AtcToolsPanel -
         # URTC_TOOLS/PANEL_GRIDS/JOINT_FIELDS/TABLE_FIELDS/*_RANGE_*/
         # _default_atc_config/_default_pos imported directly from there,
         # never duplicated). NOT built on the generic Module Config shape
@@ -592,7 +555,7 @@ class SuiteQtBridge(QObject):
         self._atc_load_error: str = ""
         controller.active_state_changed.connect(self._on_atc_state_changed)
 
-        # -- Cameras (ported from cameras_panel.py's own CamerasPanel/
+        # -- Cameras (ported from the former CamerasPanel/
         # CameraCard - CAMERA_TYPES/RTSP_DEFAULT_PORT/ip_stream_labels/
         # iter_mjpeg_frames/_USB_TYPE_OPTIONS/_THERMAL_TYPE_OPTIONS/
         # _STATUS_COLORS/GRID_COLUMNS imported directly from there, never
@@ -619,7 +582,7 @@ class SuiteQtBridge(QObject):
         self._camera_status_timer = QTimer(self)
         self._camera_status_timer.setInterval(3000)
         self._camera_status_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
-        # -- real Camera Media parity gap closed - see camera_media_panel.py's
+        # -- real Camera Media parity gap closed - see the former camera_media panel's
         # own header comment for the full "why this parses frames itself"
         # reasoning; this reuses the exact same parse_mjpeg_frames() (never
         # a second, independent copy of that real SOI/EOI marker-scan). --
@@ -635,7 +598,7 @@ class SuiteQtBridge(QObject):
         self._camera_media_timer = QTimer(self)
         self._camera_media_timer.timeout.connect(self._advance_camera_media_frame)
 
-        # -- Flasher (ported from flasher_panel.py's own FlasherPanel -
+        # -- Flasher (ported from the former FlasherPanel -
         # can_ota.py's CanOtaTarget/FlashOptions/etc. imported directly,
         # never duplicated). Two real, separate instances (`urtc_flasher`/
         # `hydra_flasher`, keyed by _FLASHER_TIERS above), each with its
@@ -660,10 +623,10 @@ class SuiteQtBridge(QObject):
         self._flasher_erase_fram: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
         controller.active_state_changed.connect(self._on_flasher_state_changed)
 
-        # -- Tester (ported from tester_panel.py's own TesterPanel -
+        # -- Tester (ported from the former TesterPanel -
         # can_ota.py's mock_self_test()/mock_bus_monitor()/CanFrame/
         # SelfTestStep imported directly, never duplicated;
-        # _category_for() imported from tester_panel.py itself, same
+        # _category_for() imported from the former tester panel itself, same
         # reasoning). Deliberately duplicates the Flasher's own target-
         # selection shape (own _tester_* state dicts, not shared with
         # _flasher_*) - matches that file's own header on why this is a
@@ -687,7 +650,7 @@ class SuiteQtBridge(QObject):
         self._tester_frames: dict[str, list] = {k: [] for k in _TESTER_TIERS}
         controller.active_state_changed.connect(self._on_tester_state_changed)
 
-        # -- Viewport (3D, ported from viewport_panel.py's own ViewportPanel)
+        # -- Viewport (3D, ported from the former ViewportPanel)
         # - reuses the SAME real robot selection Robot Control/Trajectory
         # already share (_selected_robot_id/_active_robots_cache/
         # _selected_robot() above) rather than a third independent one -
@@ -703,6 +666,64 @@ class SuiteQtBridge(QObject):
         self._viewport_frame_version = 0
         self._viewport_current_model: str | None = None
         controller.active_state_changed.connect(self._on_viewport_state_changed)
+
+        # -- Notices: what the servers report back (a command refused because the robot is reserved by someone
+        # else, a jog above the limit, a bed target lowered...) stays on screen until dismissed or 20 seconds pass,
+        # so a refusal is never silent. --
+        self._shutting_down = False
+        self._shutdown_done = False
+        self._notice_text = ""
+        self._notice_severity = "warn"
+        self._notice_timer = QTimer(self)
+        self._notice_timer.setSingleShot(True)
+        self._notice_timer.setInterval(20000)
+        self._notice_timer.timeout.connect(self.dismissNotice)
+        controller.connection_error.connect(self._on_connection_error)
+
+        # -- Access: reservations, Live / Sim and the arming of the jog of the selected robot. The reservations and
+        # the limits are read from the server every 10 seconds while the Robot Control screen is open. --
+        self._access_busy = False
+        self._access_robot_timer = QTimer(self)
+        self._access_robot_timer.setInterval(_ACCESS_POLL_MS)
+        self._access_robot_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access()))
+        self._access_tick_timer = QTimer(self)
+        self._access_tick_timer.setInterval(1000)
+        self._access_tick_timer.timeout.connect(self.changed.emit)
+
+        # -- Safety limits (administrators): the form is edited in QML; this keeps what the server holds. --
+        self._safety_message = ""
+        self._safety_error = ""
+        self._safety_loading = False
+        self._safety_timer = QTimer(self)
+        self._safety_timer.setInterval(_ACCESS_POLL_MS)
+        self._safety_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access()))
+        self._safety_version = 0
+        self._safety_form_cache: dict = {}
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_access()))
+        controller.connection_login_changed.connect(lambda _cid, ok, _detail: asyncio.ensure_future(self._refresh_access()) if ok else None)
+
+        # -- Robots Catalog: every model the ecosystem has kinematics for, filtered by manufacturer and degrees of
+        # freedom, with a live 3D preview and a switch per model (settings.enabledRobotModels). --
+        self._catalog_manufacturer = "__all__"
+        self._catalog_dof = 0
+        self._catalog_selected = REAL_ROBOT_MODELS[0]
+        self._catalog_renderer = None
+        self._catalog_preview_version = 0
+        self._catalog_preview_error = ""
+        self._catalog_preview_model: str | None = None
+        controller.active_state_changed.connect(lambda _state: self.changed.emit() if self._active_key == "robots_catalog" else None)
+
+        # -- System Supervisor: GET /api/system/supervisor every two seconds while its screen is open, with a
+        # rolling window of the last samples for the charts. --
+        self._supervisor_history: list[dict] = []
+        self._supervisor_view: dict = {}
+        self._supervisor_status = _("LBL_ES_NO_ACTIVE_SERVER")
+        self._supervisor_live = ""
+        self._supervisor_version = 0
+        self._supervisor_timer = QTimer(self)
+        self._supervisor_timer.setInterval(supervisor_logic.POLL_MS)
+        self._supervisor_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_supervisor()))
+        controller.active_connection_changed.connect(self._on_supervisor_connection_changed)
         self._apply_poller_gates()
 
     # -- navigation --------------------------------------------------------
@@ -711,10 +732,6 @@ class SuiteQtBridge(QObject):
     def activePanel(self) -> str:
         return self._active_key
 
-    @Property(bool, notify=changed)
-    def activePanelMigrated(self) -> bool:
-        return self._active_key in MIGRATED_PANELS
-
     def _poller_gates(self) -> dict[str, list]:
         """The panel each poller belongs to: it only runs while that panel is the
         one on screen, so the server is not asked for what nobody looks at."""
@@ -722,6 +739,9 @@ class SuiteQtBridge(QObject):
             "admin_clients": [self._admin_clients_timer, self._admin_clients_tick_timer],
             "admin_logs": [self._admin_logs_timer],
             "cameras": [self._camera_status_timer],
+            "robot": [self._access_robot_timer, self._access_tick_timer],
+            "safety_limits": [self._safety_timer],
+            "system_supervisor": [self._supervisor_timer],
         }
 
     def _apply_poller_gates(self) -> None:
@@ -744,6 +764,12 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_admin_logs())
             elif key == "cameras":
                 asyncio.ensure_future(self._poll_camera_status())
+            elif key in ("robot", "safety_limits"):
+                asyncio.ensure_future(self._refresh_access())
+            elif key == "system_supervisor":
+                asyncio.ensure_future(self._refresh_supervisor())
+            elif key == "robots_catalog":
+                self.refreshCatalogPreview()
             self.changed.emit()
 
     @Property("QVariantList", constant=True)
@@ -768,7 +794,7 @@ class SuiteQtBridge(QObject):
 
     @staticmethod
     def _items(pairs: tuple[tuple[str, str], ...]) -> list[dict[str, str]]:
-        return [{"label": _(label_key), "key": key, "migrated": key in MIGRATED_PANELS} for label_key, key in pairs]
+        return [{"label": _(label_key), "key": key} for label_key, key in pairs]
 
     @Property(str, constant=True)
     def version(self) -> str:
@@ -883,7 +909,7 @@ class SuiteQtBridge(QObject):
     @Property("QVariantList", notify=changed)
     def serverRows(self) -> list[dict[str, object]]:
         rows: list[dict[str, object]] = []
-        active_id = self._controller._active_id  # same real field server_browser.py's own _refresh_table reads directly
+        active_id = self._controller._active_id  # same real field the former server browser's _refresh_table reads directly
         for conn_id, conn in self._controller.connections.items():
             robot_count = len(conn.state.active_controller.robots) if conn.state.active_controller else conn.info.robot_count
             login = self._server_login.get(conn_id)
@@ -899,6 +925,7 @@ class SuiteQtBridge(QObject):
                 "statusText": _(STATUS_DISPLAY_KEYS.get(status_key, "STATUS_CONNECTING")),
                 "loginDetail": login[1] if login is not None and not login[0] else "",
                 "active": conn_id == active_id,
+                "remembered": self._credentials is not None and self._credentials.is_remembered(conn.info.host, conn.info.port),
             })
         return rows
 
@@ -938,7 +965,7 @@ class SuiteQtBridge(QObject):
         # discover_servers() runs the brute-force subnet scan and real
         # mDNS/Bonjour discovery CONCURRENTLY (net/discovery.py's own
         # header comment) and dedupes between them - same real call
-        # server_browser.py's own _run_scan makes, unchanged.
+        # the former server browser's _run_scan makes, unchanged.
         found = 0
         try:
             async for info in discover_servers():
@@ -951,14 +978,42 @@ class SuiteQtBridge(QObject):
             self._scan_status_text = _("STATUS_SCAN_COMPLETE", found=found) if found else _("STATUS_SCAN_COMPLETE_NONE")
             self.changed.emit()
 
-    @Slot(str, int, str, str)
-    def addManualServer(self, host: str, port: int, username: str, password: str) -> None:
+    @Slot(str, int, str, str, bool)
+    def addManualServer(self, host: str, port: int, username: str, password: str, remember: bool) -> None:
         host = host.strip()
         username = username.strip()
         if not host or not username or not password:
             return
         info = ServerInfo(host=host, port=port, hostname=host, username=username, password=password)
         self._controller.add_server(info)
+        if remember:
+            self._remember_server(f"{host}:{port}")
+
+    def _remember_server(self, conn_id: str) -> None:
+        """Remembers a server (address and user name in the configuration, the password in the secure store of the
+        computer) and tells the operator when the password could not be stored."""
+        conn = self._controller.connections.get(conn_id)
+        if self._credentials is None or conn is None:
+            return
+        stored = self._credentials.remember(conn.info)
+        if conn.info.password and not stored:
+            self._set_notice(_("MSG_CREDENTIALS_NOT_STORED"), "warn")
+        self.changed.emit()
+
+    @Property(bool, constant=True)
+    def secureStoreAvailable(self) -> bool:
+        return self._credentials is not None and self._credentials.secure_store_available
+
+    @Slot(str, bool)
+    def setServerRemembered(self, conn_id: str, remember: bool) -> None:
+        conn = self._controller.connections.get(conn_id)
+        if self._credentials is None or conn is None:
+            return
+        if remember:
+            self._remember_server(conn_id)
+        else:
+            self._credentials.forget(conn.info.host, conn.info.port)
+            self.changed.emit()
 
     @Slot(str)
     def setActiveServer(self, conn_id: str) -> None:
@@ -966,26 +1021,33 @@ class SuiteQtBridge(QObject):
 
     @Slot(str)
     def removeServer(self, conn_id: str) -> None:
+        conn = self._controller.connections.get(conn_id)
+        if conn is not None and self._credentials is not None:
+            self._credentials.forget(conn.info.host, conn.info.port)
         self._controller.remove_server(conn_id)
 
     @Slot(str, result="QVariant")
-    def serverCredentials(self, conn_id: str) -> dict[str, str]:
+    def serverCredentials(self, conn_id: str) -> dict[str, object]:
         conn = self._controller.connections.get(conn_id)
         if conn is None:
-            return {"username": "", "password": ""}
-        return {"username": conn.info.username, "password": conn.info.password}
+            return {"username": "", "password": "", "remember": False}
+        remembered = self._credentials is not None and self._credentials.is_remembered(conn.info.host, conn.info.port)
+        return {"username": conn.info.username, "password": conn.info.password, "remember": remembered}
 
-    @Slot(str, str, str)
-    def saveServerCredentials(self, conn_id: str, username: str, password: str) -> None:
+    @Slot(str, str, str, bool)
+    def saveServerCredentials(self, conn_id: str, username: str, password: str, remember: bool) -> None:
         conn = self._controller.connections.get(conn_id)
         if conn is None or not username or not password:
             return
         conn.info.username = username
         conn.info.password = password
+        if remember:
+            self._remember_server(conn_id)
+        elif self._credentials is not None:
+            self._credentials.forget(conn.info.host, conn.info.port)
         # Credentials just changed - force a clean reconnect rather than
         # waiting for HydraConnection's own retry loop to notice on its
-        # own timer, same real reason server_browser.py's own
-        # _on_edit_credentials does this.
+        # own timer.
         asyncio.ensure_future(self._reconnect_server(conn))
 
     @staticmethod
@@ -993,13 +1055,545 @@ class SuiteQtBridge(QObject):
         await conn.disconnect()
         await conn.connect()
 
+    # -- Application menu: language, support bundle, shortcuts, About ----------------
+
+    @Property("QVariantList", constant=True)
+    def languageOptions(self) -> list[dict[str, object]]:
+        return [{"code": code, "label": label, "current": code == current_language()} for code, label in AVAILABLE_LANGUAGES]
+
+    @Slot(str)
+    def setLanguage(self, code: str) -> None:
+        """Saves the language for the next start (the texts are loaded once, so a restart is needed)."""
+        if code not in {c for c, _label in AVAILABLE_LANGUAGES} or code == current_language():
+            return
+        if save_config({"language": code}):
+            self._set_notice(_("MSG_RESTART_NEEDED"), "info")
+        else:
+            self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=CONFIG_FILE_PATH), "warn")
+
+    def _diagnostic_servers(self) -> list[dict]:
+        """The servers of the list as the public facts the support bundle may carry (never the user name, the
+        password or a token)."""
+        servers = []
+        for conn in self._controller.connections.values():
+            info = conn.info
+            servers.append({
+                "label": info.nickname or info.hostname, "host": info.host, "port": info.port,
+                "status": "connected" if conn.is_connected else "not connected",
+                "app_version": info.app_version, "remote_api_version": info.remote_api_version, "role": conn.role,
+            })
+        return servers
+
+    def export_diagnostics_to(self, path: str) -> None:
+        """Writes the support bundle (versions, servers, the lines of the log, with every secret removed); raises
+        OSError when the file cannot be written."""
+        lines = [f"[{e.level}] {e.logger_name}: {e.message}" for e in self._all_log_entries]
+        with open(path, "wb") as f:
+            f.write(build_bundle(self._diagnostic_servers(), lines))
+
+    @Slot(str)
+    def exportDiagnostics(self, file_url: str) -> None:
+        if not file_url:
+            return
+        path = QUrl(file_url).toLocalFile() or file_url
+        if not path.lower().endswith(".zip"):
+            path += ".zip"
+        try:
+            self.export_diagnostics_to(path)
+        except OSError as error:
+            self._set_notice(_("MSG_DIAGNOSTICS_FAILED", error=str(error)), "warn")
+            return
+        self._set_notice(_("MSG_DIAGNOSTICS_SAVED", path=path), "info")
+
+    @Property("QVariantMap", notify=changed)
+    def aboutInfo(self) -> dict[str, str]:
+        conn = self._controller.active_connection
+        return {
+            "version": __version__,
+            "serverVersion": (conn.info.app_version if conn is not None else "") or "-",
+            "author": "JuanenRac (Electro Hobby 3D)",
+            "email": "electrohobby3d@gmail.com",
+            "license": "GNU General Public License v3.0 (GPL-3.0)",
+        }
+
+    # -- Closing ------------------------------------------------------------
+
+    @Property(bool, notify=changed)
+    def shutdownDone(self) -> bool:
+        return self._shutdown_done
+
+    @Slot()
+    def shutdownAndQuit(self) -> None:
+        """Called by the window when it is asked to close: the writes that are still waiting are sent and every
+        connection is closed first, then the program quits (the window stays open until then)."""
+        asyncio.ensure_future(self._shutdown_and_quit())
+
+    async def _shutdown_and_quit(self) -> None:
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        try:
+            await asyncio.wait_for(self._controller.shutdown(), timeout=5)
+        except Exception as error:  # a stuck server must not keep the program open
+            logger.warning("closing the connections failed: %s", error)
+        self._shutdown_done = True
+        self.changed.emit()
+        QGuiApplication.quit()
+
+    # -- Notices -----------------------------------------------------------
+
+    @Property(str, notify=changed)
+    def noticeText(self) -> str:
+        return self._notice_text
+
+    @Property(str, notify=changed)
+    def noticeSeverity(self) -> str:
+        return self._notice_severity
+
+    def _set_notice(self, text: str, severity: str = "warn") -> None:
+        self._notice_text = text
+        self._notice_severity = severity
+        self._notice_timer.start()
+        self.changed.emit()
+
+    @Slot()
+    def dismissNotice(self) -> None:
+        self._notice_timer.stop()
+        if self._notice_text:
+            self._notice_text = ""
+            self.changed.emit()
+
+    def _on_connection_error(self, conn_id: str, message: str) -> None:
+        prefix = f"[{conn_id}] " if len(self._controller.connections) > 1 else ""
+        self._set_notice(prefix + message, "warn")
+
+    # -- Access: reservations, Live / Sim, arming of the jog ---------------------
+
+    def _access_target(self) -> tuple["HydraConnection | None", int | None]:
+        """The active connection and the numeric id the server knows the selected robot by."""
+        conn = self._controller.active_connection
+        robot = self._selected_robot()
+        if conn is None or robot is None:
+            return conn, None
+        try:
+            return conn, int(robot.id)
+        except (TypeError, ValueError):
+            return conn, None
+
+    @staticmethod
+    def _scope(conn: "HydraConnection") -> str:
+        return f"{conn.info.host}:{conn.info.port}"
+
+    @Property(str, constant=True)
+    def controllerId(self) -> str:
+        return access.get_controller_id()
+
+    @Property(bool, notify=changed)
+    def accessBusy(self) -> bool:
+        return self._access_busy
+
+    @Property(str, notify=changed)
+    def selectedRobotMode(self) -> str:
+        conn, robot_id = self._access_target()
+        if conn is None or robot_id is None:
+            return access.MODES.default_mode
+        return access.MODES.mode_of(self._scope(conn), robot_id)
+
+    @Slot(str)
+    def setSelectedRobotMode(self, mode: str) -> None:
+        conn, robot_id = self._access_target()
+        if conn is None or robot_id is None:
+            return
+        access.MODES.set_mode(self._scope(conn), robot_id, mode)
+        save_config(access.MODES.to_config())
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
+    def defaultRobotModeSim(self) -> bool:
+        return access.MODES.default_mode == "sim"
+
+    @Slot(bool)
+    def setDefaultRobotModeSim(self, on: bool) -> None:
+        access.MODES.set_default("sim" if on else "live")
+        save_config(access.MODES.to_config())
+        self.changed.emit()
+
+    def _selected_claim(self) -> "access.ClaimEntry | None":
+        conn, robot_id = self._access_target()
+        if conn is None or robot_id is None:
+            return None
+        return next((c for c in conn.claims if c.robot_id == robot_id), None)
+
+    def _standing(self) -> str:
+        conn, _robot_id = self._access_target()
+        return access.claim_standing(self._selected_claim(), access.get_controller_id(), (conn.info.username or None) if conn is not None else None)
+
+    @staticmethod
+    def _clock(seconds: int | None) -> str:
+        return "" if seconds is None else f"{seconds // 60}:{seconds % 60:02d}"
+
+    @Property("QVariantMap", notify=changed)
+    def selectedRobotAccess(self) -> dict[str, object]:
+        """Where the selected robot stands for this program, the sentence that says it, and which buttons apply."""
+        conn, robot_id = self._access_target()
+        claim = self._selected_claim()
+        standing = self._standing()
+        signed_in = conn is not None and robot_id is not None and conn.login_ok is True
+        left = claim.seconds_left() if claim is not None else None
+        text = {
+            "mine": _("ACCESS_HELD_BY_ME", time=self._clock(left)),
+            "other-controller": _("ACCESS_HELD_BY_ME_ELSEWHERE"),
+            "other-account": _("ACCESS_HELD_BY_OTHER", user=claim.owner_username if claim is not None else "?"),
+        }.get(standing, _("ACCESS_FREE"))
+        return {
+            "standing": standing,
+            "text": text,
+            "canReserve": signed_in and standing == "free",
+            "canRelease": signed_in and standing == "mine",
+            "canTakeOver": signed_in and standing in ("other-controller", "other-account") and conn is not None and conn.is_admin,
+        }
+
+    @Property("QVariantList", notify=changed)
+    def claimsRows(self) -> list[dict[str, object]]:
+        conn = self._controller.active_connection
+        if conn is None:
+            return []
+        mine_id = access.get_controller_id()
+        user = conn.info.username or None
+        return [
+            {
+                "robot": claim.robot_name or f"#{claim.robot_id}",
+                "owner": claim.owner_username,
+                "controller": (claim.controller_id or _("ACCESS_NO_CONTROLLER")) + (f" ({_('ACCESS_THIS_PROGRAM')})" if access.claim_standing(claim, mine_id, user) == "mine" else ""),
+                "left": self._clock(claim.seconds_left()),
+                "mine": access.claim_standing(claim, mine_id, user) == "mine",
+            }
+            for claim in conn.claims
+        ]
+
+    @Property(bool, notify=changed)
+    def jogArmRequired(self) -> bool:
+        conn = self._controller.active_connection
+        return conn is not None and conn.safety.limits.arm_required
+
+    @Property("QVariantMap", notify=changed)
+    def selectedRobotArm(self) -> dict[str, object]:
+        conn, robot_id = self._access_target()
+        until = conn.jog_armed_until.get(robot_id) if conn is not None and robot_id is not None else None
+        armed = access.is_armed(until)
+        seconds = max(0, round((until - time.time() * 1000) / 1000)) if armed and until is not None else 0
+        standing = self._standing()
+        return {
+            "armed": armed,
+            "seconds": seconds,
+            "canToggle": conn is not None and robot_id is not None and conn.login_ok is True and standing in ("free", "mine"),
+        }
+
+    async def _run_access(self, label: str, action) -> None:
+        """Runs one reservation or arming request, says why when the server refused it, and refreshes."""
+        if self._access_busy:
+            return
+        self._access_busy = True
+        self.changed.emit()
+        try:
+            result = await action()
+            if not result.ok:
+                self._set_notice(self._describe_access_failure(label, result), "warn")
+            await self._refresh_access()
+        finally:
+            self._access_busy = False
+            self.changed.emit()
+
+    @staticmethod
+    def _describe_access_failure(label: str, result) -> str:
+        key = f"MSG_ACCESS_{result.code.upper()}"
+        text = _(key, what=label, detail=result.detail)
+        if text == key:
+            text = _("MSG_ACCESS_REJECTED", what=label, detail=result.detail)
+        return text
+
+    @Slot()
+    def claimSelectedRobot(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is not None and robot_id is not None:
+            asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_RESERVE"), lambda: conn.claim_robot(robot_id)))
+
+    @Slot()
+    def releaseSelectedRobot(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is not None and robot_id is not None:
+            asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_RELEASE"), lambda: conn.release_robot(robot_id)))
+
+    @Slot()
+    def takeOverSelectedRobot(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is not None and robot_id is not None and conn.is_admin:
+            asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_TAKE_OVER"), lambda: conn.claim_robot(robot_id, force=True)))
+
+    @Slot()
+    def toggleJogArm(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is None or robot_id is None:
+            return
+        armed = access.is_armed(conn.jog_armed_until.get(robot_id))
+        asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_ARM"), lambda: conn.arm_jog(robot_id, not armed)))
+
+    async def _refresh_access(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is None:
+            conn = self._controller.active_connection
+        if conn is None or conn.login_ok is not True:
+            return
+        await conn.refresh_access(robot_id)
+        # A reservation of this program is renewed while it is kept (re-claiming one's own robot refreshes it).
+        claim = self._selected_claim()
+        if robot_id is not None and claim is not None and self._standing() == "mine":
+            left = claim.seconds_left()
+            if left is not None and left <= _CLAIM_RENEW_BELOW_S:
+                renewed = await conn.claim_robot(robot_id)
+                if renewed.ok:
+                    await conn.refresh_access(robot_id)
+        self._safety_version += 1
+        self.changed.emit()
+
+    # -- Safety limits (administrators) ----------------------------------------------
+
+    @Property(bool, notify=changed)
+    def safetyIsAdmin(self) -> bool:
+        conn = self._controller.active_connection
+        return conn is not None and conn.is_admin
+
+    @Property(bool, notify=changed)
+    def safetyHasServer(self) -> bool:
+        return self._controller.active_connection is not None
+
+    @Property("QVariantMap", notify=changed)
+    def safetyForm(self) -> dict[str, object]:
+        conn = self._controller.active_connection
+        return access.form_from_limits(conn.safety.limits if conn is not None else access.SafetyLimits())
+
+    @Property("QVariantMap", notify=changed)
+    def safetyHard(self) -> dict[str, object]:
+        conn = self._controller.active_connection
+        hard = conn.safety.hard if conn is not None else access.HardLimits()
+        return {
+            "jogMaxAmount": hard.jog_max_amount,
+            "jogMaxAbsolute": hard.jog_max_absolute,
+            "armTtlMinS": hard.arm_ttl_min_ms / 1000,
+            "armTtlMaxS": hard.arm_ttl_max_ms / 1000,
+            "bedMaxC": hard.bed_max_c,
+        }
+
+    @Property(int, notify=changed)
+    def safetyVersion(self) -> int:
+        return self._safety_version
+
+    @Property(str, notify=changed)
+    def safetyMessage(self) -> str:
+        return self._safety_message
+
+    @Property(str, notify=changed)
+    def safetyError(self) -> str:
+        return self._safety_error
+
+    @Slot(result="QVariant")
+    def safetyDefaultsForm(self) -> dict[str, object]:
+        conn = self._controller.active_connection
+        return access.form_from_limits(conn.safety.defaults if conn is not None else access.SafetyLimits())
+
+    @Slot("QVariant")
+    def saveSafetyLimits(self, form) -> None:
+        conn = self._controller.active_connection
+        self._safety_message = ""
+        self._safety_error = ""
+        if conn is None or not conn.is_admin:
+            self._safety_error = _("MSG_ADMIN_ONLY")
+            self.changed.emit()
+            return
+        # From QML the form arrives as a JavaScript value; from Python (a check) as a dict.
+        values = form.toVariant() if hasattr(form, "toVariant") else form
+        built = access.build_patch(dict(values), conn.safety.hard)
+        if not built["ok"]:
+            self._safety_error = _(f"MSG_SAFETY_PROBLEM_{str(built['problem']).upper()}", field=built.get("field", ""))
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._save_safety(conn, built["patch"]))
+
+    async def _save_safety(self, conn, patch: dict) -> None:
+        result = await conn.put_safety_limits(patch)
+        if result.ok:
+            self._safety_message = _("MSG_SAFETY_SAVED")
+            self._safety_version += 1
+        else:
+            self._safety_error = _("MSG_SAFETY_SAVE_FAILED", detail=result.detail or f"HTTP {result.status}")
+        self.changed.emit()
+
+    def _bed_ceiling(self) -> float:
+        conn = self._controller.active_connection
+        return access.highest_bed_max(conn.safety.limits) if conn is not None else access.SafetyLimits().bed_default_c
+
+    # -- Robots Catalog -------------------------------------------------------------
+
+    @Property("QVariantList", constant=True)
+    def catalogManufacturers(self) -> list[dict[str, str]]:
+        return [{"value": "__all__", "label": _("OPT_ALL_MANUFACTURERS")}] + [
+            {"value": m, "label": m} for m in sorted(set(ROBOT_MANUFACTURERS.values()))
+        ]
+
+    @Property(str, notify=changed)
+    def catalogManufacturer(self) -> str:
+        return self._catalog_manufacturer
+
+    @Property(int, notify=changed)
+    def catalogDof(self) -> int:
+        return self._catalog_dof
+
+    @Property(str, notify=changed)
+    def catalogSelected(self) -> str:
+        return self._catalog_selected
+
+    @Property("QVariantList", notify=changed)
+    def catalogRows(self) -> list[dict[str, object]]:
+        state = self._controller.active_state
+        models = REAL_ROBOT_MODELS
+        if self._catalog_manufacturer != "__all__":
+            models = [m for m in models if ROBOT_MANUFACTURERS[m] == self._catalog_manufacturer]
+        if self._catalog_dof:
+            models = [m for m in models if robot_model_dof(m) == self._catalog_dof]
+        return [
+            {
+                "model": m,
+                "manufacturer": ROBOT_MANUFACTURERS[m],
+                "enabled": state.is_robot_model_enabled(m) if state is not None else True,
+                "selected": m == self._catalog_selected,
+            }
+            for m in models
+        ]
+
+    @Slot(str)
+    def setCatalogManufacturer(self, value: str) -> None:
+        self._catalog_manufacturer = value or "__all__"
+        self.changed.emit()
+
+    @Slot(int)
+    def setCatalogDof(self, value: int) -> None:
+        self._catalog_dof = value if value in (5, 6) else 0
+        self.changed.emit()
+
+    @Slot(str)
+    def selectCatalogModel(self, model: str) -> None:
+        if model in REAL_ROBOT_MODELS:
+            self._catalog_selected = model
+            self.refreshCatalogPreview()
+            self.changed.emit()
+
+    @Slot(str, bool)
+    def setCatalogModelEnabled(self, model: str, enabled: bool) -> None:
+        state = self._controller.active_state
+        if state is None or model not in REAL_ROBOT_MODELS:
+            return
+        state.set_robot_model_enabled(model, enabled)
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    @Property(int, notify=_viewportChanged)
+    def catalogPreviewVersion(self) -> int:
+        return self._catalog_preview_version
+
+    @Property(str, notify=_viewportChanged)
+    def catalogPreviewError(self) -> str:
+        return self._catalog_preview_error
+
+    @Slot()
+    def refreshCatalogPreview(self) -> None:
+        if self._catalog_frame_provider is None or self._active_key != "robots_catalog":
+            return
+        if self._catalog_preview_model == self._catalog_selected and not self._catalog_preview_error:
+            return
+        try:
+            if self._catalog_renderer is None:
+                from hydra_suite.render.viewport import OffscreenRobotRenderer
+
+                self._catalog_renderer = OffscreenRobotRenderer()
+                self._catalog_renderer.resize(640, 480)
+            self._catalog_renderer.set_robot_model(self._catalog_selected)
+            self._catalog_frame_provider.set_image(self._catalog_renderer.render())
+            self._catalog_preview_error = ""
+            self._catalog_preview_model = self._catalog_selected
+            self._catalog_preview_version += 1
+        except Exception as error:
+            self._catalog_preview_error = _("LBL_CATALOG_PREVIEW_ERROR", error=error)
+        self._viewportChanged.emit()
+
+    @Slot(float, float)
+    def catalogPreviewOrbit(self, dx: float, dy: float) -> None:
+        if self._catalog_renderer is not None:
+            self._catalog_renderer.orbit(dx, dy)
+            self._catalog_preview_model = None
+            self.refreshCatalogPreview()
+
+    @Slot(float)
+    def catalogPreviewZoom(self, factor: float) -> None:
+        if self._catalog_renderer is not None:
+            self._catalog_renderer.zoom(factor)
+            self._catalog_preview_model = None
+            self.refreshCatalogPreview()
+
+    # -- System Supervisor -----------------------------------------------------------
+
+    _supervisorChanged = Signal()
+
+    @Property(str, notify=_supervisorChanged)
+    def supervisorStatus(self) -> str:
+        return self._supervisor_status
+
+    @Property(str, notify=_supervisorChanged)
+    def supervisorLive(self) -> str:
+        return self._supervisor_live
+
+    @Property("QVariantMap", notify=_supervisorChanged)
+    def supervisorView(self) -> dict[str, object]:
+        return self._supervisor_view
+
+    @Property(int, notify=_supervisorChanged)
+    def supervisorVersion(self) -> int:
+        return self._supervisor_version
+
+    def _on_supervisor_connection_changed(self, _conn_id: str) -> None:
+        self._supervisor_history = []
+        self._supervisor_view = {}
+        if self._active_key == "system_supervisor":
+            asyncio.ensure_future(self._refresh_supervisor())
+
+    async def _refresh_supervisor(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._supervisor_status = _("LBL_ES_NO_ACTIVE_SERVER")
+            self._supervisor_history = []
+            self._supervisor_view = {}
+            self._supervisor_version += 1
+            self._supervisorChanged.emit()
+            return
+        result = await conn.fetch_system_supervisor()
+        if result is None or result[0] != 200 or not isinstance(result[1], dict):
+            self._supervisor_status = _("MSG_SUPERVISOR_UNREACHABLE")
+            self._supervisor_live = _("LBL_SUPERVISOR_STALE")
+            self._supervisorChanged.emit()
+            return
+        self._supervisor_status = ""
+        self._supervisor_live = _("LBL_SUPERVISOR_LIVE")
+        self._supervisor_history = supervisor_logic.append_history(self._supervisor_history, result[1])
+        self._supervisor_view = supervisor_logic.build_view(self._supervisor_history)
+        self._supervisor_version += 1
+        self._supervisorChanged.emit()
+
     # -- Robot Control -----------------------------------------------------
 
     def _active_robots(self) -> list[RobotView]:
         # Cached from the last real active_state_changed delivery (see
         # _on_robot_state_changed below) rather than re-derived from
         # self._controller.active_state on every call - matches
-        # robot_control.py's own real pattern (it caches
+        # the former robot control panel's real pattern (it caches
         # self._current_robot from the state PARAMETER a signal handler
         # receives, never re-queries the controller independently
         # elsewhere), and avoids a real staleness risk: re-deriving here
@@ -1034,7 +1628,12 @@ class SuiteQtBridge(QObject):
     def selectedRobotJoints(self) -> list[dict[str, object]]:
         robot = self._selected_robot()
         joints = robot.joints if robot is not None else {}
-        return [{"name": name, "value": joints.get(name, 0.0)} for name in JOINT_NAMES]
+        model = robot.model if robot is not None else None
+        rows = []
+        for name in JOINT_NAMES:
+            low, high = joint_range_deg(model, name)
+            rows.append({"name": name, "value": joints.get(name, 0.0), "min": low, "max": high})
+        return rows
 
     @Property(int, notify=changed)
     def selectedRobotSpeed(self) -> int:
@@ -1062,12 +1661,12 @@ class SuiteQtBridge(QObject):
     def _select_robot(self, new_id: str | None) -> None:
         """The one real place _selected_robot_id ever changes - resets
         the recorded trajectory points exactly like
-        trajectory_panel.py's own set_selected_robot does (only on an
+        the former trajectory panel's set_selected_robot does (only on an
         actual robot-identity change, never on every swarm tick a
         continuing selection would otherwise wipe recordings within
         moments of making them). Also the one real place that needs to
         force an immediate Viewport re-render on a selection change -
-        matches main_window.py's own real wiring exactly
+        matches the former main window's real wiring exactly
         (robot_control.robot_selected connects to BOTH
         viewport_panel.set_selected_robot AND
         trajectory_panel.set_selected_robot - a selection change reaches
@@ -1086,14 +1685,16 @@ class SuiteQtBridge(QObject):
         if robot is None or joint_name not in JOINT_NAMES:
             return
         new_joints = dict(robot.joints)
-        new_joints[joint_name] = value
+        # A joint is never asked for more than the robot can turn: the range of its model (the generic -180..180 for
+        # a model with no published range).
+        new_joints[joint_name] = min(joint_range_deg(robot.model, joint_name)[1], max(joint_range_deg(robot.model, joint_name)[0], value))
 
         def local_mutate(r: RobotView, joints=new_joints) -> None:
             for name, joint_value in joints.items():
                 r.set_joint(name, joint_value)
 
         # Same real atomic 'jog' command + 50ms debounce as
-        # robot_control.py's own _on_joint_changed - see that method's
+        # the former robot control panel's _on_joint_changed - see that method's
         # own comment for why a full 6-joint override, debounced, is
         # safe here.
         self._controller.send_robot_command(
@@ -1124,6 +1725,179 @@ class SuiteQtBridge(QObject):
         )
         self.changed.emit()
 
+    # -- Robot Control: playback, tool, valves and pumps -------------------------------
+
+    @Property("QVariantMap", notify=changed)
+    def selectedRobotTransport(self) -> dict[str, object]:
+        """Which of Play, Pause/Continue and Stop apply: Play needs recorded points to replay and nothing playing."""
+        robot = self._selected_robot()
+        enabled = robot is not None
+        playing = bool(robot and robot.is_playing)
+        return {
+            "canPlay": enabled and not playing and bool(robot and robot.recorded_point_count > 0),
+            "canPause": enabled and playing,
+            "paused": bool(robot and robot.is_paused),
+            "canStop": enabled and playing,
+        }
+
+    @Slot()
+    def playSelectedRobot(self) -> None:
+        robot = self._selected_robot()
+        if robot is not None:
+            self._controller.send_robot_command(robot.id, "play", None, lambda r: r.start_playing())
+
+    @Slot()
+    def pauseSelectedRobot(self) -> None:
+        robot = self._selected_robot()
+        if robot is not None:
+            paused = not robot.is_paused
+            self._controller.send_robot_command(robot.id, "pause", {"paused": paused}, lambda r: r.set_paused(paused))
+
+    @Slot()
+    def stopSelectedRobot(self) -> None:
+        robot = self._selected_robot()
+        if robot is not None:
+            self._controller.send_robot_command(robot.id, "stop", None, lambda r: r.stop_playing())
+
+    @Property("QVariantList", constant=True)
+    def toolOptions(self) -> list[str]:
+        return list(URTC_TOOLS)
+
+    @Property(str, notify=changed)
+    def selectedRobotTool(self) -> str:
+        robot = self._selected_robot()
+        return robot.tool if robot is not None else "None"
+
+    @Slot(str)
+    def setSelectedRobotTool(self, tool: str) -> None:
+        """The tool decides what the robot does with the following moves; the screen asks before calling this."""
+        robot = self._selected_robot()
+        if robot is not None and tool in URTC_TOOLS and tool != robot.tool:
+            self._controller.send_robot_command(robot.id, "tool", {"tool": tool}, lambda r: r.set_tool(tool))
+
+    @Property("QVariantList", notify=changed)
+    def selectedRobotValves(self) -> list[bool]:
+        robot = self._selected_robot()
+        return robot.valves if robot is not None else [False, False]
+
+    @Property("QVariantList", notify=changed)
+    def selectedRobotPumps(self) -> list[bool]:
+        robot = self._selected_robot()
+        return robot.pumps if robot is not None else [False, False]
+
+    @Slot(int, bool)
+    def setSelectedValve(self, index: int, state: bool) -> None:
+        robot = self._selected_robot()
+        if robot is not None and index in (0, 1):
+            self._controller.send_robot_command(robot.id, "valve", {"index": index, "state": state}, lambda r: r.set_valve(index, state))
+
+    @Slot(int, bool)
+    def setSelectedPump(self, index: int, state: bool) -> None:
+        robot = self._selected_robot()
+        if robot is not None and index in (0, 1):
+            self._controller.send_robot_command(robot.id, "pump", {"index": index, "state": state}, lambda r: r.set_pump(index, state))
+
+    # -- Works (trajectory files shared with HYDRA-UMC-STUDIO) ------------------------
+
+    def _works_folder_path(self, robot: RobotView) -> str:
+        """The folder STUDIO uses for this robot: `settings.worksPaths[robot.id]` when the operator set one, else
+        WORKS/<name of the robot without blanks>, so this program reads and writes the same files a browser does."""
+        state = self._controller.active_state
+        works_paths = ((state.raw.get("settings") or {}).get("worksPaths") or {}) if state is not None else {}
+        configured = works_paths.get(robot.id)
+        if configured:
+            return str(configured)
+        name = str(robot.raw.get("name") or robot.id)
+        return "WORKS/" + "".join(name.split())
+
+    @Property("QVariantList", notify=_trajectoryChanged)
+    def workFiles(self) -> list[str]:
+        return self._work_files
+
+    @Slot()
+    def refreshWorkFiles(self) -> None:
+        asyncio.ensure_future(self._refresh_work_files())
+
+    async def _refresh_work_files(self) -> None:
+        conn, robot = self._controller.active_connection, self._selected_robot()
+        self._work_files = []
+        if conn is None or robot is None:
+            self._set_notice(_("LBL_ES_NO_ACTIVE_SERVER"), "warn")
+        else:
+            result = await conn.fetch_works_index(self._works_folder_path(robot))
+            files = [f for f in result[1] if isinstance(f, str)] if result is not None and result[0] == 200 and isinstance(result[1], list) else []
+            self._work_files = files
+            if not files:
+                self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_WORKS")), "warn")
+        self._trajectoryChanged.emit()
+
+    @Slot(str)
+    def exportWork(self, name: str) -> None:
+        asyncio.ensure_future(self._export_work(name))
+
+    async def _export_work(self, name: str) -> None:
+        conn, robot = self._controller.active_connection, self._selected_robot()
+        name = name.strip()
+        if robot is None or not self._trajectory_points or not name:
+            return
+        if conn is None:
+            self._set_notice(_("LBL_ES_NO_ACTIVE_SERVER"), "warn")
+            return
+        if not name.endswith(".json"):
+            name += ".json"
+        # The local "_time" column is not part of a Work: STUDIO's files never carry it.
+        content = [{joint: point[joint] for joint in JOINT_NAMES} for point in self._trajectory_points]
+        folder = self._works_folder_path(robot)
+        result = await conn.save_work_file(folder, name, content)
+        if result is None:
+            self._set_notice(_("MSG_WORK_EXPORT_FAILED", error=_("MSG_WORK_ERR_NETWORK")), "warn")
+        elif result[0] != 200:
+            error = result[1].get("error") if isinstance(result[1], dict) else str(result[1])
+            self._set_notice(_("MSG_WORK_EXPORT_FAILED", error=error), "warn")
+        else:
+            self._set_notice(_("MSG_WORK_EXPORTED", file=f"{folder}/{name}"), "info")
+
+    @Slot(str)
+    def importWork(self, name: str) -> None:
+        asyncio.ensure_future(self._import_work(name))
+
+    async def _import_work(self, name: str) -> None:
+        conn, robot = self._controller.active_connection, self._selected_robot()
+        if conn is None or robot is None or not name:
+            return
+        result = await conn.fetch_work_file(self._works_folder_path(robot), name)
+        if result is None or result[0] != 200 or not isinstance(result[1], list):
+            self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_READ", file=name)), "warn")
+            return
+        # A point may be joint-space (j1..j6) or a Cartesian pose; only a point that already carries every joint can
+        # be used here (this program has no inverse kinematics), so a Cartesian-only point is skipped, never
+        # imported as all zeros.
+        imported: list[dict[str, object]] = []
+        skipped = 0
+        outside: list[int] = []
+        for number, raw_point in enumerate(result[1], start=1):
+            if not isinstance(raw_point, dict) or not all(isinstance(raw_point.get(joint), (int, float)) and not isinstance(raw_point.get(joint), bool) for joint in JOINT_NAMES):
+                skipped += 1
+                continue
+            point: dict[str, object] = {joint: float(raw_point[joint]) for joint in JOINT_NAMES}
+            if any(not (joint_range_deg(robot.model, joint)[0] - 0.5 <= point[joint] <= joint_range_deg(robot.model, joint)[1] + 0.5) for joint in JOINT_NAMES):
+                outside.append(number)
+                continue
+            point["_time"] = time.strftime("%H:%M:%S")
+            imported.append(point)
+        if outside:
+            # A Work made for another robot: refused as a whole, with the list of the points this model cannot reach.
+            listed = ", ".join(str(n) for n in outside[:12]) + (f" (+{len(outside) - 12})" if len(outside) > 12 else "")
+            self._set_notice(_("MSG_WORK_OUT_OF_RANGE", file=name, model=robot.model, count=len(outside), points=listed), "warn")
+            return
+        if not imported:
+            self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_JOINTS", file=name)), "warn")
+            return
+        self._trajectory_points = imported
+        self._trajectoryChanged.emit()
+        if skipped:
+            self._set_notice(_("MSG_WORK_IMPORT_PARTIAL", imported=len(imported), skipped=skipped), "info")
+
     # -- Trajectory --------------------------------------------------------
 
     @Property("QVariantList", notify=_trajectoryChanged)
@@ -1145,13 +1919,22 @@ class SuiteQtBridge(QObject):
 
     @Slot(int)
     def applyTrajectoryPoint(self, index: int) -> None:
+        """Moves the robot to a recorded point as a jog command (so Sim, the limits and the arming apply, and the
+        joints stay inside the range of the model), not as a write of the whole settings tree."""
         robot = self._selected_robot()
         if robot is None or not 0 <= index < len(self._trajectory_points):
             return
         point = self._trajectory_points[index]
-        for name in JOINT_NAMES:
-            robot.set_joint(name, point[name])
-        self._controller.push_active_state()
+        joints = {name: min(joint_range_deg(robot.model, name)[1], max(joint_range_deg(robot.model, name)[0], float(point[name]))) for name in JOINT_NAMES}
+
+        def local_mutate(r: RobotView, values=joints) -> None:
+            for name, value in values.items():
+                r.set_joint(name, value)
+
+        self._controller.send_robot_command(
+            robot.id, "jog", {"axis": "x", "amount": 0, "target": "robot", "joints": joints}, local_mutate
+        )
+        self.changed.emit()
 
     @Slot(int)
     def deleteTrajectoryPoint(self, index: int) -> None:
@@ -1316,7 +2099,7 @@ class SuiteQtBridge(QObject):
         except ValueError:
             # Anchor scrolled off the server's own LINES-line window - show
             # everything rather than hide real content, same real reason
-            # admin_logs_panel.py's own _displayed_lines does.
+            # the former admin_logs panel's _displayed_lines does.
             return self._admin_logs_all_lines
         return self._admin_logs_all_lines[idx + 1:]
 
@@ -1855,6 +2638,13 @@ class SuiteQtBridge(QObject):
     def xyCanReset(self) -> bool:
         return self.xyHasRobot and self.xyHasTable
 
+    @Property(bool, notify=changed)
+    def xyTableControlsEnabled(self) -> bool:
+        """The jog and size controls need a stored table: right after the table is enabled there is only the flag,
+        and Reset writes the default table that makes them work."""
+        robot = self._xy_selected_robot()
+        return robot is not None and robot.has_xy_table and robot.xy_table is not None
+
     @Property(int, notify=changed)
     def xyWidth(self) -> int:
         robot = self._xy_selected_robot()
@@ -1897,7 +2687,7 @@ class SuiteQtBridge(QObject):
         if robot is None:
             return
         # Matches XYTableConfig.tsx's own handleAddTable() exactly: only
-        # the flag, no xyTable block yet - see xy_table_panel.py's own
+        # the flag, no xyTable block yet - see the former xy_table panel's
         # header for why.
         robot.set_has_xy_table(True)
         self._controller.push_active_state()
@@ -2081,7 +2871,7 @@ class SuiteQtBridge(QObject):
     def resetRackSystem(self) -> None:
         # Matches RackConfigView.tsx's own real handleReset() exactly:
         # BOTH racks reset, regardless of which rack's own Reset button
-        # was clicked - see rack_config_panel.py's own header for why
+        # was clicked - see the former rack_config panel's header for why
         # this is a real, deliberately-preserved quirk, not a bug
         # introduced here.
         robot = self._rack_selected_robot()
@@ -2236,7 +3026,7 @@ class SuiteQtBridge(QObject):
     @Property("QVariantList", notify=changed)
     def pnpAxisData(self) -> list[dict[str, object]]:
         """One row per PNP_AXES entry, spec + current value fused - same
-        real fixed hardware bounds as pick_and_place_panel.py's own
+        real fixed hardware bounds as the former pick_and_place panel's
         PNP_AXES (never re-declared here)."""
         robot = self._pnp_selected_robot()
         module = robot.module(self._pnp_machine_type) if robot is not None else {}
@@ -2269,7 +3059,7 @@ class SuiteQtBridge(QObject):
 
     @Slot()
     def resetPnp(self) -> None:
-        """Matches pick_and_place_panel.py's own _on_reset() exactly -
+        """Matches the former pick_and_place panel's _on_reset() exactly -
         always seeds the real PnP axis fields, since the Machine combo
         only ever offers juanenPnP/lumenPnP (see this class's own
         __init__ comment on the unported size-only branch)."""
@@ -2306,14 +3096,17 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
 
     def _kbs_stage(self) -> dict:
-        return self._kbs_controller.kinematic_brain_stage if self._kbs_controller is not None else {}
+        """The stage of the controller with whatever the server left out (or sent as another type) read as the
+        seed default, so a half-filled record never stops the panel from drawing. A copy: change it, then
+        _kbs_patch() it."""
+        return complete_stage(self._kbs_controller.kinematic_brain_stage) if self._kbs_controller is not None else {}
 
     def _kbs_patch(self, updates: dict) -> None:
-        """Matches kinematic_brain_stage_panel.py's own _patch() exactly -
+        """Matches the former kinematic_brain_stage panel's _patch() exactly -
         one real write path for every control in this panel."""
         if self._kbs_controller is None:
             return
-        stage = self._kbs_controller.kinematic_brain_stage
+        stage = self._kbs_stage()
         stage.update(updates)
         self._kbs_controller.set_kinematic_brain_stage(stage)
         self._controller.push_active_state()
@@ -2340,7 +3133,7 @@ class SuiteQtBridge(QObject):
     def jogKbsAxis(self, axis: str, direction: int) -> None:
         if self._kbs_controller is None or axis not in _KBS_AXIS_KEYS:
             return
-        stage = self._kbs_controller.kinematic_brain_stage
+        stage = self._kbs_stage()
         xy = stage["xyTable"]
         next_value = xy[axis] + direction * self._kbs_jog_step_mm
         bound = xy["tableSize"]["height"] if axis == "z" else xy["tableSize"]["width" if axis == "x" else "length"]
@@ -2364,7 +3157,7 @@ class SuiteQtBridge(QObject):
         bounds = {"width": (100, 5000), "length": (100, 5000), "height": (10, 1000)}
         if self._kbs_controller is None or field not in bounds:
             return
-        stage = self._kbs_controller.kinematic_brain_stage
+        stage = self._kbs_stage()
         lo, hi = bounds[field]
         stage["xyTable"]["tableSize"][field] = _clamp(value, lo, hi)
         self._kbs_patch({"xyTable": stage["xyTable"]})
@@ -2385,8 +3178,8 @@ class SuiteQtBridge(QObject):
     def setKbsTargetTemp(self, value: int) -> None:
         if self._kbs_controller is None:
             return
-        bed = self._kbs_controller.kinematic_brain_stage["heatedBed"]
-        bed["targetTemp"] = _clamp(value, 0, 150)
+        bed = self._kbs_stage()["heatedBed"]
+        bed["targetTemp"] = access.clamp_bed_target(value, self._bed_ceiling())
         self._kbs_patch({"heatedBed": bed})
 
     @Property(bool, notify=changed)
@@ -2397,7 +3190,7 @@ class SuiteQtBridge(QObject):
     def toggleKbsSsr(self) -> None:
         if self._kbs_controller is None:
             return
-        bed = self._kbs_controller.kinematic_brain_stage["heatedBed"]
+        bed = self._kbs_stage()["heatedBed"]
         bed["ssrActive"] = not bed.get("ssrActive")
         self._kbs_patch({"heatedBed": bed})
 
@@ -2417,11 +3210,12 @@ class SuiteQtBridge(QObject):
     def stepKbsAtc(self, direction: int) -> None:
         if self._kbs_controller is None:
             return
-        atc = self._kbs_controller.kinematic_brain_stage["atcRevolver"]
-        n = atc["toolCount"]
-        next_index = (atc["targetIndex"] + direction) % n
-        if next_index < 0:
-            next_index += n
+        atc = self._kbs_stage()["atcRevolver"]
+        n = atc.get("toolCount")
+        n = n if isinstance(n, int) and not isinstance(n, bool) and n >= 2 else 8
+        target = atc.get("targetIndex")
+        target = target if isinstance(target, int) and not isinstance(target, bool) else 0
+        next_index = (target + direction) % n
         atc["targetIndex"] = next_index
         atc["currentIndex"] = next_index
         atc["homed"] = True
@@ -2431,7 +3225,7 @@ class SuiteQtBridge(QObject):
     def setKbsToolCount(self, value: int) -> None:
         if self._kbs_controller is None:
             return
-        atc = self._kbs_controller.kinematic_brain_stage["atcRevolver"]
+        atc = self._kbs_stage()["atcRevolver"]
         atc["toolCount"] = _clamp(value, 2, 16)
         self._kbs_patch({"atcRevolver": atc})
 
@@ -2451,7 +3245,7 @@ class SuiteQtBridge(QObject):
     def installKbsConveyor(self) -> None:
         if self._kbs_controller is None:
             return
-        conveyor = self._kbs_controller.kinematic_brain_stage["conveyor"]
+        conveyor = self._kbs_stage()["conveyor"]
         conveyor["installed"] = True
         self._kbs_patch({"conveyor": conveyor})
 
@@ -2459,7 +3253,7 @@ class SuiteQtBridge(QObject):
     def toggleKbsConveyorRun(self) -> None:
         if self._kbs_controller is None:
             return
-        conveyor = self._kbs_controller.kinematic_brain_stage["conveyor"]
+        conveyor = self._kbs_stage()["conveyor"]
         conveyor["running"] = not conveyor.get("running")
         self._kbs_patch({"conveyor": conveyor})
 
@@ -2467,7 +3261,7 @@ class SuiteQtBridge(QObject):
     def setKbsConveyorSpeed(self, value: int) -> None:
         if self._kbs_controller is None:
             return
-        conveyor = self._kbs_controller.kinematic_brain_stage["conveyor"]
+        conveyor = self._kbs_stage()["conveyor"]
         conveyor["speedPercent"] = value
         self._kbs_patch({"conveyor": conveyor})
 
@@ -2476,20 +3270,12 @@ class SuiteQtBridge(QObject):
         endstops = self._kbs_stage().get("endstops", {})
         return [{"key": key, "label": label, "active": bool(endstops.get(key))} for key, label in ENDSTOP_ENTRIES]
 
-    @Slot(str)
-    def toggleKbsEndstop(self, key: str) -> None:
-        if self._kbs_controller is None:
-            return
-        endstops = self._kbs_controller.kinematic_brain_stage["endstops"]
-        endstops[key] = not endstops.get(key)
-        self._kbs_patch({"endstops": endstops})
-
     def _kbs_toggle_group(self, group_key: str, index: int) -> None:
         if self._kbs_controller is None:
             return
-        group = self._kbs_controller.kinematic_brain_stage[group_key]
-        if not 0 <= index < len(group):
-            return
+        group = self._kbs_stage().get(group_key)
+        if not isinstance(group, list) or not 0 <= index < len(group):
+            return  # a shorter list than the buttons: nothing to toggle
         group[index] = not group[index]
         self._kbs_patch({group_key: group})
 
@@ -2607,7 +3393,7 @@ class SuiteQtBridge(QObject):
         return self._module_size_field("length")
 
     def _module_extra_defaults(self, nav_key: str) -> dict:
-        """Matches heated_bed_panel.py's/vacuum_table_panel.py's own
+        """Matches the former heated_bed and vacuum_table panels'
         _extra_default_fields() AND _extra_reset_fields() - both real
         subclasses happen to return the exact same dict from both, so
         this one helper covers Enable's setdefault() and Reset's
@@ -2733,7 +3519,22 @@ class SuiteQtBridge(QObject):
 
     @Slot(int)
     def setModuleTargetTemp(self, value: int) -> None:
-        self._set_module_extra_field("targetTemp", value)
+        self._set_module_extra_field("targetTemp", access.clamp_bed_target(value, self.moduleBedCeiling))
+
+    @Property(int, notify=changed)
+    def moduleBedCeiling(self) -> int:
+        """The hottest target the server allows for the model of the robot whose heated bed is open."""
+        conn = self._controller.active_connection
+        key = self._active_module_key()
+        robot = self._module_selected_robot(key) if key else None
+        if conn is None:
+            return int(access.SafetyLimits().bed_default_c)
+        return int(access.bed_max_for(conn.safety.limits, robot.model if robot is not None else None))
+
+    @Property(int, notify=changed)
+    def kbsBedCeiling(self) -> int:
+        """The hottest target the server allows any model: the Kinematic Brain Stage has no single robot."""
+        return int(self._bed_ceiling())
 
     @Slot()
     def toggleModuleSsr(self) -> None:
@@ -2926,10 +3727,13 @@ class SuiteQtBridge(QObject):
             grid = config.get("panelGrid", "2x2")
             try:
                 rows, cols = (int(x) for x in grid.split("x"))
-            except ValueError:
+            except (ValueError, AttributeError, TypeError):
                 rows, cols = 2, 2
-            return rows * cols
-        return max(1, int(config.get("revolverSlots", 8) or 8))
+            return max(1, rows * cols)
+        try:
+            return max(1, int(config.get("revolverSlots", 8) or 8))
+        except (ValueError, TypeError):
+            return 8
 
     @Property("QVariantList", notify=changed)
     def atcRobotOptions(self) -> list[dict[str, str]]:
@@ -3591,7 +4395,7 @@ class SuiteQtBridge(QObject):
         self._camerasChanged.emit()
 
     # --- real snapshot/recording capture (parity gap closed: this mode
-    # never had these at all, unlike cameras_panel.py's own CameraCard) ---
+    # never had these at all, unlike the former cameras panel's CameraCard) ---
 
     @Property("QVariantList", notify=_camerasChanged)
     def cameraRecordingIds(self) -> list[int]:
@@ -3638,7 +4442,7 @@ class SuiteQtBridge(QObject):
 
     # --- real Camera Media panel: browse/play back/delete saved
     # snapshots/recordings - QtQuick-mode counterpart to
-    # camera_media_panel.py's own CameraMediaPanel (Widgets mode). ---
+    # the former CameraMediaPanel (Widgets mode). ---
 
     @Property("QVariantList", notify=_cameraMediaChanged)
     def cameraMediaItems(self) -> list[dict[str, object]]:
@@ -3725,6 +4529,22 @@ class SuiteQtBridge(QObject):
     @Slot(str)
     def setCameraMediaFilter(self, camera_id: str) -> None:
         self._camera_media_filter = "all" if camera_id == "all" else int(camera_id)
+        self._cameraMediaChanged.emit()
+
+    @Slot(str)
+    def saveCameraMedia(self, file_url: str) -> None:
+        """Saves the selected picture or recording to a file of the computer (streamed in chunks by the connection)."""
+        item = self._camera_media_selected
+        if not item or not file_url:
+            return
+        asyncio.ensure_future(self._save_camera_media(QUrl(file_url).toLocalFile() or file_url, item))
+
+    async def _save_camera_media(self, path: str, item: dict) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        saved = await conn.save_camera_media_to(item["cameraId"], item["kind"], item["filename"], path)
+        self._camera_media_error = "" if saved else _("CAMERA_MEDIA_SAVE_FAILED")
         self._cameraMediaChanged.emit()
 
     @Slot(int, str, str)
@@ -4850,15 +5670,16 @@ class SuiteQtBridge(QObject):
 
 
 def run_qtquick() -> int:
-    # Same real reason main.py's own classic entry point sets this before
-    # constructing its QApplication: Qt6's default rounding policy snaps a
-    # fractional OS scale factor (125%/150%/175%, common on a 27"-32" 4K
-    # monitor) to the nearest whole integer, which reads as slightly
-    # blurry/mis-sized fixed-pixel controls. PassThrough applies the OS's
-    # exact factor instead - must be set before the QGuiApplication exists.
+    # Qt6's default rounding policy snaps a fractional OS scale factor (125%/150%/175%, common on a 27"-32" 4K
+    # monitor) to the nearest whole integer, which reads as slightly blurry or mis-sized fixed-pixel controls.
+    # PassThrough applies the OS's exact factor instead - it must be set before the QGuiApplication exists, and
+    # so must the default surface format (macOS needs an OpenGL 3.3 core context for the 3D previews).
     from PySide6.QtCore import Qt
 
+    from hydra_suite.render.gl_format import install_default_surface_format
+
     QGuiApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    install_default_surface_format()
     app = QGuiApplication(sys.argv)
     app.setApplicationName("HYDRA-UMC SUITE")
     app.setApplicationDisplayName("HYDRA-UMC SUITE")
@@ -4871,16 +5692,20 @@ def run_qtquick() -> int:
                 break
     QQuickStyle.setStyle("Basic")
 
-    # Same qasync integration main.py's own classic entry point already
-    # relies on for every `async def` in app.py/net/client.py/
-    # net/discovery.py - a QGuiApplication (no QApplication/QtWidgets)
-    # needs the same real event-loop wiring, not a different one.
+    # qasync runs every `async def` of app.py, net/client.py and net/discovery.py on Qt's own event loop.
     import asyncio
 
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
 
     controller = SuiteController()
+    # The Live / Sim choices and the servers the operator asked to remember come back from the configuration file;
+    # a remembered password comes from the secure store of the computer (never from the file).
+    loaded_modes = access.ModeState.from_config(load_config())
+    access.MODES.modes.update(loaded_modes.modes)
+    access.MODES.default_mode = loaded_modes.default_mode
+    credential_store = CredentialStore(keyring_backend(), load_config, save_config)
+    catalog_frame_provider = ViewportFrameProvider()
     frame_provider = CameraFrameProvider()
     viewport_frame_provider = ViewportFrameProvider()
     media_frame_provider = MediaFrameProvider()
@@ -4889,9 +5714,14 @@ def run_qtquick() -> int:
         frame_provider=frame_provider,
         viewport_frame_provider=viewport_frame_provider,
         media_frame_provider=media_frame_provider,
+        credential_store=credential_store,
+        catalog_frame_provider=catalog_frame_provider,
     )
+    for remembered in credential_store.load_servers():
+        controller.add_server(remembered)
 
     engine = QQmlApplicationEngine()
+    engine.addImageProvider("catalogFrame", catalog_frame_provider)
     engine.addImageProvider("cameraFrames", frame_provider)
     engine.addImageProvider("viewportFrame", viewport_frame_provider)
     engine.addImageProvider("vacuumFrame", bridge._vacuum_frame_provider)

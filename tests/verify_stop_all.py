@@ -15,11 +15,8 @@
 #     confirms everywhere, no server at all is "not confirmed" too
 #   - the texts (describe_stop_all) are warnings, not green, for every case
 #     that is not clean
-#   - the classic window: the STOP button is in the command deck, always
-#     visible, one click calls the controller (no confirmation), F12 is an
-#     application-wide shortcut to the same call, and Help lists it
-#   - the Qt Quick shell: the header button and the F12 shortcut call the
-#     bridge's stopAll()
+#   - the Qt Quick interface: the header button and the F12 shortcut call the
+#     bridge's stopAll(), with no confirmation, and its result shows as text
 # Run headless: QT_QPA_PLATFORM=offscreen.
 # =============================================================================
 import asyncio
@@ -32,8 +29,7 @@ sys.path.insert(0, ".")
 
 import qasync
 from PySide6.QtCore import QObject, Qt
-from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QApplication, QToolButton
+from PySide6.QtGui import QGuiApplication
 
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.i18n import _
@@ -264,52 +260,6 @@ def check_texts():
     check("text: sending is busy", describe_stop_all(StopAllSummary("sending"))[2], "busy")
 
 
-def check_classic_window(loop):
-    from hydra_suite.ui.main_window import STOP_ALL_SHORTCUT, MainWindow
-
-    win = MainWindow()
-    win.show()
-    button = win.findChild(QToolButton, "commandDeckStop")
-    check("window: the STOP button is in the command deck", button is not None, True)
-    check("window: it is visible", button.isVisible(), True)
-    check("window: it is enabled", button.isEnabled(), True)
-    check("window: it says STOP", button.text().startswith("STOP"), True)
-
-    calls = []
-    win.controller.stop_all = lambda: calls.append("stop")
-    button.clicked.disconnect()
-    button.clicked.connect(win.controller.stop_all)
-    button.click()
-    check("window: one click calls the controller (no confirmation)", calls, ["stop"])
-
-    check("window: the shortcut is F12", STOP_ALL_SHORTCUT, Qt.Key.Key_F12)
-    check("window: the shortcut is application-wide", win._stop_shortcut.context(), Qt.ShortcutContext.ApplicationShortcut)
-    check("window: the shortcut key", win._stop_shortcut.key(), QKeySequence(Qt.Key.Key_F12))
-    check("window: auto-repeat is off", win._stop_shortcut.autoRepeat(), False)
-
-    help_titles = {}
-    for top in win.menuBar().actions():
-        menu = top.menu()
-        if menu is not None:
-            help_titles[top.text().replace("&", "")] = [a.text() for a in menu.actions()]
-    check(
-        "window: Help lists the keyboard shortcuts",
-        _("MENU_SHORTCUTS") in help_titles.get(_("MENU_HELP").replace("&", ""), []),
-        True,
-    )
-    check("window: the shortcut text mentions F12", "F12" in _("MSG_SHORTCUTS"), True)
-
-    win.controller.stop_all_changed.emit(StopAllSummary("not_confirmed", reason="x"))
-    check("window: a not-confirmed STOP shows a visible label", win._stop_status.isVisible(), True)
-    check("window: as an error", win._stop_status.property("severity"), "error")
-    win.controller.stop_all_changed.emit(StopAllSummary("done", {"s": StopAllResult.from_json(CLEAN_ANSWER)}))
-    check("window: a clean result is shown in green", win._stop_status.property("severity"), "ok")
-    win.controller.stop_all_changed.emit(StopAllSummary("done", {"s": StopAllResult.from_json(PARTIAL_ANSWER)}))
-    check("window: a partial result is an error again", win._stop_status.property("severity"), "error")
-    check("window: and does not hide itself", win._stop_clean_timer.isActive(), False)
-    win.close()
-
-
 def check_qml_shell():
     from PySide6.QtCore import QUrl
     from PySide6.QtQml import QQmlApplicationEngine
@@ -332,6 +282,7 @@ def check_qml_shell():
     engine.addImageProvider("viewportFrame", bridge._viewport_frame_provider)
     engine.addImageProvider("vacuumFrame", bridge._vacuum_frame_provider)
     engine.addImageProvider("cameraMedia", bridge._media_frame_provider)
+    engine.addImageProvider("catalogFrame", qt_suite.ViewportFrameProvider())
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(qt_suite.QML_PATH)))
@@ -352,7 +303,7 @@ def check_qml_shell():
 
 
 def main():
-    app = QApplication.instance() or QApplication(sys.argv)
+    app = QGuiApplication.instance() or QGuiApplication(sys.argv)
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
     port = start_http().server_address[1]
@@ -360,7 +311,6 @@ def main():
     loop.run_until_complete(run_client(port))
     loop.run_until_complete(run_controller(port))
     check_texts()
-    check_classic_window(loop)
     check_qml_shell()
 
     if failures:

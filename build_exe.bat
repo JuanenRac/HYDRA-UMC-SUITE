@@ -89,10 +89,10 @@ echo.
 echo [5/6] Compiling HYDRA-UMC_SUITE.exe with PyInstaller...
 REM --add-data uses ";" as the source/destination separator on Windows -
 REM Linux/Mac PyInstaller uses ":" instead (see build_exe.sh). Bundles
-REM assets\ (the industrial_dark.qss theme + the real STL mesh sets +
-REM their own ATTRIBUTION.txt files) directly into the .exe - hydra_suite/ui/
-REM theme.py and hydra_suite/render/viewport.py both locate it via
-REM Path(__file__).resolve().parent.parent.parent, which still resolves
+REM assets\ (the QML interface + the real STL mesh sets +
+REM their own ATTRIBUTION.txt files) directly into the .exe - qt_suite.py
+REM and hydra_suite/render/viewport.py both locate it relative to their own
+REM file, which still resolves
 REM correctly once frozen (PyInstaller preserves the hydra_suite/ package
 REM tree's own relative layout inside the extracted bundle, and
 REM --add-data's own "assets;assets" destination lands exactly where
@@ -107,7 +107,7 @@ REM plugins are native Qt plugins loaded dynamically, not importable
 REM Python modules it can trace), which produced a ~270MB .exe - it
 REM copies the ENTIRE PySide6 package (Qt6WebEngineCore.dll ALONE is
 REM ~196MB, plus qml/, translations/, opengl32sw.dll, none of which this
-REM app imports - only QtCore/QtGui/QtWidgets/QtOpenGL/QtOpenGLWidgets/QtCharts/QtSvg/QtQml/QtQuick/QtQuickControls2
+REM app imports - only QtCore/QtGui/QtOpenGL/QtSvg/QtQml/QtQuick/QtQuickControls2
 REM are actually used). --exclude-module does NOT fix this - it only
 REM prunes PyInstaller's own Python IMPORT graph, not collect-all's own
 REM raw data-file copy, which still runs regardless (confirmed by
@@ -138,11 +138,17 @@ if not defined PYSIDE_DIR (
     --hidden-import zeroconf.asyncio ^
     --hidden-import zeroconf._utils.ipaddress ^
     --hidden-import ifaddr ^
+    --hidden-import keyring ^
+    --hidden-import keyring.backends ^
+    --hidden-import keyring.backends.Windows ^
+    --hidden-import keyring.backends.macOS ^
+    --hidden-import keyring.backends.SecretService ^
+    --hidden-import keyring.backends.kwallet ^
+    --hidden-import keyring.backends.fail ^
+    --hidden-import keyring.backends.null ^
     --hidden-import PySide6.QtOpenGL ^
-    --hidden-import PySide6.QtOpenGLWidgets ^
     --hidden-import PySide6.QtQml ^
     --hidden-import PySide6.QtQuick ^
-    --hidden-import PySide6.QtQuickWidgets ^
     --hidden-import OpenGL.platform.win32 ^
     main.py
 REM UPX (https://upx.github.io/) shrinks the final .exe further (30-50

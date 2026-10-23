@@ -7,6 +7,7 @@
 #   - the Kinematic Brain panel and the ATC panel keep working when the
 #     controller record is half empty (no revolver fields, shorter fan / pump /
 #     valve lists, a grid that is not text)
+#   - the XY table controls stay unavailable until a table is stored
 #   - the telemetry notices (series mixed in one line, result cut at the
 #     service limit)
 #   - HydraConnection.save_camera_media_to(): a saved recording is streamed to
@@ -24,14 +25,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, ".")
 
 import qasync
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QGuiApplication
 
 from hydra_suite.app import SuiteController
 from hydra_suite.models import HydraState, ServerInfo
 from hydra_suite.net.client import HydraConnection
-from hydra_suite.ui.panels.atc_tools_panel import AtcToolsPanel
-from hydra_suite.ui.panels.ecosystem_telemetry_panel import telemetry_notices
-from hydra_suite.ui.panels.kinematic_brain_stage_panel import KinematicBrainStagePanel, complete_stage
+from hydra_suite.panel_logic.ecosystem_telemetry import telemetry_notices
+from hydra_suite.panel_logic.kinematic_brain_stage import complete_stage
+from qt_suite import SuiteQtBridge
 
 failures = 0
 BIG = (b"\xff\xd8frame\xff\xd9" * 70000)  # about 700 KB
@@ -71,11 +72,12 @@ class Handler(BaseHTTPRequestHandler):
 
 def run_panels():
     controller = SuiteController()
-    panel = KinematicBrainStagePanel(controller)
+    bridge = SuiteQtBridge(controller)
     half_empty = {"atcRevolver": {"toolCount": None}, "fans": [True], "pumps": "x", "xyTable": {"x": None}}
     state = HydraState({"activeControllerId": "c1", "controllers": [{"id": "c1", "robots": [], "kinematicBrainStage": half_empty}]})
     try:
         controller.active_state_changed.emit(state)
+        bridge.kbsAtcIndex, bridge.kbsToolCount, bridge.kbsTargetTemp
         raised = False
     except Exception as error:
         print(error)
@@ -86,34 +88,31 @@ def run_panels():
     check("complete_stage: a non-list is replaced", isinstance(complete["pumps"], list), True)
     check("complete_stage: the list given keeps its length", complete["fans"], [True])
     try:
-        panel._on_atc_step(1)
-        panel._on_fan_toggle(2)
-        panel._on_pump_toggle(0)
-        panel._on_valve_toggle(9)
+        bridge.stepKbsAtc(1)
+        bridge.toggleKbsFan(2)
+        bridge.toggleKbsPump(0)
+        bridge.toggleKbsValve(9)
         raised = False
     except Exception as error:
         print(error)
         raised = True
     check("brain panel: stepping and toggling beyond the record does not raise", raised, False)
 
-    slot = AtcToolsPanel._slot_count
-    check("atc: a grid that is not text", slot(None, {"type": "vertical_panel", "panelGrid": 5}), 4)
-    check("atc: a grid with a zero side", slot(None, {"type": "horizontal_panel", "panelGrid": "0x3"}), 1)
-    check("atc: slots that are not a number", slot(None, {"type": "revolver", "revolverSlots": "many"}), 8)
+    slot = bridge._atc_slot_count
+    check("atc: a grid that is not text", slot({"type": "vertical_panel", "panelGrid": 5}), 4)
+    check("atc: a grid with a zero side", slot({"type": "horizontal_panel", "panelGrid": "0x3"}), 1)
+    check("atc: slots that are not a number", slot({"type": "revolver", "revolverSlots": "many"}), 8)
 
 
 def run_xy_table():
-    from hydra_suite.ui.panels.xy_table_panel import XYTablePanel
-
     controller = SuiteController()
-    panel = XYTablePanel(controller)
+    bridge = SuiteQtBridge(controller)
     robot = {"id": 1, "model": "Generic (6-DOF)", "role": "Idle", "hasXYTable": True}
     controller.active_state_changed.emit(HydraState({"activeControllerId": "c1", "controllers": [{"id": "c1", "robots": [robot]}]}))
-    buttons = [panel._x_plus_btn, panel._y_plus_btn, panel._width_spin, panel._step_combo]
-    check("xy table: no stored table, the jog and size controls are unavailable", [b.isEnabled() for b in buttons], [False] * 4)
-    check("xy table: and say why", bool(panel._x_plus_btn.toolTip()), True)
-    panel._on_reset()
-    check("xy table: after Reset they work", [b.isEnabled() for b in buttons], [True] * 4)
+    bridge.navigatePanel("xy_table")
+    check("xy table: no stored table, the controls are unavailable", bridge.xyTableControlsEnabled, False)
+    bridge.resetXyTable()
+    check("xy table: after Reset they work", bridge.xyTableControlsEnabled, True)
 
 
 def run_notices():
@@ -151,8 +150,7 @@ def run_downloads(loop):
 
 
 def main():
-    app = QApplication.instance() or QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)
+    app = QGuiApplication.instance() or QGuiApplication(sys.argv)
     loop = qasync.QEventLoop(app)
     asyncio.set_event_loop(loop)
     run_panels()
