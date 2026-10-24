@@ -35,7 +35,7 @@
 
 | | |
 |---|---|
-| Version | `0.7.0` |
+| Version | `0.7.1` |
 | Reifegrad | Funktionsfähig |
 | Technik | Python 3.12 / PySide6 |
 | Ziel | Der PC der Person, die es benutzt |
