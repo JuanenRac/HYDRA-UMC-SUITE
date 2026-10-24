@@ -590,6 +590,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "robots_catalog") return robotsCatalogComponent
                     if (suiteBackend.activePanel === "safety_limits") return safetyLimitsComponent
                     if (suiteBackend.activePanel === "audit_record") return auditRecordComponent
+                    if (suiteBackend.activePanel === "users") return usersComponent
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
                     return null
                 }
@@ -5004,6 +5005,173 @@ ApplicationWindow {
                         Text { text: modelData.detail; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
                     }
                 }
+            }
+        }
+    }
+
+    Component {
+        id: usersComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            Dialog {
+                id: usersDeleteDialog
+                property string target: ""
+                anchors.centerIn: Overlay.overlay
+                modal: true
+                width: 380
+                title: suiteBackend.uiText("USERS_DELETE_TITLE")
+                standardButtons: Dialog.Yes | Dialog.No
+                background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+                contentItem: Text { text: suiteBackend.uiText("USERS_DELETE_CONFIRM").replace("{username}", usersDeleteDialog.target); color: window.textPrimary; wrapMode: Text.WordWrap }
+                onAccepted: suiteBackend.deleteUser(usersDeleteDialog.target)
+            }
+            Text { text: suiteBackend.uiText("HEADING_USERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text {
+                visible: !suiteBackend.usersHasServer
+                text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
+                color: window.muted
+            }
+            Text {
+                visible: suiteBackend.usersHasServer && !suiteBackend.usersIsAdmin
+                text: suiteBackend.uiText("USERS_ADMIN_ONLY")
+                color: window.amber
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            ColumnLayout {
+                visible: suiteBackend.usersHasServer && suiteBackend.usersIsAdmin
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 8
+                Text { text: suiteBackend.uiText("USERS_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.usersMessage !== ""; text: suiteBackend.usersMessage; color: window.green; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.usersError !== ""; text: suiteBackend.usersError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("USERS_COL_USERNAME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 180 }
+                    Text { text: suiteBackend.uiText("USERS_COL_ROLE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("USERS_COL_CREATED"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                    Button { objectName: "usersRefreshButton"; text: suiteBackend.uiText("USERS_REFRESH"); enabled: !suiteBackend.usersBusy; onClicked: suiteBackend.refreshUsers() }
+                }
+                ListView {
+                    objectName: "usersList"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 170
+                    clip: true
+                    model: suiteBackend.usersRows
+                    delegate: RowLayout {
+                        required property var modelData
+                        width: ListView.view.width
+                        spacing: 8
+                        Text { text: modelData.username + (modelData.own ? " (" + suiteBackend.uiText("USERS_YOU") + ")" : ""); color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 180; elide: Text.ElideRight }
+                        Text { text: modelData.roleLabel; color: modelData.role === "admin" ? window.green : window.cyan; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
+                        Text { text: modelData.created; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Button {
+                            objectName: "usersDeleteButton"
+                            text: suiteBackend.uiText("USERS_DELETE")
+                            enabled: !suiteBackend.usersBusy
+                            onClicked: { usersDeleteDialog.target = modelData.username; usersDeleteDialog.open() }
+                        }
+                    }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 16
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignTop
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("USERS_CHANGE_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        ComboBox {
+                            id: usersChangeAccount
+                            objectName: "usersChangeAccount"
+                            Layout.fillWidth: true
+                            model: suiteBackend.usersRows
+                            textRole: "username"
+                            displayText: currentIndex < 0 ? suiteBackend.uiText("USERS_SELECT_ACCOUNT") : currentText
+                            currentIndex: -1
+                        }
+                        TextField {
+                            id: usersChangeName
+                            objectName: "usersChangeName"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("USERS_NEW_USERNAME")
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        TextField {
+                            id: usersChangePassword
+                            objectName: "usersChangePassword"
+                            Layout.fillWidth: true
+                            echoMode: TextInput.Password
+                            placeholderText: suiteBackend.uiText("USERS_NEW_PASSWORD")
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        ComboBox {
+                            id: usersChangeRole
+                            objectName: "usersChangeRole"
+                            Layout.fillWidth: true
+                            model: [{ "value": "", "label": suiteBackend.uiText("USERS_ROLE_UNCHANGED") }].concat(suiteBackend.usersRoleOptions)
+                            textRole: "label"
+                            valueRole: "value"
+                        }
+                        Button {
+                            objectName: "usersChangeButton"
+                            text: suiteBackend.uiText("USERS_APPLY")
+                            enabled: !suiteBackend.usersBusy
+                            onClicked: {
+                                suiteBackend.updateUser(usersChangeAccount.currentIndex < 0 ? "" : usersChangeAccount.currentText, usersChangeName.text, usersChangePassword.text, usersChangeRole.currentValue)
+                                usersChangePassword.text = ""
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignTop
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("USERS_CREATE_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        TextField {
+                            id: usersNewName
+                            objectName: "usersNewName"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("USERS_COL_USERNAME")
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        TextField {
+                            id: usersNewPassword
+                            objectName: "usersNewPassword"
+                            Layout.fillWidth: true
+                            echoMode: TextInput.Password
+                            placeholderText: suiteBackend.uiText("USERS_NEW_PASSWORD")
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        ComboBox {
+                            id: usersNewRole
+                            objectName: "usersNewRole"
+                            Layout.fillWidth: true
+                            model: suiteBackend.usersRoleOptions
+                            textRole: "label"
+                            valueRole: "value"
+                        }
+                        Text { text: suiteBackend.uiText("USERS_ROLE_HINT"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "usersCreateButton"
+                            text: suiteBackend.uiText("USERS_CREATE_BUTTON")
+                            enabled: !suiteBackend.usersBusy
+                            onClicked: {
+                                suiteBackend.createUser(usersNewName.text, usersNewPassword.text, usersNewRole.currentValue)
+                                usersNewPassword.text = ""
+                            }
+                        }
+                    }
+                }
+                Item { Layout.fillHeight: true }
             }
         }
     }

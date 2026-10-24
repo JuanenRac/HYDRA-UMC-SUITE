@@ -78,6 +78,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
+from hydra_suite.panel_logic import users as users_panel
 from hydra_suite.panel_logic.ai_family_status import AI_FAMILIES
 from hydra_suite.panel_logic.atc_tools import (
     JOINT_FIELDS as _ATC_JOINT_FIELDS,
@@ -718,6 +719,10 @@ class SuiteQtBridge(QObject):
         self._audit_robot = ""
         self._audit_limit = audit_record.DEFAULT_LIMIT
         self._audit_last_query: dict = {}
+        self._users_rows: list[dict[str, object]] = []
+        self._users_message = ""
+        self._users_error = ""
+        self._users_busy = False
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_access()))
         controller.connection_login_changed.connect(lambda _cid, ok, _detail: asyncio.ensure_future(self._refresh_access()) if ok else None)
 
@@ -787,6 +792,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_access())
             elif key == "audit_record":
                 asyncio.ensure_future(self._refresh_audit(False))
+            elif key == "users":
+                asyncio.ensure_future(self._refresh_users())
             elif key == "system_supervisor":
                 asyncio.ensure_future(self._refresh_supervisor())
             elif key == "robots_catalog":
@@ -1631,6 +1638,123 @@ class SuiteQtBridge(QObject):
         else:
             self._audit_message = _("AUDIT_EXPORTED", path=local_path)
         self.changed.emit()
+
+    # -- User accounts (administrators only) -------------------------------------------
+
+    @Property(bool, notify=changed)
+    def usersIsAdmin(self) -> bool:
+        return self.safetyIsAdmin
+
+    @Property(bool, notify=changed)
+    def usersHasServer(self) -> bool:
+        return self._controller.active_connection is not None
+
+    @Property("QVariantList", notify=changed)
+    def usersRows(self) -> list[dict[str, object]]:
+        return self._users_rows
+
+    @Property("QVariantList", constant=True)
+    def usersRoleOptions(self) -> list[dict[str, str]]:
+        return users_panel.role_options()
+
+    @Property(str, notify=changed)
+    def usersMessage(self) -> str:
+        return self._users_message
+
+    @Property(str, notify=changed)
+    def usersError(self) -> str:
+        return self._users_error
+
+    @Property(bool, notify=changed)
+    def usersBusy(self) -> bool:
+        return self._users_busy
+
+    @Slot()
+    def refreshUsers(self) -> None:
+        asyncio.ensure_future(self._refresh_users())
+
+    def _users_conn(self):
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin or conn.login_ok is not True:
+            return None
+        return conn
+
+    async def _refresh_users(self, keep_message: bool = False) -> None:
+        conn = self._users_conn()
+        if not keep_message:
+            self._users_message = ""
+            self._users_error = ""
+        if conn is None:
+            self._users_rows = []
+            self.changed.emit()
+            return
+        self._users_busy = True
+        self.changed.emit()
+        try:
+            result = await conn.fetch_users()
+            if not result.ok:
+                self._users_rows = []
+                self._users_error = users_panel.failure_text(result.status, result.code, result.detail)
+                return
+            self._users_rows = users_panel.rows(users_panel.parse_users(result.body), conn.info.username or "")
+        finally:
+            self._users_busy = False
+            self.changed.emit()
+
+    @Slot(str, str, str)
+    def createUser(self, username: str, password: str, role: str) -> None:
+        self._users_error = users_panel.check_new(username, password)
+        self._users_message = ""
+        if self._users_error or self._users_conn() is None:
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._users_write("create", username.strip(), password, role if role in users_panel.ROLES else users_panel.DEFAULT_ROLE))
+
+    @Slot(str, str, str, str)
+    def updateUser(self, username: str, new_username: str, password: str, role: str) -> None:
+        self._users_message = ""
+        role = role if role in users_panel.ROLES else ""
+        self._users_error = users_panel.check_change(username, new_username, password, role)
+        if self._users_error or self._users_conn() is None:
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._users_write("update", username, password, role, new_username))
+
+    @Slot(str)
+    def deleteUser(self, username: str) -> None:
+        self._users_error = ""
+        self._users_message = ""
+        if not username or self._users_conn() is None:
+            self._users_error = _("USERS_ERR_SELECT_ACCOUNT") if not username else ""
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._users_write("delete", username))
+
+    async def _users_write(self, action: str, username: str, password: str = "", role: str = "", new_username: str = "") -> None:
+        conn = self._users_conn()
+        if conn is None:
+            return
+        self._users_busy = True
+        self.changed.emit()
+        try:
+            if action == "create":
+                result = await conn.create_user(username, password, role)
+                done = _("USERS_CREATED", username=username)
+            elif action == "update":
+                result = await conn.update_user(username, new_username, password, role)
+                done = _("USERS_UPDATED", username=username)
+            else:
+                result = await conn.delete_user(username)
+                done = _("USERS_DELETED", username=username)
+        finally:
+            self._users_busy = False
+        if result.ok:
+            self._users_message = done
+            self._users_error = ""
+        else:
+            self._users_message = ""
+            self._users_error = users_panel.failure_text(result.status, result.code, result.detail)
+        await self._refresh_users(keep_message=True)
 
     # -- Robots Catalog -------------------------------------------------------------
 

@@ -25,7 +25,7 @@
 </p>
 
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 39 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 31 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 39 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 32 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -61,7 +61,7 @@
 
 ### Qt Quick 界面
 
-HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立的 `ApplicationWindow`（`assets/qml/Main.qml`），由 `qt_suite.py` 与未改动的 `SuiteController` 相连。这与 HYDRA-UMC-OS-REBUILDER、HYDRA-UMC-UPDATER、URTC-TESTER、URTC-FLASHER 和 HYDRA-UMC-EDITOR-URDF 使用的模式相同，结构也与 HYDRA-UMC-STUDIO 一致：一个导航侧边栏（根菜单加上 Industrial、URTC 和 HYDRA-UMC 子菜单，见 `hydra_suite/nav_items.py`）和一个每次显示 31 个面板之一的内容区。3D 视口和预览由专用的 `OffscreenRobotRenderer`（独立的 `QOpenGLContext`、`QOffscreenSurface` 和帧缓冲，不使用 Qt Quick 自带的 `QQuickFramebufferObject`，否则整个界面会被迫从 Windows 上 Qt Quick 默认的 Direct3D 11 后端切换到 OpenGL）用同一套渲染代码（`RobotGLRenderer`）绘制，并以图像形式交给 QML。早先的经典窗口（带可停靠面板的 `QMainWindow`）已被移除；它的全部功能都在这个界面中，用 `python main.py` 启动。
+HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立的 `ApplicationWindow`（`assets/qml/Main.qml`），由 `qt_suite.py` 与未改动的 `SuiteController` 相连。这与 HYDRA-UMC-OS-REBUILDER、HYDRA-UMC-UPDATER、URTC-TESTER、URTC-FLASHER 和 HYDRA-UMC-EDITOR-URDF 使用的模式相同，结构也与 HYDRA-UMC-STUDIO 一致：一个导航侧边栏（根菜单加上 Industrial、URTC 和 HYDRA-UMC 子菜单，见 `hydra_suite/nav_items.py`）和一个每次显示 32 个面板之一的内容区。3D 视口和预览由专用的 `OffscreenRobotRenderer`（独立的 `QOpenGLContext`、`QOffscreenSurface` 和帧缓冲，不使用 Qt Quick 自带的 `QQuickFramebufferObject`，否则整个界面会被迫从 Windows 上 Qt Quick 默认的 Direct3D 11 后端切换到 OpenGL）用同一套渲染代码（`RobotGLRenderer`）绘制，并以图像形式交给 QML。早先的经典窗口（带可停靠面板的 `QMainWindow`）已被移除；它的全部功能都在这个界面中，用 `python main.py` 启动。
 
 ## 🏭 功能特性
 
@@ -69,7 +69,7 @@ HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立�
 - **🐝 集群连接** —— 可同时连接任意数量的 HYDRA-UMC 服务器，每一个都拥有自己独立的实时 WebSocket 同步；可选择哪一个是其他面板的“活动”对象。
 - **📊 概览** —— 逐控制器的机器人名册：型号、角色、在线状态、速度/加速度，一目了然。
 - **🦾 机器人控制** - 范围限定在型号范围内的每关节滑块、速度/加速度滑块、录制轨迹的播放 / 暂停 / 停止、工具（需确认）、阀门和泵，全部以原子命令实时写回。
-- **🔐 预留、安全限制与 Live / Sim** - 机器人控制面板有一个访问栏：为本程序预留或释放所选机器人（保持期间会自动续期），查看其他机器人由谁持有，管理员还可以接管。每次预留、释放、点动启用和命令都带有本程序启动时选定的控制器 ID，拒绝情况（其他账户、同一账户在别处、缺少控制器 ID、点动未启用）都会以各自的提示出现在屏幕上。点动的大小和热床的最高目标温度从服务器读取（`GET /api/safety-limits`）并在发送前检查；管理员可在 **安全限制** 面板中按型号编辑它们，同时设置可选的点动启用（默认关闭）和必填的控制器 ID。每个机器人都有 **Live / Sim** 开关（默认 Live）：在 Sim 下，任何会移动机器人或接通设备的内容都不会离开本程序，而 STOP 始终会发出。关节滑块遵循型号的范围，含有范围外点的 Work 会被拒绝并列出这些点，机械臂够不到其点的 Work 会连同这些点被拒绝，也可以以机器人底座为基准缩放后加载，打开热床加热器前会先询问。 写入是有条件的:每次写入都带有此程序最后看到的机器人修订号(`If-Match`),如果期间有其他人修改了机器人,服务器返回 412,不会应用任何内容,机器人会被重新读取并弹出通知(标准模式检查预约、工作台和一次性命令;严格模式检查除 STOP 外的全部命令;关闭则不检查;该选项位于预约列表下方;STOP 永远不检查)。XY 工作台的点动是一条原子的 `table` 命令,服务器通过 WebSocket 推送预约,因此在推送到达期间面板不再轮询,管理员可在 **生态系统 > 审计记录** 中读取仅追加的审计记录,其 SHA-256 链会被(服务器和本程序)校验两次。
+- **🔐 预留、安全限制与 Live / Sim** - 机器人控制面板有一个访问栏：为本程序预留或释放所选机器人（保持期间会自动续期），查看其他机器人由谁持有，管理员还可以接管。每次预留、释放、点动启用和命令都带有本程序启动时选定的控制器 ID，拒绝情况（其他账户、同一账户在别处、缺少控制器 ID、点动未启用）都会以各自的提示出现在屏幕上。点动的大小和热床的最高目标温度从服务器读取（`GET /api/safety-limits`）并在发送前检查；管理员可在 **安全限制** 面板中按型号编辑它们，同时设置可选的点动启用（默认关闭）和必填的控制器 ID。每个机器人都有 **Live / Sim** 开关（默认 Live）：在 Sim 下，任何会移动机器人或接通设备的内容都不会离开本程序，而 STOP 始终会发出。关节滑块遵循型号的范围，含有范围外点的 Work 会被拒绝并列出这些点，机械臂够不到其点的 Work 会连同这些点被拒绝，也可以以机器人底座为基准缩放后加载，打开热床加热器前会先询问。 写入是有条件的:每次写入都带有此程序最后看到的机器人修订号(`If-Match`),如果期间有其他人修改了机器人,服务器返回 412,不会应用任何内容,机器人会被重新读取并弹出通知(标准模式检查预约、工作台和一次性命令;严格模式检查除 STOP 外的全部命令;关闭则不检查;该选项位于预约列表下方;STOP 永远不检查)。XY 工作台的点动是一条原子的 `table` 命令,服务器通过 WebSocket 推送预约,因此在推送到达期间面板不再轮询,管理员可在 **生态系统 > 审计记录** 中读取仅追加的审计记录,其 SHA-256 链会被(服务器和本程序)校验两次。 管理员还可在 **生态系统 > 用户** 中创建、更改和删除服务器的账户(管理员或操作员)。
 - **🧊 真实 3D 视口** —— OpenGL 3.3，真实的 STL 网格，针对全部 24 个真实机器人型号的真实正向运动学（与 HYDRA-UMC STUDIO 自身的 TypeScript 实现经数值验证，结果逐位一致），外加一个基于基本几何体构建的“通用”后备型号——两者都不是风格化的占位符。
 - **📍 轨迹点** —— 记录所选机器人的实时姿态，按需点动回到任意已记录的点位。
 - **🧭 一个侧边栏，一个内容区** - 通过左侧导航（根菜单加上 Industrial、URTC 和 HYDRA-UMC 子菜单）逐个进入各面板，分组方式与 HYDRA-UMC-STUDIO 的侧边栏相同。窗口以带原生标题栏的最大化状态启动，**F11** 可切换真正的全屏。
@@ -135,7 +135,7 @@ HYDRA-UMC-SUITE/
 ├── tests/verify_stop_all.py
 ├── tests/verify_hostile_server_answers.py
 ├── main.py                        # 入口——启动 Qt Quick 界面（最大化，最小 1280x720；F11 切换真正的全屏）
-├── qt_suite.py                     # Qt Quick 前端——把未改动的 SuiteController 连接到 QML（全部 31 个面板）
+├── qt_suite.py                     # Qt Quick 前端——把未改动的 SuiteController 连接到 QML（全部 32 个面板）
 ├── verify_qt_suite_shell.py        # 不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行
 ├── requirements.txt
 ├── hydra-umc.project.json         # 生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源
@@ -174,7 +174,7 @@ HYDRA-UMC-SUITE/
 │   ├── nav_items.py                # 导航：根菜单和 Industrial / URTC / HYDRA-UMC 子菜单
 │   └── panel_logic/                # 面板所需且不依赖窗口的内容：层级、默认值、MJPEG 解析、监控图表
 ├── assets/
-│   ├── qml/Main.qml                 # Qt Quick 界面（全部 31 个面板）
+│   ├── qml/Main.qml                 # Qt Quick 界面（全部 32 个面板）
 │   └── meshes/                      # 真实 STL 网格，每个机器人/模块一个文件夹，复制自 HYDRA-UMC-STUDIO 自身的 public/models/（各自附带 ATTRIBUTION.txt）
 ├── language/                        # english/spanish/french/german/italian/japanese/chinese/portuguese 的 .lng 文件
 ├── docs/

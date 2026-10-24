@@ -66,7 +66,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    do_GET = do_POST = do_PUT = _answer
+    do_GET = do_POST = do_PUT = do_DELETE = _answer
 
 
 def start_http():
@@ -204,6 +204,22 @@ async def run(port):
     messages.clear()
     await conn.push_state()
     check("settings: a lowered bed target is reported", messages, [_("MSG_NET_TEMP_LOWERED", requested="300", applied="110")])
+
+    # --- the user accounts ---
+    reset(**{"GET /api/users": (200, {"users": [{"username": "admin", "role": "admin", "createdAt": "x"}]})})
+    listed = await conn.fetch_users()
+    check("users: the accounts are read", (listed.ok, [u["username"] for u in listed.body["users"]]), (True, ["admin"]))
+    reset()
+    await conn.create_user("bob", "long-enough-1", "operator")
+    sent = [(m, p, b) for m, p, b in Server.requests][0]
+    check("users: a new account goes out with its role", (sent[0], sent[1], sent[2]["username"], sent[2]["role"]), ("POST", "/api/users", "bob", "operator"))
+    reset()
+    await conn.update_user("a b/c", new_username=" bobby ", password="", role="admin")
+    sent = Server.requests[0]
+    check("users: a change goes to the quoted name, only with what changes", (sent[0], sent[1], sent[2]), ("PUT", "/api/users/a%20b%2Fc", {"newUsername": "bobby", "role": "admin"}))
+    reset(**{"DELETE /api/users/bob": (400, {"error": "Cannot delete the last remaining admin account"})})
+    refused = await conn.delete_user("bob")
+    check("users: a refused delete says why", (Server.requests[0][:2], refused.ok, refused.detail), (("DELETE", "/api/users/bob"), False, "Cannot delete the last remaining admin account"))
 
     # --- nothing answers ---
     dead = make_conn(1)

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **New Ecosystem > Users panel (administrators only).** Lists the accounts of the server (`GET /api/users`), creates them with a role of administrator or operator, changes a name, a password or a role, and deletes an account after a confirmation, in the eight languages. The password rule of the server (8 characters) is checked before anything is sent, and the refusals of the server (a name already taken, the last administrator, an account that no longer exists) are explained in the language of the interface. This brings the account management of HYDRA-UMC STUDIO to the SUITE. The counters of the READMEs follow (32 panels).
+
 - **The UR3, UR5 and UR10 inverse kinematics use the chain of the drawing as it is.** The wrist offsets the Work import used to override are gone; the chains of both programs are pinned to the official Universal Robots DH tables and to shared reference poses.
 - **The reach tolerance of the Work import is a setting.** `work_reach_tolerance_mm` in `hydra_suite_config.json` (0.5 to 50 mm; 5 mm when it is missing or out of bounds). A Work without a motion type (portable, like STUDIO's) is converted to joints of the selected robot on import, and a notice says how many points were converted.
 

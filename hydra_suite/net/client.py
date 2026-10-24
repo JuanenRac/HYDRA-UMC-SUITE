@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import time
+import urllib.parse
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable
 
@@ -1172,6 +1173,30 @@ class HydraConnection(QObject):
         except (httpx.HTTPError, OSError):
             return None
         return resp.text if resp.status_code == 200 else None
+
+    async def fetch_users(self) -> AccessResult:
+        """GET /api/users (administrators only): the accounts of the server, without their password hashes."""
+        return await self._access_request("GET", "/api/users")
+
+    async def create_user(self, username: str, password: str, role: str) -> AccessResult:
+        """POST /api/users (administrators only)."""
+        return await self._access_request("POST", "/api/users", {"username": username, "password": password, "role": role})
+
+    async def update_user(self, username: str, new_username: str = "", password: str = "", role: str = "") -> AccessResult:
+        """PUT /api/users/:username (administrators only): a new name, a new password and/or a new role. Every
+        session already open for that account is closed by the server."""
+        body: dict = {}
+        if new_username.strip():
+            body["newUsername"] = new_username.strip()
+        if password:
+            body["password"] = password
+        if role:
+            body["role"] = role
+        return await self._access_request("PUT", "/api/users/" + urllib.parse.quote(username, safe=""), body)
+
+    async def delete_user(self, username: str) -> AccessResult:
+        """DELETE /api/users/:username (administrators only)."""
+        return await self._access_request("DELETE", "/api/users/" + urllib.parse.quote(username, safe=""))
 
     def claims_are_pushed(self, within_s: float = 30.0) -> bool:
         """Whether the server pushed the reservations recently, so the poll of GET /api/claims can rest."""

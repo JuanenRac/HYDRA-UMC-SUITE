@@ -27,6 +27,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 import qt_suite as qs
 from hydra_suite import access
 from hydra_suite.app import SuiteController
+from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, ServerInfo
 from hydra_suite.nav_items import ALL_DOCK_KEYS
 from hydra_suite.net.client import AccessResult, HydraConnection
@@ -227,6 +228,64 @@ def main():
     check("audit: and so does the number of lines", fetched[-1][0], 250)
     bridge.setAuditLimit(7)
     check("audit: a number that is not offered changes nothing", bridge.auditLimit, 250)
+    bridge.setAuditLimit(100)
+    settle(loop, 4)
+
+    # --- the user accounts screen ---
+    conn.role = "operator"
+    bridge.navigatePanel("users")
+    settle(loop)
+    check("users: an operator does not get the controls", find(root, "usersCreateButton").property("visible"), False)
+    conn.role = "admin"
+    accounts = [{"username": "admin", "role": "admin", "createdAt": "2030-01-01T00:00:00.000Z"}, {"username": "ana", "role": "operator", "createdAt": "2030-01-02T00:00:00.000Z"}, "damaged"]
+    user_calls = []
+
+    async def fetch_users():
+        user_calls.append(("list",))
+        return AccessResult(True, 200, body={"users": list(accounts)})
+
+    async def create_user(username, password, role):
+        user_calls.append(("create", username, password, role))
+        if username == "ana":
+            return AccessResult(False, 400, "rejected", "Username already exists")
+        return AccessResult(True, 200, body={"success": True})
+
+    async def update_user(username, new_username="", password="", role=""):
+        user_calls.append(("update", username, new_username, password, role))
+        return AccessResult(True, 200, body={"success": True})
+
+    async def delete_user(username):
+        user_calls.append(("delete", username))
+        return AccessResult(False, 400, "rejected", "Cannot delete the last remaining admin account")
+
+    conn.fetch_users = fetch_users
+    conn.create_user = create_user
+    conn.update_user = update_user
+    conn.delete_user = delete_user
+    bridge.navigatePanel("robot")
+    bridge.navigatePanel("users")
+    settle(loop, 6)
+    check("users: opening the screen reads the accounts", user_calls[:1], [("list",)])
+    check("users: a damaged entry is skipped and the others listed", [row["username"] for row in bridge.usersRows], ["admin", "ana"])
+    check("users: the screen has the controls for an administrator", (find(root, "usersCreateButton").property("visible"), find(root, "usersList") is not None), (True, True))
+    bridge.createUser("bob", "short", "operator")
+    settle(loop, 4)
+    check("users: a short password is refused before it is sent", (len(user_calls), "8" in bridge.usersError), (1, True))
+    bridge.createUser("bob", "long-enough-1", "nonsense")
+    settle(loop, 6)
+    check("users: an unknown role becomes operator", user_calls[1], ("create", "bob", "long-enough-1", "operator"))
+    check("users: and the list is read again", user_calls[2], ("list",))
+    bridge.createUser("ana", "long-enough-1", "operator")
+    settle(loop, 6)
+    check("users: a name already taken is explained", (bridge.usersMessage, bridge.usersError != ""), ("", True))
+    bridge.updateUser("ana", "", "", "")
+    check("users: a change with nothing to change is refused", bridge.usersError != "", True)
+    bridge.updateUser("ana", "ana2", "", "admin")
+    settle(loop, 6)
+    check("users: a rename and a new role go out together", [c for c in user_calls if c[0] == "update"], [("update", "ana", "ana2", "", "admin")])
+    bridge.deleteUser("admin")
+    settle(loop, 6)
+    check("users: the last administrator cannot be deleted", bridge.usersError, _("USERS_ERR_LAST_ADMIN"))
     bridge.setAuditLimit(100)
     settle(loop, 4)
 
