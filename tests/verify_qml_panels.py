@@ -289,6 +289,74 @@ def main():
     bridge.setAuditLimit(100)
     settle(loop, 4)
 
+    # --- the access options of the Server Admin screen ---
+    from hydra_suite.panel_logic import server_security
+
+    options_body = {
+        "port": 3000, "pendingPort": None,
+        "aiAccess": {"value": "open", "source": "default"},
+        "infoAuth": {"value": True, "source": "config"},
+        "tls": {"enabled": False, "source": "default", "certPath": "", "keyPath": "", "fingerprint256": None, "active": False, "appliesOnRestart": False},
+        "ble": {"mode": {"value": "state", "source": "config"}, "requireEncryption": {"value": True, "source": "default"}, "activeMode": "off", "appliesOnRestart": True},
+    }
+    conn.role = "admin"
+    bridge._security_state = server_security.parse_state(options_body)
+    bridge.navigatePanel("robot")
+    bridge.navigatePanel("admin_server")
+    bridge.changed.emit()
+    settle(loop, 4)
+    check("security: the card is there for an administrator", (find(root, "securityCard").property("visible"), find(root, "securityBleCombo").property("visible")), (True, True))
+    check("security: the view says what the server has", (bridge.securityView["aiValue"], bridge.securityView["infoValue"], bridge.securityView["bleMode"], bridge.securityView["bleEncryption"]), ("open", True, "state", True))
+    check("security: and that the running server still has the old Bluetooth mode until it restarts", bridge.securityView["bleRunning"], _("SECURITY_BLE_RUNNING", mode=_("SECURITY_BLE_OFF")) + " " + _("SECURITY_RESTART_NOTE"))
+    sent_options = []
+
+    async def put_admin_server_config(patch):
+        sent_options.append(patch)
+        merged = dict(options_body)
+        if "aiAccess" in patch:
+            merged["aiAccess"] = {"value": patch["aiAccess"], "source": "config"}
+        warnings = ["ble_commands_unencrypted"] if patch.get("ble", {}).get("mode") == "commands" and patch["ble"].get("requireEncryption") is False else []
+        return 200, {**merged, "success": True, "warnings": warnings}
+
+    conn.put_admin_server_config = put_admin_server_config
+    bridge.setAiAccess("admin")
+    settle(loop, 6)
+    check("security: choosing who may use the AI relay sends it", sent_options[-1:], [{"aiAccess": "admin"}])
+    check("security: and the screen shows the answer", (bridge.securityView["aiValue"], bridge.securityMessage != "", bridge.securityError), ("admin", True, ""))
+    bridge.setAiAccess("everyone")
+    settle(loop, 3)
+    check("security: a value that is not offered sends nothing", len(sent_options), 1)
+    check("security: turning the sign-in off asks first, turning it on does not", (bridge.infoAuthNeedsConfirmation(False), bridge.infoAuthNeedsConfirmation(True)), (True, False))
+    bridge.saveTlsOptions(True, "", "/k")
+    settle(loop, 3)
+    check("security: TLS needs both paths and says so without asking the server", (len(sent_options), bridge.securityError != ""), (1, True))
+    bridge.saveTlsOptions(True, " /c ", " /k ")
+    settle(loop, 6)
+    check("security: both paths go out trimmed", sent_options[-1], {"tls": {"enabled": True, "certPath": "/c", "keyPath": "/k"}})
+    check("security: commands over Bluetooth without encryption ask first", (bridge.bleNeedsConfirmation("commands", False), bridge.bleNeedsConfirmation("commands", True), bridge.bleNeedsConfirmation("state", False)), (True, False, False))
+    bridge.setBleOptions("commands", False)
+    settle(loop, 6)
+    check("security: the Bluetooth options go out together", sent_options[-1], {"ble": {"mode": "commands", "requireEncryption": False}})
+    check("security: and the warning of the server stays on screen", bridge.securityWarning, _("SECURITY_BLE_UNENCRYPTED_WARNING"))
+    bridge.setBleOptions("everything", True)
+    settle(loop, 3)
+    check("security: an unknown Bluetooth mode sends nothing", len(sent_options), 3)
+    locked = dict(options_body, aiAccess={"value": "admin", "source": "env"})
+    bridge._security_state = server_security.parse_state(locked)
+    bridge.changed.emit()
+    settle(loop, 3)
+    check("security: a value fixed by the environment of the server is locked", (bridge.securityView["aiLocked"], find(root, "securityAiCombo").property("enabled")), (True, False))
+    bridge._security_state = server_security.parse_state({k: v for k, v in options_body.items() if k != "ble"})
+    bridge.changed.emit()
+    settle(loop, 3)
+    check("security: a server without the Bluetooth service shows the other options only", (find(root, "securityCard").property("visible"), find(root, "securityBleCombo").property("visible")), (True, False))
+    bridge._security_state = server_security.parse_state({"port": 3000})
+    bridge.changed.emit()
+    settle(loop, 3)
+    check("security: a server that predates the options shows no card", find(root, "securityCard").property("visible"), False)
+    conn.role = "operator"
+    bridge.navigatePanel("robot")
+
     # --- the setting of conditional writes ---
     bridge.navigatePanel("robot")
     settle(loop)

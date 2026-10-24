@@ -604,6 +604,11 @@ class HydraConnection(QObject):
         effect; it never rebinds the running listener."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body={"port": port})
 
+    async def put_admin_server_config(self, patch: dict) -> tuple[int, object] | None:
+        """PUT /api/admin/server-config (admin-only) with one or more of the access options (aiAccess, infoAuth, tls,
+        ble). The answer carries the options as the server now has them and the warnings it wants to show."""
+        return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=patch)
+
     async def fetch_hydra_info(self) -> tuple[int, object] | None:
         """GET /api/hydra-info - no auth required (same discovery/identity
         route ServerInfo.from_hydra_info() already parses at scan time,

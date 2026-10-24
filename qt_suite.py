@@ -78,6 +78,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
+from hydra_suite.panel_logic import server_security
 from hydra_suite.panel_logic import users as users_panel
 from hydra_suite.panel_logic.ai_family_status import AI_FAMILIES
 from hydra_suite.panel_logic.atc_tools import (
@@ -454,6 +455,10 @@ class SuiteQtBridge(QObject):
         self._admin_server_current_port: int | None = None
         self._admin_server_pending_port_text = ""
         self._admin_server_info: dict[str, object] = {}
+        self._security_state: dict | None = None
+        self._security_message = ""
+        self._security_error = ""
+        self._security_warning = ""
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_server()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_server()))
         asyncio.ensure_future(self._refresh_admin_server())
@@ -2601,12 +2606,97 @@ class SuiteQtBridge(QObject):
         self._admin_server_current_port = body.get("port")
         pending = body.get("pendingPort")
         self._admin_server_pending_port_text = str(pending if pending is not None else self._admin_server_current_port or "")
+        self._security_state = server_security.parse_state(body)
 
         info_result = await conn.fetch_hydra_info()
         if info_result is not None:
             info_status, info_body = info_result
             if info_status == 200 and isinstance(info_body, dict):
                 self._admin_server_info = info_body
+        self.changed.emit()
+
+    # -- Access options of the Server Admin screen -----------------------------------
+
+    @Property("QVariantMap", notify=changed)
+    def securityView(self) -> dict:
+        return server_security.view(self._security_state)
+
+    @Property("QVariantList", constant=True)
+    def securityAiOptions(self) -> list[dict[str, str]]:
+        return server_security.ai_options()
+
+    @Property("QVariantList", constant=True)
+    def securityBleModes(self) -> list[dict[str, str]]:
+        return server_security.ble_mode_options()
+
+    @Property(str, notify=changed)
+    def securityMessage(self) -> str:
+        return self._security_message
+
+    @Property(str, notify=changed)
+    def securityError(self) -> str:
+        return self._security_error
+
+    @Property(str, notify=changed)
+    def securityWarning(self) -> str:
+        return self._security_warning
+
+    @Slot(bool, result=bool)
+    def infoAuthNeedsConfirmation(self, new_value: bool) -> bool:
+        state = self._security_state
+        return state is not None and server_security.info_auth_needs_confirmation(state["info"]["value"], new_value)
+
+    @Slot(str, bool, result=bool)
+    def bleNeedsConfirmation(self, mode: str, require_encryption: bool) -> bool:
+        return server_security.ble_needs_confirmation(mode, require_encryption)
+
+    @Slot(str)
+    def setAiAccess(self, value: str) -> None:
+        if value in ("open", "admin"):
+            asyncio.ensure_future(self._save_security({"aiAccess": value}))
+
+    @Slot(bool)
+    def setInfoAuth(self, value: bool) -> None:
+        asyncio.ensure_future(self._save_security({"infoAuth": bool(value)}))
+
+    @Slot(bool, str, str)
+    def saveTlsOptions(self, enabled: bool, cert_path: str, key_path: str) -> None:
+        patch = server_security.tls_patch(enabled, cert_path, key_path)
+        if patch is None:
+            self._security_message = ""
+            self._security_warning = ""
+            self._security_error = _("SECURITY_TLS_PATHS_REQUIRED")
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._save_security(patch))
+
+    @Slot(str, bool)
+    def setBleOptions(self, mode: str, require_encryption: bool) -> None:
+        patch = server_security.ble_patch(mode, require_encryption)
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
+
+    async def _save_security(self, patch: dict) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._security_message = ""
+        self._security_error = ""
+        self._security_warning = ""
+        result = await conn.put_admin_server_config(patch)
+        if result is None:
+            self._security_error = _("MSG_ADMIN_LOAD_ERROR")
+        else:
+            status, body = result
+            if status != 200 or not isinstance(body, dict):
+                detail = body.get("error") if isinstance(body, dict) and isinstance(body.get("error"), str) else ""
+                self._security_error = detail or _("MSG_ADMIN_LOAD_ERROR")
+            else:
+                state = server_security.parse_state(body)
+                if state is not None:
+                    self._security_state = state
+                self._security_warning = server_security.known_warning(body.get("warnings"))
+                self._security_message = _("SECURITY_SAVED")
         self.changed.emit()
 
     @Slot(str)

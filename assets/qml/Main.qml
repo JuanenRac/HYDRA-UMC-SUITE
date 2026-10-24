@@ -1413,8 +1413,17 @@ ApplicationWindow {
 
     Component {
         id: adminServerComponent
-        ColumnLayout {
+        Flickable {
             width: contentLoader.width
+            height: contentLoader.height
+            contentWidth: width
+            contentHeight: adminServerColumn.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar {}
+        ColumnLayout {
+            id: adminServerColumn
+            width: parent.width - 12
             spacing: 12
             Text { text: suiteBackend.uiText("HEADING_ADMIN_SERVER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
             Text { text: suiteBackend.adminServerStatusText; color: window.muted; font.pixelSize: 11 }
@@ -1485,7 +1494,133 @@ ApplicationWindow {
                     function() { suiteBackend.restartAdminServer() })
                 contentItem: Text { text: restartButton.text; color: "#ee6b80"; horizontalAlignment: Text.AlignHCenter }
             }
+            Card {
+                visible: suiteBackend.securityView.available === true
+                objectName: "securityCard"
+                Layout.fillWidth: true
+                Layout.preferredHeight: securityColumn.implicitHeight + 24
+                ColumnLayout {
+                    id: securityColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 12
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("HEADING_ADMIN_SECURITY"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Text { visible: suiteBackend.securityWarning !== ""; text: suiteBackend.securityWarning; color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                    Text { visible: suiteBackend.securityError !== ""; text: suiteBackend.securityError; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    Text { visible: suiteBackend.securityMessage !== ""; text: suiteBackend.securityMessage; color: window.green; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    Text { text: suiteBackend.uiText("LBL_SECURITY_AI"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                    ComboBox {
+                        objectName: "securityAiCombo"
+                        Layout.fillWidth: true
+                        model: suiteBackend.securityAiOptions
+                        textRole: "label"
+                        valueRole: "value"
+                        enabled: !suiteBackend.securityView.aiLocked
+                        currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.aiValue))
+                        onActivated: suiteBackend.setAiAccess(currentValue)
+                    }
+                    Text { text: suiteBackend.securityView.aiSource; color: "#556070"; font.pixelSize: 9 }
+                    CheckBox {
+                        objectName: "securityInfoBox"
+                        text: suiteBackend.uiText("LBL_SECURITY_INFO")
+                        palette.windowText: window.textPrimary
+                        enabled: !suiteBackend.securityView.infoLocked
+                        checked: suiteBackend.securityView.infoValue === true
+                        onClicked: {
+                            var wanted = checked
+                            checked = Qt.binding(function() { return suiteBackend.securityView.infoValue === true })
+                            if (suiteBackend.infoAuthNeedsConfirmation(wanted))
+                                window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_INFO_OFF"), suiteBackend.uiText("MSG_SECURITY_INFO_OFF_CONFIRM"), function() { suiteBackend.setInfoAuth(false) })
+                            else
+                                suiteBackend.setInfoAuth(wanted)
+                        }
+                    }
+                    Text { text: suiteBackend.securityView.infoSource; color: "#556070"; font.pixelSize: 9 }
+                    CheckBox {
+                        id: tlsBox
+                        objectName: "securityTlsBox"
+                        text: suiteBackend.uiText("LBL_SECURITY_TLS")
+                        palette.windowText: window.textPrimary
+                        enabled: !suiteBackend.securityView.tlsLocked
+                        checked: suiteBackend.securityView.tlsEnabled === true
+                    }
+                    TextField {
+                        id: tlsCertField
+                        objectName: "securityTlsCert"
+                        Layout.fillWidth: true
+                        enabled: !suiteBackend.securityView.tlsLocked
+                        placeholderText: suiteBackend.uiText("PH_SECURITY_TLS_CERT")
+                        text: suiteBackend.securityView.tlsCert
+                        color: window.textPrimary
+                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    }
+                    TextField {
+                        id: tlsKeyField
+                        objectName: "securityTlsKey"
+                        Layout.fillWidth: true
+                        enabled: !suiteBackend.securityView.tlsLocked
+                        placeholderText: suiteBackend.uiText("PH_SECURITY_TLS_KEY")
+                        text: suiteBackend.securityView.tlsKey
+                        color: window.textPrimary
+                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    }
+                    RowLayout {
+                        spacing: 8
+                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("BTN_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: suiteBackend.saveTlsOptions(tlsBox.checked, tlsCertField.text, tlsKeyField.text) }
+                        Text { text: suiteBackend.securityView.tlsSource; color: "#556070"; font.pixelSize: 9 }
+                    }
+                    Text { text: suiteBackend.uiText("LBL_SECURITY_TLS_FINGERPRINT") + ": " + suiteBackend.securityView.tlsFingerprint; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    Text { text: suiteBackend.securityView.tlsStatus; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.bleAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_BLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        ComboBox {
+                            id: bleModeCombo
+                            objectName: "securityBleCombo"
+                            Layout.fillWidth: true
+                            model: suiteBackend.securityBleModes
+                            textRole: "label"
+                            valueRole: "value"
+                            enabled: !suiteBackend.securityView.bleModeLocked
+                            currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.bleMode))
+                            onActivated: {
+                                var mode = currentValue
+                                currentIndex = Qt.binding(function() { return Math.max(0, indexOfValue(suiteBackend.securityView.bleMode)) })
+                                var encrypted = suiteBackend.securityView.bleEncryption === true
+                                if (suiteBackend.bleNeedsConfirmation(mode, encrypted))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_BLE_UNENCRYPTED"), suiteBackend.uiText("MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM"), function() { suiteBackend.setBleOptions(mode, encrypted) })
+                                else
+                                    suiteBackend.setBleOptions(mode, encrypted)
+                            }
+                        }
+                        Text { text: suiteBackend.securityView.bleModeSource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            objectName: "securityBleEncryptionBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_BLE_ENCRYPTION")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.bleEncryptionLocked
+                            checked: suiteBackend.securityView.bleEncryption === true
+                            onClicked: {
+                                var wanted = checked
+                                checked = Qt.binding(function() { return suiteBackend.securityView.bleEncryption === true })
+                                var mode = suiteBackend.securityView.bleMode
+                                if (suiteBackend.bleNeedsConfirmation(mode, wanted))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_BLE_UNENCRYPTED"), suiteBackend.uiText("MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM"), function() { suiteBackend.setBleOptions(mode, wanted) })
+                                else
+                                    suiteBackend.setBleOptions(mode, wanted)
+                            }
+                        }
+                        Text { text: suiteBackend.securityView.bleEncryptionSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.bleRunning; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                }
+            }
             Item { Layout.fillHeight: true }
+        }
         }
     }
 
