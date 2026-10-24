@@ -780,6 +780,20 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=暗号化されたリンクなしで Blueto
 SECURITY_BLE_UNENCRYPTED_WARNING=暗号化されたリンクなしで Bluetooth 経由のコマンドが許可されています。サーバーの近くにいる人なら誰でもアクセストークンを読み取れます。
 TITLE_SECURITY_INFO_OFF=サインインの要求をオフにする
 TITLE_SECURITY_BLE_UNENCRYPTED=暗号化リンクなしのコマンド
+LBL_SECURITY_MQTT=MQTT ブリッジ(セルのブローカー)
+SECURITY_MQTT_OFF=オフ
+SECURITY_MQTT_STATE=ロボットの状態を公開する
+SECURITY_MQTT_COMMANDS=状態を公開し、コマンドを実行する
+PH_SECURITY_MQTT_URL=ブローカーのアドレス(mqtt://host:1883)
+PH_SECURITY_MQTT_PREFIX=トピックの接頭辞(hydra/swarm)
+PH_SECURITY_MQTT_USER=ブローカー用のユーザー名
+PH_SECURITY_MQTT_COMMAND_USER=コマンドを実行するアカウント
+LBL_SECURITY_MQTT_PASSWORDS=パスワードはサーバーの環境変数で設定します。ここでは設定しません。
+SECURITY_MQTT_RUNNING=稼働中のサーバー:{mode}。
+MSG_SECURITY_MQTT_COMMANDS_CONFIRM=MQTT ブローカー経由で届いたコマンドを実行しますか?各コマンドは、ここで指定したアカウントのロールで、他のクライアントと同じ規則に従って実行されます。
+SECURITY_MQTT_COMMANDS_WARNING=MQTT 経由のコマンドが有効です。ブローカーに発行できる人は、そのアカウントのロールの範囲でロボットを操作できます。
+SECURITY_MQTT_INVALID=MQTT の項目を確認してください。アドレスは mqtt://、mqtts://、ws://、wss:// で始まり、コマンドには実行用アカウントが必要です。
+TITLE_SECURITY_MQTT_COMMANDS=MQTT 経由のコマンド
 MSG_NET_OPERATOR_LOCAL_ONLY=このアカウントはオペレーターです。ロボットは操作できますが、設定、記録済みの点、レイアウトの変更をサーバーが受け付けるのは管理者からだけです。変更した内容はこのウィンドウ内にだけ残り、保存されません。
 
 # Submitted models panel (STUDIO parity)

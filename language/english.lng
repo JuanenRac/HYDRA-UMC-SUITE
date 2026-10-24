@@ -780,6 +780,20 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=Allow commands over Bluetooth without an en
 SECURITY_BLE_UNENCRYPTED_WARNING=Commands over Bluetooth are allowed without an encrypted link: anyone near the server could read the access tokens.
 TITLE_SECURITY_INFO_OFF=Turn the sign-in requirement off
 TITLE_SECURITY_BLE_UNENCRYPTED=Commands without an encrypted link
+LBL_SECURITY_MQTT=MQTT bridge (broker of the cell)
+SECURITY_MQTT_OFF=Off
+SECURITY_MQTT_STATE=Publish the state of the robots
+SECURITY_MQTT_COMMANDS=Publish the state and carry out commands
+PH_SECURITY_MQTT_URL=Broker address (mqtt://host:1883)
+PH_SECURITY_MQTT_PREFIX=Topic prefix (hydra/swarm)
+PH_SECURITY_MQTT_USER=User name for the broker
+PH_SECURITY_MQTT_COMMAND_USER=Account that carries the commands out
+LBL_SECURITY_MQTT_PASSWORDS=The passwords are set in the environment of the server, never here.
+SECURITY_MQTT_RUNNING=The running server: {mode}.
+MSG_SECURITY_MQTT_COMMANDS_CONFIRM=Carry out commands that arrive on the MQTT broker? Each runs with the role of the account named here, through the same rules as any client.
+SECURITY_MQTT_COMMANDS_WARNING=Commands over MQTT are on: whoever can publish on the broker can drive the robots within the role of that account.
+SECURITY_MQTT_INVALID=Check the MQTT fields: the address starts with mqtt://, mqtts://, ws:// or wss://, and commands need the account that carries them out.
+TITLE_SECURITY_MQTT_COMMANDS=Commands over MQTT
 MSG_NET_OPERATOR_LOCAL_ONLY=This account is an operator: it can drive the robots, but the server accepts changes to the settings, the recorded points and the layout only from an administrator. What you changed stays in this window and is not saved.
 
 # Submitted models panel (STUDIO parity)

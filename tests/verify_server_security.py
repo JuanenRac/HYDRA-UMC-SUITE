@@ -67,5 +67,17 @@ empty = sec.view(None)
 check("with nothing from the server the view has every key and shows nothing", (empty["available"], set(empty) == set(view)), (False, True))
 check("the options of the selectors", ([o["value"] for o in sec.ai_options()], [o["value"] for o in sec.ble_mode_options()]), (["open", "admin"], ["off", "state", "commands"]))
 
+# --- the MQTT bridge options
+check("the MQTT request carries no password and trims", sec.mqtt_patch("state", " mqtts://b:8883 ", " plant/a ", " u ", ""), {"mqtt": {"mode": "state", "url": "mqtts://b:8883", "prefix": "plant/a", "username": "u", "commandUser": ""}})
+check("the MQTT request is refused for commands without an account, a bad address or an unknown mode", (sec.mqtt_patch("commands", "mqtt://b", "", "", ""), sec.mqtt_patch("state", "http://b", "", "", ""), sec.mqtt_patch("nope", "", "", "", ""), sec.mqtt_patch("commands", "mqtt://b", "", "", "bridge") is not None), (None, None, None, True))
+check("turning commands on asks, nothing else does", [sec.mqtt_needs_confirmation(a, b) for a, b in (("off", "commands"), ("state", "commands"), ("commands", "commands"), ("commands", "off"))], [True, True, False, False])
+check("the MQTT warning", sec.known_warning(["mqtt_commands_on"]), _("SECURITY_MQTT_COMMANDS_WARNING"))
+check("the MQTT modes", [o["value"] for o in sec.mqtt_mode_options()], ["off", "state", "commands"])
+raw = {"aiAccess": {"value": "open", "source": "default"}, "infoAuth": {"value": False, "source": "default"}, "tls": {"enabled": False, "source": "default", "active": False}}
+check("a server without the bridge shows no MQTT section", sec.view(sec.parse_state(raw))["mqttAvailable"], False)
+with_mqtt = sec.view(sec.parse_state({**raw, "mqtt": {"mode": {"value": "state", "source": "config"}, "url": "mqtt://b:1883", "prefix": "hydra/swarm", "username": "u", "commandUser": "", "activeMode": "off", "appliesOnRestart": True}}))
+check("the MQTT view", (with_mqtt["mqttAvailable"], with_mqtt["mqttMode"], with_mqtt["mqttUrl"], with_mqtt["mqttRunning"]), (True, "state", "mqtt://b:1883", _("SECURITY_MQTT_RUNNING", mode=_("SECURITY_MQTT_OFF")) + " " + _("SECURITY_RESTART_NOTE")))
+check("a damaged MQTT section is ignored", sec.view(sec.parse_state({**raw, "mqtt": {"mode": {"value": "banana", "source": "config"}}}))["mqttAvailable"], False)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

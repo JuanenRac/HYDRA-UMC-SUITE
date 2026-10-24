@@ -10,10 +10,13 @@
 # =============================================================================
 from __future__ import annotations
 
+import re
+
 from hydra_suite.i18n import _
 
 SOURCES = ("env", "config", "default")
 BLE_MODES = ("off", "state", "commands")
+MQTT_MODES = ("off", "state", "commands")
 
 
 def _source(value: object) -> str | None:
@@ -56,6 +59,7 @@ def parse_state(body: object) -> dict | None:
             "appliesOnRestart": tls.get("appliesOnRestart") is True,
         },
         "ble": None,
+        "mqtt": None,
     }
     ble = body.get("ble")
     if isinstance(ble, dict):
@@ -68,6 +72,24 @@ def parse_state(body: object) -> dict | None:
                 "encryption": encryption,
                 "activeMode": active if active in BLE_MODES else "off",
                 "appliesOnRestart": ble.get("appliesOnRestart") is True,
+            }
+    mqtt = body.get("mqtt")
+    if isinstance(mqtt, dict):
+        mode = _option(mqtt.get("mode"), str, MQTT_MODES)
+        if mode is not None:
+            active = mqtt.get("activeMode")
+
+            def text(key: str) -> str:
+                return mqtt[key] if isinstance(mqtt.get(key), str) else ""
+
+            state["mqtt"] = {
+                "mode": mode,
+                "url": text("url"),
+                "prefix": text("prefix"),
+                "username": text("username"),
+                "commandUser": text("commandUser"),
+                "activeMode": active if active in MQTT_MODES else "off",
+                "appliesOnRestart": mqtt.get("appliesOnRestart") is True,
             }
     return state
 
@@ -86,6 +108,24 @@ def ble_needs_confirmation(mode: str, require_encryption: bool) -> bool:
     """Commands over Bluetooth carry the access token of the account in each one: allowing them over a link that
     is not encrypted asks first."""
     return mode == "commands" and not require_encryption
+
+
+def mqtt_needs_confirmation(current: str, new: str) -> bool:
+    """Carrying out the commands that arrive on the broker asks first."""
+    return new == "commands" and current != "commands"
+
+
+def mqtt_patch(mode: str, url: str, prefix: str, username: str, command_user: str) -> dict | None:
+    """The request body for the MQTT bridge; None when the mode is unknown, the address is not a broker address or commands
+    are asked for without the account that carries them out. The passwords are never part of it: the server reads them from its environment."""
+    address = url.strip()
+    if mode not in MQTT_MODES:
+        return None
+    if address and not re.fullmatch(r"(?i)(mqtts?|wss?)://\S+", address):
+        return None
+    if mode == "commands" and not command_user.strip():
+        return None
+    return {"mqtt": {"mode": mode, "url": address, "prefix": prefix.strip(), "username": username.strip(), "commandUser": command_user.strip()}}
 
 
 def tls_patch(enabled: bool, cert_path: str, key_path: str) -> dict | None:
@@ -110,6 +150,8 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_INFO_OFF_WARNING")
     if "ble_commands_unencrypted" in warnings:
         sentence = _("SECURITY_BLE_UNENCRYPTED_WARNING")
+    if "mqtt_commands_on" in warnings:
+        sentence = _("SECURITY_MQTT_COMMANDS_WARNING")
     return sentence
 
 
@@ -125,6 +167,8 @@ EMPTY_VIEW: dict = {
     "tlsEnabled": False, "tlsLocked": False, "tlsSource": "", "tlsCert": "", "tlsKey": "", "tlsFingerprint": "-", "tlsStatus": "",
     "bleAvailable": False, "bleMode": "off", "bleModeLocked": False, "bleModeSource": "",
     "bleEncryption": True, "bleEncryptionLocked": False, "bleEncryptionSource": "", "bleRunning": "",
+    "mqttAvailable": False, "mqttMode": "off", "mqttModeLocked": False, "mqttModeSource": "", "mqttUrl": "", "mqttPrefix": "",
+    "mqttUser": "", "mqttCommandUser": "", "mqttRunning": "",
 }
 
 
@@ -170,7 +214,29 @@ def view(state: dict | None) -> dict:
                 "bleRunning": running,
             }
         )
+    mqtt = state.get("mqtt")
+    if mqtt is not None:
+        running = _("SECURITY_MQTT_RUNNING", mode=_("SECURITY_MQTT_" + mqtt["activeMode"].upper()))
+        if mqtt["appliesOnRestart"]:
+            running += " " + _("SECURITY_RESTART_NOTE")
+        out.update(
+            {
+                "mqttAvailable": True,
+                "mqttMode": mqtt["mode"]["value"],
+                "mqttModeLocked": is_locked(mqtt["mode"]["source"]),
+                "mqttModeSource": source_text(mqtt["mode"]["source"]),
+                "mqttUrl": mqtt["url"],
+                "mqttPrefix": mqtt["prefix"],
+                "mqttUser": mqtt["username"],
+                "mqttCommandUser": mqtt["commandUser"],
+                "mqttRunning": running,
+            }
+        )
     return out
+
+
+def mqtt_mode_options() -> list[dict[str, str]]:
+    return [{"value": mode, "label": _("SECURITY_MQTT_" + mode.upper())} for mode in MQTT_MODES]
 
 
 def ble_mode_options() -> list[dict[str, str]]:

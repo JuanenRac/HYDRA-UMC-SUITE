@@ -1618,6 +1618,73 @@ ApplicationWindow {
                         Text { text: suiteBackend.securityView.bleEncryptionSource; color: "#556070"; font.pixelSize: 9 }
                         Text { text: suiteBackend.securityView.bleRunning; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.mqttAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        ComboBox {
+                            id: mqttModeCombo
+                            objectName: "securityMqttCombo"
+                            Layout.fillWidth: true
+                            model: suiteBackend.securityMqttModes
+                            textRole: "label"
+                            valueRole: "value"
+                            enabled: !suiteBackend.securityView.mqttModeLocked
+                            currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.mqttMode))
+                        }
+                        Text { text: suiteBackend.securityView.mqttModeSource; color: "#556070"; font.pixelSize: 9 }
+                        TextField {
+                            id: mqttUrlField
+                            objectName: "securityMqttUrl"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("PH_SECURITY_MQTT_URL")
+                            text: suiteBackend.securityView.mqttUrl
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        TextField {
+                            id: mqttPrefixField
+                            objectName: "securityMqttPrefix"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("PH_SECURITY_MQTT_PREFIX")
+                            text: suiteBackend.securityView.mqttPrefix
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        TextField {
+                            id: mqttUserField
+                            objectName: "securityMqttUser"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("PH_SECURITY_MQTT_USER")
+                            text: suiteBackend.securityView.mqttUser
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        TextField {
+                            id: mqttCommandUserField
+                            objectName: "securityMqttCommandUser"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("PH_SECURITY_MQTT_COMMAND_USER")
+                            text: suiteBackend.securityView.mqttCommandUser
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT_PASSWORDS"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityMqttSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            onClicked: {
+                                var mode = mqttModeCombo.currentValue
+                                var url = mqttUrlField.text, prefix = mqttPrefixField.text, user = mqttUserField.text, commandUser = mqttCommandUserField.text
+                                if (suiteBackend.mqttNeedsConfirmation(mode))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_MQTT_COMMANDS"), suiteBackend.uiText("MSG_SECURITY_MQTT_COMMANDS_CONFIRM"), function() { suiteBackend.saveMqttOptions(mode, url, prefix, user, commandUser) })
+                                else
+                                    suiteBackend.saveMqttOptions(mode, url, prefix, user, commandUser)
+                            }
+                        }
+                        Text { text: suiteBackend.securityView.mqttRunning; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
                 }
             }
             Item { Layout.fillHeight: true }

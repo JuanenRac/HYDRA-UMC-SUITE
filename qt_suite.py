@@ -2722,6 +2722,10 @@ class SuiteQtBridge(QObject):
     def securityBleModes(self) -> list[dict[str, str]]:
         return server_security.ble_mode_options()
 
+    @Property("QVariantList", constant=True)
+    def securityMqttModes(self) -> list[dict[str, str]]:
+        return server_security.mqtt_mode_options()
+
     @Property(str, notify=changed)
     def securityMessage(self) -> str:
         return self._security_message
@@ -2742,6 +2746,23 @@ class SuiteQtBridge(QObject):
     @Slot(str, bool, result=bool)
     def bleNeedsConfirmation(self, mode: str, require_encryption: bool) -> bool:
         return server_security.ble_needs_confirmation(mode, require_encryption)
+
+    @Slot(str, result=bool)
+    def mqttNeedsConfirmation(self, new_mode: str) -> bool:
+        state = self._security_state
+        current = state["mqtt"]["mode"]["value"] if state is not None and state.get("mqtt") else "off"
+        return server_security.mqtt_needs_confirmation(current, new_mode)
+
+    @Slot(str, str, str, str, str)
+    def saveMqttOptions(self, mode: str, url: str, prefix: str, username: str, command_user: str) -> None:
+        patch = server_security.mqtt_patch(mode, url, prefix, username, command_user)
+        if patch is None:
+            self._security_message = ""
+            self._security_warning = ""
+            self._security_error = _("SECURITY_MQTT_INVALID")
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._save_security(patch))
 
     @Slot(str)
     def setAiAccess(self, value: str) -> None:

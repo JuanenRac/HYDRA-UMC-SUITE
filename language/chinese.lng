@@ -780,6 +780,20 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=允许在没有加密链路的情况下通�
 SECURITY_BLE_UNENCRYPTED_WARNING=已允许在没有加密链路的情况下通过蓝牙发送命令:服务器附近的任何人都可能读取访问令牌。
 TITLE_SECURITY_INFO_OFF=关闭登录要求
 TITLE_SECURITY_BLE_UNENCRYPTED=无加密链路的命令
+LBL_SECURITY_MQTT=MQTT 桥(单元的代理)
+SECURITY_MQTT_OFF=关闭
+SECURITY_MQTT_STATE=发布机器人的状态
+SECURITY_MQTT_COMMANDS=发布状态并执行命令
+PH_SECURITY_MQTT_URL=代理地址(mqtt://host:1883)
+PH_SECURITY_MQTT_PREFIX=主题前缀(hydra/swarm)
+PH_SECURITY_MQTT_USER=代理的用户名
+PH_SECURITY_MQTT_COMMAND_USER=执行命令的账户
+LBL_SECURITY_MQTT_PASSWORDS=密码在服务器的环境变量中设置，绝不在此处设置。
+SECURITY_MQTT_RUNNING=运行中的服务器：{mode}。
+MSG_SECURITY_MQTT_COMMANDS_CONFIRM=执行通过 MQTT 代理到达的命令吗？每条命令都以此处指定账户的角色、按与任何客户端相同的规则执行。
+SECURITY_MQTT_COMMANDS_WARNING=已开启通过 MQTT 的命令：任何能向代理发布的人都可以在该账户角色范围内操控机器人。
+SECURITY_MQTT_INVALID=请检查 MQTT 字段：地址以 mqtt://、mqtts://、ws:// 或 wss:// 开头，命令需要执行它们的账户。
+TITLE_SECURITY_MQTT_COMMANDS=通过 MQTT 的命令
 MSG_NET_OPERATOR_LOCAL_ONLY=此账户是操作员:可以控制机器人,但服务器只接受管理员对设置、已记录的点和布局的更改。你所做的更改只保留在此窗口中,不会被保存。
 
 # Submitted models panel (STUDIO parity)
