@@ -37,6 +37,7 @@ import websockets
 from PySide6.QtCore import QObject, Signal
 
 from hydra_suite import access
+from hydra_suite.panel_logic import submitted_models
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 
@@ -1188,6 +1189,14 @@ class HydraConnection(QObject):
         except (httpx.HTTPError, OSError):
             return None
         return resp.text if resp.status_code == 200 else None
+
+    async def fetch_submitted_models(self) -> tuple[int, object] | None:
+        """GET /api/models: the models the editors submitted to the server (any signed-in account)."""
+        return await self._request_json("GET", "/api/models", auth=True)
+
+    async def fetch_model_download(self, category: str, slug: str) -> tuple[int, object] | None:
+        """GET /api/models/:category/:slug/download: the URDF and the meshes of one submitted model."""
+        return await self._request_json("GET", submitted_models.download_path(category, slug), auth=True)
 
     async def fetch_users(self) -> AccessResult:
         """GET /api/users (administrators only): the accounts of the server, without their password hashes."""

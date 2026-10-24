@@ -357,6 +357,55 @@ def main():
     conn.role = "operator"
     bridge.navigatePanel("robot")
 
+    # --- the models that the editors submitted ---
+    import os
+    import tempfile
+
+    async def fetch_submitted_models():
+        return 200, {"models": [{"slug": "ar3", "name": "AR3", "category": "robots", "submittedAt": "2030-01-02T10:00:00.000Z"}, "junk"]}
+
+    downloads = []
+
+    async def fetch_model_download(category, slug):
+        downloads.append((category, slug))
+        if slug == "ghost":
+            return 404, {"error": "no such model"}
+        return 200, {"urdfFilename": "ar3.urdf", "urdfXml": "<robot name=\"ar3\"/>", "meshFiles": []}
+
+    conn.fetch_submitted_models = fetch_submitted_models
+    conn.fetch_model_download = fetch_model_download
+    bridge.navigatePanel("robot")
+    bridge.navigatePanel("submitted_models")
+    settle(loop, 6)
+    check("models: opening the panel reads the list", [row["slug"] for row in bridge.modelsRows], ["ar3"])
+    check("models: the panel has its list and its button", (find(root, "modelsList") is not None, find(root, "modelsRefreshButton").property("visible")), (True, True))
+    folder = tempfile.mkdtemp()
+    target = os.path.join(folder, "saved")
+    bridge.saveModelUrdf("robots", "ar3", target)
+    settle(loop, 6)
+    check("models: saving writes the URDF of the model, with the extension", (os.path.isfile(target + ".urdf"), open(target + ".urdf", encoding="utf-8").read() if os.path.isfile(target + ".urdf") else None), (True, '<robot name="ar3"/>'))
+    check("models: and says where", bridge.modelsMessage, _("MODELS_SAVED", path=target + ".urdf"))
+    bridge.saveModelUrdf("robots", "ghost", os.path.join(folder, "ghost.urdf"))
+    settle(loop, 6)
+    check("models: a model that cannot be downloaded is told and nothing is written", (bridge.modelsError, os.path.exists(os.path.join(folder, "ghost.urdf"))), (_("MODELS_SAVE_FAILED", name="ghost"), False))
+
+    async def fetch_refused():
+        return 401, {"error": "Authentication required"}
+
+    conn.fetch_submitted_models = fetch_refused
+    bridge.refreshModels()
+    settle(loop, 6)
+    check("models: a server that asks for a sign-in says so and lists nothing", (bridge.modelsError, bridge.modelsRows), (_("MODELS_ERROR_LOGIN"), []))
+
+    async def fetch_dead():
+        return None
+
+    conn.fetch_submitted_models = fetch_dead
+    bridge.refreshModels()
+    settle(loop, 6)
+    check("models: no answer says so", bridge.modelsError, _("MODELS_ERROR_NETWORK"))
+    bridge.navigatePanel("robot")
+
     # --- the setting of conditional writes ---
     bridge.navigatePanel("robot")
     settle(loop)

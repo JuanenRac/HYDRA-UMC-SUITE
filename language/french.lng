@@ -781,3 +781,20 @@ SECURITY_BLE_UNENCRYPTED_WARNING=Les commandes par Bluetooth sont autorisées sa
 TITLE_SECURITY_INFO_OFF=Désactiver l'obligation de connexion
 TITLE_SECURITY_BLE_UNENCRYPTED=Commandes sans liaison chiffrée
 MSG_NET_OPERATOR_LOCAL_ONLY=Ce compte est un opérateur : il peut commander les robots, mais le serveur n'accepte les modifications des réglages, des points enregistrés et de la disposition que d'un administrateur. Ce que vous avez modifié reste dans cette fenêtre et n'est pas enregistré.
+
+# Submitted models panel (STUDIO parity)
+DOCK_SUBMITTED_MODELS=Modèles soumis
+HEADING_SUBMITTED_MODELS=Modèles soumis
+MODELS_INTRO=Ce que les éditeurs de modèles (URDF et STL) ont soumis à ce serveur. Vous pouvez enregistrer l'URDF de l'un d'eux ; ses maillages restent sur le serveur.
+MODELS_REFRESH=Actualiser la liste
+MODELS_NONE=Aucun modèle n'a encore été soumis.
+MODELS_COL_NAME=Nom
+MODELS_COL_CATEGORY=Catégorie
+MODELS_COL_DATE=Soumis
+MODELS_SAVE_FAILED=L'URDF de {name} n'a pas pu être téléchargé.
+MODELS_ERROR_LOGIN=Le serveur demande une connexion pour lister les modèles.
+MODELS_ERROR_SERVER=Le serveur n'a pas pu lister les modèles.
+MODELS_ERROR_NETWORK=Le serveur n'a pas répondu.
+MODELS_SAVE=Enregistrer l'URDF
+MODELS_SAVED=URDF enregistré dans {path}.
+MODELS_SAVE_WRITE_FAILED=Le fichier n'a pas pu être écrit : {error}

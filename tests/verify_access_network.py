@@ -226,6 +226,17 @@ async def run(port):
     await operator.push_state()
     check("admin: the same edit is sent", [m for m, p, b in Server.requests if p == "/api/settings"], ["POST"])
 
+    # --- the submitted models ---
+    reset(**{"GET /api/models": (200, {"models": [{"slug": "ar3", "name": "AR3", "category": "robots"}]})})
+    listed = await conn.fetch_submitted_models()
+    check("models: the list is read with the session", (listed[0], listed[1]["models"][0]["slug"], [p for m, p, b in Server.requests]), (200, "ar3", ["/api/models"]))
+    reset(**{"GET /api/models/robots/ar3/download": (200, {"urdfXml": "<robot/>"})})
+    got = await conn.fetch_model_download("robots", "ar3")
+    check("models: the download goes to the encoded path", (got[0], [p for m, p, b in Server.requests]), (200, ["/api/models/robots/ar3/download"]))
+    reset()
+    await conn.fetch_model_download("a/b", "../x")
+    check("models: a name cannot add a segment to the path", [p for m, p, b in Server.requests], ["/api/models/a%2Fb/..%2Fx/download"])
+
     # --- the user accounts ---
     reset(**{"GET /api/users": (200, {"users": [{"username": "admin", "role": "admin", "createdAt": "x"}]})})
     listed = await conn.fetch_users()

@@ -780,3 +780,20 @@ SECURITY_BLE_UNENCRYPTED_WARNING=暗号化されたリンクなしで Bluetooth 
 TITLE_SECURITY_INFO_OFF=サインインの要求をオフにする
 TITLE_SECURITY_BLE_UNENCRYPTED=暗号化リンクなしのコマンド
 MSG_NET_OPERATOR_LOCAL_ONLY=このアカウントはオペレーターです。ロボットは操作できますが、設定、記録済みの点、レイアウトの変更をサーバーが受け付けるのは管理者からだけです。変更した内容はこのウィンドウ内にだけ残り、保存されません。
+
+# Submitted models panel (STUDIO parity)
+DOCK_SUBMITTED_MODELS=送信されたモデル
+HEADING_SUBMITTED_MODELS=送信されたモデル
+MODELS_INTRO=モデルエディター(URDF と STL)がこのサーバーに送信したものです。モデルの URDF を保存できます。メッシュはサーバーに残ります。
+MODELS_REFRESH=一覧を更新
+MODELS_NONE=まだモデルは送信されていません。
+MODELS_COL_NAME=名前
+MODELS_COL_CATEGORY=カテゴリ
+MODELS_COL_DATE=送信日時
+MODELS_SAVE_FAILED={name} の URDF をダウンロードできませんでした。
+MODELS_ERROR_LOGIN=モデルを一覧表示するにはサーバーへのサインインが必要です。
+MODELS_ERROR_SERVER=サーバーはモデルを一覧表示できませんでした。
+MODELS_ERROR_NETWORK=サーバーから応答がありません。
+MODELS_SAVE=URDF を保存
+MODELS_SAVED=URDF を {path} に保存しました。
+MODELS_SAVE_WRITE_FAILED=ファイルを書き込めませんでした:{error}

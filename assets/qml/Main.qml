@@ -591,6 +591,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "safety_limits") return safetyLimitsComponent
                     if (suiteBackend.activePanel === "audit_record") return auditRecordComponent
                     if (suiteBackend.activePanel === "users") return usersComponent
+                    if (suiteBackend.activePanel === "submitted_models") return submittedModelsComponent
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
                     return null
                 }
@@ -5307,6 +5308,68 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
+            }
+        }
+    }
+
+    Component {
+        id: submittedModelsComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            FileDialog {
+                id: modelUrdfSaveDialog
+                property string category: ""
+                property string slug: ""
+                title: suiteBackend.uiText("MODELS_SAVE")
+                fileMode: FileDialog.SaveFile
+                nameFilters: ["URDF (*.urdf)"]
+                onAccepted: suiteBackend.saveModelUrdf(modelUrdfSaveDialog.category, modelUrdfSaveDialog.slug, selectedFile.toString())
+            }
+            Text { text: suiteBackend.uiText("HEADING_SUBMITTED_MODELS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text {
+                visible: !suiteBackend.modelsHasServer
+                text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
+                color: window.muted
+            }
+            ColumnLayout {
+                visible: suiteBackend.modelsHasServer
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 8
+                Text { text: suiteBackend.uiText("MODELS_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.modelsMessage !== ""; text: suiteBackend.modelsMessage; color: window.green; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.modelsError !== ""; text: suiteBackend.modelsError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.modelsError === "" && !suiteBackend.modelsBusy && suiteBackend.modelsRows.length === 0; text: suiteBackend.uiText("MODELS_NONE"); color: window.muted; font.pixelSize: 11 }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("MODELS_COL_NAME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 200 }
+                    Text { text: suiteBackend.uiText("MODELS_COL_CATEGORY"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 140 }
+                    Text { text: suiteBackend.uiText("MODELS_COL_DATE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                    Button { objectName: "modelsRefreshButton"; text: suiteBackend.uiText("MODELS_REFRESH"); enabled: !suiteBackend.modelsBusy; onClicked: suiteBackend.refreshModels() }
+                }
+                ListView {
+                    objectName: "modelsList"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    model: suiteBackend.modelsRows
+                    delegate: RowLayout {
+                        required property var modelData
+                        width: ListView.view.width
+                        spacing: 8
+                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 200; elide: Text.ElideRight }
+                        Text { text: modelData.category; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 140; elide: Text.ElideRight }
+                        Text { text: modelData.submitted; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Button {
+                            objectName: "modelsSaveButton"
+                            text: suiteBackend.uiText("MODELS_SAVE")
+                            onClicked: { modelUrdfSaveDialog.category = modelData.category; modelUrdfSaveDialog.slug = modelData.slug; modelUrdfSaveDialog.open() }
+                        }
+                    }
+                }
             }
         }
     }

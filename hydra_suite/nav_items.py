@@ -58,6 +58,7 @@ HYDRAUMC_ECOSYSTEM_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_SAFETY_LIMITS", "safety_limits"),
     ("DOCK_AUDIT_RECORD", "audit_record"),
     ("DOCK_USERS", "users"),
+    ("DOCK_SUBMITTED_MODELS", "submitted_models"),
     ("DOCK_SYSTEM_SUPERVISOR", "system_supervisor"),
 )
 

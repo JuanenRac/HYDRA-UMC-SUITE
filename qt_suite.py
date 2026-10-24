@@ -79,6 +79,7 @@ from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import server_security
+from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import users as users_panel
 from hydra_suite.panel_logic.ai_family_status import AI_FAMILIES
 from hydra_suite.panel_logic.atc_tools import (
@@ -724,6 +725,11 @@ class SuiteQtBridge(QObject):
         self._audit_robot = ""
         self._audit_limit = audit_record.DEFAULT_LIMIT
         self._audit_last_query: dict = {}
+        self._models_rows: list[dict[str, str]] = []
+        self._models_list: list[dict[str, str]] = []
+        self._models_message = ""
+        self._models_error = ""
+        self._models_busy = False
         self._users_rows: list[dict[str, object]] = []
         self._users_message = ""
         self._users_error = ""
@@ -799,6 +805,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_audit(False))
             elif key == "users":
                 asyncio.ensure_future(self._refresh_users())
+            elif key == "submitted_models":
+                asyncio.ensure_future(self._refresh_models())
             elif key == "system_supervisor":
                 asyncio.ensure_future(self._refresh_supervisor())
             elif key == "robots_catalog":
@@ -1642,6 +1650,88 @@ class SuiteQtBridge(QObject):
             self._audit_error = _("AUDIT_EXPORT_FAILED", error=error)
         else:
             self._audit_message = _("AUDIT_EXPORTED", path=local_path)
+        self.changed.emit()
+
+    # -- Submitted models -----------------------------------------------------------------
+
+    @Property(bool, notify=changed)
+    def modelsHasServer(self) -> bool:
+        return self._controller.active_connection is not None
+
+    @Property("QVariantList", notify=changed)
+    def modelsRows(self) -> list[dict[str, str]]:
+        return self._models_rows
+
+    @Property(str, notify=changed)
+    def modelsMessage(self) -> str:
+        return self._models_message
+
+    @Property(str, notify=changed)
+    def modelsError(self) -> str:
+        return self._models_error
+
+    @Property(bool, notify=changed)
+    def modelsBusy(self) -> bool:
+        return self._models_busy
+
+    @Slot()
+    def refreshModels(self) -> None:
+        asyncio.ensure_future(self._refresh_models())
+
+    async def _refresh_models(self) -> None:
+        conn = self._controller.active_connection
+        self._models_message = ""
+        self._models_error = ""
+        if conn is None or conn.login_ok is not True:
+            self._models_rows = []
+            self._models_list = []
+            self.changed.emit()
+            return
+        self._models_busy = True
+        self.changed.emit()
+        try:
+            result = await conn.fetch_submitted_models()
+            status = 0 if result is None else result[0]
+            if result is None or status != 200:
+                self._models_rows = []
+                self._models_list = []
+                self._models_error = submitted_models.failure_text(status)
+                return
+            self._models_list = submitted_models.parse_models(result[1])
+            self._models_rows = submitted_models.rows(self._models_list)
+        finally:
+            self._models_busy = False
+            self.changed.emit()
+
+    @Slot(str, str, str)
+    def saveModelUrdf(self, category: str, slug: str, path: str) -> None:
+        asyncio.ensure_future(self._save_model_urdf(category, slug, path))
+
+    async def _save_model_urdf(self, category: str, slug: str, path: str) -> None:
+        conn = self._controller.active_connection
+        self._models_message = ""
+        self._models_error = ""
+        if conn is None:
+            return
+        known = next((m for m in self._models_list if m["category"] == category and m["slug"] == slug), None)
+        name = known["name"] if known else slug
+        result = await conn.fetch_model_download(category, slug)
+        answer = result[1] if result is not None and result[0] == 200 else None
+        xml = submitted_models.urdf_text(answer)
+        if xml is None:
+            self._models_error = _("MODELS_SAVE_FAILED", name=name)
+            self.changed.emit()
+            return
+        local_path = QUrl(path).toLocalFile() or path
+        if not local_path.lower().endswith(".urdf"):
+            local_path += ".urdf"
+        try:
+            with open(local_path, "w", encoding="utf-8", newline="") as f:
+                f.write(xml)
+        except OSError as error:
+            self._models_error = _("MODELS_SAVE_WRITE_FAILED", error=error)
+        else:
+            self._models_message = _("MODELS_SAVED", path=local_path)
         self.changed.emit()
 
     # -- User accounts (administrators only) -------------------------------------------

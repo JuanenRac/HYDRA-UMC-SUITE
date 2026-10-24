@@ -780,3 +780,20 @@ SECURITY_BLE_UNENCRYPTED_WARNING=已允许在没有加密链路的情况下通�
 TITLE_SECURITY_INFO_OFF=关闭登录要求
 TITLE_SECURITY_BLE_UNENCRYPTED=无加密链路的命令
 MSG_NET_OPERATOR_LOCAL_ONLY=此账户是操作员:可以控制机器人,但服务器只接受管理员对设置、已记录的点和布局的更改。你所做的更改只保留在此窗口中,不会被保存。
+
+# Submitted models panel (STUDIO parity)
+DOCK_SUBMITTED_MODELS=已提交的模型
+HEADING_SUBMITTED_MODELS=已提交的模型
+MODELS_INTRO=模型编辑器(URDF 和 STL)提交到此服务器的内容。你可以保存其中一个的 URDF;它的网格保留在服务器上。
+MODELS_REFRESH=刷新列表
+MODELS_NONE=尚未提交任何模型。
+MODELS_COL_NAME=名称
+MODELS_COL_CATEGORY=类别
+MODELS_COL_DATE=提交时间
+MODELS_SAVE_FAILED=无法下载 {name} 的 URDF。
+MODELS_ERROR_LOGIN=服务器要求登录后才能列出模型。
+MODELS_ERROR_SERVER=服务器无法列出模型。
+MODELS_ERROR_NETWORK=服务器没有响应。
+MODELS_SAVE=保存 URDF
+MODELS_SAVED=URDF 已保存到 {path}。
+MODELS_SAVE_WRITE_FAILED=无法写入文件:{error}

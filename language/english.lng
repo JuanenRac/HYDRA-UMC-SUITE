@@ -780,3 +780,20 @@ SECURITY_BLE_UNENCRYPTED_WARNING=Commands over Bluetooth are allowed without an 
 TITLE_SECURITY_INFO_OFF=Turn the sign-in requirement off
 TITLE_SECURITY_BLE_UNENCRYPTED=Commands without an encrypted link
 MSG_NET_OPERATOR_LOCAL_ONLY=This account is an operator: it can drive the robots, but the server accepts changes to the settings, the recorded points and the layout only from an administrator. What you changed stays in this window and is not saved.
+
+# Submitted models panel (STUDIO parity)
+DOCK_SUBMITTED_MODELS=Submitted models
+HEADING_SUBMITTED_MODELS=Submitted models
+MODELS_INTRO=What the model editors (URDF and STL) submitted to this server. You can save the URDF of one; its meshes stay on the server.
+MODELS_REFRESH=Refresh the list
+MODELS_NONE=No model has been submitted yet.
+MODELS_COL_NAME=Name
+MODELS_COL_CATEGORY=Category
+MODELS_COL_DATE=Submitted
+MODELS_SAVE_FAILED=The URDF of {name} could not be downloaded.
+MODELS_ERROR_LOGIN=The server asks for a sign-in to list the models.
+MODELS_ERROR_SERVER=The server could not list the models.
+MODELS_ERROR_NETWORK=The server did not answer.
+MODELS_SAVE=Save URDF
+MODELS_SAVED=URDF saved to {path}.
+MODELS_SAVE_WRITE_FAILED=The file could not be written: {error}
