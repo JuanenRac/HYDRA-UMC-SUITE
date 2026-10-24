@@ -60,6 +60,27 @@ def check_robot(name, cfg, ref):
     check("height-offset self-consistency (spread)", max(derived) - min(derived), 0.0)
 
 
+
+# The official DH tables of the UR arms (Universal Robots, as ros-industrial/universal_robot starts from them): d1, a2, a3, d4, d5,
+# shoulder_offset and elbow_offset. The lateral offset d4 is split in the URDF between the shoulder joint, the elbow joint and the
+# step from wrist_1 to wrist_2, so the steps add up to d4 exactly once. HYDRA-UMC-STUDIO checks the same table in
+# tests/urClassicChains.test.ts and holds the same reference poses as above: if either program changes a chain, one of them fails.
+OFFICIAL_DH = {
+    "UR3": (UR3CLASSIC, dict(d1=0.1519, a2=-0.24365, a3=-0.21325, d4=0.11235, d5=0.08535, shoulder_offset=0.1198, elbow_offset=-0.0925)),
+    "UR5": (UR5CLASSIC, dict(d1=0.089159, a2=-0.425, a3=-0.39225, d4=0.10915, d5=0.09465, shoulder_offset=0.13585, elbow_offset=-0.1197)),
+    "UR10": (UR10CLASSIC, dict(d1=0.1273, a2=-0.612, a3=-0.5723, d4=0.163941, d5=0.1157, shoulder_offset=0.220941, elbow_offset=-0.1719)),
+}
+for name, (cfg, dh) in OFFICIAL_DH.items():
+    steps = cfg.chain
+    print(f"=== {name} classic against the official DH table ===")
+    check("shoulder height d1", steps[0].pos[2], dh["d1"], 1e-9)
+    check("upper arm -a2", steps[2].pos[2], -dh["a2"], 1e-9)
+    check("forearm -a3", steps[3].pos[2], -dh["a3"], 1e-9)
+    check("wrist 2 height d5", steps[5].pos[2], dh["d5"], 1e-9)
+    check("shoulder offset", steps[1].pos[1], dh["shoulder_offset"], 1e-9)
+    check("elbow offset", steps[2].pos[1], dh["elbow_offset"], 1e-9)
+    check("the lateral offsets add up to d4 once", sum(step.pos[1] for step in steps), dh["d4"], 1e-9)
+
 check_robot("UR3 classic", UR3CLASSIC, REF_UR3CLASSIC)
 check_robot("UR5 classic", UR5CLASSIC, REF_UR5CLASSIC)
 check_robot("UR10 classic", UR10CLASSIC, REF_UR10CLASSIC)

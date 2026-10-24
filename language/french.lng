@@ -632,6 +632,7 @@ MSG_WORK_SCALE_OFFER=Charger {file} mis à l'échelle autour de la base du {mode
 MSG_WORK_SCALE_OFFER_PARTIAL=Charger {file} mis à l'échelle autour de la base du {model} à {percent} % ? Même ainsi, {remaining} point(s) restent hors de portée.
 BTN_WORK_SCALE=Mettre à l'échelle et charger
 MSG_WORK_SCALED={file} chargé à l'échelle de {percent} % autour de la base du robot ({imported} point(s)).
+MSG_WORK_MIGRATED={file} n'a pas de type de mouvement : ses {count} point(s) portable(s) ont été convertis en articulations de {model}.
 LBL_RACK_WIDTH=Largeur utile (mm)
 LBL_RACK_DEPTH=Profondeur utile (mm)
 FLASHER_PROGRESS_ENTERING_BOOTLOADER=Entrée dans le bootloader

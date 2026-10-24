@@ -631,6 +631,7 @@ MSG_WORK_SCALE_OFFER={file} を {model} のベースを基準に {percent} % に
 MSG_WORK_SCALE_OFFER_PARTIAL={file} を {model} のベースを基準に {percent} % に拡縮して読み込みますか? それでも {remaining} 個の点は届きません。
 BTN_WORK_SCALE=拡縮して読み込む
 MSG_WORK_SCALED={file} をロボットのベースを基準に {percent} % に拡縮して読み込みました ({imported} 個の点)。
+MSG_WORK_MIGRATED={file} には動作タイプがありません。その {count} 件のポータブルなポイントを {model} の関節値に変換しました。
 LBL_RACK_WIDTH=有効幅（mm）
 LBL_RACK_DEPTH=有効奥行き（mm）
 FLASHER_PROGRESS_ENTERING_BOOTLOADER=ブートローダーに入ります

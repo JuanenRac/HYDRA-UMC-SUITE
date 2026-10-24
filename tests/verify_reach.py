@@ -56,9 +56,9 @@ STUDIO_REFERENCE = {
     "ViperX 300 (6-DOF)": [[113.5642, -22.746, -104.6666, 114.221, 261.889, 293.374], [-117.1473, 147.4571, 119.1931, -40.871, 79.706, -215.818]],
     "WidowX 250 (6-DOF)": [[-4.8446, -169.4503, 77.1253, -107.076, -9.075, -171.925], [-88.7661, 96.1544, -157.1865, 8.523, 395.694, -50.675]],
     "Koch v1.1 (5-DOF)": [[-13.5265, -146.1834, 62.0313, 91.527, -17.843, -142.814], [50.6863, 35.0226, -50.76, 37.657, 33.31, 131.468]],
-    "UR3 (6-DOF)": [[-22.2512, -132.2303, -114.9395, -248.07, -252.38, 102.333], [-125.5272, -37.5711, 124.3515, 43.993, 178.71, 16.208]],
-    "UR5 (6-DOF)": [[90.6305, -165.6746, 109.2664, -124.017, 117.292, 474.184], [166.3148, -26.6112, 89.6941, -489.366, 9.801, -107.581]],
-    "UR10 (6-DOF)": [[-56.1519, -167.0326, -124.4148, -98.726, -529.587, -321.944], [37.6748, 76.8956, -53.2545, 357.887, -545.444, -815.849]]}
+    "UR3 (6-DOF)": [[-22.2512, -132.2303, -114.9395, -258.407, -227.113, 102.333], [-125.5272, -37.5711, 124.3515, 21.775, 162.847, 16.208]],
+    "UR5 (6-DOF)": [[90.6305, -165.6746, 109.2664, -107.868, 117.115, 474.184], [166.3148, -26.6112, 89.6941, -485.545, -5.891, -107.581]],
+    "UR10 (6-DOF)": [[-56.1519, -167.0326, -124.4148, -139.456, -502.271, -321.945], [37.6748, 76.8956, -53.2545, 387.861, -506.629, -815.848]]}
 
 
 def forward_matches_studio():
@@ -114,9 +114,52 @@ def scaling():
     check("scale: the wrist joints stay inside their range", all(joint_range_deg(model, k)[0] <= joints[k] <= joint_range_deg(model, k)[1] for k in joints) and residual < 0.5)
 
 
+def tolerance():
+    key = reach.TOLERANCE_CONFIG_KEY
+    check("tolerance: the default is 5 mm", reach.tolerance_from_config({}) == 5.0 and reach.DEFAULT_REACH_TOLERANCE_MM == 5.0)
+    check("tolerance: the configuration file can set it", reach.tolerance_from_config({key: 12}) == 12.0 and reach.tolerance_from_config({key: 0.5}) == 0.5 and reach.tolerance_from_config({key: 50}) == 50.0)
+    bad = [0, 0.49, 50.01, -3, float("nan"), float("inf"), "8", None, True, [5], {"v": 5}]
+    check("tolerance: anything else is the default, never a guess", all(reach.tolerance_from_config({key: v}) == 5.0 for v in bad))
+    check("tolerance: a configuration that is not a dictionary is the default", all(reach.tolerance_from_config(c) == 5.0 for c in (None, "x", [], 7)))
+    model = "Parol6 (6-DOF)"
+    # a point 900 mm out on the X axis is past the reach of this arm by a known amount
+    pose = reach.PortablePoint(900.0, 0.0, 0.0)
+    residual = reach.solve_pose(model, pose)[1]
+    check("tolerance: the point is really past the reach", residual > 100.0, repr(residual))
+    check("tolerance: a point past the reach is refused by a small tolerance", reach.count_over(model, [pose], residual * 0.5, 1.0) == 1)
+    check("tolerance: and accepted by a larger one", reach.count_over(model, [pose], residual * 2.0, 1.0) == 0)
+
+
+def reading_a_work():
+    model = "Parol6 (6-DOF)"
+    inside = {"motionType": "model-joints", "j1": 10, "j2": -20, "j3": 30, "j4": 0, "j5": 0, "j6": 0}
+    outside = {"motionType": "model-joints", "j1": 9999, "j2": 0, "j3": 0, "j4": 0, "j5": 0, "j6": 0}
+    portable_joints = {"j1": 10, "j2": -20, "j3": 30, "j4": 0, "j5": 0, "j6": 0}
+    portable_cartesian = {"x": 100, "y": 50, "z": 120, "a": 0, "b": 0, "c": 0}
+    reading = reach.read_work_points(model, [inside, outside, portable_joints, portable_cartesian, "text", {"motionType": "model-joints", "j1": 1}, {"motionType": "other"}])
+    check("work: a native point stays as joints", reading.entries[0] == {"number": 1, "joints": {k: float(inside[k]) for k in ("j1", "j2", "j3", "j4", "j5", "j6")}})
+    check("work: a native point outside the range of the model is reported by its number", reading.outside == [2])
+    check("work: a point without motionType is portable and becomes a pose", "pose" in reading.entries[1] and reading.entries[1]["number"] == 3 and "pose" in reading.entries[2])
+    check("work: the portable points are counted as migrated", reading.migrated == 2)
+    check("work: what cannot be read is skipped", reading.skipped == 3)
+    check("work: a Work that is all native migrates nothing", reach.read_work_points(model, [inside]).migrated == 0)
+    check("work: no points, nothing", (reach.read_work_points(model, []).entries, reach.read_work_points(model, []).skipped) == ([], 0))
+    check("work: a bool is not a joint", reach.read_work_points(model, [{"motionType": "model-joints", **{k: True for k in ("j1", "j2", "j3", "j4", "j5", "j6")}}]).skipped == 1)
+
+
+def classic_ur_have_no_override():
+    check("ur: the wrist offsets that STUDIO used to need are gone", not hasattr(reach, "IK_CHAIN_OVERRIDES"))
+    for model in ("UR3 (6-DOF)", "UR5 (6-DOF)", "UR10 (6-DOF)"):
+        j, residual = reach.solve_pose(model, reach.PortablePoint(*reach.forward(model, 20.0, -50.0, 40.0)))
+        check(f"ur: {model} finds the pose its own chain gives", residual < 0.5, repr(residual))
+
+
 forward_matches_studio()
 inverse_finds_poses()
 portable_points()
 scaling()
+tolerance()
+reading_a_work()
+classic_ur_have_no_override()
 print(f"FAILURES: {failures}")
 sys.exit(1 if failures else 0)

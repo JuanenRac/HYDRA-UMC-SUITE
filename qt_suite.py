@@ -2071,32 +2071,10 @@ class SuiteQtBridge(QObject):
             self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_READ", file=name)), "warn")
             return
         model = robot.model
-        # A point is native (joints of this robot, "motionType": "model-joints"), or portable like STUDIO's: joints of
-        # the generic arm or a Cartesian pose, which the inverse kinematics of the model turns into its own joints.
-        entries: list[dict[str, object]] = []
-        skipped = 0
-        outside: list[int] = []
-        can_solve = reach.is_supported(model)
-        for number, raw_point in enumerate(result[1], start=1):
-            if not isinstance(raw_point, dict):
-                skipped += 1
-                continue
-            has_joints = all(isinstance(raw_point.get(joint), (int, float)) and not isinstance(raw_point.get(joint), bool) for joint in JOINT_NAMES)
-            if raw_point.get("motionType") == "model-joints" or (not can_solve and has_joints):
-                if not has_joints:
-                    skipped += 1
-                    continue
-                point: dict[str, object] = {joint: float(raw_point[joint]) for joint in JOINT_NAMES}
-                if any(not (joint_range_deg(model, joint)[0] - 0.5 <= point[joint] <= joint_range_deg(model, joint)[1] + 0.5) for joint in JOINT_NAMES):
-                    outside.append(number)
-                    continue
-                entries.append({"number": number, "joints": point})
-                continue
-            pose = reach.portable_pose(raw_point) if can_solve else None
-            if pose is None:
-                skipped += 1
-                continue
-            entries.append({"number": number, "pose": pose})
+        # native points (motionType "model-joints") are taken as they are; portable ones (no motionType, like STUDIO's) are
+        # turned into joints of this model by its inverse kinematics: reach.read_work_points tells them apart
+        reading = reach.read_work_points(model, result[1])
+        entries, skipped, outside = reading.entries, reading.skipped, reading.outside
         if outside:
             # A Work made for another robot: refused as a whole, with the list of the points this model cannot reach.
             listed = ", ".join(str(n) for n in outside[:12]) + (f" (+{len(outside) - 12})" if len(outside) > 12 else "")
@@ -2106,7 +2084,7 @@ class SuiteQtBridge(QObject):
             self._set_notice(_("MSG_WORK_IMPORT_FAILED", error=_("MSG_WORK_ERR_NO_JOINTS", file=name)), "warn")
             return
         loop = asyncio.get_running_loop()
-        tolerance = reach.DEFAULT_REACH_TOLERANCE_MM
+        tolerance = reach.tolerance_from_config(load_config())  # 5 mm unless hydra_suite_config.json says otherwise
         factor = 1.0 if scale is None else scale
         solved = await loop.run_in_executor(None, self._solve_work_entries, model, entries, factor, tolerance)
         over = [(e["number"], mm) for e, mm in solved["residuals"] if mm > tolerance]
@@ -2124,6 +2102,7 @@ class SuiteQtBridge(QObject):
                 self.workScaleOffered.emit(_("TITLE_WORK_SCALE"), _(key, file=name, model=model, percent=f"{fit.scale * 100:.0f}", remaining=fit.remaining), _("BTN_WORK_SCALE"))
             return
         imported = solved["points"]
+        migrated = reading.migrated  # portable points (no motionType) solved into joints of this model
         for point in imported:
             point["_time"] = time.strftime("%H:%M:%S")
         self._trajectory_points = imported
@@ -2132,6 +2111,9 @@ class SuiteQtBridge(QObject):
             self._set_notice(_("MSG_WORK_SCALED", file=name, percent=f"{scale * 100:.0f}", imported=len(imported)), "info")
         elif skipped:
             self._set_notice(_("MSG_WORK_IMPORT_PARTIAL", imported=len(imported), skipped=skipped), "info")
+        elif migrated:
+            # a Work with no motionType is portable authoring data: its points were turned into joints of this robot, which is what is kept and exported
+            self._set_notice(_("MSG_WORK_MIGRATED", file=name, model=model, count=migrated), "info")
 
     @staticmethod
     def _solve_work_entries(model: str, entries: list[dict[str, object]], factor: float, tolerance: float) -> dict:

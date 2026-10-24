@@ -9,8 +9,8 @@
 #   - the inverse of that: the joints closest to a position, and how far from it (in millimetres) they leave the tool
 #   - a portable Work point (joints of the generic two-link arm, or a Cartesian pose) read as a pose
 #   - the largest factor, about the base, at which every point of a Work fits within a tolerance
-# The chains are the ones of render/kinematics.py (a handful of wrist offsets that STUDIO uses for its own solver
-# are listed in IK_CHAIN_OVERRIDES), the joint ranges are those of joint_limits.py. A model whose forward
+# The chains are the ones of render/kinematics.py (the same as STUDIO's, which a test of each program pins to the official
+# DH tables of the UR arms), the joint ranges are those of joint_limits.py. A model whose forward
 # kinematics could not be built has no entry in SUPPORTED_MODELS: its Works are not scaled.
 # =============================================================================
 from __future__ import annotations
@@ -24,6 +24,10 @@ from .joint_limits import joint_range_deg
 from .render import kinematics as K
 
 DEFAULT_REACH_TOLERANCE_MM = 5.0
+#: Where a Work may miss the pose it asks for and still be imported, in millimetres: the key of hydra_suite_config.json and its bounds.
+TOLERANCE_CONFIG_KEY = "work_reach_tolerance_mm"
+MIN_TOLERANCE_MM = 0.5
+MAX_TOLERANCE_MM = 50.0
 MIN_SCALE = 0.1
 SCALE_STEP = 0.05
 
@@ -34,10 +38,18 @@ _CYLINDRICAL = {
     "Parol6 (6-DOF)", "UR3e (6-DOF)", "UR5e (6-DOF)", "UR10e (6-DOF)", "UR16e (6-DOF)", "UR20 (6-DOF)",
     "xArm6 (6-DOF)", "Lite 6 (6-DOF)", "Gen3 Lite (6-DOF)", "Gen2 (6-DOF)", "PiPER (6-DOF)",
 }
-#: Wrist offset (metres, the y of the fifth step) STUDIO uses in its solver for the classic UR models.
-IK_CHAIN_OVERRIDES = {"UR3 (6-DOF)": 0.11235, "UR5 (6-DOF)": 0.10915, "UR10 (6-DOF)": 0.163941}
 #: Models whose base joint is aligned to the opposite vertical in STUDIO.
 _ROOT_DOWN = {"Koch v1.1 (5-DOF)"}
+
+
+def tolerance_from_config(config: object) -> float:
+    """The reach tolerance of the Work import: `work_reach_tolerance_mm` of the configuration file when it is a number inside
+    the bounds, else the default (5 mm). A value that is not a number, not finite or outside the bounds is not used."""
+
+    value = config.get(TOLERANCE_CONFIG_KEY) if isinstance(config, dict) else None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        return DEFAULT_REACH_TOLERANCE_MM
+    return float(value) if MIN_TOLERANCE_MM <= value <= MAX_TOLERANCE_MM else DEFAULT_REACH_TOLERANCE_MM
 
 
 def generic_cartesian(j1: float, j2: float, j3: float, j4: float = 0.0, j5: float = 0.0, j6: float = 0.0) -> tuple[float, float, float, float, float, float]:
@@ -98,10 +110,6 @@ def _chain_of(model: str) -> tuple[list[K.JointStep], np.ndarray] | None:
         axis_world = K.rpy_matrix(c0.rpy)[:3, :3] @ np.array(c0.axis, dtype=np.float64)
         target = (0.0, -1.0, 0.0) if model in _ROOT_DOWN else cfg.root_axis_target
         root = K.align_vectors_matrix(axis_world, target)
-    wrist = IK_CHAIN_OVERRIDES.get(model)
-    if wrist is not None and len(chain) > 4:
-        old = chain[4]
-        chain[4] = K.JointStep((old.pos[0], wrist, old.pos[2]), old.rpy, old.axis)
     return chain, root
 
 
@@ -268,6 +276,57 @@ def portable_pose(raw: dict) -> PortablePoint | None:
         return None
     px, py, pz, a, b, c = generic_cartesian(*joints)  # type: ignore[arg-type]
     return PortablePoint(px, py, pz, a, b, c)
+
+
+@dataclass
+class WorkReading:
+    """What a Work file holds for one model: the entries to import, the points that could not be read and the points of
+    another robot (joints outside the range of this model)."""
+
+    #: {"number": n, "joints": {...}} for a point made for this robot, {"number": n, "pose": PortablePoint} for a portable one
+    entries: list[dict[str, object]]
+    skipped: int
+    outside: list[int]
+
+    @property
+    def migrated(self) -> int:
+        """Portable points (no motionType): authoring data that is turned into joints of the model on import."""
+        return sum(1 for entry in self.entries if "pose" in entry)
+
+
+_JOINTS = ("j1", "j2", "j3", "j4", "j5", "j6")
+
+
+def read_work_points(model: str, raw_points: list) -> WorkReading:
+    """A point is native (joints of this robot, `"motionType": "model-joints"`), or portable like STUDIO's, with no motionType:
+    joints of the generic arm or a Cartesian pose, which the inverse kinematics of the model turns into its own joints.
+    Where the model cannot be solved, joints are taken as they are, like a native point."""
+
+    can_solve = is_supported(model)
+    entries: list[dict[str, object]] = []
+    skipped = 0
+    outside: list[int] = []
+    for number, raw in enumerate(raw_points, start=1):
+        if not isinstance(raw, dict):
+            skipped += 1
+            continue
+        has_joints = all(isinstance(raw.get(joint), (int, float)) and not isinstance(raw.get(joint), bool) for joint in _JOINTS)
+        if raw.get("motionType") == "model-joints" or (not can_solve and has_joints):
+            if not has_joints:
+                skipped += 1
+                continue
+            point: dict[str, object] = {joint: float(raw[joint]) for joint in _JOINTS}
+            if any(not (joint_range_deg(model, joint)[0] - 0.5 <= point[joint] <= joint_range_deg(model, joint)[1] + 0.5) for joint in _JOINTS):  # type: ignore[operator]
+                outside.append(number)
+                continue
+            entries.append({"number": number, "joints": point})
+            continue
+        pose = portable_pose(raw) if can_solve else None
+        if pose is None:
+            skipped += 1
+            continue
+        entries.append({"number": number, "pose": pose})
+    return WorkReading(entries, skipped, outside)
 
 
 def solve_pose(model: str, pose: PortablePoint, seed: tuple[float, float, float] | None = None) -> tuple[dict[str, float], float]:

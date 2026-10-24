@@ -632,6 +632,7 @@ MSG_WORK_SCALE_OFFER={file} um die Basis des {model} auf {percent} % skaliert la
 MSG_WORK_SCALE_OFFER_PARTIAL={file} um die Basis des {model} auf {percent} % skaliert laden? Auch dann bleiben {remaining} Punkt(e) außer Reichweite.
 BTN_WORK_SCALE=Skalieren und laden
 MSG_WORK_SCALED={file} auf {percent} % um die Basis des Roboters skaliert geladen ({imported} Punkt(e)).
+MSG_WORK_MIGRATED={file} hat keinen Bewegungstyp: seine {count} portablen Punkt(e) wurden in Gelenkwerte von {model} umgerechnet.
 LBL_RACK_WIDTH=Nutzbreite (mm)
 LBL_RACK_DEPTH=Nutztiefe (mm)
 FLASHER_PROGRESS_ENTERING_BOOTLOADER=Bootloader wird gestartet

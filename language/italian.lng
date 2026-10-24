@@ -632,6 +632,7 @@ MSG_WORK_SCALE_OFFER=Caricare {file} scalato rispetto alla base del {model} al {
 MSG_WORK_SCALE_OFFER_PARTIAL=Caricare {file} scalato rispetto alla base del {model} al {percent} %? Anche così {remaining} punto/i restano fuori portata.
 BTN_WORK_SCALE=Scala e carica
 MSG_WORK_SCALED={file} caricato scalato al {percent} % rispetto alla base del robot ({imported} punto/i).
+MSG_WORK_MIGRATED={file} non ha un tipo di movimento: i suoi {count} punto/i portabili sono stati convertiti in giunti di {model}.
 LBL_RACK_WIDTH=Larghezza utile (mm)
 LBL_RACK_DEPTH=Profondità utile (mm)
 FLASHER_PROGRESS_ENTERING_BOOTLOADER=Ingresso nel bootloader

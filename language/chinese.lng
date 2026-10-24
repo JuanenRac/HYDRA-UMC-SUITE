@@ -631,6 +631,7 @@ MSG_WORK_SCALE_OFFER=以 {model} 的底座为基准，将 {file} 缩放到 {perc
 MSG_WORK_SCALE_OFFER_PARTIAL=以 {model} 的底座为基准，将 {file} 缩放到 {percent} % 后加载？即便如此仍有 {remaining} 个点不可到达。
 BTN_WORK_SCALE=缩放并加载
 MSG_WORK_SCALED=已以机器人底座为基准将 {file} 缩放到 {percent} % 后加载（{imported} 个点）。
+MSG_WORK_MIGRATED={file} 没有运动类型：其 {count} 个可移植点位已转换为 {model} 的关节值。
 LBL_RACK_WIDTH=有效宽度（毫米）
 LBL_RACK_DEPTH=有效深度（毫米）
 FLASHER_PROGRESS_ENTERING_BOOTLOADER=正在进入引导程序
