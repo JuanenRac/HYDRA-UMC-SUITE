@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from hydra_suite.i18n import _
 
-ROLES = ("operator", "admin")
+ROLES = ("operator", "viewer", "admin")
 DEFAULT_ROLE = "operator"
 
 #: The shortest password the server accepts (its own rule; checked here only to save a round trip).
@@ -19,6 +19,8 @@ MIN_PASSWORD_LENGTH = 8
 
 
 def role_label(role: str) -> str:
+    if role == "viewer":
+        return _("USERS_ROLE_VIEWER")
     return _("USERS_ROLE_ADMIN") if role == "admin" else _("USERS_ROLE_OPERATOR")
 
 

@@ -733,6 +733,7 @@ USERS_ROLE_HINT=Operators can command robots but cannot change settings or manag
 USERS_CREATE_BUTTON=Create account
 USERS_ROLE_ADMIN=Administrator
 USERS_ROLE_OPERATOR=Operator
+USERS_ROLE_VIEWER=Viewer (read only)
 USERS_CREATED=Account "{username}" created.
 USERS_UPDATED=Account "{username}" updated; its open sessions were closed.
 USERS_DELETED=Account "{username}" deleted.

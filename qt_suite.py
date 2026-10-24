@@ -25,6 +25,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
+import httpx
 import qasync
 from PySide6.QtCore import Property, QDateTime, QObject, QSize, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QIcon, QImage
@@ -43,7 +44,9 @@ from hydra_suite.can_ota import (
     download_github_firmware,
     fetch_github_firmware_releases,
     hardware_query_version,
+    flash_signing_options,
     hardware_start_flash,
+    normalize_signature,
     has_advanced_expansion,
     hop_description,
     parse_version_tag,
@@ -5533,7 +5536,16 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
         try:
             data = await download_github_firmware(asset)
-            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag}
+            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature}
+            if not asset.signature:
+                # the .sig file published next to the image; an image without one is left to the board to judge
+                try:
+                    async with httpx.AsyncClient() as client:
+                        sig = await client.get(f"{asset.url}.sig", timeout=10)
+                    if sig.status_code == 200:
+                        self._flasher_file[key]["signature"] = normalize_signature(sig.text)
+                except Exception:
+                    pass
             self._flasher_push_log(key, f"{_('LBL_FILE_LOADED')}: {asset.name} ({len(data)} bytes)", "ok")
         except Exception as exc:
             self._flasher_push_log(key, f"{_('LBL_GITHUB_ERROR')}: {exc}", "error")
@@ -5633,6 +5645,7 @@ class SuiteQtBridge(QObject):
                     version_major,
                     version_minor,
                     hardware_id_number,
+                    flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature")),
                 )
                 if result.success:
                     self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_DONE"), "percent": 100}

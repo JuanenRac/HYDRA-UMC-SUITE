@@ -734,6 +734,7 @@ USERS_ROLE_HINT=Bediener können Roboter steuern, aber keine Einstellungen ände
 USERS_CREATE_BUTTON=Konto erstellen
 USERS_ROLE_ADMIN=Administrator
 USERS_ROLE_OPERATOR=Bediener
+USERS_ROLE_VIEWER=Betrachter (nur lesen)
 USERS_CREATED=Konto „{username}“ erstellt.
 USERS_UPDATED=Konto „{username}“ aktualisiert; seine offenen Sitzungen wurden beendet.
 USERS_DELETED=Konto „{username}“ gelöscht.

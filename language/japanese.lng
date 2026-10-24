@@ -733,6 +733,7 @@ USERS_ROLE_HINT=オペレーターはロボットを操作できますが、設�
 USERS_CREATE_BUTTON=アカウントを作成
 USERS_ROLE_ADMIN=管理者
 USERS_ROLE_OPERATOR=オペレーター
+USERS_ROLE_VIEWER=閲覧者(読み取り専用)
 USERS_CREATED=アカウント「{username}」を作成しました。
 USERS_UPDATED=アカウント「{username}」を更新しました。開いていたセッションは終了しました。
 USERS_DELETED=アカウント「{username}」を削除しました。

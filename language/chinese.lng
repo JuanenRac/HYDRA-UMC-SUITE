@@ -733,6 +733,7 @@ USERS_ROLE_HINT=操作员可以控制机器人，但不能更改设置或管理�
 USERS_CREATE_BUTTON=创建账户
 USERS_ROLE_ADMIN=管理员
 USERS_ROLE_OPERATOR=操作员
+USERS_ROLE_VIEWER=查看者(只读)
 USERS_CREATED=已创建账户“{username}”。
 USERS_UPDATED=已更新账户“{username}”；其已打开的会话已关闭。
 USERS_DELETED=已删除账户“{username}”。

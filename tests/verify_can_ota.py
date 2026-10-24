@@ -115,6 +115,28 @@ def _run() -> None:
     asyncio.run(_self_test())
     print("mock_self_test - real per-tier step set: PASS")
 
+    # --- signed flash: version, signature and downgrade ----------------------
+    from hydra_suite.can_ota import flash_signing_options, normalize_signature, parse_version_full
+
+    assert parse_version_full("v1.2.3-rc") == (1, 2, 3) and parse_version_full("0.9") == (0, 9, 0) and parse_version_full("x") is None
+    sig = "Ab" * 64
+    assert normalize_signature(sig + chr(10)) == sig.lower() and normalize_signature("abc") is None and normalize_signature(None) is None
+    assert flash_signing_options("0.2.5", "0.2.9", sig) == {"version_patch": 5, "signature": sig.lower(), "downgrade_from": "0.2.9"}
+    assert flash_signing_options("0.3.0", "0.2.9", None) == {"version_patch": 0, "signature": None, "downgrade_from": None}
+    assert flash_signing_options("0.3.0", None, sig)["downgrade_from"] is None
+    seen = {}
+
+    class _Conn:
+        async def canota_request(self, method, path, params=None, data=None, timeout=None):
+            seen.update(params)
+            return 200, {"success": True, "finalPhase": "done"}
+
+    from hydra_suite.can_ota import hardware_start_flash
+
+    result = asyncio.run(hardware_start_flash(_Conn(), board_target, b"x", 0, 2, 1, flash_signing_options("0.2.5", "0.2.9", sig)))
+    assert result.success and seen["version_patch"] == 5 and seen["signature"] == sig.lower() and seen["downgrade_from"] == "0.2.9"
+    print("signed flash parameters: PASS")
+
     print("ALL VERIFY_CAN_OTA CHECKS PASSED")
 
 

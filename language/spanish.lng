@@ -734,6 +734,7 @@ USERS_ROLE_HINT=Los operadores pueden dar órdenes a los robots pero no cambiar 
 USERS_CREATE_BUTTON=Crear cuenta
 USERS_ROLE_ADMIN=Administrador
 USERS_ROLE_OPERATOR=Operador
+USERS_ROLE_VIEWER=Observador (solo lectura)
 USERS_CREATED=Cuenta «{username}» creada.
 USERS_UPDATED=Cuenta «{username}» actualizada; sus sesiones abiertas se cerraron.
 USERS_DELETED=Cuenta «{username}» eliminada.

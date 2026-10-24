@@ -35,6 +35,7 @@ import asyncio
 import random
 import time
 import zlib
+import re
 from dataclasses import dataclass, field
 from typing import AsyncGenerator, Literal
 
@@ -314,6 +315,7 @@ class GithubFirmwareAsset:
     display_name: str | None = None
     chip: str | None = None
     hardware_id: str | None = None  # real hardware_id (e.g. "0x48374334") the bootloader validates START_UPDATE against
+    signature: str | None = None  # Ed25519 signature of the image (128 hexadecimal digits) when the manifest states one
 
 
 async def fetch_github_firmware_releases(repo: str, tier: CanOtaTier, branch: str = "main") -> list[GithubFirmwareAsset]:
@@ -349,6 +351,7 @@ async def fetch_github_firmware_releases(repo: str, tier: CanOtaTier, branch: st
                 display_name=comp.get("display_name"),
                 chip=comp.get("chip"),
                 hardware_id=comp.get("hardware_id"),
+                signature=normalize_signature(bin_info.get("signature")),
             )
         )
     return assets
@@ -445,8 +448,35 @@ def parse_version_tag(tag: str | None) -> tuple[int, int]:
     return number(0), number(1)
 
 
+def parse_version_full(tag: str | None) -> tuple[int, int, int] | None:
+    """(major, minor, patch) of a version text such as "v1.2.3" or "0.9" (patch 0); None when it is not one."""
+    match = re.match(r"^\s*v?(\d{1,5})\.(\d{1,5})(?:\.(\d{1,5}))?", tag or "")
+    if not match:
+        return None
+    return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
+
+
+def normalize_signature(text: str | None) -> str | None:
+    """A signature as 128 lowercase hexadecimal digits, or None when the text is not one (a .sig file may end in a newline)."""
+    clean = (text or "").strip().lower()
+    return clean if re.fullmatch(r"[0-9a-f]{128}", clean) else None
+
+
+def flash_signing_options(image_version: str | None, installed_version: str | None, signature: str | None) -> dict:
+    """What an image needs besides its bytes to be accepted by a HYDRA-UMC bootloader: the patch of its version, its
+    signature and, when it is older than the installed one (the bootloader's anti-rollback rule), that installed version."""
+    image = parse_version_full(image_version)
+    installed = parse_version_full(installed_version)
+    return {
+        "version_patch": image[2] if image else 0,
+        "signature": normalize_signature(signature),
+        "downgrade_from": ".".join(str(n) for n in installed) if image and installed and image < installed else None,
+    }
+
+
 async def hardware_start_flash(
-    conn, target: CanOtaTarget, firmware: bytes, version_major: int, version_minor: int, hardware_id: int = 0
+    conn, target: CanOtaTarget, firmware: bytes, version_major: int, version_minor: int, hardware_id: int = 0,
+    signing: dict | None = None,
 ) -> HardwareFlashResult:
     """Real POST /api/hardware/canota/flash. Unlike mock_flash(), this is
     NOT an async generator - the real per-page progress arrives over the
@@ -474,6 +504,13 @@ async def hardware_start_flash(
         "version_major": version_major,
         "version_minor": version_minor,
     }
+    signing = signing or {}
+    if signing.get("version_patch") is not None:
+        params["version_patch"] = signing["version_patch"]
+    if normalize_signature(signing.get("signature")):
+        params["signature"] = normalize_signature(signing["signature"])
+    if signing.get("downgrade_from") and parse_version_full(signing["downgrade_from"]):
+        params["downgrade_from"] = signing["downgrade_from"]
     result = await conn.canota_request(
         "POST", "/api/hardware/canota/flash", params=params, data=firmware, timeout=FLASH_TIMEOUT_S
     )
