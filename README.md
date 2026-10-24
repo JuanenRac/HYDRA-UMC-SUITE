@@ -238,7 +238,10 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # Tool-attachment module geometry (CNC/Laser/Heated Bed/Vacuum Table)
 │   │   ├── pnp_rig.py               # Real Cartesian-gantry chain for the LumenPnP/JuanenPnP mesh rig
 │   │   ├── mesh.py                  # STL loading (numpy-stl)
-│   │   └── viewport.py              # RobotGLRenderer (real GLSL shader pipeline, orbit camera) + OffscreenRobotRenderer, which draws the 3D viewport and the previews of the Qt Quick interface
+│   │   ├── viewport.py              # RobotGLRenderer (real GLSL shader pipeline, orbit camera) + OffscreenRobotRenderer, which draws the 3D viewport and the previews of the Qt Quick interface
+│   │   ├── gl_format.py             # The OpenGL surface format of the 3D viewport (its shaders are #version 330 core)
+│   │   └── part_colors.py           # Per-part colour annotations of the meshes
+│   ├── robot_catalog.py         # Manufacturer and DOF metadata of the 24 robot models, kept in step by hand with STUDIO's
 │   ├── access.py                   # Controller id, reservations, safety limits read from the server, Live / Sim - no Qt, no network
 │   ├── reach.py                    # Where the tool of each model can be, inverse kinematics and scaling of Works - no Qt, no network
 │   ├── credentials.py              # Remembered servers: the configuration file and the secure store of the operating system (keyring)
@@ -254,7 +257,11 @@ HYDRA-UMC-SUITE/
 ├── tools/
 │   ├── build_test.py                # Non-versioning build/compile check (generic, ecosystem-shared) - also runs run_offline_verifiers.py below when present
 │   ├── ci_validate.py               # Manifest/CHANGELOG/docs validation used by CI (generic, ecosystem-shared)
-│   └── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` - every tests/verify_*.py under a headless Qt platform (QT_QPA_PLATFORM=offscreen), real regression coverage for each panel's own Qt/backend wiring
+│   ├── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` - every tests/verify_*.py under a headless Qt platform (QT_QPA_PLATFORM=offscreen), real regression coverage for each panel's own Qt/backend wiring
+│   ├── _doc_policy.py               # Documentation rules shared by the family (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   ├── _readme_parity.py            # Check that the eight READMEs share one structure (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   ├── hydra_project_tool.py        # The same commands in every repository: validate, test, ci, version, status, bump
+│   └── extra_build_steps.py         # The build steps of this repository beyond the shared build test (its own unit tests)
 ├── tests/                           # Real headless test suite (QApplication, no display needed) - one verify_*.py per panel/subsystem, plus kinematics ports and manual smoke tests that need a real running STUDIO server
 ├── installer/                       # Platform packaging notes/assets
 └── .vscode/                         # Python interpreter path, launch configs, recommended extensions

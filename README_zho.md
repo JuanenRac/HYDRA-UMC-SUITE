@@ -179,7 +179,10 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # 工具模块几何体（CNC/激光/加热床/真空台）
 │   │   ├── pnp_rig.py               # LumenPnP/JuanenPnP 网格骨架的真实笛卡尔龙门运动链
 │   │   ├── mesh.py                  # STL 加载（numpy-stl）
-│   │   └── viewport.py              # RobotGLRenderer（真实的 GLSL 着色器管线，轨道相机）+ OffscreenRobotRenderer，用于绘制 Qt Quick 界面的 3D 视口和预览
+│   │   ├── viewport.py              # RobotGLRenderer（真实的 GLSL 着色器管线，轨道相机）+ OffscreenRobotRenderer，用于绘制 Qt Quick 界面的 3D 视口和预览
+│   │   ├── gl_format.py             # 3D 视口的 OpenGL 表面格式 (其着色器为 #version 330 core)
+│   │   └── part_colors.py           # 网格按零件的颜色标注
+│   ├── robot_catalog.py         # 24 个机器人型号的制造商与自由度元数据,与 STUDIO 的手动保持一致
 │   ├── access.py                   # 控制器 ID、预留、从服务器读取的安全限制、Live / Sim——不依赖 Qt，不联网
 │   ├── reach.py                    # 每个型号的工具可到达的位置、逆运动学和 Work 缩放——不依赖 Qt，不联网
 │   ├── credentials.py              # 记住的服务器：配置文件和操作系统的安全存储（keyring）
@@ -195,7 +198,11 @@ HYDRA-UMC-SUITE/
 ├── tools/
 │   ├── build_test.py                # 不涉及版本递增的编译检查（通用，生态系统共享）— 存在时也会运行下面的 run_offline_verifiers.py
 │   ├── ci_validate.py               # CI 使用的清单/CHANGELOG/文档校验（通用，生态系统共享）
-│   └── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` — 在无头 Qt 平台（QT_QPA_PLATFORM=offscreen）下运行每个 tests/verify_*.py，为每个面板自身的 Qt/后端接线提供真实的回归覆盖
+│   ├── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` — 在无头 Qt 平台（QT_QPA_PLATFORM=offscreen）下运行每个 tests/verify_*.py，为每个面板自身的 Qt/后端接线提供真实的回归覆盖
+│   ├── _doc_policy.py               # 家族共享的文档规则 (HYDRA-UMC-SDK 的副本,保持同步)
+│   ├── _readme_parity.py            # 检查八个 README 结构一致 (HYDRA-UMC-SDK 的副本,保持同步)
+│   ├── hydra_project_tool.py        # 每个仓库相同的命令: validate、test、ci、version、status、bump
+│   └── extra_build_steps.py         # 除共享构建测试外,本仓库自己的构建步骤 (自带的单元测试)
 ├── tests/                           # 真实的无头测试套件（QApplication，无需显示器）—— 每个面板/子系统一个 verify_*.py，外加运动学移植验证和需要真实运行中 STUDIO 服务器的手动烟雾测试
 ├── installer/                       # 各平台打包说明与资源
 └── .vscode/                         # Python 解释器路径、启动配置、推荐扩展

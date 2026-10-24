@@ -179,7 +179,10 @@ HYDRA-UMC-SUITE/
 │   │   ├── module_rig.py            # ツールアタッチメントモジュールのジオメトリ（CNC/レーザー/ヒートベッド/バキュームテーブル）
 │   │   ├── pnp_rig.py               # LumenPnP/JuanenPnPメッシュリグ用の実際のデカルトガントリーチェーン
 │   │   ├── mesh.py                  # STL読み込み（numpy-stl）
-│   │   └── viewport.py              # RobotGLRenderer(実際の GLSL シェーダーパイプライン、オービットカメラ)+ Qt Quick インターフェースの 3D ビューポートとプレビューを描く OffscreenRobotRenderer
+│   │   ├── viewport.py              # RobotGLRenderer(実際の GLSL シェーダーパイプライン、オービットカメラ)+ Qt Quick インターフェースの 3D ビューポートとプレビューを描く OffscreenRobotRenderer
+│   │   ├── gl_format.py             # 3D ビューポートの OpenGL サーフェス形式 (シェーダーは #version 330 core)
+│   │   └── part_colors.py           # メッシュのパーツごとの色の注釈
+│   ├── robot_catalog.py         # 24 のロボットモデルのメーカーと自由度のメタデータ (STUDIO のものと手作業で同期)
 │   ├── access.py                   # コントローラ ID、予約、サーバーから読む安全上限、Live / Sim - Qt もネットワークも不要
 │   ├── reach.py                    # 各モデルのツールが届く位置、逆運動学、Work の拡縮 - Qt もネットワークも不要
 │   ├── credentials.py              # 記憶したサーバー: 設定ファイルとオペレーティングシステムの安全な保管領域(keyring)
@@ -195,7 +198,11 @@ HYDRA-UMC-SUITE/
 ├── tools/
 │   ├── build_test.py                # バージョン管理を伴わないコンパイルチェック（汎用、エコシステム共有）- 存在する場合は下記の run_offline_verifiers.py も実行する
 │   ├── ci_validate.py               # CIで使用されるマニフェスト/CHANGELOG/ドキュメントの検証（汎用、エコシステム共有）
-│   └── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` - 各 tests/verify_*.py をヘッドレス Qt プラットフォーム（QT_QPA_PLATFORM=offscreen）上で実行し、各パネル自身の Qt/バックエンド配線に対する実回帰カバレッジを提供する
+│   ├── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` - 各 tests/verify_*.py をヘッドレス Qt プラットフォーム（QT_QPA_PLATFORM=offscreen）上で実行し、各パネル自身の Qt/バックエンド配線に対する実回帰カバレッジを提供する
+│   ├── _doc_policy.py               # ファミリー共通のドキュメント規則 (HYDRA-UMC-SDK のコピーで、同期を維持)
+│   ├── _readme_parity.py            # 8つの README が同じ構造であることの検査 (HYDRA-UMC-SDK のコピーで、同期を維持)
+│   ├── hydra_project_tool.py        # すべてのリポジトリで共通のコマンド: validate、test、ci、version、status、bump
+│   └── extra_build_steps.py         # 共通のビルドテストに加えた、このリポジトリ固有のビルド手順 (独自のユニットテスト)
 ├── tests/                           # 実際のヘッドレステストスイート（QApplication、ディスプレイ不要）- パネル/サブシステムごとに1つのverify_*.py、加えて運動学の移植と、実際に稼働中のSTUDIOサーバーが必要な手動スモークテスト
 ├── installer/                       # プラットフォームごとのパッケージング資料・アセット
 └── .vscode/                         # Pythonインタープリターのパス、起動構成、推奨拡張機能
