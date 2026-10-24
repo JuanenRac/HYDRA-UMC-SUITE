@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Signed firmware flashes.** A flash sends the patch of the image version, its Ed25519 signature (from the manifest or the `.sig` file next to the image) and, when the image is older than the installed one, the installed version, as the bootloaders of the HYDRA-UMC boards require. The users panel offers the read-only `viewer` role, and a viewer session, like an operator one, does not try to send the settings tree. `SLOT_FRAMES` names the frames of a slot's window of identifiers.
 - **New Ecosystem > Submitted models panel.** Lists the models the URDF and STL editors submitted to the server (`GET /api/models`, sent with the session, newest first) and saves the URDF of one (`GET /api/models/:category/:slug/download`) under a plain file name; the meshes stay on the server. A server that asks for a sign-in, fails or does not answer says so. This brings the same screen of HYDRA-UMC STUDIO to the SUITE, in the eight languages (33 panels, 41 verifiers).
 - **An operator's edits of the settings tree are no longer sent.** The server takes the whole tree (`POST /api/settings`, the `settings` message of the WebSocket) only from an administrator, so every edit of an operator's session was refused. It now stays in the window, nothing is sent, and a notice says so once (in the eight languages). The robot commands are unchanged.
 - `.trash/` is ignored by git (the model editors create it inside the mesh folders).

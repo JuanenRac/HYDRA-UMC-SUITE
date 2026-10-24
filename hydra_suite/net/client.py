@@ -848,7 +848,7 @@ class HydraConnection(QObject):
         payload_json = json.dumps(payload, sort_keys=True)
         if payload_json == self._last_payload_json:
             return  # unchanged since our own last confirmed send/receive - nothing to do
-        if self.role == "operator":
+        if self.role in ("operator", "viewer"):
             # POST /api/settings and the `settings` message of the WebSocket take the whole tree from an administrator
             # only. An operator's edit used to be sent and refused after every change; it stays in this window instead,
             # and the person is told once. The robot commands (jog, play, stop, speed, table) go through the atomic route.

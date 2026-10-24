@@ -137,6 +137,13 @@ def _run() -> None:
     assert result.success and seen["version_patch"] == 5 and seen["signature"] == sig.lower() and seen["downgrade_from"] == "0.2.9"
     print("signed flash parameters: PASS")
 
+    from hydra_suite.can_ota import SLOT_FRAMES, SLOT_WINDOW
+
+    offsets = list(SLOT_FRAMES.values())
+    assert len(set(offsets)) == len(offsets) and all(o < SLOT_WINDOW for o in offsets)
+    assert SLOT_FRAMES["relay_response"] != SLOT_FRAMES["relay_request"] and SLOT_FRAMES["relay_response_extra"] != SLOT_FRAMES["relay_request_extra"]
+    print("slot frames: one identifier each, inside the window: PASS")
+
     print("ALL VERIFY_CAN_OTA CHECKS PASSED")
 
 

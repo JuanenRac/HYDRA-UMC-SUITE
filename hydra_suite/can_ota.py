@@ -448,6 +448,26 @@ def parse_version_tag(tag: str | None) -> tuple[int, int]:
     return number(0), number(1)
 
 
+#: The frames of one slot's window of identifiers, as offsets from the slot base (mirrors tools/can_ids.py of HYDRA-UMC): each
+#: offset has one emitter. The relay answers on +0x16 and +0x18 (they used to share the identifiers of the requests, +0x10 and
+#: +0x13), the host asks for the next acknowledgement with +0x17, and the signed image header and the downgrade token travel
+#: on +0x19 to +0x1C.
+SLOT_FRAMES = {
+    "relay_request": 0x10,
+    "relay_request_extra": 0x13,
+    "relay_response": 0x16,
+    "poll_status": 0x17,
+    "relay_response_extra": 0x18,
+    "boot_page_ack": 0x03,
+    "boot_status": 0x05,
+    "boot_image_header": 0x19,
+    "boot_downgrade_nonce_request": 0x1A,
+    "boot_downgrade_token": 0x1B,
+    "boot_downgrade_nonce_response": 0x1C,
+}
+SLOT_WINDOW = 0x20  # identifiers per slot
+
+
 def parse_version_full(tag: str | None) -> tuple[int, int, int] | None:
     """(major, minor, patch) of a version text such as "v1.2.3" or "0.9" (patch 0); None when it is not one."""
     match = re.match(r"^\s*v?(\d{1,5})\.(\d{1,5})(?:\.(\d{1,5}))?", tag or "")
