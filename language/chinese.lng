@@ -779,3 +779,4 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=允许在没有加密链路的情况下通�
 SECURITY_BLE_UNENCRYPTED_WARNING=已允许在没有加密链路的情况下通过蓝牙发送命令:服务器附近的任何人都可能读取访问令牌。
 TITLE_SECURITY_INFO_OFF=关闭登录要求
 TITLE_SECURITY_BLE_UNENCRYPTED=无加密链路的命令
+MSG_NET_OPERATOR_LOCAL_ONLY=此账户是操作员:可以控制机器人,但服务器只接受管理员对设置、已记录的点和布局的更改。你所做的更改只保留在此窗口中,不会被保存。

@@ -780,3 +780,4 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=¿Permitir órdenes por Bluetooth sin enlac
 SECURITY_BLE_UNENCRYPTED_WARNING=Las órdenes por Bluetooth se permiten sin enlace cifrado: cualquiera cerca del servidor podría leer los tokens de acceso.
 TITLE_SECURITY_INFO_OFF=Quitar la exigencia de inicio de sesión
 TITLE_SECURITY_BLE_UNENCRYPTED=Órdenes sin enlace cifrado
+MSG_NET_OPERATOR_LOCAL_ONLY=Esta cuenta es de operador: puede mover los robots, pero el servidor solo acepta cambios de los ajustes, de los puntos grabados y del diseño de un administrador. Lo que cambiaste se queda en esta ventana y no se guarda.

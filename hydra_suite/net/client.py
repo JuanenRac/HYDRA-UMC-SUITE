@@ -345,6 +345,8 @@ class HydraConnection(QObject):
         # The revision last seen of each robot (If-Match on the writes) and when the server last pushed the
         # reservations (time.monotonic()), so the poll of GET /api/claims can rest while the pushes arrive.
         self.revisions = access.RevisionTracker()
+        # An operator's edit of the settings tree is not sent (the server takes it only from an administrator): said once.
+        self._operator_edit_told = False
         self.claims_pushed_at = 0.0
         # Whether the server was last seen to understand the "table" command (true until it says otherwise).
         self.has_table_command = True
@@ -845,6 +847,14 @@ class HydraConnection(QObject):
         payload_json = json.dumps(payload, sort_keys=True)
         if payload_json == self._last_payload_json:
             return  # unchanged since our own last confirmed send/receive - nothing to do
+        if self.role == "operator":
+            # POST /api/settings and the `settings` message of the WebSocket take the whole tree from an administrator
+            # only. An operator's edit used to be sent and refused after every change; it stays in this window instead,
+            # and the person is told once. The robot commands (jog, play, stop, speed, table) go through the atomic route.
+            if not self._operator_edit_told:
+                self._operator_edit_told = True
+                self.error.emit(_("MSG_NET_OPERATOR_LOCAL_ONLY"))
+            return
         try:
             if self._ws is not None:
                 await self._ws.send(json.dumps({"type": "settings", "payload": payload}))

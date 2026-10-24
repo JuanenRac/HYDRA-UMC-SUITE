@@ -779,3 +779,4 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=Allow commands over Bluetooth without an en
 SECURITY_BLE_UNENCRYPTED_WARNING=Commands over Bluetooth are allowed without an encrypted link: anyone near the server could read the access tokens.
 TITLE_SECURITY_INFO_OFF=Turn the sign-in requirement off
 TITLE_SECURITY_BLE_UNENCRYPTED=Commands without an encrypted link
+MSG_NET_OPERATOR_LOCAL_ONLY=This account is an operator: it can drive the robots, but the server accepts changes to the settings, the recorded points and the layout only from an administrator. What you changed stays in this window and is not saved.

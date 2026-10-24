@@ -198,12 +198,33 @@ async def run(port):
     check("save: a refusal says why and changes nothing", (refused.ok, refused.detail, conn.safety.limits.require_controller_id), (False, "jog.armTtlMs out of range", True))
 
     # --- a bed target lowered by the server ---
+    conn.role = "admin"  # only an administrator saves the tree
     reset(**{"POST /api/settings": (200, {"success": True, "warnings": [{"robotId": 1, "field": "heatedBed.targetTemp", "requested": 300, "applied": 110, "code": "temperature-limit"}]})})
     conn._ws = None
     conn.state.raw["settings"] = {"x": 1}
     messages.clear()
     await conn.push_state()
     check("settings: a lowered bed target is reported", messages, [_("MSG_NET_TEMP_LOWERED", requested="300", applied="110")])
+
+    # --- an operator's edit of the settings tree is not sent ---
+    operator = make_conn(port)
+    operator.role = "operator"
+    operator._ws = None
+    operator.state.raw["settings"] = {"y": 2}
+    reset()
+    told = []
+    operator.error.connect(told.append)
+    await operator.push_state()
+    check("operator: the tree is not sent", [m for m, p, b in Server.requests if p == "/api/settings"], [])
+    check("operator: and the person is told once that it stays in this window", told, [_("MSG_NET_OPERATOR_LOCAL_ONLY")])
+    operator.state.raw["settings"] = {"y": 3}
+    await operator.push_state()
+    check("operator: a second edit does not repeat it", (len(told), len(Server.requests)), (1, 0))
+    operator.role = "admin"
+    operator.state.raw["settings"] = {"y": 4}
+    reset()
+    await operator.push_state()
+    check("admin: the same edit is sent", [m for m, p, b in Server.requests if p == "/api/settings"], ["POST"])
 
     # --- the user accounts ---
     reset(**{"GET /api/users": (200, {"users": [{"username": "admin", "role": "admin", "createdAt": "x"}]})})

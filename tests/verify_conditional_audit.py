@@ -289,7 +289,7 @@ async def network(port):
     check("fetch robot: a server without the route gives none", await conn.fetch_robot(1), None)
 
     # --- the whole tree saved from this program forgets the revisions ---
-    conn = make_conn(port)
+    conn = make_conn(port, role="admin")  # only an administrator saves the tree
     conn.revisions.learn(1, "r1")
     conn._ws = None
     conn.state.raw["settings"] = {"x": 2}

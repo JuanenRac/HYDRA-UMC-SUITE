@@ -780,3 +780,4 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=Befehle über Bluetooth ohne verschlüsselt
 SECURITY_BLE_UNENCRYPTED_WARNING=Befehle über Bluetooth sind ohne verschlüsselte Verbindung erlaubt: Jeder in der Nähe des Servers könnte die Zugriffstoken lesen.
 TITLE_SECURITY_INFO_OFF=Anmeldepflicht ausschalten
 TITLE_SECURITY_BLE_UNENCRYPTED=Befehle ohne verschlüsselte Verbindung
+MSG_NET_OPERATOR_LOCAL_ONLY=Dieses Konto ist ein Bediener: Es kann die Roboter steuern, aber der Server nimmt Änderungen der Einstellungen, der aufgezeichneten Punkte und des Layouts nur von einem Administrator an. Was Sie geändert haben, bleibt in diesem Fenster und wird nicht gespeichert.

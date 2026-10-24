@@ -14,3 +14,6 @@ dist/
 # Per-user settings written next to the program (language, panel layout)
 hydra_suite_config.json
 hydra_suite_config.json.tmp
+
+# Local trash folder the model editors create inside the mesh folders, and their temporary backups
+.trash/

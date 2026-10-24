@@ -780,3 +780,4 @@ MSG_SECURITY_BLE_UNENCRYPTED_CONFIRM=Consentire i comandi via Bluetooth senza co
 SECURITY_BLE_UNENCRYPTED_WARNING=I comandi via Bluetooth sono consentiti senza collegamento cifrato: chiunque vicino al server potrebbe leggere i token di accesso.
 TITLE_SECURITY_INFO_OFF=Disattivare l'obbligo di accesso
 TITLE_SECURITY_BLE_UNENCRYPTED=Comandi senza collegamento cifrato
+MSG_NET_OPERATOR_LOCAL_ONLY=Questo account è un operatore: può comandare i robot, ma il server accetta le modifiche alle impostazioni, ai punti registrati e al layout solo da un amministratore. Ciò che hai modificato resta in questa finestra e non viene salvato.
