@@ -1,0 +1,187 @@
+{
+  "repo": "HYDRA-UMC-SUITE",
+  "ecosystem": "hydra",
+  "tagline": "One desktop window for several servers: it finds them, keeps their passwords in the system store and never decides what is safe.",
+  "description": "HYDRA-UMC-SUITE scans the network, signs in to each server, mirrors their state live in a Qt Quick window with an OpenGL robot view, and sends every command and the global stop to the server that owns the robot.",
+  "columns": [
+    "WHO USES IT",
+    "THIS REPOSITORY",
+    "WHAT IT TALKS TO"
+  ],
+  "nodes": [
+    {
+      "id": "op",
+      "column": 0,
+      "level": "tested",
+      "title": "The operator's desktop",
+      "lines": [
+        "Qt Quick window, F11 and",
+        "F12 shortcuts, 8 languages"
+      ],
+      "code": [
+        "qt_suite.py",
+        "assets/qml/Main.qml"
+      ]
+    },
+    {
+      "id": "srv",
+      "column": 2,
+      "level": "contract",
+      "title": "HYDRA-UMC-SERVER",
+      "lines": [
+        "one or many, found by",
+        "scan, mDNS or address"
+      ]
+    },
+    {
+      "id": "key",
+      "column": 2,
+      "level": "contract",
+      "title": "System keyring",
+      "lines": [
+        "Credential Manager or",
+        "Secret Service"
+      ]
+    },
+    {
+      "id": "brd",
+      "column": 2,
+      "level": "untested",
+      "title": "Controller boards",
+      "lines": [
+        "CAN-OTA chain: simulation",
+        "only, no board yet"
+      ]
+    },
+    {
+      "id": "ui",
+      "column": 1,
+      "level": "tested",
+      "title": "Qt Quick shell",
+      "lines": [
+        "the panels of the navigation",
+        "over the SuiteController"
+      ],
+      "code": [
+        "qt_suite.py",
+        "assets/qml/Main.qml",
+        "hydra_suite/app.py"
+      ]
+    },
+    {
+      "id": "ctl",
+      "column": 1,
+      "level": "tested",
+      "title": "panel logic",
+      "lines": [
+        "one module per panel:",
+        "state and rules, no widgets"
+      ],
+      "code": [
+        "hydra_suite/panel_logic/server_browser.py",
+        "hydra_suite/panel_logic/server_security.py",
+        "hydra_suite/panel_logic/viewport.py"
+      ]
+    },
+    {
+      "id": "net",
+      "column": 1,
+      "level": "tested",
+      "title": "network client",
+      "lines": [
+        "REST, WebSocket, token",
+        "refresh, discovery"
+      ],
+      "code": [
+        "hydra_suite/net/client.py",
+        "hydra_suite/net/discovery.py"
+      ]
+    },
+    {
+      "id": "r3d",
+      "column": 1,
+      "level": "tested",
+      "title": "3D viewport",
+      "lines": [
+        "OpenGL; forward kinematics",
+        "of 24 robot models"
+      ],
+      "code": [
+        "hydra_suite/render/viewport.py",
+        "hydra_suite/render/kinematics.py"
+      ]
+    },
+    {
+      "id": "cred",
+      "column": 1,
+      "level": "tested",
+      "title": "credentials",
+      "lines": [
+        "passwords go to the",
+        "system keyring or nowhere"
+      ],
+      "code": [
+        "hydra_suite/credentials.py"
+      ]
+    },
+    {
+      "id": "ota",
+      "column": 1,
+      "level": "tested",
+      "title": "CAN-OTA and access",
+      "lines": [
+        "flash and test tiers;",
+        "audit chain check"
+      ],
+      "code": [
+        "hydra_suite/can_ota.py",
+        "hydra_suite/access.py"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "op",
+      "to": "ui",
+      "level": "tested"
+    },
+    {
+      "from": "ui",
+      "to": "ctl",
+      "level": "tested"
+    },
+    {
+      "from": "ui",
+      "to": "net",
+      "level": "tested"
+    },
+    {
+      "from": "ctl",
+      "to": "r3d",
+      "level": "tested"
+    },
+    {
+      "from": "net",
+      "to": "cred",
+      "level": "tested"
+    },
+    {
+      "from": "net",
+      "to": "srv",
+      "level": "contract",
+      "label": "REST + WS"
+    },
+    {
+      "from": "cred",
+      "to": "key",
+      "level": "contract"
+    },
+    {
+      "from": "ota",
+      "to": "brd",
+      "level": "untested",
+      "label": "simulated"
+    }
+  ],
+  "footer": "Offline verifiers on a computer; never connected to a real controller or robot."
+}

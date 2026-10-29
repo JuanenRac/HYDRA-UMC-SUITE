@@ -1,29 +1,30 @@
+<!-- =============================================================================
+HYDRA-UMC-SUITE - Desktop command center for several HYDRA-UMC servers at once
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-SUITE banner" width="100%">
 </p>
 
-# 🧰 HYDRA-UMC SUITE
+# 🖥️ HYDRA-UMC-SUITE
 
-<p align="center">
-  <a href="README.md">🇺🇸 English</a> |
-  <a href="README_spa.md">🇪🇸 Español</a> |
-  🇫🇷 <b>Français</b> |
-  <a href="README_ita.md">🇮🇹 Italiano</a> |
-  <a href="README_deu.md">🇩🇪 Deutsch</a> |
-  <a href="README_zho.md">🇨🇳 简体中文</a> |
-  <a href="README_jpn.md">🇯🇵 日本語</a>
-</p>
-
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | 🇫🇷 <b>Français</b> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 🖥️ Centre de Commande d'Essaim Multi-Contrôleur pour la Plateforme HYDRA-UMC
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Licence-GPL%203.0-blue.svg" alt="GPL 3.0">
-  <img src="https://img.shields.io/badge/Langage-Python%203.12-3776AB.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="PySide6">
-  <img src="https://img.shields.io/badge/Graphismes-OpenGL-5586A4.svg" alt="OpenGL">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
+  <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
+  <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
+  <img src="https://img.shields.io/badge/Tests-41%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.7.1-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
+---
 
 **Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** la découverte réseau (scan de sous-réseau concurrent + véritable mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connexion REST+WebSocket en direct et le support d'essaim (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinématique directe réelle de la vue 3D pour les 24 vrais modèles de robots plus un repli « Generic » (`hydra_suite/render/`), les 11 panneaux de configuration d'outils sur 11, le flashage CAN-OTA/SPI-OTA, et le rendu vidéo MJPEG réel des caméras sont réels et testés - 41 scripts de vérification/smoke sous `tests/` (`python tools/run_offline_verifiers.py`, Qt sans tête via `QT_QPA_PLATFORM=offscreen`), tous en succès. L'interface est uniquement Qt Quick (`qt_suite.py`) : les 33 panneaux de la navigation sont du code réel et fonctionnel, y compris la vue 3D via un `OffscreenRobotRenderer` dédié ; la fenêtre classique a été retirée. Ce qui n'est explicitement PAS encore fait, selon la propre convention d'honnêteté de ce dépôt : les niveaux URTC Tool Head/Advanced Expansion du CAN-OTA n'ont pas encore de véritable tunnel de relais matériel ; et `combinedWith` (mode robot combiné) n'est pas exposé dans l'UI de cette application bien qu'il existe dans le propre modèle de données de STUDIO. Le panneau Trajectoire exporte/importe désormais via le véritable format `WORKS/*.json` de HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<dossier>/index.json`) - un point enregistré ici est un Work réel et lisible depuis les deux applications. Voir [`docs/ROADMAP.md`](docs/ROADMAP.md) pour le détail complet, poste par poste, du réel par rapport au différé que ce paragraphe résume, et `CHANGELOG.md` pour ce qui a déjà été livré exactement.
 
@@ -31,15 +32,20 @@
 
 > **État de la sûreté et de la cybersécurité :** cet écosystème n'est pas un système de sécurité certifié. Il n'existe pas encore de chaîne d'E-STOP matérielle, ni de limites ou de verrouillages imposés par le firmware, ni de commande de mouvement vérifiée ; les images de firmware sont contrôlées par CRC32 et un HMAC-SHA256 à clé partagée, pas par une signature asymétrique ; TLS et TLS mutuel sont optionnels et désactivés par défaut ; aucune carte propre n'a encore été assemblée ni testée. Lisez la [base de sécurité](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) et le [modèle de menaces](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) avant de vous fier à une affirmation d'ici pour la sécurité d'une personne.
 
+---
+
 ## 📋 En un coup d'œil
 
 | | |
 |---|---|
 | Version | `0.7.1` |
 | Maturité | Fonctionnel |
+| Tests | 41 (`python tools/run_offline_verifiers.py`) |
 | Technologie | Python 3.12 / PySide6 |
 | Cible | Le PC de la personne qui l'utilise |
 | Sur matériel réel | Pas encore : aucune exécution sur du matériel réel n'est consignée pour cette version |
+
+**Aller à :** [Présentation](#-présentation) · [Architecture](#-architecture) · [Fonctionnalités](#-fonctionnalités) · [Sécurité et protection](#-sécurité-et-protection) · [Interfaces](#-interfaces) · [Configuration](#-configuration) · [Démarrage rapide](#-démarrage-rapide) · [Tests](#-tests) · [Dépannage](#-dépannage) · [Structure du dépôt](#-structure-du-dépôt) · [Projets liés](#-projets-liés)
 
 ## 🚦 État du projet
 
@@ -50,11 +56,11 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Domaine | État | Ce que cela veut dire ici |
 |---|---|---|
 | Logiciel | 🟡 | Fonctionne pour son usage principal ; la vérification d'honnêteté ci-dessus liste ce qui manque encore |
-| Tests | 🟠 | Aucun nombre de tests n'est encore consigné pour ce dépôt |
+| Tests | 🟢 | 41 tests automatiques, exécutés à chaque modification |
 | Matériel réel | 🔴 | Pas encore : aucune exécution sur du matériel réel n'est consignée pour cette version |
 | Documentation | 🟢 | README en huit langues, vérifié par rapport au manifeste à chaque modification |
 
-## 🎯 Vue d'ensemble
+## 🎯 Présentation
 
 **HYDRA-UMC SUITE** est une application de bureau native Windows/Linux
 (Python + PySide6/Qt6) construite comme centre de contrôle de mission pour
@@ -90,9 +96,27 @@ UR3e/5e/10e/16e/20, xArm6, Lite 6, e.DO), plus un mode de secours
 "Générique" construit avec des primitives pour tout modèle sans jeu de
 mailles dédié.
 
----
+## 🧩 Rôle dans HYDRA-UMC
 
-## ✨ Console visuelle de commande
+**HYDRA-UMC-SUITE** est le centre de commande de bureau de la cellule pour Windows et Linux : il trouve chaque HYDRA-UMC-SERVER du réseau (balayage de sous-réseau et mDNS, ou une adresse saisie), se connecte à autant que vous voulez et affiche, déplace et configure leurs robots côte à côte dans une interface Qt Quick avec vue 3D. C'est l'équivalent bureau de STUDIO, il parle le même protocole et ne décide rien en matière de sécurité : cela reste sur chaque serveur.
+
+## 🏛️ Architecture
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-SUITE architecture" width="100%">
+</p>
+
+## 🖼️ Captures d'écran
+
+### Photos
+
+Pas encore de captures d'écran - pas encore capturées pour la
+documentation. Lancez-le (voir ci-dessous) pour voir la vraie chose plutôt
+que de vous fier ici plus tard à une image obsolète.
+
+## ✨ Fonctionnalités
+
+### Console visuelle de commande
 
 La fenêtre a un en-tête persistant, inspiré d'une console de jeu, avec l'icône officielle HYDRA-UMC et la palette bleu nuit/cyan de HYDRA-UMC-UPDATER. Il affiche le nom du produit, l'état de connexion et la version, et porte le bouton STOP global et le menu de l'application (langue, paquet de support, raccourcis clavier, À propos). La navigation vers les panneaux est la barre latérale gauche. Ce n'est pas un tableau de bord simulé : chaque panneau travaille sur les vrais serveurs.
 
@@ -104,7 +128,7 @@ Le bouton **STOP** est toujours en haut de la fenêtre, sur tous les panneaux. U
 
 HYDRA-UMC SUITE a une seule interface, écrite en Qt Quick (QML) : une `ApplicationWindow` autonome (`assets/qml/Main.qml`) que `qt_suite.py` relie au `SuiteController` inchangé. C'est le même schéma qu'utilisent HYDRA-UMC-OS-REBUILDER, HYDRA-UMC-UPDATER, URTC-TESTER, URTC-FLASHER et HYDRA-UMC-EDITOR-URDF, et la même forme que HYDRA-UMC-STUDIO : une barre latérale de navigation (un menu racine plus les sous-menus Industrial, URTC et HYDRA-UMC, dans `hydra_suite/nav_items.py`) et une seule zone de contenu qui montre un des 33 panneaux à la fois. La vue 3D et les aperçus sont dessinés par un `OffscreenRobotRenderer` dédié (un `QOpenGLContext`, un `QOffscreenSurface` et un framebuffer séparés, et non le `QQuickFramebufferObject` propre à Qt Quick, qui forcerait toute l'interface à quitter le backend Direct3D 11 que Qt Quick utilise par défaut sous Windows pour OpenGL) avec le même code de rendu (`RobotGLRenderer`), et remis à QML sous forme d'image. L'ancienne fenêtre classique (un `QMainWindow` avec des panneaux dockables) a été retirée ; tout ce qu'elle faisait vit dans cette interface, et `python main.py` la lance.
 
-## 🏭 Fonctionnalités
+### Fonctionnalités
 
 - **🔍 Découverte réseau** - un balayage concurrent du sous-réseau (`GET /api/hydra-info`) et le vrai mDNS/Bonjour (`_hydra._tcp`, le même service que publie `server.ts` et que HYDRA-UMC-IOS-CONTROL interroge déjà) s'exécutent ensemble à la recherche de véritables serveurs HYDRA-UMC SERVER, dédupliqués par host:port, plus ajout manuel par adresse pour tout ce qu'aucun des deux ne peut atteindre (un sous-réseau différent, un tunnel VPN).
 - **🐝 Connexions d'essaim** - connectez-vous à autant de serveurs
@@ -182,102 +206,73 @@ Copies STL indépendantes pour JuanenPnP, JuanenCNC et JuanenLaser ; LumenPnP co
 
 [Modèles de machines indépendants — STL](docs/MACHINE_ASSETS.md).
 
-
 Ces modèles originaux JuanenPNP / HYDRA-UMC et leurs sources SCAD sont sous GPL-3.0 ; ce ne sont pas les fichiers CAO de la machine Opulo.
 
-## 📸 Photos
+## 🔒 Sécurité et protection
 
-Pas encore de captures d'écran - pas encore capturées pour la
-documentation. Lancez-le (voir ci-dessous) pour voir la vraie chose plutôt
-que de vous fier ici plus tard à une image obsolète.
+| Menace | Défense | Où |
+|---|---|---|
+| Mots de passe dans un fichier de réglages | Les identifiants vont dans le magasin sécurisé du système (Gestionnaire d'identifiants Windows, Secret Service sous Linux) via `keyring` ; si l'ordinateur n'a pas de vrai magasin, le programme n'enregistre rien au lieu d'écrire le mot de passe en clair | `hydra_suite/credentials.py` |
+| Un serveur qui répond mal ou de façon hostile | La réponse de découverte doit porter les clés requises avec les bons types, et le client traite chaque réponse comme non fiable ; un vérificateur lui donne des réponses hostiles et contrôle que l'application ne plante pas et ne les accepte pas | `hydra_suite/net/discovery.py`, `tests/verify_hostile_server_answers.py` |
+| Trafic lu ou serveur usurpé sur le réseau | Le client utilise `httpx`, qui vérifie les certificats TLS, et le programme n'a aucun interrupteur pour le désactiver ; TLS est lui-même optionnel sur le serveur et désactivé par défaut (Server Admin), donc sur un LAN en HTTP simple rien ne cache le trafic | `hydra_suite/net/client.py` |
+| Un arrêt qui attend ou se perd | STOP est toujours dans l'en-tête (et sur F12), ne demande rien et appelle `POST /api/stop-all` sur chaque serveur connecté avec une limite de 2 s et une nouvelle tentative ; un message rouge reste jusqu'au prochain STOP si un robot ne s'est pas arrêté, si l'état n'a pas pu être enregistré ou si rien n'a confirmé l'arrêt | `hydra_suite/net/client.py`, `qt_suite.py`, `tests/verify_stop_all.py` |
+| Une option d'accès abaissée par erreur (voix, MAVLink, Bluetooth, TLS...) | Le panneau Server Admin montre d'où vient chaque valeur, verrouille ce que fixe l'environnement du serveur, demande confirmation avant d'abaisser une protection et garde un avertissement à l'écran : une réponse vocale qui répète ce qui a été dit, une confiance de reconnaissance à 0, des messages MAVLink non signés ou la signature MAVLink désactivée | `hydra_suite/panel_logic/server_security.py`, `tests/verify_server_security.py` |
+| Un Work importé que le robot n'atteint pas, ou un registre d'audit altéré | Un Work doit tenir dans le robot dans une tolérance (5 mm par défaut, de 0,5 à 50 mm dans `work_reach_tolerance_mm`) sinon il est refusé ; le registre d'audit peut être vérifié comme chaîne de hachages, par le serveur (`?verify=1`) et par ce programme sur ce qu'il a reçu | `hydra_suite/reach.py`, `hydra_suite/access.py` |
 
----
+**Ce qu'elle ne fait jamais :** décider de la sécurité ni servir de chemin d'arrêt d'urgence matériel. Chaque limite, rôle et réservation appartient au serveur ; cette application n'a jamais tourné contre un vrai contrôleur ou robot.
 
-## 📂 Structure du dépôt
+## 🔌 Interfaces
 
-```text
-HYDRA-UMC-SUITE/
-├── docs/VACUUM_TABLE_MODELS.md
-├── docs/HEATED_BED_MODELS.md
-├── docs/RACK_MODELS.md
-├── docs/MACHINE_ASSETS.md
-├── assets/meshes/{juanenpnp,juanencnc,juanenlaser}/  # STL + ATTRIBUTION + VARIANT.md
-├── tests/verify_machine_assets.py
-├── assets/meshes/racks/default/        # Rack.scad + base/wall/guide/assembly STL
-├── hydra_suite/racks.py
-├── tests/verify_rack_geometry.py
-├── assets/meshes/heatedbeds/default/  # catalog.json + HeatedBed.scad + 4 STL
-├── hydra_suite/heated_beds.py
-├── tests/verify_heated_beds.py
-├── assets/meshes/vacuum-tables/default/  # catalog.json + 6 STL + 6 SCAD
-├── hydra_suite/vacuum_tables.py
-├── tests/verify_vacuum_tables.py
-├── tests/verify_stop_all.py
-├── tests/verify_hostile_server_answers.py
-├── main.py                        # Point d'entrée - lance l'interface Qt Quick (maximisée, 1280x720 min. ; F11 bascule le vrai plein écran)
-├── qt_suite.py                     # Interface Qt Quick - relie le SuiteController inchangé à QML (les 33 panneaux)
-├── verify_qt_suite_shell.py        # Vérification réelle de la shell Qt Quick sans matériel/réseau - délibérément hors de tests/ (même raison que les propres verify_qt_*.py d'URTC-TESTER/URTC-FLASHER), exécutée avec `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
-├── requirements.txt
-├── hydra-umc.project.json         # Manifeste de l'écosystème - version/famille/parent, la source que lisent dashboard/updater/OS-REBUILDER
-├── bump_version.py                # Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)
-├── bump_manifest_version.py       # Synchronise la version de hydra-umc.project.json avec la version native (générique, copié tel quel dans tout l'écosystème)
-├── build-test.bat / build-test.sh # active .venv et lance tools/build_test.py (la véritable suite de tests), sans mutation - ne modifie jamais la version ni CHANGELOG.md
-├── run.bat / run.sh               # Lance main.py via le venv
-├── HYDRA-UMC_SUITE.spec           # Spec PyInstaller (voir build_exe.bat/.sh ci-dessous)
-├── build_exe.bat                  # Build Windows en une étape -> dist/HYDRA-UMC_SUITE.exe
-├── build_exe.sh                   # Build Linux en une étape -> dist/HYDRA-UMC_SUITE
-├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md
-├── README.md                      # ce fichier
-├── README_spa.md / README_fra.md / README_ita.md / README_deu.md / README_zho.md / README_jpn.md / README_por.md  <- traductions
-├── .github/                        # Workflow CI, modèles d'issues, modèle de PR (générique, partagé dans l'écosystème)
-├── hydra_suite/
-│   ├── models.py                   # HydraState/ControllerView/RobotView/CameraView - vues légères et mutables sur la forme réelle de settings.json
-│   ├── app.py                      # SuiteController - gère l'essaim de connexions, la sélection « active » ; chaque panneau lui parle
-│   ├── i18n.py                     # Chargeur KEY=Value 8 langues (language/*.lng)
-│   ├── can_ota.py                  # Transport partagé CAN-OTA/SPI-OTA (portage réel du canOta.ts propre à STUDIO) - utilisé par Flasher et Tester
-│   ├── logging_handler.py          # Route le logging Python vers le panneau Logs
-│   ├── diagnostics.py              # Paquet de support (zip avec versions, serveurs et journal, sans identifiants)
-│   ├── net/
-│   │   ├── discovery.py             # Scan de sous-réseau concurrent + mDNS réel (_hydra._tcp) contre GET /api/hydra-info, dédupliqué
-│   │   └── client.py                # Connexion REST + WebSocket par serveur, synchronisation bidirectionnelle en direct, login, endpoints admin/découverte/PTZ
-│   ├── render/
-│   │   ├── kinematics.py            # Cinématique directe (portée depuis le propre urKinematicsShared.ts de HYDRA-UMC-STUDIO)
-│   │   ├── generic_rig.py           # Rig de secours construit en primitives pour tout modèle sans maillage dédié
-│   │   ├── module_rig.py            # Géométrie des modules d'outils (CNC/Laser/Lit Chauffant/Table à Vide)
-│   │   ├── pnp_rig.py               # Vraie chaîne cinématique cartésienne pour le rig maillé LumenPnP/JuanenPnP
-│   │   ├── mesh.py                  # Chargement STL (numpy-stl)
-│   │   ├── viewport.py              # RobotGLRenderer (vrai pipeline de shaders GLSL, caméra orbitale) + OffscreenRobotRenderer, qui dessine la vue 3D et les aperçus de l'interface Qt Quick
-│   │   ├── gl_format.py             # Le format de surface OpenGL de la vue 3D (ses shaders sont en #version 330 core)
-│   │   └── part_colors.py           # Annotations de couleur par pièce des maillages
-│   ├── robot_catalog.py         # Métadonnées de fabricant et de degrés de liberté des 24 modèles de robot, tenues à jour à la main avec celles de STUDIO
-│   ├── access.py                   # Identifiant de contrôleur, réservations, limites de sécurité lues du serveur, Live / Sim - sans Qt, sans réseau
-│   ├── reach.py                    # Où l'outil de chaque modèle peut se trouver, cinématique inverse et mise à l'échelle des Works - sans Qt, sans réseau
-│   ├── credentials.py              # Serveurs mémorisés : le fichier de configuration et le coffre sécurisé du système d'exploitation (keyring)
-│   ├── joint_limits.py             # Plage de chaque articulation des modèles qui en publient une
-│   ├── nav_items.py                # La navigation : menu racine et sous-menus Industrial / URTC / HYDRA-UMC
-│   └── panel_logic/                # Ce dont les panneaux ont besoin et qui ne dépend pas d'une fenêtre : niveaux, valeurs par défaut, lecture MJPEG, graphiques du superviseur
-├── assets/
-│   ├── qml/Main.qml                 # L'interface Qt Quick (les 33 panneaux)
-│   └── meshes/                      # Vrais maillages STL, un dossier par robot/module, copiés du propre public/models/ de HYDRA-UMC-STUDIO (chacun avec son propre ATTRIBUTION.txt)
-├── language/                        # Fichiers .lng english/spanish/french/german/italian/japanese/chinese/portuguese
-├── docs/
-│   └── ROADMAP.md                   # Déclaration honnête du périmètre réel vs. pas encore fait
-├── tools/
-│   ├── build_test.py                # Vérification de compilation sans versionnage (générique, partagé dans l'écosystème) - exécute aussi run_offline_verifiers.py ci-dessous s'il est présent
-│   ├── ci_validate.py               # Validation manifeste/CHANGELOG/documentation utilisée par la CI (générique, partagé dans l'écosystème)
-│   ├── run_offline_verifiers.py     # `python tools/run_offline_verifiers.py` - exécute chaque tests/verify_*.py sous une plateforme Qt headless (QT_QPA_PLATFORM=offscreen), couverture de régression réelle pour le câblage Qt/backend de chaque panneau
-│   ├── _doc_policy.py               # Règles de documentation partagées par la famille (copie de celle de HYDRA-UMC-SDK, tenue synchronisée)
-│   ├── _readme_parity.py            # Contrôle que les huit README partagent la même structure (copie de celui de HYDRA-UMC-SDK, tenue synchronisée)
-│   ├── hydra_project_tool.py        # Les mêmes commandes dans chaque dépôt : validate, test, ci, version, status, bump
-│   └── extra_build_steps.py         # Les étapes de compilation propres à ce dépôt en plus du test de compilation partagé (ses tests unitaires)
-├── tests/                           # Vraie suite de tests sans interface (QApplication, aucun affichage nécessaire) - un verify_*.py par panneau/sous-système, plus les portages de cinématique et des tests de fumée manuels nécessitant un vrai serveur STUDIO en marche
-├── installer/                       # Notes et ressources de packaging par plateforme
-└── .vscode/                         # Chemin de l'interpréteur Python, configurations de lancement, extensions recommandées
+| Topic ou route | Ce qu'il porte |
+|---|---|
+| `/api/*`, `/ws` | le protocole REST et WebSocket de HYDRA-UMC-SERVER, avec l'en-tête `X-Hydra-Client: suite` pour qu'un administrateur puisse autoriser ou bloquer cette application séparément |
+| `GET /api/hydra-info`, `_hydra._tcp.local.` | découverte : un balayage de sous-réseau sur le port 3000 (1,5 s par hôte, 64 à la fois) et mDNS (4 s), ou une adresse saisie, aussi via un VPN |
+| `HYDRA_UMC_DATALAKE_URL` | adresse facultative de HYDRA-UMC-DATALAKE pour le panneau de télémétrie |
+| `hydra_suite/can_ota.py` | les niveaux CAN-OTA de Flasher et Tester via le serveur (URTC et HYDRA-UMC), sur une simulation intégrée tant qu'il n'y a pas de vraies cartes |
+| F11, F12 | F11 bascule le plein écran ; F12 envoie l'ARRÊT global |
+
+## ⚙️ Configuration
+
+Le programme garde un petit `hydra_suite_config.json` : à côté du programme tant que ce dossier est modifiable (copie portable, dépôt source), sinon dans le dossier de l'utilisateur (`%APPDATA%\HYDRA-UMC-SUITE` sous Windows, `$XDG_CONFIG_HOME/hydra-umc-suite` sous Linux). Les interrupteurs d'accès ci-dessous appartiennent au serveur que Server Admin modifie, pas à ce fichier.
+
+| Variable | Par défaut | Ce qu'elle définit |
+|---|---|---|
+| `language` | `english` | la langue de l'interface : english, spanish, german, french, italian, japanese, chinese ou portuguese (`language/*.lng`) |
+| `work_reach_tolerance_mm` | `5.0` | de combien un point d'un Work importé peut manquer la pose demandée, de 0,5 à 50 mm |
+| `HYDRA_UMC_DATALAKE_URL` | vide | l'adresse de DATALAKE pour le panneau de télémétrie |
+| `aiAccess` | `open` | qui peut utiliser le relais d'IA local : `open` est tout compte connecté, `admin` seulement les administrateurs |
+| `infoAuth` | désactivé | exiger une connexion pour les informations en lecture seule de l'hôte (métriques, superviseur de processus, état de l'écosystème) |
+| `tls.enabled` | désactivé (HTTP simple) | HTTPS et WSS avec le certificat et la clé indiqués ; l'écran montre l'empreinte du certificat utilisé |
+| `ble.mode` | `off` | Bluetooth LE pour les téléphones proches du serveur : `off`, `state` (publie seulement l'état) ou `commands` (accepte aussi des commandes) ; un mot inconnu signifie éteint |
+| `ble.requireEncryption` | activé | la caractéristique de commande est écrite, et l'état lu, seulement sur un lien chiffré ; seul `off` dans la variable le désactive |
+| `mqtt.mode` | `off` | le pont MQTT vers le broker de la cellule : `off`, `state` ou `commands`, avec son URL, son préfixe et ses utilisateurs |
+| `voice.includeHeardText` | désactivé | une réponse vocale répète ce qui a été dit ; ce sont des données personnelles, donc c'est désactivé, et dans la variable seul le mot exact `1` l'active |
+| `voice.minConfidence` | `0.6` | la confiance minimale du moteur de reconnaissance vocale, de 0 à 1, pour accepter une demande qui lance un mouvement ; 0 désactive le contrôle, un arrêt n'est jamais retenu, et un nombre invalide dans la variable est ignoré |
+| `mavlink.signingKeyFile` | vide (pas de signature) | signature MAVLink 2 de la passerelle UAV : le chemin d'un fichier avec la clé de 32 octets (32 octets bruts ou 64 caractères hexadécimaux) ; seul le chemin est enregistré, jamais la clé, et la passerelle le lit au démarrage |
+| `mavlink.signingAllowUnsigned` | désactivé | continuer à accepter les messages non signés (un véhicule qui ne signe pas encore) ; l'écran avertit tant que c'est activé |
+
+## 🚀 Démarrage rapide
+
+Nécessite Python 3.12 ou plus récent et, pour faire quelque chose d'utile, un HYDRA-UMC-SERVER en marche (le panneau Serveurs balaie le réseau ou prend une adresse).
+
+```bash
+python -m venv .venv                   # Windows: .venv\Scripts\activate - Linux: source .venv/bin/activate
+pip install -r requirements.txt
+python main.py                         # starts the app; F11 toggles full screen, F12 sends the global STOP
+python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 ```
 
----
+La version s'affiche dans **Aide > À propos**. Construire avec `build_exe.bat` / `build_exe.sh` ne la change jamais ; seule la commande explicite `python tools/hydra_project_tool.py bump` le fait. Voir [`CHANGELOG.md`](CHANGELOG.md) pour ce qui a changé à chaque version.
 
-## 🚀 Pour commencer
+## 🧪 Tests
+
+41 tests automatiques s'exécutent avec `python tools/run_offline_verifiers.py`. Chacun est un script vérificateur avec de nombreux contrôles, pas une seule assertion ; ils ont besoin de PySide6 et des autres dépendances, tournent sous une plateforme Qt sans écran et n'ouvrent jamais de connexion vers un vrai serveur ou robot.
+
+La CI exécute `HYDRA_UMC_CI=1 python tools/ci_validate.py`, qui vérifie le manifeste, les documents, les huit README et les images.
+
+## 🏗️ Compilation et publication
+
+### Pour commencer
 
 ### Prérequis
 - Python 3.12+ (la CI utilise 3.12 ; également testé en local avec 3.14)
@@ -308,9 +303,7 @@ HYDRA-UMC SERVER par adresse.
 
 Appuyez sur **F12** à tout moment pour envoyer le STOP global (le bouton **STOP** de la barre supérieure fait de même).
 
----
-
-## 🛠️ Pile technologique
+### Pile technologique
 
 - **Framework d'UI :** PySide6 (Qt6) avec Qt Quick (QML) - une seule interface, sans réinventer un framework d'ancrage
 - **Rendu 3D :** PyOpenGL (shaders GLSL core-profile) + numpy-stl
@@ -320,9 +313,7 @@ Appuyez sur **F12** à tout moment pour envoyer le STOP global (le bouton **STOP
 - **Mathématiques :** NumPy (transformations homogènes 4x4 pour la
   cinématique directe)
 
----
-
-## 📦 Compiler un exécutable autonome
+### Compiler un exécutable autonome
 
 Deux chemins, même résultat (`dist/HYDRA-UMC_SUITE.exe` sous Windows,
 `dist/HYDRA-UMC_SUITE` sous Linux) - aucune installation de Python n'est
@@ -381,20 +372,83 @@ l'un ou l'autre des 2 scripts. `HYDRA-UMC_SUITE.spec` à la racine du dépôt
 est le propre fichier spec généré par PyInstaller lors de la dernière
 build - sûr à supprimer et régénérer, non maintenu à la main.
 
----
+## 🩺 Dépannage
 
-## 🔢 Gestion des versions
+| Vous voyez | Parce que | Faites |
+|---|---|---|
+| Le panneau Serveurs ne trouve rien | Le serveur est dans un autre sous-réseau, un pare-feu bloque le port 3000 ou mDNS, ou le serveur ne tourne pas | Ajoutez le serveur par adresse (un tunnel VPN fonctionne aussi) |
+| Le mot de passe est redemandé à chaque démarrage | Cet ordinateur n'a pas de vrai magasin sécurisé, donc le programme n'enregistre aucun mot de passe | Installez un fournisseur Secret Service (Linux) ou connectez-vous sous Windows ; c'est voulu |
+| Le message STOP reste rouge | Un robot ne s'est pas arrêté, l'état d'arrêt n'a pas pu être enregistré ou aucun serveur n'a confirmé l'arrêt | Lisez le message, vérifiez le robot et appuyez de nouveau sur STOP ; il reste jusqu'au prochain STOP |
+| Un Work importé est refusé | Un point du Work est plus loin que la tolérance de ce que ce robot atteint | Choisissez un autre modèle de robot ou augmentez `work_reach_tolerance_mm` (jusqu'à 50) |
 
-`hydra_suite/__version__` (affiché dans **Aide > À propos**) suit un schéma
-`MAJEUR.MINEUR.CORRECTIF` de type compteur kilométrique avec une règle de
-retenue en base 10 : le correctif augmente de 1 à chaque bump ; dès
-qu'il dépasserait 9, il revient à 0 et le mineur augmente de 1 à sa place
-(ex. `0.1.9` -> `0.2.0`). « Un build réel » signifie une exécution de
-`build_exe.bat`/`build_exe.sh` - **pas** une simple exécution de
-`python main.py`. L'incrémentation elle-même est la commande explicite `python tools/hydra_project_tool.py bump`, qui exécute `bump_version.py` ; compiler avec `build_exe.bat`/`build_exe.sh` ne change jamais la version. Voir [`CHANGELOG.md`](CHANGELOG.md) pour le détail de ce qui a
-changé à chaque étape.
+## 📂 Structure du dépôt
 
----
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-SUITE" width="100%">
+</p>
+
+<details>
+<summary>Version texte de l'arborescence</summary>
+
+```text
+HYDRA-UMC-SUITE/
+├── hydra_suite/                                                                                            code source
+│   ├── models.py                                                                                           HydraState/ControllerView/RobotView/CameraView - vues légères et mutables sur la forme réelle de settings.json
+│   ├── app.py                                                                                              SuiteController - gère l'essaim de connexions, la sélection « active » ; chaque panneau lui parle
+│   ├── i18n.py                                                                                             Chargeur KEY=Value 8 langues (language/*.lng)
+│   ├── can_ota.py                                                                                          Transport partagé CAN-OTA/SPI-OTA (portage réel du canOta.ts propre à STUDIO) - utilisé par Flasher et Tester
+│   ├── logging_handler.py                                                                                  Route le logging Python vers le panneau Logs
+│   ├── diagnostics.py                                                                                      Paquet de support (zip avec versions, serveurs et journal, sans identifiants)
+│   ├── net/                                                                                                client REST, WebSocket et découverte
+│   ├── render/                                                                                             vue OpenGL et cinématique
+│   ├── robot_catalog.py                                                                                    Métadonnées de fabricant et de degrés de liberté des 24 modèles de robot, tenues à jour à la main avec celles de STUDIO
+│   ├── access.py                                                                                           Identifiant de contrôleur, réservations, limites de sécurité lues du serveur, Live / Sim - sans Qt, sans réseau
+│   ├── reach.py                                                                                            Où l'outil de chaque modèle peut se trouver, cinématique inverse et mise à l'échelle des Works - sans Qt, sans réseau
+│   ├── credentials.py                                                                                      Serveurs mémorisés : le fichier de configuration et le coffre sécurisé du système d'exploitation (keyring)
+│   ├── joint_limits.py                                                                                     Plage de chaque articulation des modèles qui en publient une
+│   ├── nav_items.py                                                                                        La navigation : menu racine et sous-menus Industrial / URTC / HYDRA-UMC
+│   └── panel_logic/                                                                                        Ce dont les panneaux ont besoin et qui ne dépend pas d'une fenêtre : niveaux, valeurs par défaut, lecture MJPEG, graphiques du superviseur
+├── .github/                                                                                                Workflow CI, modèles d'issues, modèle de PR (générique, partagé dans l'écosystème)
+├── assets/                                                                                                 interface QML et maillages de robots
+├── language/                                                                                               Fichiers .lng english/spanish/french/german/italian/japanese/chinese/portuguese
+├── docs/                                                                                                   documents du projet
+├── tools/                                                                                                  outils du projet et vérifications de la CI
+├── tests/                                                                                                  Vraie suite de tests sans interface (QApplication, aucun affichage nécessaire) - un verify_*.py par panneau/sous-système, plus les portages de cinématique et des tests de fumée manuels nécessitant un vrai serveur STUDIO en marche
+├── installer/                                                                                              Notes et ressources de packaging par plateforme
+├── .vscode/                                                                                                Chemin de l'interpréteur Python, configurations de lancement, extensions recommandées
+├── images/                                                                                                 bannière et images du README
+├── main.py                                                                                                 Point d'entrée - lance l'interface Qt Quick (maximisée, 1280x720 min. ; F11 bascule le vrai plein écran)
+├── qt_suite.py                                                                                             Interface Qt Quick - relie le SuiteController inchangé à QML (les 33 panneaux)
+├── verify_qt_suite_shell.py                                                                                Vérification réelle de la shell Qt Quick sans matériel/réseau - délibérément hors de tests/ (même raison que les propres verify_qt_*.py d'URTC-TESTER/URTC-FLASHER), exécutée avec `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`
+├── requirements.txt                                                                                        dépendances figées
+├── hydra-umc.project.json                                                                                  Manifeste de l'écosystème - version/famille/parent, la source que lisent dashboard/updater/OS-REBUILDER
+├── bump_version.py                                                                                         Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)
+├── bump_manifest_version.py                                                                                Synchronise la version de hydra-umc.project.json avec la version native (générique, copié tel quel dans tout l'écosystème)
+├── build-test.bat / build-test.sh                                                                          active .venv et lance tools/build_test.py (la véritable suite de tests), sans mutation - ne modifie jamais la version ni CHANGELOG.md
+├── run.bat / run.sh                                                                                        Lance main.py via le venv
+├── HYDRA-UMC_SUITE.spec                                                                                    Spec PyInstaller (voir build_exe.bat/.sh ci-dessous)
+├── build_exe.bat                                                                                           Build Windows en une étape -> dist/HYDRA-UMC_SUITE.exe
+├── build_exe.sh                                                                                            Build Linux en une étape -> dist/HYDRA-UMC_SUITE
+├── CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md   ce qui a changé à chaque version
+└── test.sh                                                                                                 lance les tests
+```
+
+</details>
+
+## 🗺️ Feuille de route et limites connues
+
+**Limites connues aujourd'hui**
+
+* Les niveaux URTC Tool Head et Advanced Expansion de CAN-OTA n'ont pas de vrai tunnel relais vers le matériel ; la chaîne tourne sur la simulation intégrée.
+* Le mode robots combinés (`combinedWith`) existe dans le modèle de données de STUDIO mais n'est pas exposé dans cette application.
+* Ce README n'a pas encore de captures d'écran.
+* Cette application n'a jamais tourné contre un vrai contrôleur ou robot, et Qt Quick est son unique interface : la fenêtre classique a été retirée.
+
+**Ensuite :** chaque nouveauté de STUDIO est portée ici. Voir `docs/ROADMAP.md` pour la liste détaillée de ce qui est fait et différé.
+
+## 🌍 Langues
+
+Ce README et les documents du dépôt existent en huit langues : anglais, espagnol, allemand, français, italien, japonais, chinois et portugais (Portugal). Ils sont écrits ensemble et la CI vérifie que les huit fichiers ont les mêmes sections et les mêmes liens.
 
 ## 🔗 Projets liés
 
@@ -489,51 +543,28 @@ Ce projet fait partie de l'écosystème robotique HYDRA-UMC du même auteur (Jua
 - **[HYDRA-UMC-OPS-AGENT](https://github.com/JuanenRac/HYDRA-UMC-OPS-AGENT)** — coordinateur d'incidents de maintenance : un rôle edge à faible privilège collecte un instantané d'inventaire/santé assaini, un rôle control-plane le rend en lecture seule et demande à un fournisseur d'IA de suggérer un diagnostic - n'applique jamais de correctif ni ne déploie rien.
 - **[HYDRA-UMC-DEV-SERVER](https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER)** — hôte de développement reproductible (Raspberry Pi 5 / CM5) qui héberge le code source de l'écosystème et exécute des tâches de compilation/test délimitées via une file d'attente durable ; un rôle de développement dédié, explicitement distinct d'un CM5 opérationnel.
 
----
+## 📚 Documentation
 
-## 📚 Documentation & Communauté
+Où lire la suite :
 
-- **[docs/ROADMAP.md](docs/ROADMAP.md)** — ce qui est réel et vérifié de bout en bout aujourd'hui, par opposition à ce qui reste délibérément hors périmètre.
-- **[installer/README.md](installer/README.md)** — comment construire l'installateur `.exe` Windows et le paquet `.deb` Linux.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — pile technologique et lignes directrices de codage pour une pull request.
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — les normes de comportement attendues dans cette communauté.
-- **[SECURITY.md](SECURITY.md)** — comment signaler une vulnérabilité, et les véritables axes de sécurité de cette application.
-- **[SUPPORT.md](SUPPORT.md)** — où poser des questions et signaler des bugs.
-- **[LICENSE.md](LICENSE.md)** — la licence propre de ce projet, ainsi que la licence distincte sous laquelle chaque dossier de `assets/meshes/` est redistribué.
+* **[docs/ROADMAP.md](docs/ROADMAP.md)** — ce qui est réel et vérifié de bout en bout aujourd'hui, par opposition à ce qui reste délibérément hors périmètre.
+* **[installer/README.md](installer/README.md)** — comment construire l'installateur `.exe` Windows et le paquet `.deb` Linux.
+* [Base de sécurité de l'écosystème](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [Modèle de menaces de l'écosystème](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [Journal des modifications de ce dépôt](CHANGELOG.md)
+* [Licence de ce dépôt](LICENSE.md)
+
+## 🤝 Contribuer et communauté
+
+* Avant une pull request, exécutez `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py` (ou `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`) : il doit afficher `CI_VALIDATION=PASS`. N'exécutez pas `build.sh` ni `build.bat` pour cette vérification ; compiler n'est pas vérifier.
+* Les huit README sont écrits à partir d'une source unique dans HYDRA-UMC-DOCS ; ne les modifiez pas à la main. Changez la source et réécrivez-les avec `tools/make_readmes.py`.
+* N'affirmez pas dans un README ce qui n'a pas tourné : écrivez « simulé » ou « non essayé sur matériel » quand c'est la vérité.
+* Voir [CONTRIBUTING.md](CONTRIBUTING.md), le [code de conduite](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) et [SUPPORT.md](SUPPORT.md).
 
 ## 👤 AUTEUR
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 LICENCE
 
-HYDRA-UMC SUITE est (c) 2026 JuanenRac (Electro Hobby 3D). Cet avis doit être inclus dans toute distribution de ce projet ou de ses travaux dérivés.
-
-Le code source de cette application est disponible sous la **GNU General Public License v3.0 (GPL-3.0)**. Texte complet sur https://www.gnu.org/licenses/gpl-3.0.html.
-
-**Cette documentation** (ce README et ses propres traductions - `README_spa.md`, `README_ita.md`, `README_fra.md`, `README_deu.md`, `README_zho.md`, `README_jpn.md`, `README_por.md`) est disponible sous **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**. Texte complet sur https://creativecommons.org/licenses/by-sa/4.0/.
-
-**Ressources de maillage tierces :** chaque dossier sous `assets/meshes/` est copié à l'identique depuis le propre dépôt officiel du fabricant de ce robot - NON couvert par la GPL-3.0 ci-dessus. Chacun possède son propre `ATTRIBUTION.txt` avec la référence exacte de source/licence ; le tableau ci-dessous les résume.
-
-| Fabricant | Modèles | Licence |
-|---|---|---|
-| Source Robotics | Parol6 | GPL-3.0 |
-| Source Robotics | Faze4 | MIT |
-| Annin Robotics | AR3, AR4 | MIT |
-| Universal Robots | UR3e, UR5e, UR10e, UR16e, UR20 | BSD-3-Clause |
-| UFACTORY | xArm6, Lite 6 | BSD-3-Clause |
-| Comau | e.DO | BSD-3-Clause |
-| Kinova | Gen3 Lite | BSD-3-Clause |
-| FANUC | M-710iC | BSD-3-Clause |
-| The Robot Studio | SO-ARM100 | Apache-2.0 |
-| Kinova | Gen2 (j2s6s200) | BSD-3-Clause |
-| AgileX | PiPER | Apache-2.0 |
-| Unitree | Z1 | BSD-3-Clause |
-| Trossen Robotics | ViperX 300, WidowX 250 | BSD-3-Clause |
-| Koch / Low-Cost Robot Arm | Koch v1.1 | Apache-2.0 |
-| Universal Robots (classiques) | UR3, UR5, UR10 | BSD-3-Clause |
-
-Ce projet est la contrepartie bureau de contrôle d'essaim de [HYDRA-UMC STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO) - voir le propre dépôt de ce projet pour sa propre licence distincte, à laquelle la propre licence de ce dépôt ne s'étend pas, et vice versa. Il contrôle également en dernier ressort le matériel/firmware de [HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC) et (relayées à travers celui-ci, [voir ici](https://github.com/JuanenRac/HYDRA-UMC/blob/main/docs/architecture.md)) les têtes d'outil [URTC](https://github.com/JuanenRac/URTC) - deux projets distincts avec leurs propres licences séparées.
-
-Si vous construisez sur ce projet, gardez à l'esprit la séparation des licences : les modifications de code devraient rester GPL-3.0, et les propres ressources de maillage de chaque robot devraient rester sous leurs propres conditions de licence d'origine (voir le tableau ci-dessus) - chacune avec une attribution renvoyant à ce projet et à son auteur.
+GPL-3.0-or-later - [LICENSE](LICENSE).

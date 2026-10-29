@@ -1,0 +1,935 @@
+{
+  "repo": "HYDRA-UMC-SUITE",
+  "ecosystem": "hydra",
+  "svg": "en",
+  "exempt": [
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "LICENSE",
+    "LICENSE.md",
+    "test.bat"
+  ],
+  "cards": [
+    {
+      "name": "hydra_suite/",
+      "span": 3,
+      "accent": "a",
+      "rows": [
+        {
+          "name": "models.py",
+          "desc": {
+            "en": "HydraState/ControllerView/RobotView/CameraVi",
+            "es": "HydraState/ControllerView/RobotView/CameraVi",
+            "de": "HydraState/ControllerView/RobotView/CameraVi",
+            "fr": "HydraState/ControllerView/RobotView/CameraVi",
+            "it": "HydraState/ControllerView/RobotView/CameraVi",
+            "ja": "HydraState/ControllerV",
+            "zh": "HydraState/ControllerV",
+            "pt": "HydraState/ControllerView/RobotView/CameraVi"
+          },
+          "tree_desc": {
+            "en": "HydraState/ControllerView/RobotView/CameraView - thin, mutation-friendly views over the real settings.json shape",
+            "es": "HydraState/ControllerView/RobotView/CameraView - vistas ligeras y mutables sobre la forma real de settings.json",
+            "de": "HydraState/ControllerView/RobotView/CameraView - leichte, mutationsfreundliche Ansichten über die echte settings.json-Form",
+            "fr": "HydraState/ControllerView/RobotView/CameraView - vues légères et mutables sur la forme réelle de settings.json",
+            "it": "HydraState/ControllerView/RobotView/CameraView - viste leggere e mutabili sulla forma reale di settings.json",
+            "ja": "HydraState/ControllerView/RobotView/CameraView - 実際のsettings.json構造の上に構築された、軽量で変更しやすいビュー",
+            "zh": "HydraState/ControllerView/RobotView/CameraView —— 基于真实 settings.json 结构的轻量、可变视图",
+            "pt": "HydraState/ControllerView/RobotView/CameraView - vistas finas e propensas a mutação sobre a forma real do settings.json"
+          }
+        },
+        {
+          "name": "app.py",
+          "desc": {
+            "en": "SuiteController",
+            "es": "SuiteController",
+            "de": "SuiteController",
+            "fr": "SuiteController",
+            "it": "SuiteController",
+            "ja": "SuiteController",
+            "zh": "SuiteController —— 管理连",
+            "pt": "SuiteController"
+          },
+          "tree_desc": {
+            "en": "SuiteController - owns the swarm of connections, \"active\" selection, every panel talks to this",
+            "es": "SuiteController - gestiona el enjambre de conexiones, la selección \"activa\"; cada panel habla con esto",
+            "de": "SuiteController - verwaltet den Schwarm an Verbindungen, die \"aktive\" Auswahl; jedes Panel spricht damit",
+            "fr": "SuiteController - gère l'essaim de connexions, la sélection « active » ; chaque panneau lui parle",
+            "it": "SuiteController - gestisce lo sciame di connessioni, la selezione \"attiva\"; ogni pannello parla con questo",
+            "ja": "SuiteController - 接続群と「アクティブ」選択を管理する。各パネルはこれと通信する",
+            "zh": "SuiteController —— 管理连接集群与\"当前激活\"选择；每个面板都与它通信",
+            "pt": "SuiteController - é dono do enxame de ligações, da seleção «ativa»; todos os painéis falam com ele"
+          }
+        },
+        {
+          "name": "i18n.py",
+          "desc": {
+            "en": "8-language KEY=Value loader (language/*.lng)",
+            "es": "Cargador KEY=Value de 8 idiomas",
+            "de": "8-Sprachen-KEY=Value-Lader (language/*.lng)",
+            "fr": "Chargeur KEY=Value 8 langues",
+            "it": "Caricatore KEY=Value a 8 lingue",
+            "ja": "8言語対応のKEY=Valueローダー",
+            "zh": "8 语言 KEY=Value 加载器",
+            "pt": "Carregador KEY=Value de 8 idiomas"
+          },
+          "tree_desc": {
+            "en": "8-language KEY=Value loader (language/*.lng)",
+            "es": "Cargador KEY=Value de 8 idiomas (language/*.lng)",
+            "de": "8-Sprachen-KEY=Value-Lader (language/*.lng)",
+            "fr": "Chargeur KEY=Value 8 langues (language/*.lng)",
+            "it": "Caricatore KEY=Value a 8 lingue (language/*.lng)",
+            "ja": "8言語対応のKEY=Valueローダー（language/*.lng）",
+            "zh": "8 语言 KEY=Value 加载器（language/*.lng）",
+            "pt": "Carregador KEY=Value de 8 idiomas (language/*.lng)"
+          }
+        },
+        {
+          "name": "can_ota.py",
+          "desc": {
+            "en": "Shared CAN-OTA/SPI-OTA transport",
+            "es": "Transporte compartido CAN-OTA/SPI-OTA",
+            "de": "Gemeinsamer CAN-OTA/SPI-OTA-Transport",
+            "fr": "Transport partagé CAN-OTA/SPI-OTA",
+            "it": "Trasporto condiviso CAN-OTA/SPI-OTA",
+            "ja": "共有のCAN-OTA/SPI-OTAトランス",
+            "zh": "共享的 CAN-OTA/SPI-OTA 传输",
+            "pt": "Transporte partilhado CAN-OTA/SPI-OTA"
+          },
+          "tree_desc": {
+            "en": "Shared CAN-OTA/SPI-OTA transport (real port of STUDIO's own canOta.ts) - used by Flasher and Tester",
+            "es": "Transporte compartido CAN-OTA/SPI-OTA (port real del propio canOta.ts de STUDIO) - usado por Flasher y Tester",
+            "de": "Gemeinsamer CAN-OTA/SPI-OTA-Transport (echter Port von STUDIOs eigenem canOta.ts) - genutzt von Flasher und Tester",
+            "fr": "Transport partagé CAN-OTA/SPI-OTA (portage réel du canOta.ts propre à STUDIO) - utilisé par Flasher et Tester",
+            "it": "Trasporto condiviso CAN-OTA/SPI-OTA (porting reale del canOta.ts proprio di STUDIO) - usato da Flasher e Tester",
+            "ja": "共有のCAN-OTA/SPI-OTAトランスポート（STUDIO自身のcanOta.tsの実際の移植）- FlasherとTesterで使用",
+            "zh": "共享的 CAN-OTA/SPI-OTA 传输层（STUDIO 自身 canOta.ts 的真实移植）—— 供 Flasher 和 Tester 使用",
+            "pt": "Transporte partilhado CAN-OTA/SPI-OTA (portagem real do canOta.ts do próprio STUDIO) - usado pelo Flasher e pelo Tester"
+          }
+        },
+        {
+          "name": "logging_handler.py",
+          "desc": {
+            "en": "Routes Python logging into the Logs panel",
+            "es": "Enruta el logging de Python al panel de Logs",
+            "de": "Leitet Python-Logging an das Logs-Panel",
+            "fr": "Route le logging Python vers le panneau Logs",
+            "it": "Instrada il logging Python verso il",
+            "ja": "PythonのロギングをLogsパネルへルー",
+            "zh": "将 Python 日志路由到日志面板",
+            "pt": "Encaminha o logging do Python para o painel"
+          },
+          "tree_desc": {
+            "en": "Routes Python logging into the Logs panel",
+            "es": "Enruta el logging de Python al panel de Logs",
+            "de": "Leitet Python-Logging an das Logs-Panel weiter",
+            "fr": "Route le logging Python vers le panneau Logs",
+            "it": "Instrada il logging Python verso il pannello Logs",
+            "ja": "PythonのロギングをLogsパネルへルーティング",
+            "zh": "将 Python 日志路由到日志面板",
+            "pt": "Encaminha o logging do Python para o painel de Registos"
+          }
+        },
+        {
+          "name": "diagnostics.py",
+          "desc": {
+            "en": "Support bundle",
+            "es": "Paquete de soporte",
+            "de": "Support-Paket (Zip mit Versionen",
+            "fr": "Paquet de support",
+            "it": "Pacchetto per l'assistenza",
+            "ja": "サポート用バンドル（バージョン",
+            "zh": "支持包（含版本、服务器和日志的 zip",
+            "pt": "Pacote de suporte"
+          },
+          "tree_desc": {
+            "en": "Support bundle (zip with versions, servers and the log, credentials left out)",
+            "es": "Paquete de soporte (zip con versiones, servidores y registro, sin credenciales)",
+            "de": "Support-Paket (Zip mit Versionen, Servern und Protokoll, ohne Zugangsdaten)",
+            "fr": "Paquet de support (zip avec versions, serveurs et journal, sans identifiants)",
+            "it": "Pacchetto per l'assistenza (zip con versioni, server e registro, senza credenziali)",
+            "ja": "サポート用バンドル（バージョン、サーバー、ログを含む zip。認証情報は除外）",
+            "zh": "支持包（含版本、服务器和日志的 zip，不含凭据）",
+            "pt": "Pacote de suporte (zip com versões, servidores e registo, sem credenciais)"
+          }
+        },
+        {
+          "name": "net/",
+          "desc": {
+            "en": "REST, WebSocket client and discovery",
+            "es": "cliente REST, WebSocket y descubrimiento",
+            "de": "REST-, WebSocket-Client und Erkennung",
+            "fr": "client REST, WebSocket et découverte",
+            "it": "client REST, WebSocket e individuazione",
+            "ja": "REST・WebSocket クライアントと探索",
+            "zh": "REST、WebSocket 客户端和发现",
+            "pt": "cliente REST, WebSocket e descoberta"
+          },
+          "tree_desc": {
+            "en": "REST, WebSocket client and discovery",
+            "es": "cliente REST, WebSocket y descubrimiento",
+            "de": "REST-, WebSocket-Client und Erkennung",
+            "fr": "client REST, WebSocket et découverte",
+            "it": "client REST, WebSocket e individuazione",
+            "ja": "REST・WebSocket クライアントと探索",
+            "zh": "REST、WebSocket 客户端和发现",
+            "pt": "cliente REST, WebSocket e descoberta"
+          }
+        },
+        {
+          "name": "render/",
+          "desc": {
+            "en": "OpenGL viewport and kinematics",
+            "es": "visor OpenGL y cinemática",
+            "de": "OpenGL-Ansicht und Kinematik",
+            "fr": "vue OpenGL et cinématique",
+            "it": "vista OpenGL e cinematica",
+            "ja": "OpenGL ビューと運動学",
+            "zh": "OpenGL 视图和运动学",
+            "pt": "vista OpenGL e cinemática"
+          },
+          "tree_desc": {
+            "en": "OpenGL viewport and kinematics",
+            "es": "visor OpenGL y cinemática",
+            "de": "OpenGL-Ansicht und Kinematik",
+            "fr": "vue OpenGL et cinématique",
+            "it": "vista OpenGL e cinematica",
+            "ja": "OpenGL ビューと運動学",
+            "zh": "OpenGL 视图和运动学",
+            "pt": "vista OpenGL e cinemática"
+          }
+        },
+        {
+          "name": "robot_catalog.py",
+          "desc": {
+            "en": "Manufacturer and DOF metadata of the 24",
+            "es": "Metadatos de fabricante y grados de",
+            "de": "Hersteller- und Freiheitsgrad-Metadaten der",
+            "fr": "Métadonnées de fabricant et de degrés de",
+            "it": "Metadati di produttore e gradi di libertà",
+            "ja": "24 のロボットモデルのメーカーと自由度のメ",
+            "zh": "24 个机器人型号的制造商与自由度元数据,与",
+            "pt": "Metadados de fabricante e de graus de"
+          },
+          "tree_desc": {
+            "en": "Manufacturer and DOF metadata of the 24 robot models, kept in step by hand with STUDIO's",
+            "es": "Metadatos de fabricante y grados de libertad de los 24 modelos de robot, mantenidos a mano al día con los de STUDIO",
+            "de": "Hersteller- und Freiheitsgrad-Metadaten der 24 Robotermodelle, von Hand mit denen von STUDIO abgeglichen",
+            "fr": "Métadonnées de fabricant et de degrés de liberté des 24 modèles de robot, tenues à jour à la main avec celles de STUDIO",
+            "it": "Metadati di produttore e gradi di libertà dei 24 modelli di robot, tenuti allineati a mano con quelli di STUDIO",
+            "ja": "24 のロボットモデルのメーカーと自由度のメタデータ (STUDIO のものと手作業で同期)",
+            "zh": "24 个机器人型号的制造商与自由度元数据,与 STUDIO 的手动保持一致",
+            "pt": "Metadados de fabricante e de graus de liberdade dos 24 modelos de robô, mantidos à mão alinhados com os do STUDIO"
+          }
+        },
+        {
+          "name": "access.py",
+          "desc": {
+            "en": "Controller id, reservations, safety limits",
+            "es": "Identificador de controlador",
+            "de": "Controller-ID, Reservierungen, vom Server",
+            "fr": "Identifiant de contrôleur",
+            "it": "Identificatore di controller",
+            "ja": "コントローラ ID、予約、サーバーから読む安",
+            "zh": "控制器 ID、预留、从服务器读取的安全限制",
+            "pt": "Identificador de controlador"
+          },
+          "tree_desc": {
+            "en": "Controller id, reservations, safety limits read from the server, Live / Sim - no Qt, no network",
+            "es": "Identificador de controlador, reservas, límites de seguridad leídos del servidor, Live / Sim - sin Qt, sin red",
+            "de": "Controller-ID, Reservierungen, vom Server gelesene Sicherheitsgrenzen, Live / Sim - ohne Qt, ohne Netzwerk",
+            "fr": "Identifiant de contrôleur, réservations, limites de sécurité lues du serveur, Live / Sim - sans Qt, sans réseau",
+            "it": "Identificatore di controller, prenotazioni, limiti di sicurezza letti dal server, Live / Sim - senza Qt, senza rete",
+            "ja": "コントローラ ID、予約、サーバーから読む安全上限、Live / Sim - Qt もネットワークも不要",
+            "zh": "控制器 ID、预留、从服务器读取的安全限制、Live / Sim——不依赖 Qt，不联网",
+            "pt": "Identificador de controlador, reservas, limites de segurança lidos do servidor, Live / Sim - sem Qt, sem rede"
+          }
+        },
+        {
+          "name": "reach.py",
+          "desc": {
+            "en": "Where the tool of each model can be",
+            "es": "Dónde puede estar la herramienta de cada",
+            "de": "Wo das Werkzeug jedes Modells sein kann",
+            "fr": "Où l'outil de chaque modèle peut se trouver",
+            "it": "Dove può trovarsi l'utensile di ogni modello",
+            "ja": "各モデルのツールが届く位置、逆運動学、Wor",
+            "zh": "每个型号的工具可到达的位置、逆运动学和 Wo",
+            "pt": "Onde a ferramenta de cada modelo pode estar"
+          },
+          "tree_desc": {
+            "en": "Where the tool of each model can be, inverse kinematics and scaling of Works - no Qt, no network",
+            "es": "Dónde puede estar la herramienta de cada modelo, cinemática inversa y escalado de Works - sin Qt, sin red",
+            "de": "Wo das Werkzeug jedes Modells sein kann, inverse Kinematik und Skalierung von Works - ohne Qt, ohne Netzwerk",
+            "fr": "Où l'outil de chaque modèle peut se trouver, cinématique inverse et mise à l'échelle des Works - sans Qt, sans réseau",
+            "it": "Dove può trovarsi l'utensile di ogni modello, cinematica inversa e scalatura dei Work - senza Qt, senza rete",
+            "ja": "各モデルのツールが届く位置、逆運動学、Work の拡縮 - Qt もネットワークも不要",
+            "zh": "每个型号的工具可到达的位置、逆运动学和 Work 缩放——不依赖 Qt，不联网",
+            "pt": "Onde a ferramenta de cada modelo pode estar, cinemática inversa e escala de Works - sem Qt, sem rede"
+          }
+        },
+        {
+          "name": "credentials.py",
+          "desc": {
+            "en": "Remembered servers",
+            "es": "Servidores recordados",
+            "de": "Gemerkte Server",
+            "fr": "Serveurs mémorisés",
+            "it": "Server ricordati",
+            "ja": "記憶したサーバー: 設定ファイルとオペレーテ",
+            "zh": "记住的服务器：配置文件和操作系统的安全存储",
+            "pt": "Servidores memorizados"
+          },
+          "tree_desc": {
+            "en": "Remembered servers: the configuration file and the secure store of the operating system (keyring)",
+            "es": "Servidores recordados: el archivo de configuración y el almacén seguro del sistema operativo (keyring)",
+            "de": "Gemerkte Server: Konfigurationsdatei und sicherer Speicher des Betriebssystems (keyring)",
+            "fr": "Serveurs mémorisés : le fichier de configuration et le coffre sécurisé du système d'exploitation (keyring)",
+            "it": "Server ricordati: il file di configurazione e l'archivio sicuro del sistema operativo (keyring)",
+            "ja": "記憶したサーバー: 設定ファイルとオペレーティングシステムの安全な保管領域(keyring)",
+            "zh": "记住的服务器：配置文件和操作系统的安全存储（keyring）",
+            "pt": "Servidores memorizados: o ficheiro de configuração e o armazenamento seguro do sistema operativo (keyring)"
+          }
+        },
+        {
+          "name": "joint_limits.py",
+          "desc": {
+            "en": "Range of each joint of the models",
+            "es": "Rango de cada articulación de los modelos",
+            "de": "Bereich jedes Gelenks der Modelle",
+            "fr": "Plage de chaque articulation des modèles",
+            "it": "Intervallo di ogni giunto dei modelli che",
+            "ja": "可動範囲を公開しているモデルの各関節の範囲",
+            "zh": "公布了范围的型号的每个关节范围",
+            "pt": "Intervalo de cada articulação dos modelos"
+          },
+          "tree_desc": {
+            "en": "Range of each joint of the models that publish one",
+            "es": "Rango de cada articulación de los modelos que lo publican",
+            "de": "Bereich jedes Gelenks der Modelle, die einen veröffentlichen",
+            "fr": "Plage de chaque articulation des modèles qui en publient une",
+            "it": "Intervallo di ogni giunto dei modelli che lo pubblicano",
+            "ja": "可動範囲を公開しているモデルの各関節の範囲",
+            "zh": "公布了范围的型号的每个关节范围",
+            "pt": "Intervalo de cada articulação dos modelos que o publicam"
+          }
+        },
+        {
+          "name": "nav_items.py",
+          "desc": {
+            "en": "The navigation",
+            "es": "La navegación: menú raíz y submenús",
+            "de": "Die Navigation",
+            "fr": "La navigation",
+            "it": "La navigazione",
+            "ja": "ナビゲーション: ルートメニューと Indu",
+            "zh": "导航：根菜单和 Industrial / U",
+            "pt": "A navegação: menu raiz e submenus"
+          },
+          "tree_desc": {
+            "en": "The navigation: root menu and the Industrial / URTC / HYDRA-UMC submenus",
+            "es": "La navegación: menú raíz y submenús Industrial / URTC / HYDRA-UMC",
+            "de": "Die Navigation: Hauptmenü und Untermenüs Industrial / URTC / HYDRA-UMC",
+            "fr": "La navigation : menu racine et sous-menus Industrial / URTC / HYDRA-UMC",
+            "it": "La navigazione: menu radice e sottomenu Industrial / URTC / HYDRA-UMC",
+            "ja": "ナビゲーション: ルートメニューと Industrial / URTC / HYDRA-UMC サブメニュー",
+            "zh": "导航：根菜单和 Industrial / URTC / HYDRA-UMC 子菜单",
+            "pt": "A navegação: menu raiz e submenus Industrial / URTC / HYDRA-UMC"
+          }
+        },
+        {
+          "name": "panel_logic/",
+          "desc": {
+            "en": "What the panels need that does not depend",
+            "es": "Lo que necesitan los paneles y no depende",
+            "de": "Was die Panels brauchen und nicht von einem",
+            "fr": "Ce dont les panneaux ont besoin et qui ne",
+            "it": "Ciò che serve ai pannelli e non dipende da",
+            "ja": "ウィンドウに依存しないパネル用の値と処理",
+            "zh": "面板所需且不依赖窗口的内容：层级",
+            "pt": "O que os painéis precisam e não depende de"
+          },
+          "tree_desc": {
+            "en": "What the panels need that does not depend on a window: tiers, defaults, MJPEG parsing, supervisor charts",
+            "es": "Lo que necesitan los paneles y no depende de una ventana: niveles, valores por defecto, lectura MJPEG, gráficas del supervisor",
+            "de": "Was die Panels brauchen und nicht von einem Fenster abhängt: Stufen, Standardwerte, MJPEG-Lesen, Supervisor-Diagramme",
+            "fr": "Ce dont les panneaux ont besoin et qui ne dépend pas d'une fenêtre : niveaux, valeurs par défaut, lecture MJPEG, graphiques du superviseur",
+            "it": "Ciò che serve ai pannelli e non dipende da una finestra: livelli, valori predefiniti, lettura MJPEG, grafici del supervisore",
+            "ja": "ウィンドウに依存しないパネル用の値と処理: ティア、既定値、MJPEG の解析、スーパーバイザーのグラフ",
+            "zh": "面板所需且不依赖窗口的内容：层级、默认值、MJPEG 解析、监控图表",
+            "pt": "O que os painéis precisam e não depende de uma janela: níveis, valores predefinidos, leitura MJPEG, gráficos do supervisor"
+          }
+        }
+      ],
+      "tree_head": {
+        "en": "source code",
+        "es": "código fuente",
+        "de": "Quellcode",
+        "fr": "code source",
+        "it": "codice sorgente",
+        "ja": "ソースコード",
+        "zh": "源代码",
+        "pt": "código-fonte"
+      },
+      "sub": {
+        "en": "source code",
+        "es": "código fuente",
+        "de": "Quellcode",
+        "fr": "code source",
+        "it": "codice sorgente",
+        "ja": "ソースコード",
+        "zh": "源代码",
+        "pt": "código-fonte"
+      },
+      "columns": 2
+    },
+    {
+      "name": {
+        "en": "folders",
+        "es": "carpetas",
+        "de": "Ordner",
+        "fr": "dossiers",
+        "it": "cartelle",
+        "ja": "フォルダ",
+        "zh": "文件夹",
+        "pt": "pastas"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "b",
+      "columns": 2,
+      "rows": [
+        {
+          "name": ".github/",
+          "desc": {
+            "en": "CI workflow, issue templates, PR template",
+            "es": "Workflow de CI",
+            "de": "CI-Workflow, Issue-Vorlagen, PR-Vorlage",
+            "fr": "Workflow CI, modèles d'issues, modèle de PR",
+            "it": "Workflow CI, template di issue, template di",
+            "ja": "CIワークフロー、issueテンプレート、P",
+            "zh": "CI 工作流、issue 模板、PR 模板",
+            "pt": "Fluxo de trabalho do CI"
+          },
+          "tree_desc": {
+            "en": "CI workflow, issue templates, PR template (generic, ecosystem-shared)",
+            "es": "Workflow de CI, plantillas de issues, plantilla de PR (genérico, compartido en el ecosistema)",
+            "de": "CI-Workflow, Issue-Vorlagen, PR-Vorlage (generisch, ökosystemweit geteilt)",
+            "fr": "Workflow CI, modèles d'issues, modèle de PR (générique, partagé dans l'écosystème)",
+            "it": "Workflow CI, template di issue, template di PR (generico, condiviso nell'ecosistema)",
+            "ja": "CIワークフロー、issueテンプレート、PRテンプレート（汎用、エコシステム共有）",
+            "zh": "CI 工作流、issue 模板、PR 模板（通用，生态系统共享）",
+            "pt": "Fluxo de trabalho do CI, modelos de issues, modelo de PR (genéricos, partilhados pelo ecossistema)"
+          }
+        },
+        {
+          "name": "assets/",
+          "desc": {
+            "en": "QML interface and robot meshes",
+            "es": "interfaz QML y mallas de robots",
+            "de": "QML-Oberfläche und Robotermeshes",
+            "fr": "interface QML et maillages de robots",
+            "it": "interfaccia QML e mesh dei robot",
+            "ja": "QML 画面とロボットのメッシュ",
+            "zh": "QML 界面和机器人网格",
+            "pt": "interface QML e malhas de robôs"
+          },
+          "tree_desc": {
+            "en": "QML interface and robot meshes",
+            "es": "interfaz QML y mallas de robots",
+            "de": "QML-Oberfläche und Robotermeshes",
+            "fr": "interface QML et maillages de robots",
+            "it": "interfaccia QML e mesh dei robot",
+            "ja": "QML 画面とロボットのメッシュ",
+            "zh": "QML 界面和机器人网格",
+            "pt": "interface QML e malhas de robôs"
+          }
+        },
+        {
+          "name": "language/",
+          "desc": {
+            "en": "english/spanish/french/german/italian/japane",
+            "es": "Archivos .lng",
+            "de": ".lng-Dateien",
+            "fr": "Fichiers .lng",
+            "it": "File .lng",
+            "ja": "english/spanish/french",
+            "zh": "english/spanish/french",
+            "pt": "ficheiros .lng"
+          },
+          "tree_desc": {
+            "en": "english/spanish/french/german/italian/japanese/chinese/portuguese .lng files",
+            "es": "Archivos .lng english/spanish/french/german/italian/japanese/chinese/portuguese",
+            "de": ".lng-Dateien english/spanish/french/german/italian/japanese/chinese/portuguese",
+            "fr": "Fichiers .lng english/spanish/french/german/italian/japanese/chinese/portuguese",
+            "it": "File .lng english/spanish/french/german/italian/japanese/chinese/portuguese",
+            "ja": "english/spanish/french/german/italian/japanese/chinese/portugueseの.lngファイル",
+            "zh": "english/spanish/french/german/italian/japanese/chinese/portuguese 的 .lng 文件",
+            "pt": "ficheiros .lng english/spanish/french/german/italian/japanese/chinese/portuguese"
+          }
+        },
+        {
+          "name": "docs/",
+          "desc": {
+            "en": "documents of the project",
+            "es": "documentos del proyecto",
+            "de": "Dokumente des Projekts",
+            "fr": "documents du projet",
+            "it": "documenti del progetto",
+            "ja": "プロジェクトの文書",
+            "zh": "项目文档",
+            "pt": "documentos do projeto"
+          },
+          "tree_desc": {
+            "en": "documents of the project",
+            "es": "documentos del proyecto",
+            "de": "Dokumente des Projekts",
+            "fr": "documents du projet",
+            "it": "documenti del progetto",
+            "ja": "プロジェクトの文書",
+            "zh": "项目文档",
+            "pt": "documentos do projeto"
+          }
+        },
+        {
+          "name": "tools/",
+          "desc": {
+            "en": "project tools and CI checks",
+            "es": "herramientas del proyecto y comprobaciones",
+            "de": "Projektwerkzeuge und CI-Prüfungen",
+            "fr": "outils du projet et vérifications de la CI",
+            "it": "strumenti del progetto e controlli della CI",
+            "ja": "プロジェクトのツールと CI の検査",
+            "zh": "项目工具和 CI 检查",
+            "pt": "ferramentas do projeto e verificações da CI"
+          },
+          "tree_desc": {
+            "en": "project tools and CI checks",
+            "es": "herramientas del proyecto y comprobaciones del CI",
+            "de": "Projektwerkzeuge und CI-Prüfungen",
+            "fr": "outils du projet et vérifications de la CI",
+            "it": "strumenti del progetto e controlli della CI",
+            "ja": "プロジェクトのツールと CI の検査",
+            "zh": "项目工具和 CI 检查",
+            "pt": "ferramentas do projeto e verificações da CI"
+          }
+        },
+        {
+          "name": "tests/",
+          "desc": {
+            "en": "Real headless test suite",
+            "es": "Suite de tests real y sin interfaz",
+            "de": "Echte Testsuite ohne Anzeige",
+            "fr": "Vraie suite de tests sans interface",
+            "it": "Vera suite di test headless",
+            "ja": "実際のヘッドレステストスイート",
+            "zh": "真实的无头测试套件（QApplication",
+            "pt": "Suíte de testes real sem cabeça"
+          },
+          "tree_desc": {
+            "en": "Real headless test suite (QApplication, no display needed) - one verify_*.py per panel/subsystem, plus kinematics ports and manual smoke tests that need a real running STUDIO server",
+            "es": "Suite de tests real y sin interfaz (QApplication, sin necesidad de pantalla) - un verify_*.py por panel/subsistema, más los ports de cinemática y pruebas de humo manuales que necesitan un servidor STUDIO real en marcha",
+            "de": "Echte Testsuite ohne Anzeige (QApplication, kein Display nötig) - ein verify_*.py pro Panel/Subsystem, plus Kinematik-Ports und manuelle Smoke-Tests, die einen echten laufenden STUDIO-Server brauchen",
+            "fr": "Vraie suite de tests sans interface (QApplication, aucun affichage nécessaire) - un verify_*.py par panneau/sous-système, plus les portages de cinématique et des tests de fumée manuels nécessitant un vrai serveur STUDIO en marche",
+            "it": "Vera suite di test headless (QApplication, nessun display necessario) - un verify_*.py per pannello/sottosistema, più i porting di cinematica e test di fumo manuali che necessitano un vero server STUDIO in esecuzione",
+            "ja": "実際のヘッドレステストスイート（QApplication、ディスプレイ不要）- パネル/サブシステムごとに1つのverify_*.py、加えて運動学の移植と、実際に稼働中のSTUDIOサーバーが必要な手動スモークテスト",
+            "zh": "真实的无头测试套件（QApplication，无需显示器）—— 每个面板/子系统一个 verify_*.py，外加运动学移植验证和需要真实运行中 STUDIO 服务器的手动烟雾测试",
+            "pt": "Suíte de testes real sem cabeça (QApplication, sem ecrã) - um verify_*.py por painel/subsistema, mais portagens de cinemática e testes smoke manuais que precisam de um servidor STUDIO real em execução"
+          }
+        },
+        {
+          "name": "installer/",
+          "desc": {
+            "en": "Platform packaging notes/assets",
+            "es": "Notas y recursos de empaquetado por",
+            "de": "Hinweise und Assets zur",
+            "fr": "Notes et ressources de packaging par",
+            "it": "Note e risorse di packaging per piattaforma",
+            "ja": "プラットフォームごとのパッケージング資料・ア",
+            "zh": "各平台打包说明与资源",
+            "pt": "Notas/ativos de empacotamento por plataforma"
+          },
+          "tree_desc": {
+            "en": "Platform packaging notes/assets",
+            "es": "Notas y recursos de empaquetado por plataforma",
+            "de": "Hinweise und Assets zur Plattform-Paketierung",
+            "fr": "Notes et ressources de packaging par plateforme",
+            "it": "Note e risorse di packaging per piattaforma",
+            "ja": "プラットフォームごとのパッケージング資料・アセット",
+            "zh": "各平台打包说明与资源",
+            "pt": "Notas/ativos de empacotamento por plataforma"
+          }
+        },
+        {
+          "name": ".vscode/",
+          "desc": {
+            "en": "Python interpreter path",
+            "es": "Ruta del intérprete Python",
+            "de": "Python-Interpreter-Pfad",
+            "fr": "Chemin de l'interpréteur Python",
+            "it": "Percorso dell'interprete Python",
+            "ja": "Pythonインタープリターのパス",
+            "zh": "Python 解释器路径、启动配置、推荐扩展",
+            "pt": "Caminho do interpretador Python"
+          },
+          "tree_desc": {
+            "en": "Python interpreter path, launch configs, recommended extensions",
+            "es": "Ruta del intérprete Python, configuraciones de lanzamiento, extensiones recomendadas",
+            "de": "Python-Interpreter-Pfad, Startkonfigurationen, empfohlene Erweiterungen",
+            "fr": "Chemin de l'interpréteur Python, configurations de lancement, extensions recommandées",
+            "it": "Percorso dell'interprete Python, configurazioni di avvio, estensioni consigliate",
+            "ja": "Pythonインタープリターのパス、起動構成、推奨拡張機能",
+            "zh": "Python 解释器路径、启动配置、推荐扩展",
+            "pt": "Caminho do interpretador Python, configurações de lançamento, extensões recomendadas"
+          }
+        },
+        {
+          "name": "images/",
+          "desc": {
+            "en": "banner and the pictures of the README",
+            "es": "banner e imágenes del README",
+            "de": "Banner und Bilder der README",
+            "fr": "bannière et images du README",
+            "it": "banner e immagini del README",
+            "ja": "バナーと README の図",
+            "zh": "横幅和 README 的图片",
+            "pt": "faixa e imagens do README"
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "project files",
+        "es": "ficheros del proyecto",
+        "de": "Projektdateien",
+        "fr": "fichiers du projet",
+        "it": "file del progetto",
+        "ja": "プロジェクトのファイル",
+        "zh": "项目文件",
+        "pt": "ficheiros do projeto"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "c",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "main.py",
+          "desc": {
+            "en": "Entry point - starts the Qt Quick interface",
+            "es": "Punto de entrada",
+            "de": "Einstiegspunkt",
+            "fr": "Point d'entrée - lance l'interface Qt Quick",
+            "it": "Punto di ingresso",
+            "ja": "エントリーポイント - Qt Quick イ",
+            "zh": "入口——启动 Qt Quick 界面",
+            "pt": "Ponto de entrada"
+          },
+          "tree_desc": {
+            "en": "Entry point - starts the Qt Quick interface (maximized, 1280x720 min; F11 toggles real full screen)",
+            "es": "Punto de entrada - arranca la interfaz Qt Quick (maximizada, 1280x720 mín.; F11 alterna la pantalla completa real)",
+            "de": "Einstiegspunkt - startet die Qt-Quick-Oberfläche (maximiert, min. 1280x720; F11 schaltet echten Vollbildmodus um)",
+            "fr": "Point d'entrée - lance l'interface Qt Quick (maximisée, 1280x720 min. ; F11 bascule le vrai plein écran)",
+            "it": "Punto di ingresso - avvia l'interfaccia Qt Quick (massimizzata, 1280x720 min.; F11 attiva il vero schermo intero)",
+            "ja": "エントリーポイント - Qt Quick インターフェースを起動(最大化、最小 1280x720。F11 で本当の全画面を切り替え)",
+            "zh": "入口——启动 Qt Quick 界面（最大化，最小 1280x720；F11 切换真正的全屏）",
+            "pt": "Ponto de entrada - inicia a interface Qt Quick (maximizada, 1280x720 mín.; F11 alterna o ecrã inteiro real)"
+          }
+        },
+        {
+          "name": "qt_suite.py",
+          "desc": {
+            "en": "Qt Quick front end",
+            "es": "Interfaz Qt Quick",
+            "de": "Qt-Quick-Frontend",
+            "fr": "Interface Qt Quick",
+            "it": "Interfaccia Qt Quick",
+            "ja": "Qt Quick フロントエンド",
+            "zh": "Qt Quick 前端——把未改动的 Sui",
+            "pt": "Interface Qt Quick"
+          },
+          "tree_desc": {
+            "en": "Qt Quick front end - bridges the unchanged SuiteController to QML (all 33 panels)",
+            "es": "Interfaz Qt Quick - conecta el SuiteController sin cambios con QML (los 33 paneles)",
+            "de": "Qt-Quick-Frontend - verbindet den unveränderten SuiteController mit QML (alle 33 Panels)",
+            "fr": "Interface Qt Quick - relie le SuiteController inchangé à QML (les 33 panneaux)",
+            "it": "Interfaccia Qt Quick - collega il SuiteController invariato a QML (tutti i 33 pannelli)",
+            "ja": "Qt Quick フロントエンド - 変更のない SuiteController を QML につなぐ(全 33 パネル)",
+            "zh": "Qt Quick 前端——把未改动的 SuiteController 连接到 QML（全部 33 个面板）",
+            "pt": "Interface Qt Quick - liga o SuiteController sem alterações ao QML (os 33 painéis)"
+          }
+        },
+        {
+          "name": "verify_qt_suite_shell.py",
+          "desc": {
+            "en": "Real, hardware/network-free Qt Quick shell",
+            "es": "Comprobación real de la shell Qt Quick sin",
+            "de": "Echter, hardware-/netzwerkfreier Check der",
+            "fr": "Vérification réelle de la shell Qt Quick",
+            "it": "Verifica reale della shell Qt Quick senza",
+            "ja": "ハードウェア/ネットワーク不要の本物のQt",
+            "zh": "不依赖硬件/网络的真实 Qt Quick 外",
+            "pt": "Verificação real do shell Qt Quick"
+          },
+          "tree_desc": {
+            "en": "Real, hardware/network-free Qt Quick shell check - deliberately kept outside tests/ (same reason as URTC-TESTER/URTC-FLASHER's own verify_qt_*.py), run with `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`",
+            "es": "Comprobación real de la shell Qt Quick sin hardware/red - deliberadamente fuera de tests/ (mismo motivo que los propios verify_qt_*.py de URTC-TESTER/URTC-FLASHER), se ejecuta con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`",
+            "de": "Echter, hardware-/netzwerkfreier Check der Qt-Quick-Shell - bewusst außerhalb von tests/ (gleicher Grund wie bei URTC-TESTER/URTC-FLASHERs eigenen verify_qt_*.py), ausgeführt mit `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`",
+            "fr": "Vérification réelle de la shell Qt Quick sans matériel/réseau - délibérément hors de tests/ (même raison que les propres verify_qt_*.py d'URTC-TESTER/URTC-FLASHER), exécutée avec `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`",
+            "it": "Verifica reale della shell Qt Quick senza hardware/rete - deliberatamente fuori da tests/ (stesso motivo dei propri verify_qt_*.py di URTC-TESTER/URTC-FLASHER), eseguita con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`",
+            "ja": "ハードウェア/ネットワーク不要の本物のQt Quickシェルチェック —— tests/ の外に意図的に配置(URTC-TESTER/URTC-FLASHER自身のverify_qt_*.pyと同じ理由)、`QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` で実行",
+            "zh": "不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行",
+            "pt": "Verificação real do shell Qt Quick, sem hardware nem rede - deliberadamente fora de tests/ (pela mesma razão dos verify_qt_*.py do URTC-TESTER/URTC-FLASHER), execute com `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`"
+          }
+        },
+        {
+          "name": "requirements.txt",
+          "desc": {
+            "en": "pinned dependencies",
+            "es": "dependencias fijadas",
+            "de": "festgelegte Abhängigkeiten",
+            "fr": "dépendances figées",
+            "it": "dipendenze fissate",
+            "ja": "固定された依存関係",
+            "zh": "固定的依赖",
+            "pt": "dependências fixadas"
+          },
+          "tree_desc": {
+            "en": "pinned dependencies",
+            "es": "dependencias fijadas",
+            "de": "festgelegte Abhängigkeiten",
+            "fr": "dépendances figées",
+            "it": "dipendenze fissate",
+            "ja": "固定された依存関係",
+            "zh": "固定的依赖",
+            "pt": "dependências fixadas"
+          }
+        },
+        {
+          "name": "hydra-umc.project.json",
+          "desc": {
+            "en": "Ecosystem manifest",
+            "es": "Manifiesto del ecosistema",
+            "de": "Ökosystem-Manifest",
+            "fr": "Manifeste de l'écosystème",
+            "it": "Manifesto dell'ecosistema",
+            "ja": "エコシステムマニフェスト - バージョン/フ",
+            "zh": "生态系统清单 - 版本/家族/父项目",
+            "pt": "Manifesto do ecossistema"
+          },
+          "tree_desc": {
+            "en": "Ecosystem manifest - version/family/parent, the source dashboard/updater/OS-REBUILDER read",
+            "es": "Manifiesto del ecosistema - versión/familia/padre, la fuente que leen dashboard/updater/OS-REBUILDER",
+            "de": "Ökosystem-Manifest - Version/Familie/Elternteil, die Quelle, die Dashboard/Updater/OS-REBUILDER lesen",
+            "fr": "Manifeste de l'écosystème - version/famille/parent, la source que lisent dashboard/updater/OS-REBUILDER",
+            "it": "Manifesto dell'ecosistema - versione/famiglia/genitore, la fonte letta da dashboard/updater/OS-REBUILDER",
+            "ja": "エコシステムマニフェスト - バージョン/ファミリー/親、dashboard/updater/OS-REBUILDERが読み取る実際の情報源",
+            "zh": "生态系统清单 - 版本/家族/父项目，dashboard/updater/OS-REBUILDER 读取的真实来源",
+            "pt": "Manifesto do ecossistema - versão/família/pai, a fonte que o painel/atualizador/OS-REBUILDER leem"
+          }
+        },
+        {
+          "name": "bump_version.py",
+          "desc": {
+            "en": "explicit version bump",
+            "es": "Incremento de versión tipo cuentakilómetros",
+            "de": "ausdrückliche Versionserhöhung",
+            "fr": "Incrément de version type compteur",
+            "it": "Incremento di versione stile contachilometri",
+            "ja": "明示的なバージョン更新",
+            "zh": "显式提升版本",
+            "pt": "Subida de versão ao estilo conta-quilómetros"
+          },
+          "tree_desc": {
+            "en": "explicit version bump",
+            "es": "Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)",
+            "de": "ausdrückliche Versionserhöhung",
+            "fr": "Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)",
+            "it": "Incremento di versione stile contachilometri (eseguito solo dal comando `bump` esplicito)",
+            "ja": "明示的なバージョン更新",
+            "zh": "显式提升版本",
+            "pt": "Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)"
+          }
+        },
+        {
+          "name": "bump_manifest_version.py",
+          "desc": {
+            "en": "Syncs hydra-umc.project.json's version",
+            "es": "Sincroniza la versión de",
+            "de": "Synchronisiert die Version von",
+            "fr": "Synchronise la version de",
+            "it": "Sincronizza la versione di",
+            "ja": "hydra-umc.project.json",
+            "zh": "将 hydra-umc.project.js",
+            "pt": "Sincroniza a versão do"
+          },
+          "tree_desc": {
+            "en": "Syncs hydra-umc.project.json's version to the native one (generic, copied verbatim across the ecosystem)",
+            "es": "Sincroniza la versión de hydra-umc.project.json con la nativa (genérico, copiado tal cual en todo el ecosistema)",
+            "de": "Synchronisiert die Version von hydra-umc.project.json mit der nativen (generisch, unverändert im gesamten Ökosystem kopiert)",
+            "fr": "Synchronise la version de hydra-umc.project.json avec la version native (générique, copié tel quel dans tout l'écosystème)",
+            "it": "Sincronizza la versione di hydra-umc.project.json con quella nativa (generico, copiato tale e quale in tutto l'ecosistema)",
+            "ja": "hydra-umc.project.jsonのバージョンをネイティブのものと同期（汎用、エコシステム全体でそのままコピーされる）",
+            "zh": "将 hydra-umc.project.json 的版本与原生版本同步（通用，在整个生态系统中原样复制）",
+            "pt": "Sincroniza a versão do hydra-umc.project.json com a nativa (genérico, copiado tal como está por todo o ecossistema)"
+          }
+        },
+        {
+          "name": "build-test.bat / build-test.sh",
+          "desc": {
+            "en": "activates .venv and runs tools/build_test.py",
+            "es": "activa .venv y ejecuta tools/build_test.py",
+            "de": "aktiviert .venv und führt",
+            "fr": "active .venv et lance tools/build_test.py",
+            "it": "attiva .venv ed esegue tools/build_test.py",
+            "ja": ".venv を有効化して tools/bui",
+            "zh": "激活 .venv 并运行 tools/bui",
+            "pt": "ativa o .venv e executa tools/build_test.py"
+          },
+          "tree_desc": {
+            "en": "activates .venv and runs tools/build_test.py (the real test suite), non-mutating - never bumps the version or touches CHANGELOG.md",
+            "es": "activa .venv y ejecuta tools/build_test.py (la suite de tests real), sin mutar - nunca sube la versión ni toca CHANGELOG.md",
+            "de": "aktiviert .venv und führt tools/build_test.py aus (die echte Testsuite), ohne Mutation - erhöht nie die Version, rührt CHANGELOG.md nie an",
+            "fr": "active .venv et lance tools/build_test.py (la véritable suite de tests), sans mutation - ne modifie jamais la version ni CHANGELOG.md",
+            "it": "attiva .venv ed esegue tools/build_test.py (la vera suite di test), senza mutazioni - non incrementa mai la versione né tocca CHANGELOG.md",
+            "ja": ".venv を有効化して tools/build_test.py（実際のテストスイート）を実行、変更を伴わない - バージョンを増分せず、CHANGELOG.mdにも触れない",
+            "zh": "激活 .venv 并运行 tools/build_test.py（真实测试套件），不产生变更 - 从不递增版本，也不改动 CHANGELOG.md",
+            "pt": "ativa o .venv e executa tools/build_test.py (a suíte de testes real), sem alterações - nunca sobe a versão nem toca no CHANGELOG.md"
+          }
+        },
+        {
+          "name": "run.bat / run.sh",
+          "desc": {
+            "en": "Launches main.py through the venv",
+            "es": "Lanza main.py a través del venv",
+            "de": "Startet main.py über das venv",
+            "fr": "Lance main.py via le venv",
+            "it": "Avvia main.py tramite il venv",
+            "ja": "venv経由でmain.pyを起動",
+            "zh": "通过 venv 启动 main.py",
+            "pt": "Lança o main.py através do venv"
+          },
+          "tree_desc": {
+            "en": "Launches main.py through the venv",
+            "es": "Lanza main.py a través del venv",
+            "de": "Startet main.py über das venv",
+            "fr": "Lance main.py via le venv",
+            "it": "Avvia main.py tramite il venv",
+            "ja": "venv経由でmain.pyを起動",
+            "zh": "通过 venv 启动 main.py",
+            "pt": "Lança o main.py através do venv"
+          }
+        },
+        {
+          "name": "HYDRA-UMC_SUITE.spec",
+          "desc": {
+            "en": "PyInstaller spec",
+            "es": "Spec de PyInstaller",
+            "de": "PyInstaller-Spec",
+            "fr": "Spec PyInstaller",
+            "it": "Spec di PyInstaller",
+            "ja": "PyInstallerスペック",
+            "zh": "PyInstaller 规格文件",
+            "pt": "Especificação do PyInstaller"
+          },
+          "tree_desc": {
+            "en": "PyInstaller spec (see build_exe.bat/.sh below)",
+            "es": "Spec de PyInstaller (ver build_exe.bat/.sh abajo)",
+            "de": "PyInstaller-Spec (siehe build_exe.bat/.sh unten)",
+            "fr": "Spec PyInstaller (voir build_exe.bat/.sh ci-dessous)",
+            "it": "Spec di PyInstaller (vedi build_exe.bat/.sh sotto)",
+            "ja": "PyInstallerスペック（下記build_exe.bat/.sh参照）",
+            "zh": "PyInstaller 规格文件（见下方 build_exe.bat/.sh）",
+            "pt": "Especificação do PyInstaller (ver build_exe.bat/.sh abaixo)"
+          }
+        },
+        {
+          "name": "build_exe.bat",
+          "desc": {
+            "en": "One-shot Windows build ->",
+            "es": "Build de Windows en un paso ->",
+            "de": "Windows-Build in einem Schritt ->",
+            "fr": "Build Windows en une étape ->",
+            "it": "Build Windows in un passaggio ->",
+            "ja": "ワンショットのWindowsビルド -> d",
+            "zh": "一步式 Windows 构建 -> dist",
+            "pt": "Compilação num só passo para Windows ->"
+          },
+          "tree_desc": {
+            "en": "One-shot Windows build -> dist/HYDRA-UMC_SUITE.exe",
+            "es": "Build de Windows en un paso -> dist/HYDRA-UMC_SUITE.exe",
+            "de": "Windows-Build in einem Schritt -> dist/HYDRA-UMC_SUITE.exe",
+            "fr": "Build Windows en une étape -> dist/HYDRA-UMC_SUITE.exe",
+            "it": "Build Windows in un passaggio -> dist/HYDRA-UMC_SUITE.exe",
+            "ja": "ワンショットのWindowsビルド -> dist/HYDRA-UMC_SUITE.exe",
+            "zh": "一步式 Windows 构建 -> dist/HYDRA-UMC_SUITE.exe",
+            "pt": "Compilação num só passo para Windows -> dist/HYDRA-UMC_SUITE.exe"
+          }
+        },
+        {
+          "name": "build_exe.sh",
+          "desc": {
+            "en": "One-shot Linux build -> dist/HYDRA-UMC_SUITE",
+            "es": "Build de Linux en un paso ->",
+            "de": "Linux-Build in einem Schritt ->",
+            "fr": "Build Linux en une étape ->",
+            "it": "Build Linux in un passaggio ->",
+            "ja": "ワンショットのLinuxビルド -> dis",
+            "zh": "一步式 Linux 构建 -> dist/H",
+            "pt": "Compilação num só passo para Linux ->"
+          },
+          "tree_desc": {
+            "en": "One-shot Linux build -> dist/HYDRA-UMC_SUITE",
+            "es": "Build de Linux en un paso -> dist/HYDRA-UMC_SUITE",
+            "de": "Linux-Build in einem Schritt -> dist/HYDRA-UMC_SUITE",
+            "fr": "Build Linux en une étape -> dist/HYDRA-UMC_SUITE",
+            "it": "Build Linux in un passaggio -> dist/HYDRA-UMC_SUITE",
+            "ja": "ワンショットのLinuxビルド -> dist/HYDRA-UMC_SUITE",
+            "zh": "一步式 Linux 构建 -> dist/HYDRA-UMC_SUITE",
+            "pt": "Compilação num só passo para Linux -> dist/HYDRA-UMC_SUITE"
+          }
+        },
+        {
+          "name": "CHANGELOG.md ...",
+          "desc": {
+            "en": "what changed in each version",
+            "es": "qué cambió en cada versión",
+            "de": "was sich in jeder Version geändert hat",
+            "fr": "ce qui a changé à chaque version",
+            "it": "cosa è cambiato in ogni versione",
+            "ja": "各バージョンの変更点",
+            "zh": "每个版本的变更",
+            "pt": "o que mudou em cada versão"
+          },
+          "tree_desc": {
+            "en": "what changed in each version",
+            "es": "qué cambió en cada versión",
+            "de": "was sich in jeder Version geändert hat",
+            "fr": "ce qui a changé à chaque version",
+            "it": "cosa è cambiato in ogni versione",
+            "ja": "各バージョンの変更点",
+            "zh": "每个版本的变更",
+            "pt": "o que mudou em cada versão"
+          },
+          "tree_name": "CHANGELOG.md / CODE_OF_CONDUCT.md / CONTRIBUTING.md / SECURITY.md / SUPPORT.md / LICENSE / LICENSE.md"
+        },
+        {
+          "name": "test.sh",
+          "desc": {
+            "en": "runs the tests",
+            "es": "ejecuta las pruebas",
+            "de": "führt die Tests aus",
+            "fr": "lance les tests",
+            "it": "esegue i test",
+            "ja": "テストを実行",
+            "zh": "运行测试",
+            "pt": "executa os testes"
+          }
+        }
+      ]
+    }
+  ]
+}
