@@ -707,6 +707,7 @@ ACCESS_CONDITIONAL_STRICT=严格:除 STOP 外的所有命令
 ACCESS_CONDITIONAL_OFF=关闭:不检查直接发送
 ACCESS_CONDITIONAL_HINT=每次写入都带有此程序最后看到的机器人修订号;如果期间有人修改了机器人,服务器会拒绝(412)并重新读取机器人。点动和速度在标准模式下不检查,因为它们每秒重复多次。STOP 永远不检查。
 MSG_NET_REJ_REVISION={what} 未被应用:自此程序上次读取以来,机器人已发生变化(其他操作员或其他窗口)。已从服务器重新读取:请检查,如仍需要请重新操作。
+MSG_NET_REJ_STALE={what} 未被应用:此程序较新的运动指令已先到达机器人,因此该指令乱序到达。如仍需要请重新操作。
 MSG_ACCESS_REVISION_CHANGED={what} 未被应用:自此程序上次读取以来,机器人已发生变化(其他操作员或其他窗口)。已从服务器重新读取:请检查后重试。{detail}
 
 # User accounts panel (administrators only)

@@ -707,6 +707,7 @@ ACCESS_CONDITIONAL_STRICT=Estrito: todos os comandos exceto STOP
 ACCESS_CONDITIONAL_OFF=Desligado: enviar sem verificar
 ACCESS_CONDITIONAL_HINT=Cada escrita leva a revisão do robô que este programa viu pela última vez; se outra pessoa mudou o robô entretanto, o servidor recusa (412) e o robô é lido de novo. O jog e a velocidade não são verificados no modo Padrão porque se repetem muitas vezes por segundo. O STOP nunca é verificado.
 MSG_NET_REJ_REVISION={what} não aplicado: o robô mudou desde a última vez que este programa o leu (outro operador ou outra janela). Foi lido de novo a partir do servidor: verifique-o e repita a ação se ainda for a pretendida.
+MSG_NET_REJ_STALE={what} não aplicado: um comando de movimento mais recente deste programa já tinha chegado ao robô, por isso este chegou fora de ordem. Repita-o se ainda for o pretendido.
 MSG_ACCESS_REVISION_CHANGED={what} não aplicado: o robô mudou desde a última vez que este programa o leu (outro operador ou outra janela). Foi lido de novo a partir do servidor: verifique-o e tente de novo. {detail}
 
 # User accounts panel (administrators only)

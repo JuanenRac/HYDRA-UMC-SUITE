@@ -36,7 +36,7 @@ import httpx
 import websockets
 from PySide6.QtCore import QObject, Signal
 
-from hydra_suite import access
+from hydra_suite import access, command_sequence
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
@@ -210,6 +210,8 @@ def describe_rejection(resp: "httpx.Response", what: str) -> str:
         return _("MSG_NET_REJ_AUTH", what=what)
     if status == 412 or code == "revision-mismatch":
         return _("MSG_NET_REJ_REVISION", what=what)
+    if code == "stale-sequence":
+        return _("MSG_NET_REJ_STALE", what=what)
     if code == "jog-not-armed":
         return _("MSG_NET_REJ_NOT_ARMED", what=what, detail=_body_error(resp))
     if code == "controller-id-required":
@@ -982,7 +984,7 @@ class HydraConnection(QObject):
             try:
                 resp = await self._http(
                     "POST", f"/api/robot/{robot_id}/command", headers=headers,
-                    json={"command": name, "params": body_params, "controllerId": access.get_controller_id()},
+                    json={"command": name, "params": body_params, "controllerId": access.get_controller_id(), **command_sequence.next_for(name)},
                 )
             except BaseException:
                 self.revisions.finish(robot_id, ticket.seq, None)
@@ -1285,7 +1287,7 @@ class HydraConnection(QObject):
             for attempt in range(2):
                 try:
                     resp = await self._http(
-                        "POST", f"/api/robot/{robot.id}/command", timeout=STOP_ALL_TIMEOUT_S, json={"command": "stop", "params": {}}
+                        "POST", f"/api/robot/{robot.id}/command", timeout=STOP_ALL_TIMEOUT_S, json={"command": "stop", "params": {}, **command_sequence.next_for("stop")}
                     )
                     error = None if resp.status_code < 400 else describe_rejection(resp, _("MSG_NET_WHAT_STOP"))
                     break

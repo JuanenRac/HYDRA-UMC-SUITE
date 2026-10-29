@@ -707,6 +707,7 @@ ACCESS_CONDITIONAL_STRICT=Strict: every command except STOP
 ACCESS_CONDITIONAL_OFF=Off: send commands without checking
 ACCESS_CONDITIONAL_HINT=Each write carries the revision of the robot this program last saw; if someone else changed the robot in between, the server refuses it (412) and the robot is read again. Jog and speed are not checked in Standard because they repeat many times a second. STOP is never checked.
 MSG_NET_REJ_REVISION={what} not applied: the robot changed since this program last read it (another operator or window). It was read again from the server: check it and repeat the action if it is still wanted.
+MSG_NET_REJ_STALE={what} not applied: a newer motion command from this program had already reached the robot, so this one arrived out of order. Repeat it if it is still wanted.
 MSG_ACCESS_REVISION_CHANGED={what} not applied: the robot changed since this program last read it (another operator or window). It was read again from the server: check it and try again. {detail}
 
 # User accounts panel (administrators only)

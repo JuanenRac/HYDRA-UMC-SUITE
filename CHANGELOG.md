@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Motion commands are numbered:** a jog, a table move, a joint move and a stop carry a rising number, so the server can refuse a jog that arrives after a later stop; a refusal for arriving out of order has its own message in the eight languages and a test of its own.
+
 - **README in the universal layout:** the README and its seven translations follow the layout that the four families share (22 sections in a fixed order), with an architecture picture and a repository-structure picture drawn from `docs/architecture.json` and `docs/structure.json`; the CI validator checks both pictures and the file tree.
 
 - **Server Admin has three more switches:** whether a voice reply repeats what was said, the least confidence of the speech recognizer before a request that starts a movement is accepted, and the MAVLink 2 signing key file with the switch for unsigned messages. Each shows where its value comes from (the environment of the server wins and locks the field), asks for a confirmation before the protection is lowered, and is written in the eight languages. The defaults are the conservative ones. Tested.

@@ -708,6 +708,7 @@ ACCESS_CONDITIONAL_STRICT=Streng: jeder Befehl außer STOP
 ACCESS_CONDITIONAL_OFF=Aus: Befehle ohne Prüfung senden
 ACCESS_CONDITIONAL_HINT=Jeder Schreibzugriff trägt die Revision des Roboters, die dieses Programm zuletzt gesehen hat; hat jemand den Roboter inzwischen geändert, lehnt der Server ab (412) und der Roboter wird neu gelesen. Jog und Geschwindigkeit werden im Standard nicht geprüft, weil sie sich viele Male pro Sekunde wiederholen. STOP wird nie geprüft.
 MSG_NET_REJ_REVISION={what} nicht ausgeführt: der Roboter hat sich geändert, seit dieses Programm ihn zuletzt gelesen hat (anderer Bediener oder anderes Fenster). Er wurde erneut vom Server gelesen: Prüfen Sie ihn und wiederholen Sie die Aktion, falls sie noch gewünscht ist.
+MSG_NET_REJ_STALE={what} nicht ausgeführt: ein neuerer Bewegungsbefehl dieses Programms hatte den Roboter bereits erreicht, dieser traf also außer der Reihe ein. Wiederholen Sie ihn, falls er noch gewünscht ist.
 MSG_ACCESS_REVISION_CHANGED={what} nicht ausgeführt: der Roboter hat sich geändert, seit dieses Programm ihn zuletzt gelesen hat (anderer Bediener oder anderes Fenster). Er wurde erneut vom Server gelesen: Prüfen Sie ihn und versuchen Sie es erneut. {detail}
 
 # User accounts panel (administrators only)
