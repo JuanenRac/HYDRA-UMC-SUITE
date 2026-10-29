@@ -794,6 +794,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=MQTT ブローカー経由で届いたコマ�
 SECURITY_MQTT_COMMANDS_WARNING=MQTT 経由のコマンドが有効です。ブローカーに発行できる人は、そのアカウントのロールの範囲でロボットを操作できます。
 SECURITY_MQTT_INVALID=MQTT の項目を確認してください。アドレスは mqtt://、mqtts://、ws://、wss:// で始まり、コマンドには実行用アカウントが必要です。
 TITLE_SECURITY_MQTT_COMMANDS=MQTT 経由のコマンド
+LBL_SECURITY_VOICE=音声アシスタント
+TITLE_SECURITY_VOICE=音声アシスタント
+LBL_SECURITY_VOICE_HEARD=音声の返答が聞き取った内容を繰り返す(個人データ。既定はオフ)
+LBL_SECURITY_VOICE_CONFIDENCE=動作を開始する要求を受け付けるための音声認識の最小信頼度(0〜1)
+LBL_SECURITY_VOICE_HELP=次の音声ターンから適用されます。0 にすると信頼度の確認を無効にします。停止は決して保留されません。音声サービスの環境変数がこれらの値を設定している場合は、そちらが優先されます。
+SECURITY_VOICE_INVALID=信頼度は 0〜1 の数値にしてください。
+MSG_SECURITY_VOICE_CONFIRM=音声コマンドの保護を弱めますか?聞き取った内容を表示すると、すべての返答に個人データが含まれ、最小信頼度 0 では認識が確信していない要求も受け付けます。
+SECURITY_VOICE_HEARD_WARNING=音声の返答が聞き取った内容を繰り返すようになりました。
+SECURITY_VOICE_CONFIDENCE_WARNING=信頼度の確認がオフです。認識が確信していない要求で動作が開始される可能性があります。
+LBL_SECURITY_MAVLINK=MAVLink 2 署名(UAV ブリッジ)
+TITLE_SECURITY_MAVLINK=MAVLink 2 署名(UAV ブリッジ)
+LBL_SECURITY_MAVLINK_KEY=32 バイトの署名鍵のファイル(空: 署名なし)
+PH_SECURITY_MAVLINK_KEY=/path/to/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=署名されていないメッセージも引き続き受け付ける(まだ署名しない機体)
+LBL_SECURITY_MAVLINK_HELP=保存されるのは鍵ファイルのパスだけで、鍵そのものは保存されません。ファイルは 32 バイトまたは 16 進数 64 文字である必要があります。UAV ブリッジは起動時にこれを読み込みます。
+MSG_SECURITY_MAVLINK_CONFIRM=MAVLink 署名をオフにするか、未署名メッセージを受け付けますか?署名がないと、リンクに到達できる誰でも機体にコマンドを送れます。
+SECURITY_MAVLINK_UNSIGNED_WARNING=未署名の MAVLink メッセージも受け付けています。署名では偽造メッセージからリンクを守れません。
+SECURITY_MAVLINK_OFF_WARNING=MAVLink 署名がオフです。機体とのリンクは認証されていません。
+SECURITY_MAVLINK_SIGNING_ON=署名はオンです。
+SECURITY_MAVLINK_SIGNING_OFF=署名はオフです。
 MSG_NET_OPERATOR_LOCAL_ONLY=このアカウントはオペレーターです。ロボットは操作できますが、設定、記録済みの点、レイアウトの変更をサーバーが受け付けるのは管理者からだけです。変更した内容はこのウィンドウ内にだけ残り、保存されません。
 
 # Submitted models panel (STUDIO parity)

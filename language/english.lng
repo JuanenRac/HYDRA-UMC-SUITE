@@ -794,6 +794,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=Carry out commands that arrive on the MQTT br
 SECURITY_MQTT_COMMANDS_WARNING=Commands over MQTT are on: whoever can publish on the broker can drive the robots within the role of that account.
 SECURITY_MQTT_INVALID=Check the MQTT fields: the address starts with mqtt://, mqtts://, ws:// or wss://, and commands need the account that carries them out.
 TITLE_SECURITY_MQTT_COMMANDS=Commands over MQTT
+LBL_SECURITY_VOICE=Voice assistant
+TITLE_SECURITY_VOICE=Voice assistant
+LBL_SECURITY_VOICE_HEARD=A voice reply repeats what was said (personal data; off by default)
+LBL_SECURITY_VOICE_CONFIDENCE=Least confidence of the speech recognizer (0 to 1) to accept a request that starts a movement
+LBL_SECURITY_VOICE_HELP=Applies from the next voice turn. 0 switches the confidence check off; a stop is never held back. The environment of the voice service, if it sets these values, wins.
+SECURITY_VOICE_INVALID=The confidence must be a number from 0 to 1.
+MSG_SECURITY_VOICE_CONFIRM=Lower the protection of the voice commands? Showing what was said puts personal data in every reply, and a minimum confidence of 0 accepts requests the recognizer was not sure of.
+SECURITY_VOICE_HEARD_WARNING=Voice replies now repeat what was said.
+SECURITY_VOICE_CONFIDENCE_WARNING=The confidence check is off: a movement can be started by a request the recognizer was not sure of.
+LBL_SECURITY_MAVLINK=MAVLink 2 signing (UAV bridge)
+TITLE_SECURITY_MAVLINK=MAVLink 2 signing (UAV bridge)
+LBL_SECURITY_MAVLINK_KEY=File with the 32-byte signing key (empty: no signing)
+PH_SECURITY_MAVLINK_KEY=/path/to/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=Still accept messages that are not signed (a vehicle that does not sign yet)
+LBL_SECURITY_MAVLINK_HELP=Only the path of the key file is saved, never the key; the file must hold 32 bytes or 64 hexadecimal characters. The UAV bridge reads this when it starts.
+MSG_SECURITY_MAVLINK_CONFIRM=Turn MAVLink signing off, or accept unsigned messages? Without signing, anyone who can reach the link can send commands to the vehicle.
+SECURITY_MAVLINK_UNSIGNED_WARNING=Unsigned MAVLink messages are still accepted: the signing does not protect the link from forged messages.
+SECURITY_MAVLINK_OFF_WARNING=MAVLink signing is off: the link to the vehicle is not authenticated.
+SECURITY_MAVLINK_SIGNING_ON=Signing is on.
+SECURITY_MAVLINK_SIGNING_OFF=Signing is off.
 MSG_NET_OPERATOR_LOCAL_ONLY=This account is an operator: it can drive the robots, but the server accepts changes to the settings, the recorded points and the layout only from an administrator. What you changed stays in this window and is not saved.
 
 # Submitted models panel (STUDIO parity)

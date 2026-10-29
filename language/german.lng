@@ -795,6 +795,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=Befehle ausführen, die über den MQTT-Broker
 SECURITY_MQTT_COMMANDS_WARNING=Befehle über MQTT sind aktiv: Wer auf dem Broker veröffentlichen kann, kann die Roboter im Rahmen der Rolle dieses Kontos steuern.
 SECURITY_MQTT_INVALID=Prüfe die MQTT-Felder: Die Adresse beginnt mit mqtt://, mqtts://, ws:// oder wss://, und Befehle brauchen das Konto, das sie ausführt.
 TITLE_SECURITY_MQTT_COMMANDS=Befehle über MQTT
+LBL_SECURITY_VOICE=Sprachassistent
+TITLE_SECURITY_VOICE=Sprachassistent
+LBL_SECURITY_VOICE_HEARD=Eine Sprachantwort wiederholt das Gesagte (personenbezogene Daten; standardmäßig aus)
+LBL_SECURITY_VOICE_CONFIDENCE=Mindestsicherheit der Spracherkennung (0 bis 1) für eine Anfrage, die eine Bewegung startet
+LBL_SECURITY_VOICE_HELP=Gilt ab dem nächsten Sprachdurchgang. 0 schaltet die Prüfung aus; ein Stopp wird nie zurückgehalten. Setzt die Umgebung des Sprachdienstes diese Werte, hat sie Vorrang.
+SECURITY_VOICE_INVALID=Die Sicherheit muss eine Zahl von 0 bis 1 sein.
+MSG_SECURITY_VOICE_CONFIRM=Den Schutz der Sprachbefehle senken? Das Anzeigen des Gesagten legt personenbezogene Daten in jede Antwort, und eine Mindestsicherheit von 0 nimmt Anfragen an, bei denen sich die Erkennung nicht sicher war.
+SECURITY_VOICE_HEARD_WARNING=Sprachantworten wiederholen jetzt das Gesagte.
+SECURITY_VOICE_CONFIDENCE_WARNING=Die Sicherheitsprüfung ist aus: Eine Bewegung kann durch eine Anfrage gestartet werden, bei der sich die Erkennung nicht sicher war.
+LBL_SECURITY_MAVLINK=MAVLink-2-Signatur (UAV-Brücke)
+TITLE_SECURITY_MAVLINK=MAVLink-2-Signatur (UAV-Brücke)
+LBL_SECURITY_MAVLINK_KEY=Datei mit dem 32-Byte-Signaturschlüssel (leer: keine Signatur)
+PH_SECURITY_MAVLINK_KEY=/pfad/zu/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=Nicht signierte Nachrichten weiter annehmen (ein Fahrzeug, das noch nicht signiert)
+LBL_SECURITY_MAVLINK_HELP=Gespeichert wird nur der Pfad der Schlüsseldatei, nie der Schlüssel; die Datei muss 32 Bytes oder 64 Hexadezimalzeichen enthalten. Die UAV-Brücke liest dies beim Start.
+MSG_SECURITY_MAVLINK_CONFIRM=MAVLink-Signatur ausschalten oder unsignierte Nachrichten annehmen? Ohne Signatur kann jeder, der die Verbindung erreicht, Befehle an das Fahrzeug senden.
+SECURITY_MAVLINK_UNSIGNED_WARNING=Unsignierte MAVLink-Nachrichten werden weiter angenommen: Die Signatur schützt die Verbindung nicht vor gefälschten Nachrichten.
+SECURITY_MAVLINK_OFF_WARNING=Die MAVLink-Signatur ist aus: Die Verbindung zum Fahrzeug ist nicht authentifiziert.
+SECURITY_MAVLINK_SIGNING_ON=Die Signatur ist an.
+SECURITY_MAVLINK_SIGNING_OFF=Die Signatur ist aus.
 MSG_NET_OPERATOR_LOCAL_ONLY=Dieses Konto ist ein Bediener: Es kann die Roboter steuern, aber der Server nimmt Änderungen der Einstellungen, der aufgezeichneten Punkte und des Layouts nur von einem Administrator an. Was Sie geändert haben, bleibt in diesem Fenster und wird nicht gespeichert.
 
 # Submitted models panel (STUDIO parity)

@@ -794,6 +794,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=Executar os comandos que chegam pelo broker M
 SECURITY_MQTT_COMMANDS_WARNING=Os comandos por MQTT estão ativos: quem puder publicar no broker pode mover os robôs dentro da função dessa conta.
 SECURITY_MQTT_INVALID=Verifique os campos MQTT: o endereço começa por mqtt://, mqtts://, ws:// ou wss://, e os comandos precisam da conta que os executa.
 TITLE_SECURITY_MQTT_COMMANDS=Comandos por MQTT
+LBL_SECURITY_VOICE=Assistente de voz
+TITLE_SECURITY_VOICE=Assistente de voz
+LBL_SECURITY_VOICE_HEARD=Uma resposta de voz repete o que foi dito (dados pessoais; desligado por defeito)
+LBL_SECURITY_VOICE_CONFIDENCE=Confiança mínima do reconhecedor de voz (0 a 1) para aceitar um pedido que inicia um movimento
+LBL_SECURITY_VOICE_HELP=Aplica-se a partir do próximo turno de voz. 0 desliga a verificação de confiança; uma paragem nunca é retida. O ambiente do serviço de voz, se definir estes valores, tem prioridade.
+SECURITY_VOICE_INVALID=A confiança tem de ser um número de 0 a 1.
+MSG_SECURITY_VOICE_CONFIRM=Reduzir a proteção dos comandos de voz? Mostrar o que foi dito põe dados pessoais em cada resposta, e uma confiança mínima de 0 aceita pedidos de que o reconhecedor não tinha certeza.
+SECURITY_VOICE_HEARD_WARNING=As respostas de voz repetem agora o que foi dito.
+SECURITY_VOICE_CONFIDENCE_WARNING=A verificação de confiança está desligada: um movimento pode ser iniciado por um pedido de que o reconhecedor não tinha certeza.
+LBL_SECURITY_MAVLINK=Assinatura MAVLink 2 (ponte UAV)
+TITLE_SECURITY_MAVLINK=Assinatura MAVLink 2 (ponte UAV)
+LBL_SECURITY_MAVLINK_KEY=Ficheiro com a chave de assinatura de 32 bytes (vazio: sem assinatura)
+PH_SECURITY_MAVLINK_KEY=/caminho/para/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=Continuar a aceitar mensagens sem assinatura (um veículo que ainda não assina)
+LBL_SECURITY_MAVLINK_HELP=Só se guarda o caminho do ficheiro da chave, nunca a chave; o ficheiro tem de ter 32 bytes ou 64 carateres hexadecimais. A ponte UAV lê isto ao arrancar.
+MSG_SECURITY_MAVLINK_CONFIRM=Desligar a assinatura MAVLink ou aceitar mensagens sem assinatura? Sem assinatura, qualquer pessoa que alcance a ligação pode enviar comandos ao veículo.
+SECURITY_MAVLINK_UNSIGNED_WARNING=As mensagens MAVLink sem assinatura continuam a ser aceites: a assinatura não protege a ligação de mensagens falsificadas.
+SECURITY_MAVLINK_OFF_WARNING=A assinatura MAVLink está desligada: a ligação ao veículo não está autenticada.
+SECURITY_MAVLINK_SIGNING_ON=A assinatura está ligada.
+SECURITY_MAVLINK_SIGNING_OFF=A assinatura está desligada.
 MSG_NET_OPERATOR_LOCAL_ONLY=Esta conta é de operador: pode comandar os robôs, mas o servidor só aceita alterações das definições, dos pontos gravados e da disposição vindas de um administrador. O que alterou fica nesta janela e não é guardado.
 
 # Submitted models panel (STUDIO parity)

@@ -34,6 +34,16 @@ def _option(raw: object, kind: type | tuple[type, ...], allowed: tuple[str, ...]
     return {"value": value, "source": source}
 
 
+def _confidence_option(raw: object) -> dict | None:
+    """A minimum confidence: a number from 0 to 1 (a switch is not a number) and where it comes from."""
+    if not isinstance(raw, dict):
+        return None
+    value, source = raw.get("value"), _source(raw.get("source"))
+    if source is None or isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+        return None
+    return {"value": float(value), "source": source}
+
+
 def parse_state(body: object) -> dict | None:
     """The options in a GET/PUT answer; None for a server that predates them or answers nonsense."""
     if not isinstance(body, dict):
@@ -60,6 +70,8 @@ def parse_state(body: object) -> dict | None:
         },
         "ble": None,
         "mqtt": None,
+        "voice": None,
+        "mavlink": None,
     }
     ble = body.get("ble")
     if isinstance(ble, dict):
@@ -91,6 +103,18 @@ def parse_state(body: object) -> dict | None:
                 "activeMode": active if active in MQTT_MODES else "off",
                 "appliesOnRestart": mqtt.get("appliesOnRestart") is True,
             }
+    voice = body.get("voice")
+    if isinstance(voice, dict):
+        heard = _option(voice.get("includeHeardText"), bool)
+        confidence = _confidence_option(voice.get("minConfidence"))
+        if heard is not None and confidence is not None:
+            state["voice"] = {"heard": heard, "confidence": confidence}
+    mavlink = body.get("mavlink")
+    if isinstance(mavlink, dict):
+        key = _option(mavlink.get("signingKeyFile"), str)
+        unsigned = _option(mavlink.get("signingAllowUnsigned"), bool)
+        if key is not None and unsigned is not None:
+            state["mavlink"] = {"key": key, "unsigned": unsigned, "appliesOnRestart": mavlink.get("appliesOnRestart") is True}
     return state
 
 
@@ -128,6 +152,41 @@ def mqtt_patch(mode: str, url: str, prefix: str, username: str, command_user: st
     return {"mqtt": {"mode": mode, "url": address, "prefix": prefix.strip(), "username": username.strip(), "commandUser": command_user.strip()}}
 
 
+def parse_confidence(text: str) -> float | None:
+    """What was typed as a confidence: a number from 0 to 1 (a comma counts as the decimal point); None otherwise."""
+    cleaned = text.strip().replace(",", ".")
+    if not re.fullmatch(r"\d*\.?\d+|\d+\.", cleaned):
+        return None
+    value = float(cleaned)
+    return value if 0 <= value <= 1 else None
+
+
+def voice_patch(include_heard_text: bool, min_confidence: str) -> dict | None:
+    """The request body for the voice options; None when the confidence is not a number from 0 to 1 (empty is not 0)."""
+    value = parse_confidence(min_confidence)
+    if value is None:
+        return None
+    return {"voice": {"includeHeardText": bool(include_heard_text), "minConfidence": value}}
+
+
+def voice_needs_confirmation(current_heard: bool, current_confidence: float, patch: dict) -> bool:
+    """Showing what was said, or switching the confidence check off, lowers the protection of the voice commands: ask first."""
+    new = patch["voice"]
+    return (not current_heard and new["includeHeardText"]) or (current_confidence > 0 and new["minConfidence"] == 0)
+
+
+def mavlink_patch(signing_key_file: str, allow_unsigned: bool) -> dict:
+    """The request body for the MAVLink signing options: only the path of the key file travels, never the key."""
+    return {"mavlink": {"signingKeyFile": signing_key_file.strip(), "signingAllowUnsigned": bool(allow_unsigned)}}
+
+
+def mavlink_needs_confirmation(current_signing: bool, current_unsigned: bool, patch: dict) -> bool:
+    """Switching signing off, or accepting unsigned messages while it is on, leaves the link to the vehicle open: ask first."""
+    new = patch["mavlink"]
+    signing = new["signingKeyFile"] != ""
+    return (current_signing and not signing) or (signing and new["signingAllowUnsigned"] and not current_unsigned)
+
+
 def tls_patch(enabled: bool, cert_path: str, key_path: str) -> dict | None:
     cert, key = cert_path.strip(), key_path.strip()
     if enabled and (not cert or not key):
@@ -152,6 +211,14 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_BLE_UNENCRYPTED_WARNING")
     if "mqtt_commands_on" in warnings:
         sentence = _("SECURITY_MQTT_COMMANDS_WARNING")
+    if "voice_heard_text_on" in warnings:
+        sentence = _("SECURITY_VOICE_HEARD_WARNING")
+    if "voice_confidence_off" in warnings:
+        sentence = _("SECURITY_VOICE_CONFIDENCE_WARNING")
+    if "mavlink_unsigned_allowed" in warnings:
+        sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
+    if "mavlink_signing_off" in warnings:
+        sentence = _("SECURITY_MAVLINK_OFF_WARNING")
     return sentence
 
 
@@ -169,6 +236,10 @@ EMPTY_VIEW: dict = {
     "bleEncryption": True, "bleEncryptionLocked": False, "bleEncryptionSource": "", "bleRunning": "",
     "mqttAvailable": False, "mqttMode": "off", "mqttModeLocked": False, "mqttModeSource": "", "mqttUrl": "", "mqttPrefix": "",
     "mqttUser": "", "mqttCommandUser": "", "mqttRunning": "",
+    "voiceAvailable": False, "voiceHeard": False, "voiceHeardLocked": False, "voiceHeardSource": "",
+    "voiceConfidence": "0.6", "voiceConfidenceLocked": False, "voiceConfidenceSource": "",
+    "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
+    "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
 }
 
 
@@ -230,6 +301,36 @@ def view(state: dict | None) -> dict:
                 "mqttUser": mqtt["username"],
                 "mqttCommandUser": mqtt["commandUser"],
                 "mqttRunning": running,
+            }
+        )
+    voice = state.get("voice")
+    if voice is not None:
+        out.update(
+            {
+                "voiceAvailable": True,
+                "voiceHeard": voice["heard"]["value"],
+                "voiceHeardLocked": is_locked(voice["heard"]["source"]),
+                "voiceHeardSource": source_text(voice["heard"]["source"]),
+                "voiceConfidence": f"{voice['confidence']['value']:g}",
+                "voiceConfidenceLocked": is_locked(voice["confidence"]["source"]),
+                "voiceConfidenceSource": source_text(voice["confidence"]["source"]),
+            }
+        )
+    mavlink = state.get("mavlink")
+    if mavlink is not None:
+        status = _("SECURITY_MAVLINK_SIGNING_ON") if mavlink["key"]["value"] else _("SECURITY_MAVLINK_SIGNING_OFF")
+        if mavlink["appliesOnRestart"]:
+            status += " " + _("SECURITY_RESTART_NOTE")
+        out.update(
+            {
+                "mavlinkAvailable": True,
+                "mavlinkKey": mavlink["key"]["value"],
+                "mavlinkKeyLocked": is_locked(mavlink["key"]["source"]),
+                "mavlinkKeySource": source_text(mavlink["key"]["source"]),
+                "mavlinkUnsigned": mavlink["unsigned"]["value"],
+                "mavlinkUnsignedLocked": is_locked(mavlink["unsigned"]["source"]),
+                "mavlinkUnsignedSource": source_text(mavlink["unsigned"]["source"]),
+                "mavlinkStatus": status,
             }
         )
     return out

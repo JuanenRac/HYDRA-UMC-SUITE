@@ -1685,6 +1685,86 @@ ApplicationWindow {
                         }
                         Text { text: suiteBackend.securityView.mqttRunning; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.voiceAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: voiceHeardBox
+                            objectName: "securityVoiceHeardBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_VOICE_HEARD")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.voiceHeardLocked
+                            checked: suiteBackend.securityView.voiceHeard === true
+                        }
+                        Text { text: suiteBackend.securityView.voiceHeardSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_CONFIDENCE"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        TextField {
+                            id: voiceConfidenceField
+                            objectName: "securityVoiceConfidence"
+                            Layout.fillWidth: true
+                            enabled: !suiteBackend.securityView.voiceConfidenceLocked
+                            text: suiteBackend.securityView.voiceConfidence
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Text { text: suiteBackend.securityView.voiceConfidenceSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityVoiceSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !(suiteBackend.securityView.voiceHeardLocked && suiteBackend.securityView.voiceConfidenceLocked)
+                            onClicked: {
+                                var heard = voiceHeardBox.checked, confidence = voiceConfidenceField.text
+                                if (suiteBackend.voiceNeedsConfirmation(heard, confidence))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_VOICE"), suiteBackend.uiText("MSG_SECURITY_VOICE_CONFIRM"), function() { suiteBackend.saveVoiceOptions(heard, confidence) })
+                                else
+                                    suiteBackend.saveVoiceOptions(heard, confidence)
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.mavlinkAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_KEY"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        TextField {
+                            id: mavlinkKeyField
+                            objectName: "securityMavlinkKey"
+                            Layout.fillWidth: true
+                            enabled: !suiteBackend.securityView.mavlinkKeyLocked
+                            placeholderText: suiteBackend.uiText("PH_SECURITY_MAVLINK_KEY")
+                            text: suiteBackend.securityView.mavlinkKey
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Text { text: suiteBackend.securityView.mavlinkKeySource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            id: mavlinkUnsignedBox
+                            objectName: "securityMavlinkUnsignedBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_UNSIGNED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.mavlinkUnsignedLocked
+                            checked: suiteBackend.securityView.mavlinkUnsigned === true
+                        }
+                        Text { text: suiteBackend.securityView.mavlinkUnsignedSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityMavlinkSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !(suiteBackend.securityView.mavlinkKeyLocked && suiteBackend.securityView.mavlinkUnsignedLocked)
+                            onClicked: {
+                                var key = mavlinkKeyField.text, unsigned = mavlinkUnsignedBox.checked
+                                if (suiteBackend.mavlinkNeedsConfirmation(key, unsigned))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_MAVLINK"), suiteBackend.uiText("MSG_SECURITY_MAVLINK_CONFIRM"), function() { suiteBackend.saveMavlinkOptions(key, unsigned) })
+                                else
+                                    suiteBackend.saveMavlinkOptions(key, unsigned)
+                            }
+                        }
+                        Text { text: suiteBackend.securityView.mavlinkStatus; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
                 }
             }
             Item { Layout.fillHeight: true }

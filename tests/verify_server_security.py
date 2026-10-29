@@ -79,5 +79,34 @@ with_mqtt = sec.view(sec.parse_state({**raw, "mqtt": {"mode": {"value": "state",
 check("the MQTT view", (with_mqtt["mqttAvailable"], with_mqtt["mqttMode"], with_mqtt["mqttUrl"], with_mqtt["mqttRunning"]), (True, "state", "mqtt://b:1883", _("SECURITY_MQTT_RUNNING", mode=_("SECURITY_MQTT_OFF")) + " " + _("SECURITY_RESTART_NOTE")))
 check("a damaged MQTT section is ignored", sec.view(sec.parse_state({**raw, "mqtt": {"mode": {"value": "banana", "source": "config"}}}))["mqttAvailable"], False)
 
+# --- the voice and MAVLink signing options
+VOICE_MAV = {
+    **raw,
+    "voice": {"includeHeardText": {"value": False, "source": "default"}, "minConfidence": {"value": 0.6, "source": "env"}},
+    "mavlink": {"signingKeyFile": {"value": "/etc/uav.key", "source": "config"}, "signingAllowUnsigned": {"value": False, "source": "default"}, "signing": True, "appliesOnRestart": True},
+}
+vm = sec.parse_state(VOICE_MAV)
+check("reads the voice and MAVLink sections", (vm["voice"]["confidence"], vm["mavlink"]["key"]["value"]), ({"value": 0.6, "source": "env"}, "/etc/uav.key"))
+plain = sec.parse_state(raw)
+check("a server without them shows no section", (plain["voice"], plain["mavlink"], sec.view(plain)["voiceAvailable"], sec.view(plain)["mavlinkAvailable"]), (None, None, False, False))
+for label, body in (
+    ("a confidence above 1", {**VOICE_MAV, "voice": {**VOICE_MAV["voice"], "minConfidence": {"value": 3, "source": "env"}}}),
+    ("a switch as the confidence", {**VOICE_MAV, "voice": {**VOICE_MAV["voice"], "minConfidence": {"value": True, "source": "env"}}}),
+    ("a text as the heard-text switch", {**VOICE_MAV, "voice": {**VOICE_MAV["voice"], "includeHeardText": {"value": "yes", "source": "env"}}}),
+):
+    check(f"damaged voice part ({label}) is dropped, not the rest", (sec.parse_state(body)["voice"], sec.parse_state(body)["tls"]["enabled"]), (None, False))
+check("a number as the key file drops the MAVLink part", sec.parse_state({**VOICE_MAV, "mavlink": {**VOICE_MAV["mavlink"], "signingKeyFile": {"value": 5, "source": "config"}}})["mavlink"], None)
+vv = sec.view(vm)
+check("the voice view", (vv["voiceAvailable"], vv["voiceHeard"], vv["voiceConfidence"], vv["voiceConfidenceLocked"], vv["voiceHeardLocked"]), (True, False, "0.6", True, False))
+check("the MAVLink view", (vv["mavlinkAvailable"], vv["mavlinkKey"], vv["mavlinkUnsigned"], vv["mavlinkStatus"]), (True, "/etc/uav.key", False, _("SECURITY_MAVLINK_SIGNING_ON") + " " + _("SECURITY_RESTART_NOTE")))
+check("the key file is not shown as signing when empty", sec.view(sec.parse_state({**VOICE_MAV, "mavlink": {**VOICE_MAV["mavlink"], "signingKeyFile": {"value": "", "source": "default"}, "appliesOnRestart": False}}))["mavlinkStatus"], _("SECURITY_MAVLINK_SIGNING_OFF"))
+check("every key of the view exists without a server", set(sec.view(None)) == set(vv), True)
+check("what is typed as a confidence", [sec.parse_confidence(t) for t in ("0.8", " 0,75 ", "0", "1", "", "1.1", "-0.1", "abc", "0.5.5", "1e-1", "60%")], [0.8, 0.75, 0.0, 1.0, None, None, None, None, None, None, None])
+check("the voice request", (sec.voice_patch(True, "0,9"), sec.voice_patch(False, ""), sec.voice_patch(False, "2")), ({"voice": {"includeHeardText": True, "minConfidence": 0.9}}, None, None))
+check("lowering the voice protection asks, nothing else does", [sec.voice_needs_confirmation(h, c, sec.voice_patch(nh, nc)) for h, c, nh, nc in ((False, 0.6, True, "0.6"), (False, 0.6, False, "0"), (False, 0.6, False, "0.2"), (False, 0.6, False, "0.95"), (True, 0.0, True, "0"))], [True, True, False, False, False])
+check("the MAVLink request carries only the path of the key file", sec.mavlink_patch("  /etc/uav.key ", False), {"mavlink": {"signingKeyFile": "/etc/uav.key", "signingAllowUnsigned": False}})
+check("leaving the vehicle link open asks, nothing else does", [sec.mavlink_needs_confirmation(s, u, sec.mavlink_patch(k, nu)) for s, u, k, nu in ((True, False, "", False), (True, False, "/k", True), (True, False, "/other", False), (False, False, "/k", False), (False, False, "", False), (True, True, "/k", True))], [True, True, False, False, False, False])
+check("the new warnings", [sec.known_warning([w]) for w in ("voice_heard_text_on", "voice_confidence_off", "mavlink_unsigned_allowed", "mavlink_signing_off")], [_("SECURITY_VOICE_HEARD_WARNING"), _("SECURITY_VOICE_CONFIDENCE_WARNING"), _("SECURITY_MAVLINK_UNSIGNED_WARNING"), _("SECURITY_MAVLINK_OFF_WARNING")])
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

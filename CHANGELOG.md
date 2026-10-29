@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin has three more switches:** whether a voice reply repeats what was said, the least confidence of the speech recognizer before a request that starts a movement is accepted, and the MAVLink 2 signing key file with the switch for unsigned messages. Each shows where its value comes from (the environment of the server wins and locks the field), asks for a confirmation before the protection is lowered, and is written in the eight languages. The defaults are the conservative ones. Tested.
 - **The layout of the README is checked in the CI:** the validator runs `tools/universal_readme_check.py` and lists, as a warning, what differs from the universal layout of the README.
 
 ## [0.7.1] - Server Admin sets up the MQTT bridge of the server and signed firmware flashes

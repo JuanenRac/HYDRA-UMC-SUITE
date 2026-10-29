@@ -2764,6 +2764,39 @@ class SuiteQtBridge(QObject):
             return
         asyncio.ensure_future(self._save_security(patch))
 
+    @Slot(bool, str, result=bool)
+    def voiceNeedsConfirmation(self, include_heard_text: bool, min_confidence: str) -> bool:
+        state = self._security_state
+        patch = server_security.voice_patch(include_heard_text, min_confidence)
+        if state is None or not state.get("voice") or patch is None:
+            return False
+        return server_security.voice_needs_confirmation(state["voice"]["heard"]["value"], state["voice"]["confidence"]["value"], patch)
+
+    @Slot(bool, str)
+    def saveVoiceOptions(self, include_heard_text: bool, min_confidence: str) -> None:
+        patch = server_security.voice_patch(include_heard_text, min_confidence)
+        if patch is None:
+            self._security_message = ""
+            self._security_warning = ""
+            self._security_error = _("SECURITY_VOICE_INVALID")
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._save_security(patch))
+
+    @Slot(str, bool, result=bool)
+    def mavlinkNeedsConfirmation(self, signing_key_file: str, allow_unsigned: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("mavlink"):
+            return False
+        current = state["mavlink"]
+        return server_security.mavlink_needs_confirmation(
+            current["key"]["value"] != "", current["unsigned"]["value"], server_security.mavlink_patch(signing_key_file, allow_unsigned)
+        )
+
+    @Slot(str, bool)
+    def saveMavlinkOptions(self, signing_key_file: str, allow_unsigned: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.mavlink_patch(signing_key_file, allow_unsigned)))
+
     @Slot(str)
     def setAiAccess(self, value: str) -> None:
         if value in ("open", "admin"):

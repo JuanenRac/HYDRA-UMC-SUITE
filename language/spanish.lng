@@ -795,6 +795,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=¿Ejecutar los comandos que llegan por el bro
 SECURITY_MQTT_COMMANDS_WARNING=Los comandos por MQTT están activados: quien pueda publicar en el broker puede mover los robots dentro del rol de esa cuenta.
 SECURITY_MQTT_INVALID=Revisa los campos MQTT: la dirección empieza por mqtt://, mqtts://, ws:// o wss://, y los comandos necesitan la cuenta que los ejecuta.
 TITLE_SECURITY_MQTT_COMMANDS=Comandos por MQTT
+LBL_SECURITY_VOICE=Asistente de voz
+TITLE_SECURITY_VOICE=Asistente de voz
+LBL_SECURITY_VOICE_HEARD=Una respuesta de voz repite lo dicho (datos personales; apagado por defecto)
+LBL_SECURITY_VOICE_CONFIDENCE=Confianza mínima del reconocedor de voz (0 a 1) para aceptar una petición que inicia un movimiento
+LBL_SECURITY_VOICE_HELP=Se aplica desde el siguiente turno de voz. 0 apaga la comprobación de confianza; un paro nunca se retiene. El entorno del servicio de voz, si fija estos valores, gana.
+SECURITY_VOICE_INVALID=La confianza debe ser un número de 0 a 1.
+MSG_SECURITY_VOICE_CONFIRM=¿Reducir la protección de los comandos de voz? Mostrar lo dicho pone datos personales en cada respuesta, y una confianza mínima de 0 acepta peticiones de las que el reconocedor no estaba seguro.
+SECURITY_VOICE_HEARD_WARNING=Las respuestas de voz repiten ahora lo dicho.
+SECURITY_VOICE_CONFIDENCE_WARNING=La comprobación de confianza está apagada: un movimiento puede iniciarse con una petición de la que el reconocedor no estaba seguro.
+LBL_SECURITY_MAVLINK=Firma MAVLink 2 (puente UAV)
+TITLE_SECURITY_MAVLINK=Firma MAVLink 2 (puente UAV)
+LBL_SECURITY_MAVLINK_KEY=Fichero con la clave de firma de 32 bytes (vacío: sin firma)
+PH_SECURITY_MAVLINK_KEY=/ruta/a/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=Seguir aceptando mensajes sin firmar (un vehículo que aún no firma)
+LBL_SECURITY_MAVLINK_HELP=Solo se guarda la ruta del fichero de clave, nunca la clave; el fichero debe tener 32 bytes o 64 caracteres hexadecimales. El puente UAV lo lee al arrancar.
+MSG_SECURITY_MAVLINK_CONFIRM=¿Apagar la firma MAVLink o aceptar mensajes sin firmar? Sin firma, cualquiera que llegue al enlace puede enviar comandos al vehículo.
+SECURITY_MAVLINK_UNSIGNED_WARNING=Se siguen aceptando mensajes MAVLink sin firmar: la firma no protege el enlace de mensajes falsificados.
+SECURITY_MAVLINK_OFF_WARNING=La firma MAVLink está apagada: el enlace con el vehículo no está autenticado.
+SECURITY_MAVLINK_SIGNING_ON=La firma está activada.
+SECURITY_MAVLINK_SIGNING_OFF=La firma está desactivada.
 MSG_NET_OPERATOR_LOCAL_ONLY=Esta cuenta es de operador: puede mover los robots, pero el servidor solo acepta cambios de los ajustes, de los puntos grabados y del diseño de un administrador. Lo que cambiaste se queda en esta ventana y no se guarda.
 
 # Submitted models panel (STUDIO parity)

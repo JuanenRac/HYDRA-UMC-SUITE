@@ -795,6 +795,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=Eseguire i comandi che arrivano dal broker MQ
 SECURITY_MQTT_COMMANDS_WARNING=I comandi via MQTT sono attivi: chi può pubblicare sul broker può muovere i robot nei limiti del ruolo di quell'account.
 SECURITY_MQTT_INVALID=Controlla i campi MQTT: l'indirizzo inizia con mqtt://, mqtts://, ws:// o wss://, e i comandi richiedono l'account che li esegue.
 TITLE_SECURITY_MQTT_COMMANDS=Comandi via MQTT
+LBL_SECURITY_VOICE=Assistente vocale
+TITLE_SECURITY_VOICE=Assistente vocale
+LBL_SECURITY_VOICE_HEARD=Una risposta vocale ripete ciò che è stato detto (dati personali; spento per impostazione predefinita)
+LBL_SECURITY_VOICE_CONFIDENCE=Confidenza minima del riconoscimento vocale (da 0 a 1) per accettare una richiesta che avvia un movimento
+LBL_SECURITY_VOICE_HELP=Si applica dal prossimo turno vocale. 0 disattiva il controllo della confidenza; uno stop non viene mai trattenuto. L'ambiente del servizio vocale, se imposta questi valori, prevale.
+SECURITY_VOICE_INVALID=La confidenza deve essere un numero da 0 a 1.
+MSG_SECURITY_VOICE_CONFIRM=Ridurre la protezione dei comandi vocali? Mostrare ciò che è stato detto mette dati personali in ogni risposta, e una confidenza minima di 0 accetta richieste di cui il riconoscimento non era sicuro.
+SECURITY_VOICE_HEARD_WARNING=Le risposte vocali ora ripetono ciò che è stato detto.
+SECURITY_VOICE_CONFIDENCE_WARNING=Il controllo della confidenza è spento: un movimento può essere avviato da una richiesta di cui il riconoscimento non era sicuro.
+LBL_SECURITY_MAVLINK=Firma MAVLink 2 (ponte UAV)
+TITLE_SECURITY_MAVLINK=Firma MAVLink 2 (ponte UAV)
+LBL_SECURITY_MAVLINK_KEY=File con la chiave di firma da 32 byte (vuoto: nessuna firma)
+PH_SECURITY_MAVLINK_KEY=/percorso/di/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=Continua ad accettare i messaggi non firmati (un veicolo che non firma ancora)
+LBL_SECURITY_MAVLINK_HELP=Viene salvato solo il percorso del file della chiave, mai la chiave; il file deve contenere 32 byte o 64 caratteri esadecimali. Il ponte UAV lo legge all'avvio.
+MSG_SECURITY_MAVLINK_CONFIRM=Disattivare la firma MAVLink o accettare messaggi non firmati? Senza firma, chiunque raggiunga il collegamento può inviare comandi al veicolo.
+SECURITY_MAVLINK_UNSIGNED_WARNING=I messaggi MAVLink non firmati sono ancora accettati: la firma non protegge il collegamento da messaggi falsificati.
+SECURITY_MAVLINK_OFF_WARNING=La firma MAVLink è disattivata: il collegamento con il veicolo non è autenticato.
+SECURITY_MAVLINK_SIGNING_ON=La firma è attiva.
+SECURITY_MAVLINK_SIGNING_OFF=La firma è disattivata.
 MSG_NET_OPERATOR_LOCAL_ONLY=Questo account è un operatore: può comandare i robot, ma il server accetta le modifiche alle impostazioni, ai punti registrati e al layout solo da un amministratore. Ciò che hai modificato resta in questa finestra e non viene salvato.
 
 # Submitted models panel (STUDIO parity)

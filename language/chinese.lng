@@ -794,6 +794,26 @@ MSG_SECURITY_MQTT_COMMANDS_CONFIRM=执行通过 MQTT 代理到达的命令吗？
 SECURITY_MQTT_COMMANDS_WARNING=已开启通过 MQTT 的命令：任何能向代理发布的人都可以在该账户角色范围内操控机器人。
 SECURITY_MQTT_INVALID=请检查 MQTT 字段：地址以 mqtt://、mqtts://、ws:// 或 wss:// 开头，命令需要执行它们的账户。
 TITLE_SECURITY_MQTT_COMMANDS=通过 MQTT 的命令
+LBL_SECURITY_VOICE=语音助手
+TITLE_SECURITY_VOICE=语音助手
+LBL_SECURITY_VOICE_HEARD=语音回复复述听到的内容(个人数据;默认关闭)
+LBL_SECURITY_VOICE_CONFIDENCE=接受启动运动的请求所需的语音识别最低置信度(0 到 1)
+LBL_SECURITY_VOICE_HELP=从下一次语音交互起生效。0 表示关闭置信度检查;停止指令从不被拦下。若语音服务的环境变量设置了这些值,则以环境变量为准。
+SECURITY_VOICE_INVALID=置信度必须是 0 到 1 之间的数字。
+MSG_SECURITY_VOICE_CONFIRM=要降低语音命令的保护吗?显示听到的内容会使每条回复都含有个人数据,而最低置信度为 0 会接受识别器没有把握的请求。
+SECURITY_VOICE_HEARD_WARNING=语音回复现在会复述听到的内容。
+SECURITY_VOICE_CONFIDENCE_WARNING=置信度检查已关闭:识别器没有把握的请求也可能启动运动。
+LBL_SECURITY_MAVLINK=MAVLink 2 签名(UAV 桥)
+TITLE_SECURITY_MAVLINK=MAVLink 2 签名(UAV 桥)
+LBL_SECURITY_MAVLINK_KEY=32 字节签名密钥的文件(留空:不签名)
+PH_SECURITY_MAVLINK_KEY=/path/to/uav.key
+LBL_SECURITY_MAVLINK_UNSIGNED=仍然接受未签名的消息(尚不签名的飞行器)
+LBL_SECURITY_MAVLINK_HELP=只保存密钥文件的路径,绝不保存密钥;文件必须包含 32 字节或 64 个十六进制字符。UAV 桥在启动时读取它。
+MSG_SECURITY_MAVLINK_CONFIRM=要关闭 MAVLink 签名或接受未签名的消息吗?没有签名时,任何能连上该链路的人都可以向飞行器发送命令。
+SECURITY_MAVLINK_UNSIGNED_WARNING=仍在接受未签名的 MAVLink 消息:签名无法保护链路免受伪造消息。
+SECURITY_MAVLINK_OFF_WARNING=MAVLink 签名已关闭:与飞行器的链路未经认证。
+SECURITY_MAVLINK_SIGNING_ON=签名已开启。
+SECURITY_MAVLINK_SIGNING_OFF=签名已关闭。
 MSG_NET_OPERATOR_LOCAL_ONLY=此账户是操作员:可以控制机器人,但服务器只接受管理员对设置、已记录的点和布局的更改。你所做的更改只保留在此窗口中,不会被保存。
 
 # Submitted models panel (STUDIO parity)
