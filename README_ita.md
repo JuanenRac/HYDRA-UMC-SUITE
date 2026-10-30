@@ -370,6 +370,10 @@ radice del repository è lo stesso file spec generato da PyInstaller
 dall'ultima build - sicuro da eliminare e rigenerare, non mantenuto a
 mano.
 
+### Verificare l'installatore
+
+L'installatore Windows non è firmato con Authenticode, quindi Windows SmartScreen può mostrare un avviso all'avvio. In sostituzione, accanto a esso nella release vengono pubblicati una somma SHA-256 (`.sha256`) e una firma Ed25519 (`.sig`) dell'installatore. Controllale prima di eseguirlo: confronta la somma con `sha256sum` (o `Get-FileHash`) e verifica la firma con `hydra-sign verify --pub PUBLIC.pem FILE` di HYDRA-UMC-TOOL-CLI, usando la chiave pubblica della chiave di release HYDRA. Non sostituisce Authenticode, serve solo a sapere che il file è quello pubblicato.
+
 ## 🩺 Risoluzione dei problemi
 
 | Vedi | Perché | Fai |

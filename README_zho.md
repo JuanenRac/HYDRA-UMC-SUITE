@@ -278,6 +278,10 @@ python -m PyInstaller --onefile --windowed --noconfirm --name "HYDRA-UMC_SUITE" 
 
 在 Linux 上（确切的、经过测试的命令见 `build_exe.sh`），使用 `:` 而非 `;` 作为 `--add-data` 分隔符，删除 `OpenGL.platform.win32` 隐式导入（仅限 Windows），删除 `--windowed`，并注意那里的插件路径要深一层嵌套（`<PySide6 目录>/Qt/plugins/platforms` 相对于 Windows 扁平的 `<PySide6 目录>\plugins\platforms`）——这是该 wheel 包自身的打包细节，并非任一脚本自行选择的。仓库根目录下的 `HYDRA-UMC_SUITE.spec` 是 PyInstaller 自身在上一次构建中生成的规范文件——可以安全删除并重新生成，不是手工维护的。
 
+### 校验安装程序
+
+Windows 安装程序没有使用 Authenticode 签名，因此运行时 Windows SmartScreen 可能会发出警告。作为替代，发布时会在安装程序旁附上其 SHA-256 校验和（`.sha256`）与 Ed25519 签名（`.sig`）。运行前请先核对：用 `sha256sum`（或 `Get-FileHash`）比对校验和，并用 HYDRA-UMC-TOOL-CLI 的 `hydra-sign verify --pub PUBLIC.pem FILE`，配合 HYDRA 发布密钥的公钥验证签名。这不能取代 Authenticode，只能确认文件就是已发布的那个。
+
 ## 🩺 故障排除
 
 | 你看到 | 原因 | 处理 |

@@ -373,6 +373,10 @@ l'un ou l'autre des 2 scripts. `HYDRA-UMC_SUITE.spec` à la racine du dépôt
 est le propre fichier spec généré par PyInstaller lors de la dernière
 build - sûr à supprimer et régénérer, non maintenu à la main.
 
+### Vérifier l'installateur
+
+L'installateur Windows n'est pas signé avec Authenticode, donc Windows SmartScreen peut afficher un avertissement à l'exécution. À la place, une somme SHA-256 (`.sha256`) et une signature Ed25519 (`.sig`) de l'installateur sont publiées à côté de lui dans la release. Vérifiez-les avant de le lancer : comparez la somme avec `sha256sum` (ou `Get-FileHash`) et vérifiez la signature avec `hydra-sign verify --pub PUBLIC.pem FICHIER` de HYDRA-UMC-TOOL-CLI, avec la clé publique de la clé de release HYDRA. Cela ne remplace pas Authenticode, cela permet seulement de savoir que le fichier est bien celui qui a été publié.
+
 ## 🩺 Dépannage
 
 | Vous voyez | Parce que | Faites |

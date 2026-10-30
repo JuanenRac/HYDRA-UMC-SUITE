@@ -369,6 +369,10 @@ empacotamento da própria wheel, não algo que algum dos scripts tenha escolhido
 pelo próprio PyInstaller na última compilação - seguro de apagar e regenerar, não
 mantido à mão.
 
+### Verificar o instalador
+
+O instalador do Windows não está assinado com Authenticode, pelo que o Windows SmartScreen pode avisar ao executá-lo. Em seu lugar, junto dele na release são publicados uma soma SHA-256 (`.sha256`) e uma assinatura Ed25519 (`.sig`) do instalador. Verifique-as antes de o executar: compare a soma com `sha256sum` (ou `Get-FileHash`) e valide a assinatura com `hydra-sign verify --pub PUBLIC.pem FICHEIRO` do HYDRA-UMC-TOOL-CLI, com a chave pública da chave de release da HYDRA. Não substitui o Authenticode, serve apenas para saber que o ficheiro é o que foi publicado.
+
 ## 🩺 Resolução de problemas
 
 | Vê | Porque | Faça |

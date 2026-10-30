@@ -56,7 +56,7 @@ jobs:
           sudo apt-get install --yes libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
       - name: Install Python dependencies for the offline Qt/backend verifiers
         if: ${{ hashFiles('tools/run_offline_verifiers.py') != '' }}
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt pytest
       - name: Run offline Qt/backend control verifiers
         # Never sends a command to a real server/robot - each
         # tests/verify_*.py script's own header states the exact fake/
@@ -67,7 +67,9 @@ jobs:
         if: ${{ hashFiles('tools/run_offline_verifiers.py') != '' }}
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python tools/run_offline_verifiers.py
+        # pytest is the runner (one test per verifier, so the report names the one that failed); the verifiers
+        # themselves stay scripts and `python tools/run_offline_verifiers.py` still runs them all without pytest.
+        run: python -m pytest tests/test_offline_verifiers.py -q
       - name: Set up Node.js
         if: ${{ hashFiles('package.json') != '' }}
         uses: actions/setup-node@v5

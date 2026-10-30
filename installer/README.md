@@ -32,3 +32,7 @@ The window text lives in the `language` folder next to the program (`hydra_suite
 ## Verification status
 
 Neither script was run end-to-end in the session that wrote them - Inno Setup wasn't installed (and installing new system-wide tooling wasn't done without asking first), and `dpkg-deb` only exists on Linux, unavailable from that Windows dev machine. What *was* verified there: `build_deb.sh` passes `bash -n` (syntax check), and its version-extraction + package-tree-assembly logic was dry-run in isolation with a placeholder binary, producing the exact expected file tree and a correct `DEBIAN/control`. Treat both scripts as **written and reasoned through, not yet proven** until someone with the right tooling actually runs one end to end and smoke-tests the result (install, launch, uninstall).
+
+## Authenticode and how to verify the installer
+
+The Windows installer is not signed with Authenticode (that needs a paid code-signing certificate), so Windows SmartScreen may warn when it is run. Each release publishes, next to the installer, a SHA-256 checksum (`.sha256`) and an Ed25519 signature (`.sig`) of it, made with the HYDRA release key. Before running the installer, compare the checksum (`sha256sum`, or `Get-FileHash -Algorithm SHA256` on Windows) and verify the signature with `hydra-sign verify --pub PUBLIC.pem FILE` from HYDRA-UMC-TOOL-CLI, using the public key of the release key. This only proves the file is the one that was published; it does not replace Authenticode.
