@@ -3,5 +3,6 @@
   "id": "juanencnc",
   "name": "JuanenCNC",
   "manufacturer": "Electro Hobby 3D (custom build)",
-  "category": "machine-cnc"
+  "category": "machine-cnc",
+  "unit": "mm"
 }

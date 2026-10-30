@@ -4,5 +4,6 @@
   "model": "Z1 (6-DOF)",
   "manufacturer": "Unitree",
   "dof": 6,
-  "category": "robots-6-dof"
+  "category": "robots-6-dof",
+  "unit": "m"
 }

@@ -84,6 +84,39 @@ def run_push_window(loop):
     check("push: closing sends the write that was waiting", len(pushes) >= 3, True)
 
 
+def run_state_window(loop):
+    app_module.STATE_WINDOW_MS = 60
+    controller = SuiteController()
+    delivered = []
+    controller.active_state_changed.connect(lambda state: delivered.append(state))
+    controller._active_id = "c"
+    for index in range(10):
+        controller._on_state_changed("c", index)
+    pump(loop, 0.01)
+    check("state: the first change reaches the panels at once and the rest wait", delivered, [0])
+    pump(loop, 0.12)
+    check("state: the rest became one delivery of the latest state", delivered, [0, 9])
+    pump(loop, 0.2)
+    check("state: nothing more once the changes stop", delivered, [0, 9])
+    controller._on_state_changed("c", 20)
+    controller._on_state_changed("other", 21)
+    pump(loop, 0.12)
+    check("state: a server that is not the active one is ignored", delivered[-1], 20)
+    controller._on_state_changed("c", 30)
+    controller._on_state_changed("c", 31)
+    controller._active_id = "d"
+    controller._state_pending = None
+    controller._state_timer.stop()
+    pump(loop, 0.12)
+    check("state: a change that waited is dropped when another server becomes active", 31 in delivered, False)
+    app_module.STATE_WINDOW_MS = 0
+    delivered.clear()
+    controller._active_id = "c"
+    controller._on_state_changed("c", 1)
+    controller._on_state_changed("c", 2)
+    check("state: a window of 0 delivers every change", delivered, [1, 2])
+    app_module.STATE_WINDOW_MS = 50
+
 def run_gl_format():
     from PySide6.QtGui import QSurfaceFormat
 
@@ -102,6 +135,7 @@ def main():
     asyncio.set_event_loop(loop)
     run_bridge_gates(loop)
     run_push_window(loop)
+    run_state_window(loop)
     run_gl_format()
     print("FAILURES:", failures)
     return 1 if failures else 0

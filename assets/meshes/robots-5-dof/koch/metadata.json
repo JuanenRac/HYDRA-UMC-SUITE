@@ -4,5 +4,6 @@
   "model": "Koch v1.1 (5-DOF)",
   "manufacturer": "Koch / Low-Cost Robot Arm",
   "dof": 5,
-  "category": "robots-5-dof"
+  "category": "robots-5-dof",
+  "unit": "m"
 }

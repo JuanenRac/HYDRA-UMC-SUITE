@@ -26,6 +26,7 @@ from hydra_suite.net.client import HydraConnection, StopAllResult
 logger = logging.getLogger(__name__)
 
 PUSH_WINDOW_MS = 150  # at most one settings write per server in this time while a control is being dragged
+STATE_WINDOW_MS = 50  # at most one state_changed delivery to the panels in this time (20 per second); 0 turns it off
 
 
 def spawn(coro) -> "asyncio.Future":
@@ -147,6 +148,12 @@ class SuiteController(QObject):
         self._push_timer.setSingleShot(True)
         self._push_timer.setInterval(PUSH_WINDOW_MS)
         self._push_timer.timeout.connect(self._on_push_window_end)
+        # The state of the active server reaches the panels at most 20 times a second: the first change
+        # goes out at once, the ones inside the window become one delivery of the latest state.
+        self._state_pending: HydraState | None = None
+        self._state_timer = QTimer(self)
+        self._state_timer.setSingleShot(True)
+        self._state_timer.timeout.connect(self._on_state_window_end)
 
     # --- connection management --------------------------------------------
 
@@ -182,6 +189,8 @@ class SuiteController(QObject):
         if conn_id == self._active_id:
             return
         self._active_id = conn_id
+        self._state_pending = None  # a change that waited belongs to the server that was active
+        self._state_timer.stop()
         self.active_connection_changed.emit(conn_id)
         conn = self.connections.get(conn_id)
         if conn is not None:
@@ -198,8 +207,23 @@ class SuiteController(QObject):
         return conn.state if conn is not None else None
 
     def _on_state_changed(self, conn_id: str, state: HydraState) -> None:
-        if conn_id == self._active_id:
+        if conn_id != self._active_id:
+            return
+        if STATE_WINDOW_MS <= 0:
             self.active_state_changed.emit(state)
+            return
+        if self._state_timer.isActive():
+            self._state_pending = state
+            return
+        self.active_state_changed.emit(state)
+        self._state_timer.start(STATE_WINDOW_MS)
+
+    def _on_state_window_end(self) -> None:
+        pending, self._state_pending = self._state_pending, None
+        if pending is None:
+            return
+        self.active_state_changed.emit(pending)
+        self._state_timer.start(STATE_WINDOW_MS)  # keep the limit going while changes keep coming
 
     def _on_status_changed(self, conn_id: str, status: str) -> None:
         self.connection_status_changed.emit(conn_id, status)

@@ -3,5 +3,6 @@
   "id": "lumenpnp",
   "name": "LumenPnP",
   "manufacturer": "OpenPnP / LumenPnP project",
-  "category": "machine-pnp"
+  "category": "machine-pnp",
+  "unit": "mm"
 }

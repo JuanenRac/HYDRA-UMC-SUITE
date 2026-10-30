@@ -4,5 +4,6 @@
   "model": "e.DO (6-DOF)",
   "manufacturer": "Comau",
   "dof": 6,
-  "category": "robots-6-dof"
+  "category": "robots-6-dof",
+  "unit": "m"
 }

@@ -3,5 +3,6 @@
   "id": "juanenpnp",
   "name": "JuanenPnP",
   "manufacturer": "Electro Hobby 3D (custom build)",
-  "category": "machine-pnp"
+  "category": "machine-pnp",
+  "unit": "mm"
 }

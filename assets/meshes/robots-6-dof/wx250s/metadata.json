@@ -4,5 +4,6 @@
   "model": "WidowX 250 (6-DOF)",
   "manufacturer": "Trossen Robotics",
   "dof": 6,
-  "category": "robots-6-dof"
+  "category": "robots-6-dof",
+  "unit": "mm"
 }

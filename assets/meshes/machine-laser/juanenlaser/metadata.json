@@ -3,5 +3,6 @@
   "id": "juanenlaser",
   "name": "JuanenLaser",
   "manufacturer": "Electro Hobby 3D (custom build)",
-  "category": "machine-laser"
+  "category": "machine-laser",
+  "unit": "mm"
 }

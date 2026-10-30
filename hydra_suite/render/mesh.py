@@ -14,6 +14,7 @@
 # =============================================================================
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,19 +37,54 @@ class Mesh:
         return len(self.vertices) // 3
 
 
-def load_stl(path: str | Path) -> Mesh:
-    raw = stl_mesh.Mesh.from_file(str(path))
-    vertices = raw.vectors.reshape(-1, 3).astype(np.float32)
+# The unit of the meshes of a model is declared in the `metadata.json` of its folder (`"unit": "mm"` or
+# `"m"`). Only a model that does not declare it falls back to the size check below.
+MILLIMETER_SPAN = 5.0  # a link longer than this many meters in any axis is taken for a millimeter mesh
+_UNIT_NAMES = {
+    "mm": "mm", "millimeter": "mm", "millimeters": "mm", "millimetre": "mm", "millimetres": "mm",
+    "m": "m", "meter": "m", "meters": "m", "metre": "m", "metres": "m",
+}
+_METADATA_LEVELS = 4
 
-    # Same defensive mm-vs-m check HYDRA-UMC-STUDIO's own useRealScaleSTL()
-    # applies (see e.g. src/components/3d/URArm.tsx) - these particular
-    # UR5e STLs are already meter-scale in practice, but this costs
-    # nothing to keep and guards the exact class of authoring-convention
-    # bug that check exists for in the first place.
+
+def normalize_unit(value: object) -> str | None:
+    """"mm" or "m" for a declared unit, None for anything else."""
+    if not isinstance(value, str):
+        return None
+    return _UNIT_NAMES.get(value.strip().lower())
+
+
+def declared_unit(path: str | Path) -> str | None:
+    """The unit the `metadata.json` next to a mesh, or in the folders above it, declares for the model."""
+    folder = Path(path).resolve().parent
+    for _ in range(_METADATA_LEVELS):
+        metadata = folder / "metadata.json"
+        if metadata.is_file():
+            try:
+                data = json.loads(metadata.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return None
+            return normalize_unit(data.get("unit", data.get("units"))) if isinstance(data, dict) else None
+        if folder.parent == folder:
+            break
+        folder = folder.parent
+    return None
+
+
+def to_meters(vertices: np.ndarray, unit: str | None) -> np.ndarray:
+    """Brings the vertices to meters. A declared unit decides; without one, a mesh bigger than
+    MILLIMETER_SPAN in any axis is taken for millimeters (the check STUDIO's useRealScaleSTL() applies)."""
+    if unit == "mm":
+        return vertices * 0.001
+    if unit == "m":
+        return vertices
     span = vertices.max(axis=0) - vertices.min(axis=0)
-    if float(np.max(span)) > 5.0:
-        vertices = vertices * 0.001
+    return vertices * 0.001 if float(np.max(span)) > MILLIMETER_SPAN else vertices
 
+
+def load_stl(path: str | Path, unit: str | None = None) -> Mesh:
+    raw = stl_mesh.Mesh.from_file(str(path))
+    vertices = to_meters(raw.vectors.reshape(-1, 3).astype(np.float32), unit or declared_unit(path))
     # One normal per triangle, repeated for its 3 vertices - raw.normals
     # is already per-face from numpy-stl's own cross-product computation.
     normals = np.repeat(raw.normals.astype(np.float32), 3, axis=0)

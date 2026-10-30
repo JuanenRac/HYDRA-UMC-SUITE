@@ -10,6 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from hydra_suite.render.pnp_rig import MACHINE_MESH_DIRS, machine_mesh_dir, PNP_ALL_MESH_FILES
 from hydra_suite.render.mesh import load_link_set
 from hydra_suite.render.viewport import ASSETS_DIR, RobotGLRenderer
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mesh_unit_checks import run_mesh_unit_checks
 
 
 def main():
@@ -36,7 +38,8 @@ def main():
     renderer.set_attached_module("heatedBed",100,100)
     assert renderer._pnp_machine_type is None
     assert renderer._attached_module_type == "heatedBed"
-    print("VERIFY_MACHINE_ASSETS=PASS roots=4 meshes=668 dispatch=PASS")
+    unit_checks = run_mesh_unit_checks(ASSETS_DIR)
+    print(f"VERIFY_MACHINE_ASSETS=PASS roots=4 meshes=668 dispatch=PASS unit_checks={unit_checks}")
 
 
 if __name__ == "__main__":

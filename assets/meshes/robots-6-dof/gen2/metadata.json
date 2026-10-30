@@ -4,5 +4,6 @@
   "model": "Gen2 (6-DOF)",
   "manufacturer": "Kinova",
   "dof": 6,
-  "category": "robots-6-dof"
+  "category": "robots-6-dof",
+  "unit": "m"
 }

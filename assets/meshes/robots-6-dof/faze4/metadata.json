@@ -4,5 +4,6 @@
   "model": "Faze4 (6-DOF)",
   "manufacturer": "Source Robotics",
   "dof": 6,
-  "category": "robots-6-dof"
+  "category": "robots-6-dof",
+  "unit": "m"
 }
