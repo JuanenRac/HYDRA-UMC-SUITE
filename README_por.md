@@ -20,7 +20,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
   <img src="https://img.shields.io/badge/Tests-44%20passing-2ea44f.svg" alt="Tests">
-  <img src="https://img.shields.io/badge/Version-0.7.2-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Version-0.7.3-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
@@ -38,7 +38,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| Versão | `0.7.2` |
+| Versão | `0.7.3` |
 | Maturidade | Funcional |
 | Testes | 44 (`python tools/run_offline_verifiers.py`) |
 | Tecnologia | Python 3.12 / PySide6 |

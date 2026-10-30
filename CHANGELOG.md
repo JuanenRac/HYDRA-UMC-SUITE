@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.3] - Safe mode of a robot, pytest running the verifiers, the progress of a CAN flash, state changes at most 20 times a second and the unit of a mesh declared by its model
+
 - **The progress of a CAN flash cycle reaches the connection:** the server relays each progress line to admin sessions as a `canota_progress` message; the connection now keeps the latest line (`last_canota_progress`) and announces each one with the `canota_progress` signal, so a flasher view can show the live phase and percentage while the flash request is pending. Before, the message was dropped. 1 new verifier.
 - **pytest runs the verifiers in the CI:** `tests/test_offline_verifiers.py` runs every verifier script as its own test under the headless Qt platform, so the report names the verifier that failed. The verifiers stay scripts and `python tools/run_offline_verifiers.py` still runs them all without pytest.
 - **The installer is documented as not signed with Authenticode:** the README and `installer/README.md` say that Windows SmartScreen may warn and that a SHA-256 checksum and an Ed25519 signature of the installer are published next to it in the release, with how to check both.
