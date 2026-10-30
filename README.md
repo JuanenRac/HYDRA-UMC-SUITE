@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-41%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-43%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.1-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 41 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing. The interface is Qt Quick only (`qt_suite.py`): all 33 panels of the navigation are real, working code, including the 3D viewport through a dedicated `OffscreenRobotRenderer`; the classic window was removed. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and `combinedWith` (combined-robot mode) isn't exposed in this app's UI despite existing in STUDIO's own data model. The Trajectory panel now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
+**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 43 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing. The interface is Qt Quick only (`qt_suite.py`): all 33 panels of the navigation are real, working code, including the 3D viewport through a dedicated `OffscreenRobotRenderer`; the classic window was removed. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and `combinedWith` (combined-robot mode) isn't exposed in this app's UI despite existing in STUDIO's own data model. The Trajectory panel now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.7.1` |
 | Maturity | Functional |
-| Tests | 41 (`python tools/run_offline_verifiers.py`) |
+| Tests | 43 (`python tools/run_offline_verifiers.py`) |
 | Stack | Python 3.12 / PySide6 |
 | Target | The PC of the person using it |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | Works for its main purpose; the honesty check above lists what is still missing |
-| Tests | 🟢 | 41 automated tests, run on every change |
+| Tests | 🟢 | 43 automated tests, run on every change |
 | Real hardware | 🔴 | Not yet: no run on real hardware is recorded for this version |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
 
@@ -171,6 +171,7 @@ HYDRA-UMC SUITE has a single interface, written in Qt Quick (QML): a standalone 
   `moduleConfigComponent` implementation (STUDIO's own `CNC.tsx`/`Laser.tsx`
   are identical components apart from the module key); the other 7 each
   needed their own real, purpose-built panel. Heated beds and vacuum tables use STL in `render/module_rig.py`. PnP, CNC and laser use `render/pnp_rig.py`: 7 articulated meshes and 160 individual parts per independent machine directory. `OffscreenRobotRenderer` renders each assembly. See [machine assets](docs/MACHINE_ASSETS.md).
+- **🔑 Two-step sign-in** - **Ecosystem > Server Admin** has a card for the account you are logged in with (off until its owner turns it on): a QR code of the otpauth address (drawn here by a small encoder that makes the same symbol as the web program), the key to type by hand with a copy button, the first code and the ten one-time recovery codes shown once. The server-credentials dialog has a field for the code of an account that has it on (kept in memory for that one sign-in, never saved), and **Ecosystem > Users** has a button that removes the second step of an account that lost its phone and its recovery codes.
 
 ---
 
@@ -258,7 +259,7 @@ The version is shown in **Help > About**. Building with `build_exe.bat` / `build
 
 ## 🧪 Testing
 
-41 automated tests run with `python tools/run_offline_verifiers.py`. Each one is a verifier script holding many checks, not a single assertion; they need PySide6 and the other requirements, run under a headless Qt platform and never open a connection to a real server or robot.
+43 automated tests run with `python tools/run_offline_verifiers.py`. Each one is a verifier script holding many checks, not a single assertion; they need PySide6 and the other requirements, run under a headless Qt platform and never open a connection to a real server or robot.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 

@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-41%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-43%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.1-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 41 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 33 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 43 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 33 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.7.1` |
 | 成熟度 | 可用 |
-| 测试 | 41 (`python tools/run_offline_verifiers.py`) |
+| 测试 | 43 (`python tools/run_offline_verifiers.py`) |
 | 技术栈 | Python 3.12 / PySide6 |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -56,7 +56,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 41 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 43 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
 
@@ -112,6 +112,7 @@ HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立�
 - **🌐 8 种语言** —— 英语、西班牙语、意大利语、法语、德语、简体中文、日语、葡萄牙语（与 URTC-FLASHER/URTC-TESTER 相同的 `language/*.lng` 惯例），从“语言”菜单切换（重启后生效）。
 - **📷 摄像头** —— 每个控制器的真实摄像头名册（存在哪些摄像头、其类型、连接状态，以及一个真实的 USB/IP（RTSP）来源类型切换，配有通用、不限品牌的主机/端口/路径/凭证字段），与真实服务器同步，方式与此处的其他每个面板相同，还带有真实的实时视频：元数据自始至终都是真实的，每张摄像头卡片都会渲染真实的 MJPEG 视频流本身（HYDRA-UMC-VISION-STREAMER 自身的 `stream serve`，通过 HYDRA-UMC-SERVER 的 `GET /api/camera/:id/stream` 中继）。通过一个真实的 JPEG SOI/EOI 标记扫描客户端（与 HYDRA-UMC-ANDROID-CONTROL 自身的 `MjpegStreamParser.kt` 已经使用的真实方法相同）实现，已对真实 USB 和 IP 硬件验证。
 - **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `moduleConfigComponent` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。加热床和真空台通过 `render/module_rig.py` 使用 STL。PnP、CNC 和激光使用 `render/pnp_rig.py`，每个独立文件夹包含 7 个运动部件网格和 160 个独立零件。`OffscreenRobotRenderer` 显示各个总成。参见[机器模型](docs/MACHINE_ASSETS.md)。
+- **🔑 两步登录** - **生态系统 > Server Admin** 有一张用于您当前登录账户的卡片(在其所有者开启之前是关闭的):otpauth 地址的二维码(由一个与网页程序生成相同图案的小型编码器在此绘制)、带复制按钮的可手动输入密钥、第一个验证码，以及只显示一次的十个一次性恢复码。服务器凭据对话框有一个供已开启账户使用的验证码输入栏(只在内存中保留给那一次登录，绝不保存)，**生态系统 > 用户**有一个按钮，可为丢失手机和恢复码的账户移除第二步。
 
 ---
 
@@ -199,7 +200,7 @@ python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 
 ## 🧪 测试
 
-运行 `python tools/run_offline_verifiers.py` 会执行 41 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
+运行 `python tools/run_offline_verifiers.py` 会执行 43 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 
