@@ -11,6 +11,7 @@
   ],
   "deployment_target": "user-pc",
   "maturity": "functional",
+  "evidence": "none",
   "family": "Core Backend & Clients",
   "parent": "HYDRA-UMC-SERVER",
   "build": "No pyproject.toml. __init__.py's __version__ is the real source. Packaged as standalone .exe using build_exe.bat/.sh.",
