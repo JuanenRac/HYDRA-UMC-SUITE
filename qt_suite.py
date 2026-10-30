@@ -83,6 +83,7 @@ from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import server_security
 from hydra_suite.panel_logic import submitted_models
+from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
 from hydra_suite.panel_logic.ai_family_status import AI_FAMILIES
 from hydra_suite.panel_logic.atc_tools import (
@@ -737,6 +738,17 @@ class SuiteQtBridge(QObject):
         self._users_message = ""
         self._users_error = ""
         self._users_busy = False
+        # The second step of the sign-in of the account this window is signed in with (Server Admin).
+        self._totp_step = "none"  # none | loading | unsupported | off | enrolling | recovery | on
+        self._totp_left = 0
+        self._totp_key = ""
+        self._totp_qr: dict[str, object] = {"tooLong": False, "path": "", "size": 0, "modules": []}
+        self._totp_recovery: list[str] = []
+        self._totp_error = ""
+        self._totp_message = ""
+        self._totp_busy = False
+        controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_totp()))
+        controller.connection_login_changed.connect(lambda _cid, ok, _detail: asyncio.ensure_future(self._refresh_totp()) if ok else None)
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_access()))
         controller.connection_login_changed.connect(lambda _cid, ok, _detail: asyncio.ensure_future(self._refresh_access()) if ok else None)
 
@@ -1078,13 +1090,15 @@ class SuiteQtBridge(QObject):
         remembered = self._credentials is not None and self._credentials.is_remembered(conn.info.host, conn.info.port)
         return {"username": conn.info.username, "password": conn.info.password, "remember": remembered}
 
-    @Slot(str, str, str, bool)
-    def saveServerCredentials(self, conn_id: str, username: str, password: str, remember: bool) -> None:
+    @Slot(str, str, str, bool, str)
+    def saveServerCredentials(self, conn_id: str, username: str, password: str, remember: bool, totp_code: str = "") -> None:
         conn = self._controller.connections.get(conn_id)
         if conn is None or not username or not password:
             return
         conn.info.username = username
         conn.info.password = password
+        # The code of the second step is for this sign-in only: it is kept in memory until it is sent and never saved.
+        conn.totp_code = totp_code
         if remember:
             self._remember_server(conn_id)
         elif self._credentials is not None:
@@ -1853,6 +1867,163 @@ class SuiteQtBridge(QObject):
             self._users_message = ""
             self._users_error = users_panel.failure_text(result.status, result.code, result.detail)
         await self._refresh_users(keep_message=True)
+
+    # -- Two-step sign-in of the signed-in account (Server Admin) -------------------------
+
+    @Property(str, notify=changed)
+    def totpStep(self) -> str:
+        return self._totp_step
+
+    @Property(str, notify=changed)
+    def totpStatusText(self) -> str:
+        return _("TOTP_STATUS_ON", count=self._totp_left) if self._totp_step == "on" else _("TOTP_STATUS_OFF")
+
+    @Property(str, notify=changed)
+    def totpKey(self) -> str:
+        return totp_panel.grouped_key(self._totp_key) if self._totp_key else ""
+
+    @Property("QVariant", notify=changed)
+    def totpQr(self) -> dict[str, object]:
+        return self._totp_qr
+
+    @Property("QVariantList", notify=changed)
+    def totpRecovery(self) -> list[str]:
+        return self._totp_recovery
+
+    @Property(str, notify=changed)
+    def totpError(self) -> str:
+        return self._totp_error
+
+    @Property(str, notify=changed)
+    def totpMessage(self) -> str:
+        return self._totp_message
+
+    @Property(bool, notify=changed)
+    def totpBusy(self) -> bool:
+        return self._totp_busy
+
+    def _totp_conn(self):
+        conn = self._controller.active_connection
+        return conn if conn is not None and conn.login_ok is True else None
+
+    async def _refresh_totp(self) -> None:
+        conn = self._totp_conn()
+        if conn is None:
+            self._totp_step = "none"
+            self.changed.emit()
+            return
+        if self._totp_step in ("enrolling", "recovery"):
+            return
+        status, body, retry = await conn.totp_call("GET", "/api/totp/status")
+        parsed = totp_panel.parse_status(body) if status == 200 else None
+        if parsed is None:
+            self._totp_step = "unsupported" if status == 404 else "off"
+            self._totp_error = "" if status == 404 else totp_panel.failure_text(status or 0, body, retry, password_call=False)
+        else:
+            self._totp_step = "on" if parsed[0] else "off"
+            self._totp_left = parsed[1]
+        self.changed.emit()
+
+    @Slot()
+    def refreshTotp(self) -> None:
+        self._totp_error = ""
+        asyncio.ensure_future(self._refresh_totp())
+
+    @Slot(str)
+    def startTotp(self, password: str) -> None:
+        asyncio.ensure_future(self._start_totp(password))
+
+    async def _start_totp(self, password: str) -> None:
+        conn = self._totp_conn()
+        if conn is None or not password:
+            return
+        self._totp_busy, self._totp_error, self._totp_message = True, "", ""
+        self.changed.emit()
+        status, body, retry = await conn.totp_call("POST", "/api/totp/begin", {"password": password})
+        self._totp_busy = False
+        enrolment = totp_panel.parse_enrolment(body) if status == 200 else None
+        if enrolment is None:
+            self._totp_error = totp_panel.failure_text(status or 0, body, retry)
+        else:
+            self._totp_key = enrolment[0]
+            self._totp_qr = totp_panel.qr_view(enrolment[1])
+            self._totp_step = "enrolling"
+        self.changed.emit()
+
+    @Slot(str)
+    def confirmTotp(self, code: str) -> None:
+        asyncio.ensure_future(self._confirm_totp(code))
+
+    async def _confirm_totp(self, code: str) -> None:
+        conn = self._totp_conn()
+        if conn is None or not code.strip():
+            return
+        self._totp_busy, self._totp_error = True, ""
+        self.changed.emit()
+        status, body, retry = await conn.totp_call("POST", "/api/totp/confirm", {"code": totp_panel.normalize_code(code)})
+        self._totp_busy = False
+        codes = totp_panel.parse_recovery_codes(body) if status == 200 else None
+        if codes is None:
+            self._totp_error = totp_panel.failure_text(status or 0, body, retry, password_call=False)
+        else:
+            self._totp_key, self._totp_recovery, self._totp_step = "", codes, "recovery"
+            self._totp_qr = {"tooLong": False, "path": "", "size": 0, "modules": []}
+        self.changed.emit()
+
+    @Slot()
+    def cancelTotp(self) -> None:
+        self._totp_key, self._totp_error, self._totp_step = "", "", "off"
+        self._totp_qr = {"tooLong": False, "path": "", "size": 0, "modules": []}
+        self.changed.emit()
+
+    @Slot()
+    def finishTotp(self) -> None:
+        self._totp_recovery = []
+        self._totp_step = "loading"
+        self._totp_message = _("TOTP_DONE_ON")
+        asyncio.ensure_future(self._refresh_totp())
+
+    @Slot()
+    def copyTotpKey(self) -> None:
+        if self._totp_key:
+            QGuiApplication.clipboard().setText(self._totp_key)
+            self._totp_message = _("TOTP_COPIED")
+            self.changed.emit()
+
+    @Slot(str, str)
+    def disableTotp(self, password: str, code: str) -> None:
+        asyncio.ensure_future(self._disable_totp(password, code))
+
+    async def _disable_totp(self, password: str, code: str) -> None:
+        conn = self._totp_conn()
+        if conn is None or not password or not code.strip():
+            return
+        self._totp_busy, self._totp_error, self._totp_message = True, "", ""
+        self.changed.emit()
+        status, body, retry = await conn.totp_call("POST", "/api/totp/disable", {"password": password, "code": totp_panel.normalize_code(code)})
+        self._totp_busy = False
+        if status == 200:
+            self._totp_message = _("TOTP_DONE_OFF")
+            self._totp_step = "loading"
+            await self._refresh_totp()
+            return
+        self._totp_error = totp_panel.failure_text(status or 0, body, retry)
+        self.changed.emit()
+
+    @Slot(str)
+    def resetUserTotp(self, username: str) -> None:
+        asyncio.ensure_future(self._reset_user_totp(username))
+
+    async def _reset_user_totp(self, username: str) -> None:
+        conn = self._users_conn()
+        if conn is None or not username:
+            return
+        status, _body, _retry = await conn.reset_user_totp(username)
+        if status == 200:
+            self._users_message, self._users_error = _("TOTP_RESET_DONE", username=username), ""
+        else:
+            self._users_message, self._users_error = "", _("TOTP_RESET_ERROR")
+        self.changed.emit()
 
     # -- Robots Catalog -------------------------------------------------------------
 

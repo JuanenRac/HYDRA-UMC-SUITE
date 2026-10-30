@@ -38,6 +38,7 @@ from PySide6.QtCore import QObject, Signal
 
 from hydra_suite import access, command_sequence
 from hydra_suite.panel_logic import submitted_models
+from hydra_suite.panel_logic.totp import normalize_code
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 
@@ -291,6 +292,10 @@ class HydraConnection(QObject):
         # server's login rate limit, so the reconnect loop waits for the
         # operator to edit them (which reconnects from scratch).
         self._login_rejected = False
+        # The code of the second step, typed by the operator for the next sign-in only: it is sent once and forgotten
+        # (a code works once), and it is never saved. `needs_totp` is set when the server asked for it.
+        self.totp_code = ""
+        self.needs_totp = False
         # None = never attempted yet, then True/False after every login()
         # call - lets the server list show a real per-server "login failed"
         # state instead of every non-active server just sitting at whatever
@@ -374,9 +379,14 @@ class HydraConnection(QObject):
             return False
         try:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                login_body = {"username": self.info.username, "password": self.info.password}
+                code_sent = bool(self.totp_code.strip())
+                if code_sent:
+                    login_body["totp"] = normalize_code(self.totp_code)
+                self.totp_code = ""
                 resp = await client.post(
                     f"{self.info.base_url}/api/login",
-                    json={"username": self.info.username, "password": self.info.password},
+                    json=login_body,
                     timeout=5.0,
                 )
                 if resp.status_code == 429:
@@ -408,6 +418,14 @@ class HydraConnection(QObject):
                 if resp.status_code in (400, 401, 403):
                     self._login_rejected = True
                     detail = _body_error(resp)
+                    try:
+                        refusal = resp.json()
+                    except ValueError:
+                        refusal = None
+                    self.needs_totp = isinstance(refusal, dict) and refusal.get("totpRequired") is True
+                    if self.needs_totp and not code_sent:
+                        # The account has the second step on: say what is needed, in the language of the program.
+                        detail = _("MSG_NET_LOGIN_NEEDS_CODE")
                     self.login_ok = False
                     self.error.emit(detail)
                     self.login_changed.emit(False, detail)
@@ -435,6 +453,7 @@ class HydraConnection(QObject):
         self._refresh_token = refresh if isinstance(refresh, str) and refresh else None
         self._login_rejected = False
         self.role = data.get("role") if isinstance(data.get("role"), str) else None
+        self.needs_totp = False
         self.login_ok = True
         self.login_changed.emit(True, "")
         return True
@@ -1220,9 +1239,30 @@ class HydraConnection(QObject):
             body["role"] = role
         return await self._access_request("PUT", "/api/users/" + urllib.parse.quote(username, safe=""), body)
 
+    async def totp_call(self, method: str, path: str, body: dict | None = None) -> tuple[int, object, str | None]:
+        """One request of the second-step family: (status, parsed body, Retry-After). Unlike the other calls it does not
+        renew the session and repeat itself on a 401: a wrong password or code is an answer here, and sending it twice would
+        count twice against the server's wait. Status 0 means the server could not be reached."""
+        headers = {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        try:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                resp = await client.request(method, f"{self.info.base_url}{path}", headers=headers, json=body, timeout=5.0)
+        except (httpx.HTTPError, OSError):
+            return 0, None, None
+        try:
+            data = resp.json()
+        except ValueError:
+            data = None
+        return resp.status_code, data, resp.headers.get("Retry-After")
+
     async def delete_user(self, username: str) -> AccessResult:
         """DELETE /api/users/:username (administrators only)."""
         return await self._access_request("DELETE", "/api/users/" + urllib.parse.quote(username, safe=""))
+
+    async def reset_user_totp(self, username: str) -> tuple[int, object, str | None]:
+        """DELETE /api/users/:username/totp (administrators only): removes the second step of an account that lost both the
+        phone and the recovery codes."""
+        return await self.totp_call("DELETE", "/api/users/" + urllib.parse.quote(username, safe="") + "/totp")
 
     def claims_are_pushed(self, within_s: float = 30.0) -> bool:
         """Whether the server pushed the reservations recently, so the poll of GET /api/claims can rest."""

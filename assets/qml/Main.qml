@@ -92,6 +92,7 @@ ApplicationWindow {
         credentialsUsernameField.text = creds.username
         credentialsPasswordField.text = creds.password
         credentialsRememberBox.checked = creds.remember
+        credentialsCodeField.text = ""
         credentialsDialog.open()
     }
 
@@ -311,6 +312,16 @@ ApplicationWindow {
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
             }
+            RowLayout {
+                Text { text: suiteBackend.uiText("LBL_LOGIN_CODE"); color: window.muted; Layout.preferredWidth: 90; wrapMode: Text.WordWrap }
+                TextField {
+                    id: credentialsCodeField
+                    objectName: "credentialsCodeField"
+                    Layout.fillWidth: true
+                    color: window.textPrimary
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+            }
             CheckBox {
                 id: credentialsRememberBox
                 objectName: "credentialsRememberBox"
@@ -325,7 +336,7 @@ ApplicationWindow {
                 Layout.preferredWidth: 330
             }
         }
-        onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text, credentialsRememberBox.checked)
+        onAccepted: suiteBackend.saveServerCredentials(window.credentialsConnId, credentialsUsernameField.text, credentialsPasswordField.text, credentialsRememberBox.checked, credentialsCodeField.text)
     }
 
     FileDialog {
@@ -1767,7 +1778,131 @@ ApplicationWindow {
                     }
                 }
             }
-            Item { Layout.fillHeight: true }
+            Card {
+                visible: suiteBackend.totpStep !== "none"
+                objectName: "totpCard"
+                Layout.fillWidth: true
+                Layout.preferredHeight: totpColumn.implicitHeight + 24
+                ColumnLayout {
+                    id: totpColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 12
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("HEADING_TOTP"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Text { text: suiteBackend.uiText("TOTP_INTRO"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                    Text { visible: suiteBackend.totpError !== ""; objectName: "totpError"; text: suiteBackend.totpError; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    Text { visible: suiteBackend.totpMessage !== ""; text: suiteBackend.totpMessage; color: window.green; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    Text { visible: suiteBackend.totpStep === "loading"; text: suiteBackend.uiText("TOTP_LOADING"); color: window.muted; font.pixelSize: 10 }
+                    Text { visible: suiteBackend.totpStep === "unsupported"; text: suiteBackend.uiText("TOTP_ERR_UNSUPPORTED"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                    Text { visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"; text: suiteBackend.totpStatusText; color: suiteBackend.totpStep === "on" ? window.green : window.muted; font.pixelSize: 10; font.bold: true }
+
+                    ColumnLayout {
+                        visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("TOTP_PASSWORD"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        TextField {
+                            id: totpPasswordField
+                            objectName: "totpPasswordField"
+                            Layout.fillWidth: true
+                            echoMode: TextInput.Password
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Button {
+                            objectName: "totpStartButton"
+                            visible: suiteBackend.totpStep === "off"
+                            text: suiteBackend.uiText("TOTP_START")
+                            enabled: !suiteBackend.totpBusy && totpPasswordField.text !== ""
+                            onClicked: { suiteBackend.startTotp(totpPasswordField.text); totpPasswordField.text = "" }
+                        }
+                        Text { visible: suiteBackend.totpStep === "on"; text: suiteBackend.uiText("TOTP_TURN_OFF_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        TextField {
+                            id: totpOffCodeField
+                            objectName: "totpOffCodeField"
+                            visible: suiteBackend.totpStep === "on"
+                            Layout.fillWidth: true
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Button {
+                            objectName: "totpDisableButton"
+                            visible: suiteBackend.totpStep === "on"
+                            text: suiteBackend.uiText("TOTP_TURN_OFF")
+                            enabled: !suiteBackend.totpBusy && totpPasswordField.text !== "" && totpOffCodeField.text !== ""
+                            onClicked: { suiteBackend.disableTotp(totpPasswordField.text, totpOffCodeField.text); totpPasswordField.text = ""; totpOffCodeField.text = "" }
+                        }
+                    }
+
+                    ColumnLayout {
+                        visible: suiteBackend.totpStep === "enrolling"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("TOTP_SCAN"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                        Canvas {
+                            id: totpQrCanvas
+                            objectName: "totpQrCanvas"
+                            visible: !suiteBackend.totpQr.tooLong
+                            Layout.preferredWidth: 176
+                            Layout.preferredHeight: 176
+                            property var modules: suiteBackend.totpQr.modules
+                            onModulesChanged: requestPaint()
+                            onPaint: {
+                                var ctx = getContext("2d")
+                                ctx.fillStyle = "#ffffff"
+                                ctx.fillRect(0, 0, width, height)
+                                var rows = modules
+                                if (!rows || rows.length === 0) return
+                                var side = suiteBackend.totpQr.size
+                                var cell = width / side
+                                ctx.fillStyle = "#000000"
+                                for (var r = 0; r < rows.length; r++)
+                                    for (var c = 0; c < rows[r].length; c++)
+                                        if (rows[r].charAt(c) === "1")
+                                            ctx.fillRect((c + 4) * cell, (r + 4) * cell, Math.ceil(cell), Math.ceil(cell))
+                            }
+                        }
+                        Text { visible: suiteBackend.totpQr.tooLong === true; text: suiteBackend.uiText("TOTP_QR_TOO_LONG"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("TOTP_KEY"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { objectName: "totpKeyText"; text: suiteBackend.totpKey; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: 13; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button { text: suiteBackend.uiText("TOTP_COPY"); onClicked: suiteBackend.copyTotpKey() }
+                        Text { text: suiteBackend.uiText("TOTP_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        TextField {
+                            id: totpCodeField
+                            objectName: "totpCodeField"
+                            Layout.fillWidth: true
+                            inputMethodHints: Qt.ImhDigitsOnly
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        RowLayout {
+                            spacing: 8
+                            Button {
+                                objectName: "totpConfirmButton"
+                                text: suiteBackend.uiText("TOTP_CONFIRM")
+                                enabled: !suiteBackend.totpBusy && totpCodeField.text !== ""
+                                onClicked: { suiteBackend.confirmTotp(totpCodeField.text); totpCodeField.text = "" }
+                            }
+                            Button { text: suiteBackend.uiText("TOTP_CANCEL"); onClicked: suiteBackend.cancelTotp() }
+                        }
+                    }
+
+                    ColumnLayout {
+                        visible: suiteBackend.totpStep === "recovery"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("TOTP_RECOVERY_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("TOTP_RECOVERY_HINT"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                        Repeater {
+                            model: suiteBackend.totpRecovery
+                            delegate: Text { required property var modelData; text: modelData; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: 13 }
+                        }
+                        Button { objectName: "totpRecoverySavedButton"; text: suiteBackend.uiText("TOTP_RECOVERY_SAVED"); onClicked: suiteBackend.finishTotp() }
+                    }
+                }
+            }            Item { Layout.fillHeight: true }
         }
         }
     }
@@ -5310,6 +5445,18 @@ ApplicationWindow {
                 contentItem: Text { text: suiteBackend.uiText("USERS_DELETE_CONFIRM").replace("{username}", usersDeleteDialog.target); color: window.textPrimary; wrapMode: Text.WordWrap }
                 onAccepted: suiteBackend.deleteUser(usersDeleteDialog.target)
             }
+            Dialog {
+                id: totpResetDialog
+                property string target: ""
+                anchors.centerIn: Overlay.overlay
+                modal: true
+                width: 380
+                title: suiteBackend.uiText("TOTP_RESET_BUTTON")
+                standardButtons: Dialog.Yes | Dialog.No
+                background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+                contentItem: Text { text: suiteBackend.uiText("TOTP_RESET_CONFIRM").replace("{username}", totpResetDialog.target); color: window.textPrimary; wrapMode: Text.WordWrap }
+                onAccepted: suiteBackend.resetUserTotp(totpResetDialog.target)
+            }
             Text { text: suiteBackend.uiText("HEADING_USERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
             Text {
                 visible: !suiteBackend.usersHasServer
@@ -5352,6 +5499,12 @@ ApplicationWindow {
                         Text { text: modelData.username + (modelData.own ? " (" + suiteBackend.uiText("USERS_YOU") + ")" : ""); color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 180; elide: Text.ElideRight }
                         Text { text: modelData.roleLabel; color: modelData.role === "admin" ? window.green : window.cyan; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
                         Text { text: modelData.created; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Button {
+                            objectName: "usersTotpResetButton"
+                            text: suiteBackend.uiText("TOTP_RESET_BUTTON")
+                            enabled: !suiteBackend.usersBusy
+                            onClicked: { totpResetDialog.target = modelData.username; totpResetDialog.open() }
+                        }
                         Button {
                             objectName: "usersDeleteButton"
                             text: suiteBackend.uiText("USERS_DELETE")
