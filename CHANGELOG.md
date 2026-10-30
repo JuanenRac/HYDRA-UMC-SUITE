@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.2] - Two-step sign-in, numbered motion commands and three more switches in Server Admin
+
 - **Two-step sign-in:** Server Admin has a Two-step sign-in card for the signed-in account (off until its owner turns it on): the password, then a QR code of the otpauth address (drawn by a small encoder in hydra_suite/panel_logic/qr_code.py that makes the same symbol as the web program) and the key to type by hand with a copy button, the first code, and the ten one-time recovery codes shown once. Turning it off asks for the password and a current or recovery code. The server-credentials dialog has a field for the code of an account that has the second step on (kept in memory for that one sign-in, never saved), and Ecosystem > Users has a button that removes the second step of an account that lost both the phone and the recovery codes. The requests of the second step are not repeated after a renewed session, so a wrong password or code counts once. In the eight languages; a verifier of its own.
 
 - **Motion commands are numbered:** a jog, a table move, a joint move and a stop carry a rising number, so the server can refuse a jog that arrives after a later stop; a refusal for arriving out of order has its own message in the eight languages and a test of its own.
