@@ -263,6 +263,7 @@ class HydraConnection(QObject):
     # success or not.
     login_changed = Signal(bool, str)        # (ok, detail) - detail is "" on success
     claims_changed = Signal()                # the server pushed the list of reservations (WebSocket message `claims`)
+    canota_progress = Signal(object)         # one progress line of a CAN flash cycle (WebSocket message `canota_progress`; admin sessions only)
 
     def __init__(self, info: ServerInfo, parent: QObject | None = None):
         super().__init__(parent)
@@ -358,6 +359,7 @@ class HydraConnection(QObject):
         # An operator's edit of the settings tree is not sent (the server takes it only from an administrator): said once.
         self._operator_edit_told = False
         self.claims_pushed_at = 0.0
+        self.last_canota_progress: dict | None = None  # the latest progress line of a CAN flash cycle, None before the first
         # Whether the server was last seen to understand the "table" command (true until it says otherwise).
         self.has_table_command = True
 
@@ -1530,6 +1532,14 @@ class HydraConnection(QObject):
                 if claim.controller_id == access.get_controller_id():
                     self.jog_armed_until[claim.robot_id] = claim.jog_armed_until
             self.claims_changed.emit()
+            return
+        # One progress line of a CAN flash cycle, relayed by the server to admin sessions only: kept as the latest
+        # line and announced, so a flasher view can show the live phase and percentage while the request is pending.
+        if msg.get("type") == "canota_progress":
+            payload = msg.get("payload")
+            if isinstance(payload, dict):
+                self.last_canota_progress = payload
+                self.canota_progress.emit(payload)
             return
         # "delta" (schema 1 - a full-tree write from a client that didn't
         # ask for the real delta, or an older server) and "settings" (a
