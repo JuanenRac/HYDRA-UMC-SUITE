@@ -106,11 +106,13 @@ qualsiasi modello privo di un proprio set di mesh.
 
 ## 🖼️ Schermate
 
-### Foto
+Catturate a 1920×1080 su un banco di prova, con dati di esempio e senza alcuna installazione reale dietro.
 
-Ancora nessuno screenshot - non ancora catturato per la documentazione.
-Avvialo (vedi sotto) per vedere la cosa reale invece di fidarti qui più
-avanti di un'immagine ormai superata.
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Panoramica: il controllore attivo, le sue metriche di sistema e l'elenco dei robot con modello, ruolo, stato e velocità." width="100%"><br><sub>Panoramica: il controllore attivo, le sue metriche di sistema e l'elenco dei robot con modello, ruolo, stato e velocità.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Controllo del robot: modalità reale o simulata, i pulsanti di prenotazione, i sei cursori dei giunti, la riproduzione e gli accessori dell'utensile." width="100%"><br><sub>Controllo del robot: modalità reale o simulata, i pulsanti di prenotazione, i sei cursori dei giunti, la riproduzione e gli accessori dell'utensile.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: scegli la scheda e lo slot del robot, guarda il percorso dell'aggiornamento, un file di firmware e flashalo via CAN." width="100%"><br><sub>Flasher Studio: scegli la scheda e lo slot del robot, guarda il percorso dell'aggiornamento, un file di firmware e flashalo via CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: il LED di stato, il LED ad anello, la modalità OLED, il controllo di persistenza, l'autotest e il monitor del bus grezzo di una scheda." width="100%"><br><sub>Tester Center: il LED di stato, il LED ad anello, la modalità OLED, il controllo di persistenza, l'autotest e il monitor del bus grezzo di una scheda.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Limiti di sicurezza: armamento del jog, regola delle prenotazioni e i massimi di jog e di temperatura del piano per modello di robot." width="100%"><br><sub>Limiti di sicurezza: armamento del jog, regola delle prenotazioni e i massimi di jog e di temperatura del piano per modello di robot.</sub></td></tr>
+</table>
 
 ## ✨ Funzionalità
 

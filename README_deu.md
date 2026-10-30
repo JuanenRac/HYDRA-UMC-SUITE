@@ -106,11 +106,13 @@ gebauter "Generic"-Fallback für jedes Modell ohne eigenen Mesh-Satz.
 
 ## 🖼️ Screenshots
 
-### Fotos
+Aufgenommen mit 1920×1080 auf einem Prüfstand, mit Beispieldaten und ohne eine echte Anlage dahinter.
 
-Noch keine Screenshots - noch nicht für die Dokumentation erfasst. Starte
-es (siehe unten), um das echte Ding zu sehen, anstatt hier später einem
-veralteten Bild zu vertrauen.
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Übersicht: der aktive Controller, seine Systemmetriken und die Liste der Roboter mit Modell, Rolle, Status und Geschwindigkeit." width="100%"><br><sub>Übersicht: der aktive Controller, seine Systemmetriken und die Liste der Roboter mit Modell, Rolle, Status und Geschwindigkeit.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Robotersteuerung: Live- oder Simulationsmodus, die Reservierungstasten, die sechs Gelenkregler, die Wiedergabe und das Werkzeugzubehör." width="100%"><br><sub>Robotersteuerung: Live- oder Simulationsmodus, die Reservierungstasten, die sechs Gelenkregler, die Wiedergabe und das Werkzeugzubehör.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: Platine und Roboterplatz wählen, den Weg des Updates sehen, eine Firmware-Datei auswählen und per CAN flashen." width="100%"><br><sub>Flasher Studio: Platine und Roboterplatz wählen, den Weg des Updates sehen, eine Firmware-Datei auswählen und per CAN flashen.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: die Status-LED, die Ring-LED, der OLED-Modus, die Persistenzprüfung, der Selbsttest und der Rohbus-Monitor einer Platine." width="100%"><br><sub>Tester Center: die Status-LED, die Ring-LED, der OLED-Modus, die Persistenzprüfung, der Selbsttest und der Rohbus-Monitor einer Platine.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Sicherheitsgrenzen: Scharfschaltung des Jogs, Reservierungsregel und die Jog- und Betttemperatur-Obergrenzen je Robotermodell." width="100%"><br><sub>Sicherheitsgrenzen: Scharfschaltung des Jogs, Reservierungsregel und die Jog- und Betttemperatur-Obergrenzen je Robotermodell.</sub></td></tr>
+</table>
 
 ## ✨ Funktionen
 

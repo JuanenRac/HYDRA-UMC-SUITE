@@ -102,10 +102,13 @@ without a dedicated mesh set.
 
 ## 🖼️ Screenshots
 
-### Photos
+Captured at 1920×1080 on a test bench, with sample data and no real installation behind them.
 
-No screenshots yet - not yet captured for documentation. Launch it (see
-below) to see the real thing rather than trust a stale image here later.
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Overview: the active controller, its system metrics and the list of robots with model, role, status and speed." width="100%"><br><sub>Overview: the active controller, its system metrics and the list of robots with model, role, status and speed.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Robot control: live or simulated mode, the reservation buttons, the six joint sliders, playback and the tool accessories." width="100%"><br><sub>Robot control: live or simulated mode, the reservation buttons, the six joint sliders, playback and the tool accessories.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: pick the board and the robot slot, see the route the update takes, choose a firmware file and flash it over CAN." width="100%"><br><sub>Flasher Studio: pick the board and the robot slot, see the route the update takes, choose a firmware file and flash it over CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: the status LED, the ring LED, the OLED mode, the persistence check, the self-test and the raw bus monitor of a board." width="100%"><br><sub>Tester Center: the status LED, the ring LED, the OLED mode, the persistence check, the self-test and the raw bus monitor of a board.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Safety limits: arming of the jog, the reservation rule and the jog and bed-temperature ceilings per robot model." width="100%"><br><sub>Safety limits: arming of the jog, the reservation rule and the jog and bed-temperature ceilings per robot model.</sub></td></tr>
+</table>
 
 ## ✨ Features
 

@@ -105,9 +105,13 @@ O **HYDRA-UMC-SUITE** é o centro de comando de ambiente de trabalho da célula 
 
 ## 🖼️ Capturas de ecrã
 
-### Fotografias
+Capturadas a 1920×1080 numa bancada de testes, com dados de exemplo e sem qualquer instalação real por trás.
 
-Ainda não há capturas de ecrã - ainda não foram capturadas para a documentação. Execute-o (ver abaixo) para ver a coisa real em vez de confiar mais tarde numa imagem desatualizada aqui.
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Resumo: o controlador ativo, as suas métricas do sistema e a lista de robôs com modelo, função, estado e velocidade." width="100%"><br><sub>Resumo: o controlador ativo, as suas métricas do sistema e a lista de robôs com modelo, função, estado e velocidade.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Controlo do robô: modo real ou simulado, os botões de reserva, os seis cursores das articulações, a reprodução e os acessórios da ferramenta." width="100%"><br><sub>Controlo do robô: modo real ou simulado, os botões de reserva, os seis cursores das articulações, a reprodução e os acessórios da ferramenta.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: escolha a placa e a ranhura do robô, veja o caminho que a atualização segue, escolha um ficheiro de firmware e grave-o por CAN." width="100%"><br><sub>Flasher Studio: escolha a placa e a ranhura do robô, veja o caminho que a atualização segue, escolha um ficheiro de firmware e grave-o por CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: o LED de estado, o LED em anel, o modo OLED, a verificação de persistência, o autoteste e o monitor de barramento em bruto de uma placa." width="100%"><br><sub>Tester Center: o LED de estado, o LED em anel, o modo OLED, a verificação de persistência, o autoteste e o monitor de barramento em bruto de uma placa.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Limites de segurança: armação do jog, regra de reservas e os tetos de jog e de temperatura da cama por modelo de robô." width="100%"><br><sub>Limites de segurança: armação do jog, regra de reservas e os tetos de jog e de temperatura da cama por modelo de robô.</sub></td></tr>
+</table>
 
 ## ✨ Funcionalidades
 

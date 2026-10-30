@@ -80,9 +80,13 @@ GPL-3.0-or-later - see LICENSE
 
 ## 🖼️ スクリーンショット
 
-### スクリーンショット
+テストベンチで 1920×1080 で撮影。サンプルデータを使用しており、実際の設備は接続されていません。
 
-まだありません——ドキュメント用にはまだ撮影されていません。実際の姿を見るには、後で古びた画像を信頼するのではなく、（下記の手順で）実際に起動してみてください。
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="概要：アクティブなコントローラー、そのシステムメトリクス、モデル・役割・状態・速度つきのロボット一覧。" width="100%"><br><sub>概要：アクティブなコントローラー、そのシステムメトリクス、モデル・役割・状態・速度つきのロボット一覧。</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="ロボット制御：実機またはシミュレーションのモード、予約ボタン、6 つの関節スライダー、再生、ツールのアクセサリー。" width="100%"><br><sub>ロボット制御：実機またはシミュレーションのモード、予約ボタン、6 つの関節スライダー、再生、ツールのアクセサリー。</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio：ボードとロボットスロットを選び、更新の経路を確認して、ファームウェアファイルを CAN で書き込みます。" width="100%"><br><sub>Flasher Studio：ボードとロボットスロットを選び、更新の経路を確認して、ファームウェアファイルを CAN で書き込みます。</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center：ボードのステータス LED、リング LED、OLED モード、永続性チェック、セルフテスト、生バスモニター。" width="100%"><br><sub>Tester Center：ボードのステータス LED、リング LED、OLED モード、永続性チェック、セルフテスト、生バスモニター。</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="安全制限：ジョグの有効化、予約ルール、ロボットモデルごとのジョグとベッド温度の上限。" width="100%"><br><sub>安全制限：ジョグの有効化、予約ルール、ロボットモデルごとのジョグとベッド温度の上限。</sub></td></tr>
+</table>
 
 ## ✨ 機能
 

@@ -106,11 +106,13 @@ propio.
 
 ## 🖼️ Capturas de pantalla
 
-### Fotos
+Capturadas a 1920×1080 en un banco de pruebas, con datos de ejemplo y sin ninguna instalación real detrás.
 
-Todavía sin capturas - aún no capturadas para la documentación. Lánzalo (ver
-abajo) para ver la cosa real en vez de confiar en una imagen desactualizada
-aquí más adelante.
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Resumen: el controlador activo, sus métricas del sistema y la lista de robots con modelo, función, estado y velocidad." width="100%"><br><sub>Resumen: el controlador activo, sus métricas del sistema y la lista de robots con modelo, función, estado y velocidad.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Control del robot: modo real o simulado, los botones de reserva, los seis deslizadores de articulación, la reproducción y los accesorios de la herramienta." width="100%"><br><sub>Control del robot: modo real o simulado, los botones de reserva, los seis deslizadores de articulación, la reproducción y los accesorios de la herramienta.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: elige la placa y la ranura del robot, mira la ruta que sigue la actualización, escoge un fichero de firmware y flashéalo por CAN." width="100%"><br><sub>Flasher Studio: elige la placa y la ranura del robot, mira la ruta que sigue la actualización, escoge un fichero de firmware y flashéalo por CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: el LED de estado, el LED en anillo, el modo OLED, la comprobación de persistencia, el autotest y el monitor de bus en bruto de una placa." width="100%"><br><sub>Tester Center: el LED de estado, el LED en anillo, el modo OLED, la comprobación de persistencia, el autotest y el monitor de bus en bruto de una placa.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Límites de seguridad: armado del jog, regla de reservas y los techos de jog y de temperatura de cama por modelo de robot." width="100%"><br><sub>Límites de seguridad: armado del jog, regla de reservas y los techos de jog y de temperatura de cama por modelo de robot.</sub></td></tr>
+</table>
 
 ## ✨ Funciones
 

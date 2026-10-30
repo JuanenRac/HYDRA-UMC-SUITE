@@ -80,9 +80,13 @@ GPL-3.0-or-later - see LICENSE
 
 ## 🖼️ 屏幕截图
 
-### 照片
+在测试台上以 1920×1080 截取，使用示例数据，背后没有真实的安装。
 
-尚无截图——尚未为文档拍摄。请启动它（见下文）以查看真实的样子，而不是日后信赖一张过时的图片。
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="概览：当前控制器、其系统指标，以及包含型号、角色、状态和速度的机器人列表。" width="100%"><br><sub>概览：当前控制器、其系统指标，以及包含型号、角色、状态和速度的机器人列表。</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="机器人控制：实机或模拟模式、预约按钮、六个关节滑块、回放和工具附件。" width="100%"><br><sub>机器人控制：实机或模拟模式、预约按钮、六个关节滑块、回放和工具附件。</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio：选择开发板和机器人插槽，查看更新经过的路径，选择固件文件并通过 CAN 烧录。" width="100%"><br><sub>Flasher Studio：选择开发板和机器人插槽，查看更新经过的路径，选择固件文件并通过 CAN 烧录。</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center：开发板的状态 LED、环形 LED、OLED 模式、持久化检查、自检和原始总线监视器。" width="100%"><br><sub>Tester Center：开发板的状态 LED、环形 LED、OLED 模式、持久化检查、自检和原始总线监视器。</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="安全限制：点动的启用、预约规则，以及按机器人型号设置的点动和热床温度上限。" width="100%"><br><sub>安全限制：点动的启用、预约规则，以及按机器人型号设置的点动和热床温度上限。</sub></td></tr>
+</table>
 
 ## ✨ 功能
 

@@ -108,11 +108,13 @@ mailles dédié.
 
 ## 🖼️ Captures d'écran
 
-### Photos
+Capturées en 1920×1080 sur un banc d'essai, avec des données d'exemple et sans installation réelle derrière.
 
-Pas encore de captures d'écran - pas encore capturées pour la
-documentation. Lancez-le (voir ci-dessous) pour voir la vraie chose plutôt
-que de vous fier ici plus tard à une image obsolète.
+<table>
+<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Vue d'ensemble : le contrôleur actif, ses métriques système et la liste des robots avec modèle, rôle, état et vitesse." width="100%"><br><sub>Vue d'ensemble : le contrôleur actif, ses métriques système et la liste des robots avec modèle, rôle, état et vitesse.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Contrôle du robot : mode réel ou simulé, les boutons de réservation, les six curseurs d'articulation, la lecture et les accessoires de l'outil." width="100%"><br><sub>Contrôle du robot : mode réel ou simulé, les boutons de réservation, les six curseurs d'articulation, la lecture et les accessoires de l'outil.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio : choisissez la carte et l'emplacement du robot, voyez le chemin de la mise à jour, un fichier de firmware, et flashez-le par CAN." width="100%"><br><sub>Flasher Studio : choisissez la carte et l'emplacement du robot, voyez le chemin de la mise à jour, un fichier de firmware, et flashez-le par CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center : la LED d'état, la LED en anneau, le mode OLED, le contrôle de persistance, l'autotest et le moniteur de bus brut d'une carte." width="100%"><br><sub>Tester Center : la LED d'état, la LED en anneau, le mode OLED, le contrôle de persistance, l'autotest et le moniteur de bus brut d'une carte.</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Limites de sécurité : armement du jog, règle de réservation et plafonds de jog et de température du plateau par modèle de robot." width="100%"><br><sub>Limites de sécurité : armement du jog, règle de réservation et plafonds de jog et de température du plateau par modèle de robot.</sub></td></tr>
+</table>
 
 ## ✨ Fonctionnalités
 
