@@ -101,6 +101,12 @@ class RobotView:
         return bool(self.raw.get("online", False))
 
     @property
+    def enabled(self) -> bool:
+        """False while the robot is in safe mode (the server refuses everything but STOP, disable and enable);
+        a robot that says nothing is enabled."""
+        return self.raw.get("enabled") is not False
+
+    @property
     def urtc_connected(self) -> bool:
         """Whether this robot's own URTC Tool Head is reachable at all
         (Tier 2 of the CAN-OTA chain, HYDRA-UMC-STUDIO's own

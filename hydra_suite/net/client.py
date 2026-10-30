@@ -215,6 +215,8 @@ def describe_rejection(resp: "httpx.Response", what: str) -> str:
         return _("MSG_NET_REJ_STALE", what=what)
     if code == "jog-not-armed":
         return _("MSG_NET_REJ_NOT_ARMED", what=what, detail=_body_error(resp))
+    if status == 423 or code == "robot-disabled":
+        return _("MSG_NET_REJ_DISABLED", what=what, detail=_body_error(resp))
     if code == "controller-id-required":
         return _("MSG_NET_REJ_CONTROLLER_REQUIRED", what=what, detail=_body_error(resp))
     if status == 403:
@@ -1149,6 +1151,12 @@ class HydraConnection(QObject):
         if result.ok:
             self.jog_armed_until[robot_id] = result.expires_at if armed else None
         return result
+
+    async def set_robot_enabled(self, robot_id: int, enable: bool) -> AccessResult:
+        """POST /api/robot/:id/command with `disable` or `enable` - the safe mode of one robot. `disable` stops the
+        robot and the server then refuses its other commands (423); `enable` brings it back and is off by default on
+        the server (403 enable-not-allowed) and only for an administrator (403 admin-required)."""
+        return await self._access_request("POST", f"/api/robot/{robot_id}/command", {"command": "enable" if enable else "disable"})
 
     async def refresh_access(self, robot_id: int | None = None, *, claims: bool = True) -> bool:
         """Reads GET /api/claims (unless `claims` is False: the server pushes them and the push is fresh) and

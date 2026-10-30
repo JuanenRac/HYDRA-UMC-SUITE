@@ -108,5 +108,16 @@ check("the MAVLink request carries only the path of the key file", sec.mavlink_p
 check("leaving the vehicle link open asks, nothing else does", [sec.mavlink_needs_confirmation(s, u, sec.mavlink_patch(k, nu)) for s, u, k, nu in ((True, False, "", False), (True, False, "/k", True), (True, False, "/other", False), (False, False, "/k", False), (False, False, "", False), (True, True, "/k", True))], [True, True, False, False, False, False])
 check("the new warnings", [sec.known_warning([w]) for w in ("voice_heard_text_on", "voice_confidence_off", "mavlink_unsigned_allowed", "mavlink_signing_off")], [_("SECURITY_VOICE_HEARD_WARNING"), _("SECURITY_VOICE_CONFIDENCE_WARNING"), _("SECURITY_MAVLINK_UNSIGNED_WARNING"), _("SECURITY_MAVLINK_OFF_WARNING")])
 
+ROBOTS = {**raw, "robots": {"allowEnable": {"value": False, "source": "default"}}}
+rb = sec.parse_state(ROBOTS)
+check("reads the safe mode option of the robots", rb["robots"], {"allowEnable": {"value": False, "source": "default"}})
+check("a server without it shows no section", (plain["robots"], sec.view(plain)["robotsAvailable"], sec.view(rb)["robotsAvailable"]), (None, False, True))
+check("a damaged option is dropped, not the rest", (sec.parse_state({**ROBOTS, "robots": {"allowEnable": {"value": "yes", "source": "default"}}})["robots"], sec.parse_state({**ROBOTS, "robots": {"allowEnable": {"value": True, "source": "nowhere"}}})["robots"], sec.parse_state({**ROBOTS, "robots": 3})["tls"]["enabled"]), (None, None, False))
+check("the robots view", (sec.view(rb)["robotsAllowEnable"], sec.view(rb)["robotsAllowEnableLocked"], sec.view(sec.parse_state({**ROBOTS, "robots": {"allowEnable": {"value": True, "source": "env"}}}))["robotsAllowEnableLocked"]), (False, False, True))
+check("the robots request", (sec.robots_patch(True), sec.robots_patch(False)), ({"robots": {"allowEnable": True}}, {"robots": {"allowEnable": False}}))
+check("only allowing it asks", [sec.robots_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))], [True, False, False, False])
+check("the warning of allowing it", sec.known_warning(["robot_enable_allowed"]), _("SECURITY_ROBOTS_WARNING"))
+check("every key of the view exists without a server (robots included)", set(sec.view(None)) == set(sec.view(rb)), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

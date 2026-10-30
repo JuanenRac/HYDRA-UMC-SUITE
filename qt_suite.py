@@ -1329,6 +1329,33 @@ class SuiteQtBridge(QObject):
             for claim in conn.claims
         ]
 
+    @Property("QVariantMap", notify=changed)
+    def selectedRobotSafeMode(self) -> dict[str, object]:
+        """Whether the selected robot is in safe mode and which of the two buttons applies: anyone signed in can
+        disable a robot (like a stop); only an administrator is offered the enable."""
+        conn, robot_id = self._access_target()
+        robot = self._selected_robot()
+        signed_in = conn is not None and robot_id is not None and conn.login_ok is True
+        disabled = robot is not None and not robot.enabled
+        return {
+            "disabled": disabled,
+            "text": _("ACCESS_SAFE_MODE_BADGE") if disabled else "",
+            "canDisable": signed_in and not disabled,
+            "canEnable": signed_in and disabled and conn is not None and conn.is_admin,
+        }
+
+    @Slot()
+    def disableSelectedRobot(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is not None and robot_id is not None:
+            asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_DISABLE"), lambda: conn.set_robot_enabled(robot_id, False)))
+
+    @Slot()
+    def enableSelectedRobot(self) -> None:
+        conn, robot_id = self._access_target()
+        if conn is not None and robot_id is not None and conn.is_admin:
+            asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_ENABLE"), lambda: conn.set_robot_enabled(robot_id, True)))
+
     @Property(bool, notify=changed)
     def jogArmRequired(self) -> bool:
         conn = self._controller.active_connection
@@ -2953,6 +2980,17 @@ class SuiteQtBridge(QObject):
             self.changed.emit()
             return
         asyncio.ensure_future(self._save_security(patch))
+
+    @Slot(bool, result=bool)
+    def robotsNeedsConfirmation(self, allow_enable: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("robots"):
+            return False
+        return server_security.robots_needs_confirmation(state["robots"]["allowEnable"]["value"], allow_enable)
+
+    @Slot(bool)
+    def saveRobotsOptions(self, allow_enable: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.robots_patch(allow_enable)))
 
     @Slot(str, bool, result=bool)
     def mavlinkNeedsConfirmation(self, signing_key_file: str, allow_unsigned: bool) -> bool:

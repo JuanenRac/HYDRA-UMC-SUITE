@@ -78,6 +78,7 @@ def claims():
 def refusals():
     for code, expected in (("other-account", "claim_other_account"), ("other-controller", "claim_other_controller"), ("controller-id-required", "claim_controller_required"), ("jog-not-armed", "jog_not_armed")):
         check(f"refusal: {code}", access.failure_code_for(409 if code != "jog-not-armed" else 403, code), expected)
+    check("refusal: safe mode", [access.failure_code_for(s, c) for s, c in ((423, "robot-disabled"), (423, None), (403, "enable-not-allowed"), (403, "admin-required"), (403, None))], ["robot_disabled", "robot_disabled", "enable_not_allowed", "admin_required", "forbidden"])
     check("refusal: a 409 without a code stays generic", access.failure_code_for(409, None), "claimed")
     check("refusal: the other statuses", [access.failure_code_for(s, None) for s in (0, 401, 403, 404, 400, 500)], ["network", "session_expired", "forbidden", "not_found", "rejected", "server"])
     check("refusal: code of a body", (access.conflict_code_of({"code": "other-controller"}), access.conflict_code_of({"code": "x"}), access.conflict_code_of("t")), ("other-controller", None, None))

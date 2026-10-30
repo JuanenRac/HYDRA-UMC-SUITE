@@ -234,6 +234,53 @@ def arming(loop):
     check("arming: pressing again disarms", (sent[-1], bridge.selectedRobotArm["armed"]), ((1, False), False))
 
 
+def safe_mode(loop):
+    controller, bridge, conn = make()
+    mode = bridge.selectedRobotSafeMode
+    check("safe mode: an enabled robot can be disabled by anyone signed in, not enabled", (mode["disabled"], mode["canDisable"], mode["canEnable"], mode["text"]), (False, True, False, ""))
+    conn.state.active_controller.robot_by_id("1").raw["enabled"] = False
+    mode = bridge.selectedRobotSafeMode
+    check("safe mode: a disabled robot says so and an operator cannot enable it", (mode["disabled"], mode["canDisable"], mode["canEnable"], mode["text"]), (True, False, False, _("ACCESS_SAFE_MODE_BADGE")))
+    conn.role = "admin"
+    check("safe mode: an administrator is offered the enable", bridge.selectedRobotSafeMode["canEnable"], True)
+    conn.login_ok = False
+    check("safe mode: nothing to press until signed in", (bridge.selectedRobotSafeMode["canDisable"], bridge.selectedRobotSafeMode["canEnable"]), (False, False))
+    conn.login_ok = True
+    sent = []
+
+    async def set_robot_enabled(robot_id, enable):
+        sent.append((robot_id, enable))
+        return AccessResult(True, 200)
+
+    async def refresh(robot_id=None, claims=True):
+        return True
+
+    conn.set_robot_enabled = set_robot_enabled
+    conn.refresh_access = refresh
+    bridge.enableSelectedRobot()
+    pump(loop)
+    check("safe mode: the enable reaches the connection", sent, [(1, True)])
+    conn.role = "operator"
+    bridge.enableSelectedRobot()
+    pump(loop)
+    check("safe mode: an operator's enable is not even sent", sent, [(1, True)])
+    conn.state.active_controller.robot_by_id("1").raw["enabled"] = True
+    bridge.disableSelectedRobot()
+    pump(loop)
+    check("safe mode: the disable reaches the connection", sent[-1], (1, False))
+    results = {"r": AccessResult(False, 403, "enable_not_allowed", "off")}
+
+    async def refused(robot_id, enable):
+        return results["r"]
+
+    conn.set_robot_enabled = refused
+    for code, key in (("enable_not_allowed", "MSG_ACCESS_ENABLE_NOT_ALLOWED"), ("admin_required", "MSG_ACCESS_ADMIN_REQUIRED"), ("robot_disabled", "MSG_ACCESS_ROBOT_DISABLED")):
+        results["r"] = AccessResult(False, 403, code, "x")
+        bridge.disableSelectedRobot()
+        pump(loop)
+        check(f"safe mode: {code} is said in its own sentence", bridge.noticeText, _(key, what=_("ACCESS_WHAT_DISABLE"), detail="x"))
+
+
 def safety_screen(loop):
     controller, bridge, conn = make()
     check("safety: an operator is told it is for administrators", (bridge.safetyIsAdmin, bridge.safetyHasServer), (False, True))
@@ -396,6 +443,7 @@ def main():
     live_and_sim(loop)
     reservations(loop)
     arming(loop)
+    safe_mode(loop)
     safety_screen(loop)
     joints_and_bed(loop)
     catalog_and_supervisor(loop)

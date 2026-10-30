@@ -71,6 +71,7 @@ def parse_state(body: object) -> dict | None:
         "ble": None,
         "mqtt": None,
         "voice": None,
+        "robots": None,
         "mavlink": None,
     }
     ble = body.get("ble")
@@ -109,6 +110,11 @@ def parse_state(body: object) -> dict | None:
         confidence = _confidence_option(voice.get("minConfidence"))
         if heard is not None and confidence is not None:
             state["voice"] = {"heard": heard, "confidence": confidence}
+    robots = body.get("robots")
+    if isinstance(robots, dict):
+        allow = _option(robots.get("allowEnable"), bool)
+        if allow is not None:
+            state["robots"] = {"allowEnable": allow}
     mavlink = body.get("mavlink")
     if isinstance(mavlink, dict):
         key = _option(mavlink.get("signingKeyFile"), str)
@@ -175,6 +181,16 @@ def voice_needs_confirmation(current_heard: bool, current_confidence: float, pat
     return (not current_heard and new["includeHeardText"]) or (current_confidence > 0 and new["minConfidence"] == 0)
 
 
+def robots_patch(allow_enable: bool) -> dict:
+    """The request body for the option that lets a client bring a robot in safe mode back (off by default)."""
+    return {"robots": {"allowEnable": bool(allow_enable)}}
+
+
+def robots_needs_confirmation(current_allow: bool, new_allow: bool) -> bool:
+    """Allowing a client to enable a robot lowers the protection of safe mode: ask first. Turning it off never asks."""
+    return not current_allow and bool(new_allow)
+
+
 def mavlink_patch(signing_key_file: str, allow_unsigned: bool) -> dict:
     """The request body for the MAVLink signing options: only the path of the key file travels, never the key."""
     return {"mavlink": {"signingKeyFile": signing_key_file.strip(), "signingAllowUnsigned": bool(allow_unsigned)}}
@@ -215,6 +231,8 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_VOICE_HEARD_WARNING")
     if "voice_confidence_off" in warnings:
         sentence = _("SECURITY_VOICE_CONFIDENCE_WARNING")
+    if "robot_enable_allowed" in warnings:
+        sentence = _("SECURITY_ROBOTS_WARNING")
     if "mavlink_unsigned_allowed" in warnings:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
@@ -238,6 +256,7 @@ EMPTY_VIEW: dict = {
     "mqttUser": "", "mqttCommandUser": "", "mqttRunning": "",
     "voiceAvailable": False, "voiceHeard": False, "voiceHeardLocked": False, "voiceHeardSource": "",
     "voiceConfidence": "0.6", "voiceConfidenceLocked": False, "voiceConfidenceSource": "",
+    "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
 }
@@ -314,6 +333,16 @@ def view(state: dict | None) -> dict:
                 "voiceConfidence": f"{voice['confidence']['value']:g}",
                 "voiceConfidenceLocked": is_locked(voice["confidence"]["source"]),
                 "voiceConfidenceSource": source_text(voice["confidence"]["source"]),
+            }
+        )
+    robots = state.get("robots")
+    if robots is not None:
+        out.update(
+            {
+                "robotsAvailable": True,
+                "robotsAllowEnable": robots["allowEnable"]["value"],
+                "robotsAllowEnableLocked": is_locked(robots["allowEnable"]["source"]),
+                "robotsAllowEnableSource": source_text(robots["allowEnable"]["source"]),
             }
         )
     mavlink = state.get("mavlink")

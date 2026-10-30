@@ -156,6 +156,7 @@ def claim_standing(claim: ClaimEntry | None, my_controller: str, my_username: st
 def failure_code_for(status: int, server_code: str | None) -> str:
     """The failure of a refused request, refined by the stable `code` of the answer when the server gave one:
     "claim_other_account", "claim_other_controller", "claim_controller_required", "jog_not_armed",
+    "robot_disabled" (423: the robot is in safe mode), "enable_not_allowed" and "admin_required" (403: the refusals of enable),
     "revision_changed" (412: the robot changed since this program read it), "stale_sequence" (409: a newer numbered
     motion command had already reached the robot), or the plain
     class of the status ("network", "session_expired", "forbidden", "not_found", "claimed", "rejected", "server")."""
@@ -167,6 +168,12 @@ def failure_code_for(status: int, server_code: str | None) -> str:
         return "claim_controller_required"
     if server_code == "jog-not-armed":
         return "jog_not_armed"
+    if server_code == "robot-disabled" or status == 423:
+        return "robot_disabled"
+    if server_code == "enable-not-allowed":
+        return "enable_not_allowed"
+    if server_code == "admin-required":
+        return "admin_required"
     if server_code == "stale-sequence":
         return "stale_sequence"
     if server_code == "revision-mismatch" or status == 412:

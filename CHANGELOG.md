@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Safe mode of a robot:** the reservation row of the robot panel has a Disable button (the robot stops, its valves and pumps go off and the server refuses everything but STOP; a `Safe mode - disabled` badge shows it) and, for an administrator, an Enable button that asks first. The server keeps enabling off by default, so the Server Admin screen has a new switch (`Allow a client to enable a robot that is in safe mode`, with a confirmation before it is turned on); a refused command says in its own sentence why (robot disabled, enabling not allowed, administrator required), in the eight languages.
+
 ## [0.7.2] - Two-step sign-in, numbered motion commands and three more switches in Server Admin
 
 - **Two-step sign-in:** Server Admin has a Two-step sign-in card for the signed-in account (off until its owner turns it on): the password, then a QR code of the otpauth address (drawn by a small encoder in hydra_suite/panel_logic/qr_code.py that makes the same symbol as the web program) and the key to type by hand with a copy button, the first code, and the ten one-time recovery codes shown once. Turning it off asks for the password and a current or recovery code. The server-credentials dialog has a field for the code of an account that has the second step on (kept in memory for that one sign-in, never saved), and Ecosystem > Users has a button that removes the second step of an account that lost both the phone and the recovery codes. The requests of the second step are not repeated after a renewed session, so a wrong password or code counts once. In the eight languages; a verifier of its own.

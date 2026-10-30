@@ -856,6 +856,44 @@ ApplicationWindow {
                             ToolTip.text: suiteBackend.uiText("ACCESS_ARM_HINT")
                             onClicked: suiteBackend.toggleJogArm()
                         }
+                        Rectangle {
+                            visible: suiteBackend.selectedRobotSafeMode.disabled === true
+                            height: 32
+                            width: safeModeText.implicitWidth + 20
+                            radius: 8
+                            color: "#3a1018"
+                            Text {
+                                id: safeModeText
+                                objectName: "safeModeBadge"
+                                anchors.centerIn: parent
+                                text: suiteBackend.selectedRobotSafeMode.text
+                                color: window.textPrimary
+                                font.bold: true
+                                font.pixelSize: 11
+                            }
+                        }
+                        Button {
+                            objectName: "safeModeDisableButton"
+                            visible: suiteBackend.selectedRobotSafeMode.canDisable === true
+                            enabled: !suiteBackend.accessBusy
+                            text: suiteBackend.uiText("ACCESS_DISABLE")
+                            ToolTip.visible: hovered
+                            ToolTip.text: suiteBackend.uiText("ACCESS_DISABLE_HINT")
+                            onClicked: suiteBackend.disableSelectedRobot()
+                        }
+                        Button {
+                            objectName: "safeModeEnableButton"
+                            visible: suiteBackend.selectedRobotSafeMode.canEnable === true
+                            enabled: !suiteBackend.accessBusy
+                            text: suiteBackend.uiText("ACCESS_ENABLE")
+                            ToolTip.visible: hovered
+                            ToolTip.text: suiteBackend.uiText("ACCESS_ENABLE_HINT")
+                            onClicked: window.requestConfirm(
+                                suiteBackend.uiText("ACCESS_ENABLE"),
+                                suiteBackend.uiText("ACCESS_CONFIRM_ENABLE"),
+                                function() { suiteBackend.enableSelectedRobot() },
+                                suiteBackend.uiText("ACCESS_ENABLE"))
+                        }
                         Button {
                             objectName: "claimsListButton"
                             flat: true
@@ -1732,6 +1770,34 @@ ApplicationWindow {
                                     window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_VOICE"), suiteBackend.uiText("MSG_SECURITY_VOICE_CONFIRM"), function() { suiteBackend.saveVoiceOptions(heard, confidence) })
                                 else
                                     suiteBackend.saveVoiceOptions(heard, confidence)
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.robotsAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: robotsAllowEnableBox
+                            objectName: "securityRobotsAllowEnableBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_ROBOTS_ENABLE")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.robotsAllowEnableLocked
+                            checked: suiteBackend.securityView.robotsAllowEnable === true
+                        }
+                        Text { text: suiteBackend.securityView.robotsAllowEnableSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityRobotsSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.robotsAllowEnableLocked
+                            onClicked: {
+                                var allow = robotsAllowEnableBox.checked
+                                if (suiteBackend.robotsNeedsConfirmation(allow))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_ROBOTS"), suiteBackend.uiText("MSG_SECURITY_ROBOTS_CONFIRM"), function() { suiteBackend.saveRobotsOptions(allow) })
+                                else
+                                    suiteBackend.saveRobotsOptions(allow)
                             }
                         }
                     }
