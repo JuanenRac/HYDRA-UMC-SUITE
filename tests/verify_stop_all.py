@@ -31,6 +31,7 @@ import qasync
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QGuiApplication
 
+from hydra_suite import __version__
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, ServerInfo
@@ -155,7 +156,7 @@ async def run_client(port):
     check("client: POST", method, "POST")
     check("client: path", path, "/api/stop-all")
     check("client: bearer token", auth, "Bearer tok")
-    check("client: client identity header", client_header, "suite")
+    check("client: client identity header (the type, then the version)", client_header, client_module.client_header_value(__version__))
     check("client: no body", body, b"")
     check("client: one request", len(Behaviour.requests), 1)
     check("client: clean result", result.is_clean, True)

@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-46%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-47%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verifica di onestà - cosa funziona davvero oggi:** la scoperta di rete (scansione di sottorete concorrente + vero mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connessione REST+WebSocket dal vivo e il supporto sciame (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinematica diretta reale del visore 3D per tutti i 24 modelli di robot reali più un fallback "Generic" (`hydra_suite/render/`, verificata numericamente byte per byte contro la vera implementazione TypeScript di HYDRA-UMC STUDIO), tutti gli 11 di 11 pannelli di configurazione degli strumenti, il flashing CAN-OTA/SPI-OTA, e il rendering video MJPEG reale delle telecamere sono reali e testati - 46 script di verifica/smoke sotto `tests/` (`python tools/run_offline_verifiers.py`, Qt headless via `QT_QPA_PLATFORM=offscreen`), tutti superati. L'interfaccia è solo Qt Quick (`qt_suite.py`): tutti i 34 pannelli della navigazione sono codice reale e funzionante, inclusa la vista 3D tramite un `OffscreenRobotRenderer` dedicato; la finestra classica è stata rimossa. Ciò che esplicitamente NON è ancora fatto, secondo la stessa convenzione di onestà di questo repository: i livelli URTC Tool Head/Advanced Expansion del CAN-OTA non hanno ancora un vero tunnel di relay verso l'hardware; e `combinedWith` (modalità robot combinato) non è esposto nella UI di questa app pur esistendo nel modello dati proprio di STUDIO. Il pannello Traiettoria ora esporta/importa attraverso il vero formato `WORKS/*.json` di HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<cartella>/index.json`) - un punto registrato qui è un Work reale e riproducibile da entrambe le app. Vedi [`docs/ROADMAP.md`](docs/ROADMAP.md) per il quadro completo, voce per voce, del reale rispetto al differito che questo paragrafo riassume, e `CHANGELOG.md` per ciò che è stato consegnato finora esattamente.
+**Verifica di onestà - cosa funziona davvero oggi:** la scoperta di rete (scansione di sottorete concorrente + vero mDNS/Bonjour, `hydra_suite/net/discovery.py`), la connessione REST+WebSocket dal vivo e il supporto sciame (`hydra_suite/net/client.py`, `hydra_suite/app.py`), la cinematica diretta reale del visore 3D per tutti i 24 modelli di robot reali più un fallback "Generic" (`hydra_suite/render/`, verificata numericamente byte per byte contro la vera implementazione TypeScript di HYDRA-UMC STUDIO), tutti gli 11 di 11 pannelli di configurazione degli strumenti, il flashing CAN-OTA/SPI-OTA, e il rendering video MJPEG reale delle telecamere sono reali e testati - 47 script di verifica/smoke sotto `tests/` (`python tools/run_offline_verifiers.py`, Qt headless via `QT_QPA_PLATFORM=offscreen`), tutti superati. L'interfaccia è solo Qt Quick (`qt_suite.py`): tutti i 34 pannelli della navigazione sono codice reale e funzionante, inclusa la vista 3D tramite un `OffscreenRobotRenderer` dedicato; la finestra classica è stata rimossa. Ciò che esplicitamente NON è ancora fatto, secondo la stessa convenzione di onestà di questo repository: i livelli URTC Tool Head/Advanced Expansion del CAN-OTA non hanno ancora un vero tunnel di relay verso l'hardware; e `combinedWith` (modalità robot combinato) non è esposto nella UI di questa app pur esistendo nel modello dati proprio di STUDIO. Il pannello Traiettoria ora esporta/importa attraverso il vero formato `WORKS/*.json` di HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<cartella>/index.json`) - un punto registrato qui è un Work reale e riproducibile da entrambe le app. Vedi [`docs/ROADMAP.md`](docs/ROADMAP.md) per il quadro completo, voce per voce, del reale rispetto al differito che questo paragrafo riassume, e `CHANGELOG.md` per ciò che è stato consegnato finora esattamente.
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versione | `0.7.5` |
 | Maturità | Funzionale |
-| Test | 46 (`python tools/run_offline_verifiers.py`) |
+| Test | 47 (`python tools/run_offline_verifiers.py`) |
 | Tecnologia | Python 3.12 / PySide6 |
 | Destinazione | Il PC di chi lo usa |
 | Su hardware reale | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
@@ -56,7 +56,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Area | Stato | Cosa significa qui |
 |---|---|---|
 | Software | 🟡 | Funziona per il suo scopo principale; la verifica di onestà qui sopra elenca ciò che manca ancora |
-| Test | 🟢 | 46 test automatici, eseguiti a ogni modifica |
+| Test | 🟢 | 47 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🔴 | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
 | Documentazione | 🟢 | README in otto lingue, verificato rispetto al manifesto a ogni modifica |
 
@@ -230,7 +230,7 @@ I modelli 3D non sono più nell'albero del repository (221 MiB, condivisi con HY
 
 | Topic o rotta | Cosa porta |
 |---|---|
-| `/api/*`, `/ws` | il protocollo REST e WebSocket di HYDRA-UMC-SERVER, con l'intestazione `X-Hydra-Client: suite` perché un amministratore possa consentire o bloccare questa app separatamente |
+| `/api/*`, `/ws` | il protocollo REST e WebSocket di HYDRA-UMC-SERVER, con l'intestazione `X-Hydra-Client: suite/<version>` perché un amministratore possa consentire o bloccare questa app separatamente |
 | `GET /api/hydra-info`, `_hydra._tcp.local.` | scoperta: una scansione della sottorete sulla porta 3000 (1,5 s per host, 64 alla volta) e mDNS (4 s), o un indirizzo digitato, anche tramite VPN |
 | `HYDRA_UMC_DATALAKE_URL` | indirizzo facoltativo di HYDRA-UMC-DATALAKE per il pannello di telemetria |
 | `hydra_suite/can_ota.py` | i livelli CAN-OTA di Flasher e Tester tramite il server (URTC e HYDRA-UMC), su una simulazione integrata finché non esistono schede reali |
@@ -271,7 +271,7 @@ La versione è mostrata in **Aiuto > Informazioni**. Compilare con `build_exe.ba
 
 ## 🧪 Test
 
-46 test automatici si eseguono con `python tools/run_offline_verifiers.py`. Ciascuno è uno script verificatore con molti controlli, non una singola asserzione; richiedono PySide6 e le altre dipendenze, girano su una piattaforma Qt senza schermo e non aprono mai una connessione con un server o un robot reale.
+47 test automatici si eseguono con `python tools/run_offline_verifiers.py`. Ciascuno è uno script verificatore con molti controlli, non una singola asserzione; richiedono PySide6 e le altre dipendenze, girano su una piattaforma Qt senza schermo e non aprono mai una connessione con un server o un robot reale.
 
 La CI esegue `HYDRA_UMC_CI=1 python tools/ci_validate.py`, che controlla il manifesto, i documenti, gli otto README e le immagini.
 

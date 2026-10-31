@@ -27,6 +27,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 import urllib.parse
 from dataclasses import dataclass, field
@@ -36,7 +37,7 @@ import httpx
 import websockets
 from PySide6.QtCore import QObject, Signal
 
-from hydra_suite import access, command_sequence
+from hydra_suite import __version__, access, command_sequence
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic.totp import normalize_code
 from hydra_suite.i18n import _
@@ -56,7 +57,18 @@ METRICS_POLL_S = 5.0
 # apps, or vice versa. A request with no such header (a plain browser tab)
 # is never gated by that check - see server.ts's own remoteAccessAllowed()
 # for the full reasoning.
-HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": "suite"}
+#
+# The value is the type and, after a slash, the version of this app ("suite/0.7.5"). The server compares the type only (the version
+# goes to its history of connections), so the version never opens or closes access. A version the server would not take (1 to 24 of
+# 0-9 A-Z a-z . _ -) is left out and the value is just "suite".
+_CLIENT_VERSION = re.compile(r"[0-9A-Za-z._-]{1,24}")
+
+
+def client_header_value(version: str | None) -> str:
+    return f"suite/{version}" if isinstance(version, str) and _CLIENT_VERSION.fullmatch(version) else "suite"
+
+
+HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": client_header_value(__version__)}
 
 # A finite ceiling for one WebSocket message (the full settings tree is a few
 # MB): enough for any real payload, not enough to exhaust the PC's memory.

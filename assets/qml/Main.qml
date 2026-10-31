@@ -1929,6 +1929,28 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.rulAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RUL"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: rulBox
+                            objectName: "securityRulBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_RUL_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.rulEnabledLocked
+                            checked: suiteBackend.securityView.rulEnabled === true
+                        }
+                        Text { text: suiteBackend.securityView.rulEnabledSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RUL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityRulSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.rulEnabledLocked
+                            onClicked: suiteBackend.saveRulOptions(rulBox.checked)
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.connectionsAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

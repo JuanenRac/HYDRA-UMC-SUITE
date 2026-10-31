@@ -1005,3 +1005,6 @@ ECOHEALTH_WARNING_CERTIFICATE_UNREADABLE=サーバーの TLS 証明書を読み�
 LBL_SECURITY_ECOHEALTH=エコシステムの健全性
 LBL_SECURITY_ECOHEALTH_ENABLED=オペレーターと管理者がサービスの健全性を読み取れるようにする（GET /api/ecosystem/health）
 LBL_SECURITY_ECOHEALTH_HELP=既定ではオフです。オフのとき、このルートは存在しないかのように応答します。オンにすると、各サービスの状態、報告されるバージョン、TLS 証明書の残り日数を一覧にします。ポートとユニットも見えるのは管理者だけです。
+LBL_SECURITY_RUL=オペレーター向けの残存耐用年数
+LBL_SECURITY_RUL_ENABLED=オペレーターが AI ダッシュボードの残存耐用年数の推定を使えるようにする（POST /api/ai/anomaly-detector/rul）
+LBL_SECURITY_RUL_HELP=既定ではオフです。オフのときは、これまでどおり管理者だけがこのリクエストを送れます。オンにするとオペレーターも送れます。リクエストのサイズと時間は制限され、開放されるのはこのリクエストだけです（検出器へのその他の書き込みは管理者専用のままです）。

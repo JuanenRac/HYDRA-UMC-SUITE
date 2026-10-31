@@ -3141,6 +3141,13 @@ class SuiteQtBridge(QObject):
             return
         asyncio.ensure_future(self._save_security(server_security.ecosystem_health_patch(enabled)))
 
+    @Slot(bool)
+    def saveRulOptions(self, enabled: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("rul"):
+            return
+        asyncio.ensure_future(self._save_security(server_security.rul_patch(enabled)))
+
     def _exposure_values(self, camera_open: bool, ws_query_token: bool, log_redaction: bool, voice_signature: bool) -> tuple[dict, dict] | None:
         state = self._security_state
         if state is None or not state.get("exposure"):

@@ -116,6 +116,7 @@ def parse_state(body: object) -> dict | None:
         "robots": None,
         "health": None,
         "ecosystemHealth": None,
+        "rul": None,
         "safety": None,
         "connections": None,
         "exposure": None,
@@ -173,6 +174,11 @@ def parse_state(body: object) -> dict | None:
         enabled = _option(ecosystem_health.get("enabled"), bool)
         if enabled is not None:
             state["ecosystemHealth"] = {"enabled": enabled}
+    rul = body.get("rul")
+    if isinstance(rul, dict):
+        rul_enabled = _option(rul.get("enabled"), bool)
+        if rul_enabled is not None:
+            state["rul"] = {"enabled": rul_enabled}
     safety = body.get("safety")
     if isinstance(safety, dict):
         publish = _option(safety.get("publishGlobalStop"), bool)
@@ -268,6 +274,13 @@ def health_patch(open_: bool) -> dict:
 def health_needs_confirmation(current_open: bool, new_open: bool) -> bool:
     """Opening the health route to clients that are not signed in widens what the network can read: ask first. Closing it never asks."""
     return (not current_open) and bool(new_open)
+
+
+def rul_patch(enabled: bool) -> dict:
+    """The request body for the option that lets operators ask the anomaly detector for a remaining-useful-life estimate through the
+    relay (off by default: only an administrator may then). Turning it on never asks: only that one request is opened, with a limit on its
+    size and time, and every other write to the detector stays for administrators."""
+    return {"rul": {"enabled": bool(enabled)}}
 
 
 def ecosystem_health_patch(enabled: bool) -> dict:
@@ -419,6 +432,7 @@ EMPTY_VIEW: dict = {
     "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
+    "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
     "exposureAvailable": False,
@@ -535,6 +549,16 @@ def view(state: dict | None) -> dict:
                 "ecosystemHealthEnabled": ecosystem_health["enabled"]["value"],
                 "ecosystemHealthEnabledLocked": is_locked(ecosystem_health["enabled"]["source"]),
                 "ecosystemHealthEnabledSource": source_text(ecosystem_health["enabled"]["source"]),
+            }
+        )
+    rul = state.get("rul")
+    if rul is not None:
+        out.update(
+            {
+                "rulAvailable": True,
+                "rulEnabled": rul["enabled"]["value"],
+                "rulEnabledLocked": is_locked(rul["enabled"]["source"]),
+                "rulEnabledSource": source_text(rul["enabled"]["source"]),
             }
         )
     safety = state.get("safety")

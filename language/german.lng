@@ -1006,3 +1006,6 @@ ECOHEALTH_WARNING_CERTIFICATE_UNREADABLE=Das TLS-Zertifikat des Servers konnte n
 LBL_SECURITY_ECOHEALTH=Gesundheit des Ökosystems
 LBL_SECURITY_ECOHEALTH_ENABLED=Bedienern und Administratoren erlauben, die Gesundheit der Dienste zu lesen (GET /api/ecosystem/health)
 LBL_SECURITY_ECOHEALTH_HELP=Standardmäßig aus: Die Route antwortet dann, als gäbe es sie nicht. Eingeschaltet listet sie jeden Dienst mit Zustand, gemeldeter Version und den Resttagen des TLS-Zertifikats; nur Administratoren sehen zusätzlich Ports und Units.
+LBL_SECURITY_RUL=Restnutzungsdauer für Bediener
+LBL_SECURITY_RUL_ENABLED=Bedienern die Schätzung der Restnutzungsdauer des KI-Dashboards erlauben (POST /api/ai/anomaly-detector/rul)
+LBL_SECURITY_RUL_HELP=Standardmäßig aus: Dann darf nur ein Administrator die Anfrage senden, wie bisher. Eingeschaltet dürfen es auch Bediener; Größe und Zeit der Anfrage sind begrenzt, und nur diese Anfrage wird geöffnet (jeder andere Schreibzugriff auf den Detektor bleibt Administratoren vorbehalten).

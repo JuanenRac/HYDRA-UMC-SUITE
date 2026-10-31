@@ -218,6 +218,16 @@ def switch(loop):
     check("switch: what is sent", (sec.ecosystem_health_patch(True), sec.ecosystem_health_patch(False)), ({"ecosystemHealth": {"enabled": True}}, {"ecosystemHealth": {"enabled": False}}))
     check("switch: every key of the view exists without a server", set(sec.view(None)) == set(sec.view(locked)), True)
 
+    rul_plain = sec.parse_state(base)
+    check("rul: a server without the option shows no switch", (rul_plain["rul"], sec.view(rul_plain)["rulAvailable"]), (None, False))
+    rul_off = sec.parse_state({**base, "rul": {"enabled": {"value": False, "source": "default"}}})
+    rul_locked = sec.parse_state({**base, "rul": {"enabled": {"value": True, "source": "env"}}})
+    check("rul: off by default, source shown", (sec.view(rul_off)["rulAvailable"], sec.view(rul_off)["rulEnabled"], sec.view(rul_off)["rulEnabledLocked"], sec.view(rul_off)["rulEnabledSource"]), (True, False, False, _("SECURITY_SOURCE_DEFAULT")))
+    check("rul: fixed by the environment it is locked", (sec.view(rul_locked)["rulEnabled"], sec.view(rul_locked)["rulEnabledLocked"]), (True, True))
+    check("rul: a damaged value shows no switch", sec.parse_state({**base, "rul": {"enabled": {"value": "yes", "source": "default"}}})["rul"], None)
+    check("rul: what is sent", (sec.rul_patch(True), sec.rul_patch(False)), ({"rul": {"enabled": True}}, {"rul": {"enabled": False}}))
+    check("rul: every key of the view exists without a server", set(sec.view(None)) == set(sec.view(rul_locked)), True)
+
     controller = SuiteController()
     bridge = qs.SuiteQtBridge(controller)
     sent = []
@@ -226,6 +236,15 @@ def switch(loop):
         sent.append(patch)
 
     bridge._save_security = save
+    bridge.saveRulOptions(True)
+    pump(loop)
+    check("rul: nothing is sent before the server showed the option", sent, [])
+    bridge._security_state = rul_off
+    bridge.saveRulOptions(True)
+    pump(loop)
+    check("rul: turning it on sends the patch", sent, [{"rul": {"enabled": True}}])
+    sent.clear()
+    bridge._security_state = None
     bridge.saveEcosystemHealthOptions(True)
     pump(loop)
     check("switch: nothing is sent before the server showed the option", sent, [])

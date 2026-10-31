@@ -1005,3 +1005,6 @@ ECOHEALTH_WARNING_CERTIFICATE_UNREADABLE=无法读取服务器的 TLS 证书。
 LBL_SECURITY_ECOHEALTH=生态系统健康
 LBL_SECURITY_ECOHEALTH_ENABLED=允许操作员和管理员读取各服务的健康状况（GET /api/ecosystem/health）
 LBL_SECURITY_ECOHEALTH_HELP=默认关闭：此时该路由的响应就像它不存在一样。开启后，会列出每个服务的状态、上报的版本和 TLS 证书的剩余天数；只有管理员还能看到端口和单元。
+LBL_SECURITY_RUL=操作员的剩余使用寿命
+LBL_SECURITY_RUL_ENABLED=允许操作员使用 AI 仪表板的剩余使用寿命估算（POST /api/ai/anomaly-detector/rul）
+LBL_SECURITY_RUL_HELP=默认关闭：此时只有管理员可以发送该请求，与以前相同。开启后操作员也可以发送；请求的大小和时间受到限制，并且只开放这一个请求（对检测器的其他写入仍仅限管理员）。

@@ -1006,3 +1006,6 @@ ECOHEALTH_WARNING_CERTIFICATE_UNREADABLE=No se pudo leer el certificado TLS del 
 LBL_SECURITY_ECOHEALTH=Salud del ecosistema
 LBL_SECURITY_ECOHEALTH_ENABLED=Permitir que operadores y administradores lean la salud de los servicios (GET /api/ecosystem/health)
 LBL_SECURITY_ECOHEALTH_HELP=Desactivado por defecto: la ruta responde entonces como si no existiera. Activado, lista cada servicio con su estado, la versión que informa y los días que le quedan al certificado TLS; solo los administradores ven además puertos y unidades.
+LBL_SECURITY_RUL=Vida útil restante para operadores
+LBL_SECURITY_RUL_ENABLED=Permitir que los operadores usen la estimación de vida útil restante del panel de IA (POST /api/ai/anomaly-detector/rul)
+LBL_SECURITY_RUL_HELP=Desactivado por defecto: entonces solo un administrador puede enviar la petición, como antes. Activado, también los operadores; se limitan el tamaño y el tiempo de la petición, y solo se abre esta petición (cualquier otra escritura en el detector sigue siendo de administradores).

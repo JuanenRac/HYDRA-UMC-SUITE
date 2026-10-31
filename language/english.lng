@@ -1005,3 +1005,6 @@ ECOHEALTH_WARNING_CERTIFICATE_UNREADABLE=The TLS certificate of the server could
 LBL_SECURITY_ECOHEALTH=Health of the ecosystem
 LBL_SECURITY_ECOHEALTH_ENABLED=Let operators and administrators read the health of the services (GET /api/ecosystem/health)
 LBL_SECURITY_ECOHEALTH_HELP=Off by default: the route then answers as if it did not exist. When on, it lists each service with its state, the version it reports and the days left of the TLS certificate; only administrators also see ports and units.
+LBL_SECURITY_RUL=Remaining useful life for operators
+LBL_SECURITY_RUL_ENABLED=Let operators use the remaining-useful-life estimate of the AI dashboard (POST /api/ai/anomaly-detector/rul)
+LBL_SECURITY_RUL_HELP=Off by default: only an administrator may then send the request, as before. When on, operators may too; the size and the time of the request are limited, and only this request is opened (every other write to the detector stays for administrators).
