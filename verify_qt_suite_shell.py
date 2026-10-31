@@ -1249,6 +1249,35 @@ def _run() -> None:
     for _tick in range(3):
         loop.run_until_complete(asyncio.sleep(0))
     assert not warnings, f"PnP independent mesh QML warnings: {warnings}"
+    # The Ecosystem health panel with cards, notices and a problem shown at once (the last good answer stays under a failed read).
+    from hydra_suite.panel_logic import ecosystem_health
+    qml_bridge.navigatePanel("ecosystem_health")
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    qml_bridge._eco_health = ecosystem_health.parse_health({
+        "schema_version": "1.0", "available": True,
+        "services": [{"name": "alpha", "state": "down", "reason": "unreachable", "drift": True, "version_expected": "1.0.0"}, {"name": "beta", "state": "ok"}],
+        "certificate": {"state": "expiring", "days_left": 9, "not_after_utc": "2027-01-01T00:00:00Z"},
+        "warnings": [{"code": "service_down", "service": "alpha"}],
+    })
+    qml_bridge._eco_health_status = ecosystem_health.status_for((403, None))
+    qml_bridge.changed.emit()
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"Ecosystem health QML warnings: {warnings}"
+    assert len(qml_bridge.ecoHealthCards) == 2 and qml_bridge.ecoHealthCards[0]["name"] == "alpha"
+    # ... and its switch on the Server Admin screen, locked by the environment
+    from hydra_suite.panel_logic import server_security
+    qml_bridge._security_state = server_security.parse_state({
+        "aiAccess": {"value": "open", "source": "default"}, "infoAuth": {"value": False, "source": "default"}, "tls": {"enabled": False, "source": "default"},
+        "ecosystemHealth": {"enabled": {"value": True, "source": "env"}},
+    })
+    qml_bridge.navigatePanel("admin_server")
+    qml_bridge.changed.emit()
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"Server Admin QML warnings: {warnings}"
+    assert qml_bridge.securityView["ecosystemHealthAvailable"] is True and qml_bridge.securityView["ecosystemHealthEnabledLocked"] is True
 
     # Drain/cancel background tasks scheduled by earlier signals before exit.
     pending = list(asyncio.all_tasks(loop))

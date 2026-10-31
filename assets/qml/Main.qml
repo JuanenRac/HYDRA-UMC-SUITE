@@ -604,6 +604,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "users") return usersComponent
                     if (suiteBackend.activePanel === "submitted_models") return submittedModelsComponent
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
+                    if (suiteBackend.activePanel === "ecosystem_health") return ecosystemHealthComponent
                     return null
                 }
             }
@@ -1903,6 +1904,28 @@ ApplicationWindow {
                             text: suiteBackend.uiText("BTN_SAVE")
                             enabled: !suiteBackend.securityView.safetyPublishStopLocked
                             onClicked: suiteBackend.saveSafetyOptions(safetyPublishBox.checked)
+                        }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.ecosystemHealthAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: ecosystemHealthBox
+                            objectName: "securityEcosystemHealthBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.ecosystemHealthEnabledLocked
+                            checked: suiteBackend.securityView.ecosystemHealthEnabled === true
+                        }
+                        Text { text: suiteBackend.securityView.ecosystemHealthEnabledSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityEcosystemHealthSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.ecosystemHealthEnabledLocked
+                            onClicked: suiteBackend.saveEcosystemHealthOptions(ecosystemHealthBox.checked)
                         }
                     }
                     ColumnLayout {
@@ -5153,6 +5176,84 @@ ApplicationWindow {
                                 onClicked: suiteBackend.selectCatalogModel(modelData.model)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: ecosystemHealthComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_HEALTH"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                Button { objectName: "ecoHealthRefresh"; text: suiteBackend.uiText("ECOHEALTH_REFRESH"); onClicked: suiteBackend.refreshEcoHealth() }
+            }
+            Text { text: suiteBackend.uiText("ECOHEALTH_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { objectName: "ecoHealthProblem"; visible: suiteBackend.ecoHealthStatus !== ""; text: suiteBackend.ecoHealthStatus; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: !suiteBackend.ecoHealthLoaded && suiteBackend.ecoHealthStatus === ""; text: suiteBackend.uiText("ECOHEALTH_LOADING"); color: "#556070"; font.pixelSize: 11 }
+            Text { visible: suiteBackend.ecoHealthUnavailable; text: suiteBackend.uiText("ECOHEALTH_NOT_AVAILABLE"); color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Repeater {
+                model: suiteBackend.ecoHealthNotices
+                delegate: Text {
+                    required property var modelData
+                    objectName: "ecoHealthNotice"
+                    text: modelData.text
+                    color: modelData.level === "error" ? "#ee6b80" : (modelData.level === "warn" ? window.amber : window.muted)
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+            }
+            Flow {
+                Layout.fillWidth: true
+                spacing: 6
+                Repeater {
+                    model: suiteBackend.ecoHealthFilters
+                    delegate: Button {
+                        required property var modelData
+                        objectName: "ecoHealthFilter_" + modelData.key
+                        text: modelData.label
+                        checkable: true
+                        checked: modelData.selected
+                        onClicked: suiteBackend.setEcoHealthFilter(modelData.key)
+                    }
+                }
+            }
+            Text { visible: suiteBackend.ecoHealthEmpty !== ""; text: suiteBackend.ecoHealthEmpty; color: "#556070"; font.pixelSize: 11 }
+            ListView {
+                objectName: "ecoHealthList"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: suiteBackend.ecoHealthCards
+                spacing: 6
+                delegate: Card {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 76
+                    border.color: modelData.state === "down" ? "#ee6b80" : (modelData.state === "degraded" ? window.amber : window.panelBorder)
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 2
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { text: modelData.stateLabel; color: modelData.state === "ok" ? window.green : (modelData.state === "down" ? "#ee6b80" : (modelData.state === "degraded" ? window.amber : window.muted)); font.bold: true; font.pixelSize: 10 }
+                        }
+                        Text { visible: modelData.reason !== ""; text: modelData.reason; color: window.muted; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: modelData.versions; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: 9 }
+                        }
+                        Text { text: modelData.seen; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
                     }
                 }
             }

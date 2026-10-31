@@ -81,7 +81,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, server_security
+from hydra_suite.panel_logic import connection_history, ecosystem_health, server_security
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -777,6 +777,17 @@ class SuiteQtBridge(QObject):
         self._supervisor_timer.setInterval(supervisor_logic.POLL_MS)
         self._supervisor_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_supervisor()))
         controller.active_connection_changed.connect(self._on_supervisor_connection_changed)
+        # -- Ecosystem health (GET /api/ecosystem/health): the last good answer stays on screen while a later read fails. --
+        self._eco_health: dict | None = None
+        self._eco_health_filter = "all"
+        self._eco_health_status = ""
+        self._eco_health_timer = QTimer(self)
+        self._eco_health_timer.setInterval(ecosystem_health.POLL_MS)
+        self._eco_health_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_eco_health()))
+        self._eco_health_tick = QTimer(self)
+        self._eco_health_tick.setInterval(1000)
+        self._eco_health_tick.timeout.connect(self.changed.emit)
+        controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
         self._apply_poller_gates()
 
     # -- navigation --------------------------------------------------------
@@ -795,6 +806,7 @@ class SuiteQtBridge(QObject):
             "robot": [self._access_robot_timer, self._access_tick_timer],
             "safety_limits": [self._safety_timer],
             "system_supervisor": [self._supervisor_timer],
+            "ecosystem_health": [self._eco_health_timer, self._eco_health_tick],
         }
 
     def _apply_poller_gates(self) -> None:
@@ -827,6 +839,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_models())
             elif key == "system_supervisor":
                 asyncio.ensure_future(self._refresh_supervisor())
+            elif key == "ecosystem_health":
+                asyncio.ensure_future(self._refresh_eco_health())
             elif key == "robots_catalog":
                 self.refreshCatalogPreview()
             self.changed.emit()
@@ -2210,6 +2224,72 @@ class SuiteQtBridge(QObject):
         self._supervisor_version += 1
         self._supervisorChanged.emit()
 
+    # -- Ecosystem health ----------------------------------------------------
+
+    @Property(str, notify=changed)
+    def ecoHealthStatus(self) -> str:
+        return self._eco_health_status
+
+    @Property(bool, notify=changed)
+    def ecoHealthLoaded(self) -> bool:
+        return self._eco_health is not None
+
+    @Property(bool, notify=changed)
+    def ecoHealthUnavailable(self) -> bool:
+        return self._eco_health is not None and not self._eco_health["available"]
+
+    @Property(str, notify=changed)
+    def ecoHealthEmpty(self) -> str:
+        """The sentence for an empty list: no service at all, or none that matches the filter."""
+        if self._eco_health is None or self._eco_health["services"] and self.ecoHealthCards:
+            return ""
+        return _("ECOHEALTH_NO_SERVICES") if not self._eco_health["services"] else _("ECOHEALTH_NO_MATCH")
+
+    @Property("QVariantList", notify=changed)
+    def ecoHealthFilters(self) -> list[dict[str, object]]:
+        return ecosystem_health.filter_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
+
+    @Property("QVariantList", notify=changed)
+    def ecoHealthNotices(self) -> list[dict[str, object]]:
+        return ecosystem_health.notice_rows(self._eco_health) if self._eco_health else []
+
+    @Property("QVariantList", notify=changed)
+    def ecoHealthCards(self) -> list[dict[str, object]]:
+        return ecosystem_health.card_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
+
+    @Slot(str)
+    def setEcoHealthFilter(self, key: str) -> None:
+        if key in ecosystem_health.FILTERS and key != self._eco_health_filter:
+            self._eco_health_filter = key
+            self.changed.emit()
+
+    @Slot()
+    def refreshEcoHealth(self) -> None:
+        asyncio.ensure_future(self._refresh_eco_health())
+
+    def _on_eco_health_connection_changed(self, _conn_id: str) -> None:
+        # another server: nothing of the old one stays on screen
+        self._eco_health, self._eco_health_status = None, ""
+        if self._active_key == "ecosystem_health":
+            asyncio.ensure_future(self._refresh_eco_health())
+
+    async def _refresh_eco_health(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._eco_health, self._eco_health_status = None, _("LBL_ES_NO_ACTIVE_SERVER")
+            self.changed.emit()
+            return
+        try:
+            result = await conn.fetch_ecosystem_health()
+            problem = ecosystem_health.status_for(result)
+            if not problem:
+                self._eco_health = ecosystem_health.parse_health(result[1])  # type: ignore[index]
+        except Exception as error:  # a damaged answer must not stop the screen
+            logger.warning("reading the health of the ecosystem failed: %s", error)
+            problem = _("ECOHEALTH_LOAD_ERROR")
+        self._eco_health_status = problem
+        self.changed.emit()
+
     # -- Robot Control -----------------------------------------------------
 
     def _active_robots(self) -> list[RobotView]:
@@ -3053,6 +3133,13 @@ class SuiteQtBridge(QObject):
     @Slot(bool)
     def saveConnectionsOptions(self, record_address: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.connections_patch(record_address)))
+
+    @Slot(bool)
+    def saveEcosystemHealthOptions(self, enabled: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("ecosystemHealth"):
+            return
+        asyncio.ensure_future(self._save_security(server_security.ecosystem_health_patch(enabled)))
 
     def _exposure_values(self, camera_open: bool, ws_query_token: bool, log_redaction: bool, voice_signature: bool) -> tuple[dict, dict] | None:
         state = self._security_state

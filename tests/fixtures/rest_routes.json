@@ -17,6 +17,7 @@
   "/api/claims",
   "/api/connections/clients",
   "/api/connections/events",
+  "/api/ecosystem/health",
   "/api/ecosystem/service/{p}/{p}",
   "/api/ecosystem/status",
   "/api/hardware/canota/flash",

@@ -627,6 +627,19 @@ class HydraConnection(QObject):
         """GET /api/connections/events, newest first (the server accepts 1 to 500)."""
         return await self._request_json("GET", "/api/connections/events", auth=True, params={"limit": max(1, min(int(limit), 500))})
 
+    async def fetch_ecosystem_health(self) -> tuple[int, object] | None:
+        """GET /api/ecosystem/health (an operator or an administrator; the server answers 404 until an administrator turns the option on
+        in Server Admin, and a server that predates the route answers 404 too). Read only. The status counts even when the body is not
+        JSON (a plain 404 page): only a request that did not get an answer at all returns None."""
+        try:
+            resp = await self._http("GET", "/api/ecosystem/health")
+        except httpx.HTTPError:
+            return None
+        try:
+            return resp.status_code, resp.json()
+        except ValueError:
+            return resp.status_code, None
+
     async def fetch_admin_logs(self, lines: int = 300) -> tuple[int, object] | None:
         """GET /api/admin/logs (admin-only)."""
         return await self._request_json("GET", "/api/admin/logs", auth=True, params={"lines": lines})

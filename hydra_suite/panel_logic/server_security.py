@@ -115,6 +115,7 @@ def parse_state(body: object) -> dict | None:
         "voice": None,
         "robots": None,
         "health": None,
+        "ecosystemHealth": None,
         "safety": None,
         "connections": None,
         "exposure": None,
@@ -167,6 +168,11 @@ def parse_state(body: object) -> dict | None:
         opened = _option(health.get("open"), bool)
         if opened is not None:
             state["health"] = {"open": opened}
+    ecosystem_health = body.get("ecosystemHealth")
+    if isinstance(ecosystem_health, dict):
+        enabled = _option(ecosystem_health.get("enabled"), bool)
+        if enabled is not None:
+            state["ecosystemHealth"] = {"enabled": enabled}
     safety = body.get("safety")
     if isinstance(safety, dict):
         publish = _option(safety.get("publishGlobalStop"), bool)
@@ -262,6 +268,12 @@ def health_patch(open_: bool) -> dict:
 def health_needs_confirmation(current_open: bool, new_open: bool) -> bool:
     """Opening the health route to clients that are not signed in widens what the network can read: ask first. Closing it never asks."""
     return (not current_open) and bool(new_open)
+
+
+def ecosystem_health_patch(enabled: bool) -> dict:
+    """The request body for the option that lets operators and administrators read GET /api/ecosystem/health (off by default). Turning
+    it on never asks: the route is read only and shows no port, address or unit to anyone but an administrator."""
+    return {"ecosystemHealth": {"enabled": bool(enabled)}}
 
 
 def safety_patch(publish_global_stop: bool) -> dict:
@@ -406,6 +418,7 @@ EMPTY_VIEW: dict = {
     "voiceConfidence": "0.6", "voiceConfidenceLocked": False, "voiceConfidenceSource": "",
     "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
+    "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
     "exposureAvailable": False,
@@ -512,6 +525,16 @@ def view(state: dict | None) -> dict:
                 "healthOpen": health["open"]["value"],
                 "healthOpenLocked": is_locked(health["open"]["source"]),
                 "healthOpenSource": source_text(health["open"]["source"]),
+            }
+        )
+    ecosystem_health = state.get("ecosystemHealth")
+    if ecosystem_health is not None:
+        out.update(
+            {
+                "ecosystemHealthAvailable": True,
+                "ecosystemHealthEnabled": ecosystem_health["enabled"]["value"],
+                "ecosystemHealthEnabledLocked": is_locked(ecosystem_health["enabled"]["source"]),
+                "ecosystemHealthEnabledSource": source_text(ecosystem_health["enabled"]["source"]),
             }
         )
     safety = state.get("safety")

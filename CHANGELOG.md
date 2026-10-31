@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Ecosystem health:** a new panel under Ecosystem shows one card per service of the ecosystem, the most serious first (state, why, the version it reports against the version expected, how long since it last answered), with filters by state and by another version. Notices say when the TLS certificate of the server is about to expire or has expired, when a service is down or degraded, and when a service reports another version than its manifest. It reads `GET /api/ecosystem/health`; a server that does not offer it (or where an administrator did not turn it on) gets a plain sentence, so does an account that may not read it, and a failed read keeps the last good answer on screen. The screen never shows a port, an address or a unit.
+- **A switch for it in Server Admin:** the security card gets the `ecosystemHealth.enabled` option (off by default) with where its value comes from; it is locked when the environment of the server fixes it. It never asks before it is turned on, because the route is read only.
+- **A test with a simulated server:** `tests/verify_ecosystem_health.py` runs the panel and the switch against a small HTTP server on this machine, including a plain 404 page, a 403, a failed read and answers with damaged entries. The new route is listed in `tests/fixtures/rest_routes.json` and, until the shared contract has it, in the routes the contract check skips.
+
 ## [0.7.5] - Two more security switches in Server Admin and the meshes from one downloadable package, off by default
 
 - **Two more security switches in Server Admin:** a new "Installation and camera passwords" card lets an administrator keep the password of an IP camera out of the command line of its process (`camera.credentialsViaEnv`) and let a new installation switch TLS on by itself (`install.newInstallTls`). Both start on the safe side, show where their value comes from, are locked when the server environment fixes them, appear only when the server offers them, send only what changed and ask before lowering the protection. Texts in the eight languages.
