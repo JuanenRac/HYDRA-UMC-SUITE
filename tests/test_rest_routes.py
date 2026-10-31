@@ -21,9 +21,6 @@ FIXTURE = ROOT / "tests" / "fixtures" / "rest_routes.json"
 CONTRACT = ROOT.parent / "HYDRA-UMC-SDK" / "contracts" / "openapi" / "v1" / "server.full.openapi.json"
 LITERAL = re.compile(r"""["'](/api/[^"'\s]*)["']""")
 
-# Routes the server already serves but the shared contract does not list yet; remove each one once the contract has it.
-NOT_YET_IN_CONTRACT: set[str] = {"/api/connections/clients", "/api/connections/events", "/api/ecosystem/health"}
-
 
 def called_routes() -> list[str]:
     """Every `/api/...` literal in the sources, with format fields shown as `{p}` and any query string removed."""
@@ -48,5 +45,5 @@ def test_routes_exist_in_the_server_contract():
     def matches(route: str, path: str) -> bool:
         return re.fullmatch(route.replace("{p}", "[^/]+"), re.sub(r"\{[^}]+\}", "x", path)) is not None
 
-    unknown = [r for r in called_routes() if r not in NOT_YET_IN_CONTRACT and not any(matches(r, p) for p in paths)]
+    unknown = [r for r in called_routes() if not any(matches(r, p) for p in paths)]
     assert unknown == []
