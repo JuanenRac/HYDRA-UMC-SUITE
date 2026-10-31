@@ -340,6 +340,8 @@ HYDRA-UMC-SUITE/
 ├── bump_manifest_version.py                                                                                hydra-umc.project.jsonのバージョンをネイティブのものと同期（汎用、エコシステム全体でそのままコピーされる）
 ├── build-test.bat / build-test.sh                                                                          .venv を有効化して tools/build_test.py（実際のテストスイート）を実行、変更を伴わない - バージョンを増分せず、CHANGELOG.mdにも触れない
 ├── run.bat / run.sh                                                                                        venv経由でmain.pyを起動
+├── mesh_pack.config.json                                                                                   3Dモデルの取得元：local（既定）、auto、download、およびパッケージのアドレス
+├── meshes.pack.json                                                                                        メッシュパッケージとそれに含まれる各メッシュのサイズと SHA-256
 ├── HYDRA-UMC_SUITE.spec                                                                                    PyInstallerスペック（下記build_exe.bat/.sh参照）
 ├── build_exe.bat                                                                                           ワンショットのWindowsビルド -> dist/HYDRA-UMC_SUITE.exe
 ├── build_exe.sh                                                                                            ワンショットのLinuxビルド -> dist/HYDRA-UMC_SUITE

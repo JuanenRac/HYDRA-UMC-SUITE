@@ -427,6 +427,8 @@ HYDRA-UMC-SUITE/
 ├── bump_manifest_version.py                                                                                Sincroniza la versión de hydra-umc.project.json con la nativa (genérico, copiado tal cual en todo el ecosistema)
 ├── build-test.bat / build-test.sh                                                                          activa .venv y ejecuta tools/build_test.py (la suite de tests real), sin mutar - nunca sube la versión ni toca CHANGELOG.md
 ├── run.bat / run.sh                                                                                        Lanza main.py a través del venv
+├── mesh_pack.config.json                                                                                   De dónde salen los modelos 3D: local (por defecto), auto o download, con la dirección del paquete
+├── meshes.pack.json                                                                                        Tamaños y SHA-256 del paquete de mallas y de cada malla que contiene
 ├── HYDRA-UMC_SUITE.spec                                                                                    Spec de PyInstaller (ver build_exe.bat/.sh abajo)
 ├── build_exe.bat                                                                                           Build de Windows en un paso -> dist/HYDRA-UMC_SUITE.exe
 ├── build_exe.sh                                                                                            Build de Linux en un paso -> dist/HYDRA-UMC_SUITE

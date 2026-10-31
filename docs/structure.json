@@ -824,6 +824,52 @@
           }
         },
         {
+          "name": "mesh_pack.config.json",
+          "desc": {
+            "en": "Source of the 3D models",
+            "es": "Origen de los modelos 3D",
+            "de": "Quelle der 3D-Modelle",
+            "fr": "Source des modèles 3D",
+            "it": "Sorgente dei modelli 3D",
+            "ja": "3Dモデルの取得元",
+            "zh": "3D 模型的来源",
+            "pt": "Origem dos modelos 3D"
+          },
+          "tree_desc": {
+            "en": "Where the 3D models come from: local (default), auto or download, with the address of the package",
+            "es": "De dónde salen los modelos 3D: local (por defecto), auto o download, con la dirección del paquete",
+            "de": "Woher die 3D-Modelle kommen: local (Standard), auto oder download, mit der Adresse des Pakets",
+            "fr": "D'où viennent les modèles 3D : local (par défaut), auto ou download, avec l'adresse du paquet",
+            "it": "Da dove arrivano i modelli 3D: local (predefinito), auto o download, con l'indirizzo del pacchetto",
+            "ja": "3Dモデルの取得元：local（既定）、auto、download、およびパッケージのアドレス",
+            "zh": "3D 模型的来源：local（默认）、auto 或 download，以及包的地址",
+            "pt": "De onde vêm os modelos 3D: local (predefinição), auto ou download, com o endereço do pacote"
+          }
+        },
+        {
+          "name": "meshes.pack.json",
+          "desc": {
+            "en": "Pinned hashes of the mesh package",
+            "es": "Hashes fijados del paquete de mallas",
+            "de": "Festgelegte Hashes des Netzpakets",
+            "fr": "Empreintes fixées du paquet",
+            "it": "Hash fissati del pacchetto",
+            "ja": "メッシュパッケージの固定ハッシュ",
+            "zh": "网格包的固定哈希值",
+            "pt": "Hashes fixados do pacote de malhas"
+          },
+          "tree_desc": {
+            "en": "Sizes and SHA-256 of the mesh package and of every mesh it holds",
+            "es": "Tamaños y SHA-256 del paquete de mallas y de cada malla que contiene",
+            "de": "Größen und SHA-256 des Netzpakets und jedes darin enthaltenen Netzes",
+            "fr": "Tailles et SHA-256 du paquet de maillages et de chaque maillage qu'il contient",
+            "it": "Dimensioni e SHA-256 del pacchetto di mesh e di ogni mesh che contiene",
+            "ja": "メッシュパッケージとそれに含まれる各メッシュのサイズと SHA-256",
+            "zh": "网格包及其包含的每个网格的大小和 SHA-256",
+            "pt": "Tamanhos e SHA-256 do pacote de malhas e de cada malha que contém"
+          }
+        },
+        {
           "name": "HYDRA-UMC_SUITE.spec",
           "desc": {
             "en": "PyInstaller spec",

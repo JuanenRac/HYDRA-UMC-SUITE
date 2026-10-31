@@ -340,6 +340,8 @@ HYDRA-UMC-SUITE/
 ├── bump_manifest_version.py                                                                                将 hydra-umc.project.json 的版本与原生版本同步（通用，在整个生态系统中原样复制）
 ├── build-test.bat / build-test.sh                                                                          激活 .venv 并运行 tools/build_test.py（真实测试套件），不产生变更 - 从不递增版本，也不改动 CHANGELOG.md
 ├── run.bat / run.sh                                                                                        通过 venv 启动 main.py
+├── mesh_pack.config.json                                                                                   3D 模型的来源：local（默认）、auto 或 download，以及包的地址
+├── meshes.pack.json                                                                                        网格包及其包含的每个网格的大小和 SHA-256
 ├── HYDRA-UMC_SUITE.spec                                                                                    PyInstaller 规格文件（见下方 build_exe.bat/.sh）
 ├── build_exe.bat                                                                                           一步式 Windows 构建 -> dist/HYDRA-UMC_SUITE.exe
 ├── build_exe.sh                                                                                            一步式 Linux 构建 -> dist/HYDRA-UMC_SUITE
