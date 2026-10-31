@@ -387,14 +387,14 @@ LBL_VALVES=Válvulas (8+2)
 
 # Flasher panel (CAN-OTA firmware flashing)
 HEADING_FLASHER=Flasher
-LBL_HARDWARE_TARGET_UNREACHABLE=Destino de hardware inalcançável
+LBL_HARDWARE_TARGET_UNREACHABLE=Destino de hardware inacessível
 LBL_BOARD=Placa
 LBL_TARGET_KINEMATIC_BRAIN=Cérebro cinemático
 LBL_TARGET_CONTROLLER_BOARD=Placa controladora do robô
 LBL_TARGET_URTC_HEAD=Cabeça de ferramenta URTC
 LBL_TARGET_URTC_EXPANSION=Expansão avançada URTC
 LBL_ROBOT_SLOT=Posição do robô
-LBL_URTC_UNREACHABLE=URTC inalcançável
+LBL_URTC_UNREACHABLE=URTC inacessível
 LBL_NO_VERSION_KNOWN=Nenhuma versão conhecida
 BTN_QUERY_VERSION=Consultar versão
 LBL_CURRENT_VERSION=Versão atual
