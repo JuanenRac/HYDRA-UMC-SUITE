@@ -66,6 +66,26 @@ def _exposure(body: dict) -> dict | None:
     return found
 
 
+#: The two installation options: view name -> (section, key) in the answer of the server.
+INSTALL_FIELDS = {
+    "cameraCredentialsViaEnv": ("camera", "credentialsViaEnv"),
+    "newInstallTls": ("install", "newInstallTls"),
+}
+
+
+def _install(body: dict) -> dict | None:
+    """The two installation options (the password of an IP camera handed over through the environment, TLS switched on by a new
+    installation); None unless the server offers both, so a half-known set is never shown."""
+    found = {}
+    for name, (section, key) in INSTALL_FIELDS.items():
+        raw = body.get(section)
+        option = _option(raw.get(key), bool) if isinstance(raw, dict) else None
+        if option is None:
+            return None
+        found[name] = option
+    return found
+
+
 def parse_state(body: object) -> dict | None:
     """The options in a GET/PUT answer; None for a server that predates them or answers nonsense."""
     if not isinstance(body, dict):
@@ -98,6 +118,7 @@ def parse_state(body: object) -> dict | None:
         "safety": None,
         "connections": None,
         "exposure": None,
+        "install": None,
         "mavlink": None,
     }
     ble = body.get("ble")
@@ -159,6 +180,9 @@ def parse_state(body: object) -> dict | None:
     exposure = _exposure(body)
     if exposure is not None:
         state["exposure"] = exposure
+    install = _install(body)
+    if install is not None:
+        state["install"] = install
     mavlink = body.get("mavlink")
     if isinstance(mavlink, dict):
         key = _option(mavlink.get("signingKeyFile"), str)
@@ -278,6 +302,24 @@ def exposure_needs_confirmation(current: dict, new: dict) -> bool:
     )
 
 
+def install_patch(current: dict, new: dict) -> dict | None:
+    """The request body for the installation options: only what changed (an option fixed by the server environment must not be sent
+    again); None when nothing changed or a value is missing."""
+    body: dict = {}
+    for name, (section, key) in INSTALL_FIELDS.items():
+        if name not in current or name not in new:
+            return None
+        if bool(current[name]) != bool(new[name]):
+            body.setdefault(section, {})[key] = bool(new[name])
+    return body or None
+
+
+def install_needs_confirmation(current: dict, new: dict) -> bool:
+    """Putting a camera password on a command line, or taking TLS away from a new installation, lowers the protection: ask first.
+    The other direction never asks."""
+    return bool((current["cameraCredentialsViaEnv"] and not new["cameraCredentialsViaEnv"]) or (current["newInstallTls"] and not new["newInstallTls"]))
+
+
 def robots_needs_confirmation(current_allow: bool, new_allow: bool) -> bool:
     """Allowing a client to enable a robot lowers the protection of safe mode: ask first. Turning it off never asks."""
     return not current_allow and bool(new_allow)
@@ -335,6 +377,10 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_EXPOSURE_WS_WARNING")
     if "log_redaction_off" in warnings:
         sentence = _("SECURITY_EXPOSURE_LOG_WARNING")
+    if "camera_credentials_in_arguments" in warnings:
+        sentence = _("SECURITY_INSTALL_CAMERA_WARNING")
+    if "new_install_tls_off" in warnings:
+        sentence = _("SECURITY_INSTALL_TLS_WARNING")
     if "mavlink_unsigned_allowed" in warnings:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
@@ -367,6 +413,9 @@ EMPTY_VIEW: dict = {
     "exposureWsQueryToken": False, "exposureWsQueryTokenLocked": False, "exposureWsQueryTokenSource": "",
     "exposureLogRedaction": True, "exposureLogRedactionLocked": False, "exposureLogRedactionSource": "",
     "exposureVoiceSignature": False, "exposureVoiceSignatureLocked": False, "exposureVoiceSignatureSource": "",
+    "installAvailable": False,
+    "installCameraCredentialsViaEnv": True, "installCameraCredentialsViaEnvLocked": False, "installCameraCredentialsViaEnvSource": "",
+    "installNewInstallTls": True, "installNewInstallTlsLocked": False, "installNewInstallTlsSource": "",
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
 }
@@ -495,6 +544,18 @@ def view(state: dict | None) -> dict:
                     "exposure" + suffix: option["value"],
                     "exposure" + suffix + "Locked": is_locked(option["source"]),
                     "exposure" + suffix + "Source": source_text(option["source"]),
+                }
+            )
+    install = state.get("install")
+    if install is not None:
+        out["installAvailable"] = True
+        for name, option in install.items():
+            suffix = name[0].upper() + name[1:]
+            out.update(
+                {
+                    "install" + suffix: option["value"],
+                    "install" + suffix + "Locked": is_locked(option["source"]),
+                    "install" + suffix + "Source": source_text(option["source"]),
                 }
             )
     mavlink = state.get("mavlink")

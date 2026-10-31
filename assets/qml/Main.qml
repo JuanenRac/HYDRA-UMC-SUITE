@@ -1989,6 +1989,43 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.installAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: installCameraBox
+                            objectName: "securityInstallCameraBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_INSTALL_CAMERA")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.installCameraCredentialsViaEnvLocked
+                            checked: suiteBackend.securityView.installCameraCredentialsViaEnv === true
+                        }
+                        Text { text: suiteBackend.securityView.installCameraCredentialsViaEnvSource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            id: installTlsBox
+                            objectName: "securityInstallTlsBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_INSTALL_TLS")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.installNewInstallTlsLocked
+                            checked: suiteBackend.securityView.installNewInstallTls === true
+                        }
+                        Text { text: suiteBackend.securityView.installNewInstallTlsSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityInstallSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !(suiteBackend.securityView.installCameraCredentialsViaEnvLocked && suiteBackend.securityView.installNewInstallTlsLocked)
+                            onClicked: {
+                                var camera = installCameraBox.checked, tls = installTlsBox.checked
+                                if (suiteBackend.installNeedsConfirmation(camera, tls))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_INSTALL"), suiteBackend.uiText("MSG_SECURITY_INSTALL_CONFIRM"), function() { suiteBackend.saveInstallOptions(camera, tls) })
+                                else
+                                    suiteBackend.saveInstallOptions(camera, tls)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.mavlinkAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

@@ -3074,6 +3074,26 @@ class SuiteQtBridge(QObject):
         if patch is not None:
             asyncio.ensure_future(self._save_security(patch))
 
+    def _install_values(self, camera_via_env: bool, new_install_tls: bool) -> tuple[dict, dict] | None:
+        state = self._security_state
+        if state is None or not state.get("install"):
+            return None
+        current = {name: option["value"] for name, option in state["install"].items()}
+        new = {"cameraCredentialsViaEnv": camera_via_env, "newInstallTls": new_install_tls}
+        return current, new
+
+    @Slot(bool, bool, result=bool)
+    def installNeedsConfirmation(self, camera_via_env: bool, new_install_tls: bool) -> bool:
+        values = self._install_values(camera_via_env, new_install_tls)
+        return values is not None and server_security.install_needs_confirmation(*values)
+
+    @Slot(bool, bool)
+    def saveInstallOptions(self, camera_via_env: bool, new_install_tls: bool) -> None:
+        values = self._install_values(camera_via_env, new_install_tls)
+        patch = server_security.install_patch(*values) if values is not None else None
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
+
     @Slot(bool)
     def saveSafetyOptions(self, publish_global_stop: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.safety_patch(publish_global_stop)))

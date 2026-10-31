@@ -159,6 +159,23 @@ check("the exposure warnings", [sec.known_warning([w]) for w in ("camera_open", 
 check("the connections option is read, sent and asks only when turned on", (sec.view(es)["connectionsAvailable"], sec.view(plain)["connectionsAvailable"], sec.connections_patch(True), [sec.connections_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))], sec.known_warning(["connection_address_recorded"])), (True, False, {"connections": {"recordAddress": True}}, [True, False, False, False], _("SECURITY_CONNECTIONS_WARNING")))
 check("every key of the view exists without a server (exposure and connections included)", set(sec.view(None)) == set(sec.view(es)), True)
 
+# -- the installation options (password of an IP camera through the environment, TLS of a new installation) --
+INSTALL = {**EXPO, "camera": {"open": _opt(False), "credentialsViaEnv": _opt(True)}, "install": {"newInstallTls": _opt(True, "env")}}
+isr = sec.parse_state(INSTALL)
+check("reads the two installation options and keeps the camera pictures option apart", ({k: v["value"] for k, v in isr["install"].items()}, isr["exposure"]["cameraOpen"]), ({"cameraCredentialsViaEnv": True, "newInstallTls": True}, {"value": False, "source": "default"}))
+check("a server without them shows no installation card", (plain["install"], sec.view(plain)["installAvailable"], sec.view(isr)["installAvailable"]), (None, False, True))
+check("a half-known set of installation options is not shown", (sec.parse_state({**INSTALL, "install": {"newInstallTls": _opt("yes")}})["install"], sec.parse_state({**INSTALL, "install": None})["install"]), (None, None))
+check("the installation view keeps the origin and the lock", (sec.view(isr)["installNewInstallTlsLocked"], sec.view(isr)["installCameraCredentialsViaEnvLocked"], sec.view(isr)["installNewInstallTlsSource"], sec.view(isr)["installCameraCredentialsViaEnv"]), (True, False, _("SECURITY_SOURCE_ENV"), True))
+icur = {"cameraCredentialsViaEnv": True, "newInstallTls": True}
+check("nothing changed sends nothing (installation)", sec.install_patch(icur, dict(icur)), None)
+check("only what changed is sent (installation)", sec.install_patch(icur, {**icur, "cameraCredentialsViaEnv": False}), {"camera": {"credentialsViaEnv": False}})
+check("both sections travel when both changed", sec.install_patch(icur, {"cameraCredentialsViaEnv": False, "newInstallTls": False}), {"camera": {"credentialsViaEnv": False}, "install": {"newInstallTls": False}})
+check("a missing installation value sends nothing", sec.install_patch(icur, {"newInstallTls": False}), None)
+check("only lowering a protection asks (installation)", [sec.install_needs_confirmation(icur, {**icur, k: False}) for k in icur], [True, True])
+check("tightening never asks (installation)", sec.install_needs_confirmation({"cameraCredentialsViaEnv": False, "newInstallTls": False}, icur), False)
+check("the installation warnings", [sec.known_warning([w]) for w in ("camera_credentials_in_arguments", "new_install_tls_off")], [_("SECURITY_INSTALL_CAMERA_WARNING"), _("SECURITY_INSTALL_TLS_WARNING")])
+check("every key of the view exists without a server (installation included)", set(sec.view(None)) == set(sec.view(isr)), True)
+
 # -- the simple history of connections --
 from datetime import datetime, timezone
 
