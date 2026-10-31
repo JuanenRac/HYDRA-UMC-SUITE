@@ -87,6 +87,17 @@ echo       Done.
 echo.
 
 echo [5/6] Compiling HYDRA-UMC_SUITE.exe with PyInstaller...
+REM The 3D models are not in the repository tree: they come from one verified package (see docs\MESH_PACKAGE.md).
+REM They are fetched here, before PyInstaller packs assets\, so the .exe is never built without them. Offline:
+REM put the package in %USERPROFILE%\.cache\hydra-umc\meshes or set HYDRA_UMC_MESH_PACKAGE to its path.
+echo       Checking the 3D models (verified package, cached)...
+"%VPY%" -m hydra_suite.mesh_pack ensure --source auto
+if errorlevel 1 (
+    echo       ERROR: the 3D models are missing and could not be fetched - see the message above.
+    %KEEP_OPEN%
+    exit /b 1
+)
+
 REM --add-data uses ";" as the source/destination separator on Windows -
 REM Linux/Mac PyInstaller uses ":" instead (see build_exe.sh). Bundles
 REM assets\ (the QML interface + the real STL mesh sets +

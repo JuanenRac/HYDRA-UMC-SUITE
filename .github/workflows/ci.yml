@@ -43,6 +43,18 @@ jobs:
         env:
           PYTHONPATH: clients/python/src
         run: python -m unittest discover -s clients/python/tests -v
+      - name: Cache the 3D mesh package
+        # The meshes are not in the repository tree: they come from one package with a pinned SHA-256
+        # (meshes.pack.json). The package is kept between runs; a new revision changes the key.
+        if: ${{ hashFiles('meshes.pack.json') != '' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/hydra-umc/meshes
+          key: hydra-meshes-${{ hashFiles('meshes.pack.json') }}
+      - name: Fetch and verify the 3D meshes
+        # Before the verifiers and before any build that packs assets/. Every mesh is checked by its SHA-256.
+        if: ${{ hashFiles('meshes.pack.json') != '' }}
+        run: python -m hydra_suite.mesh_pack ensure --source download
       - name: Install system libraries for headless Qt (offscreen platform)
         # This baseline never ran the real tests/verify_*.py Qt/backend control
         # verifiers - only a bare Python-syntax compile - so a broken

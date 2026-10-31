@@ -24,9 +24,15 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from run_offline_verifiers import discover_verifiers  # noqa: E402
+from run_offline_verifiers import discover_verifiers, ensure_meshes  # noqa: E402
 
 VERIFIERS = discover_verifiers()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def meshes_present() -> None:
+    """The verifiers read the 3D models; they come from the pinned package when the tree does not carry them."""
+    assert ensure_meshes() == 0, "the 3D models are missing and could not be fetched (see the message above)"
 
 
 @pytest.mark.parametrize("script", VERIFIERS, ids=lambda path: str(path.relative_to(ROOT)).replace(os.sep, "/"))

@@ -103,4 +103,4 @@ bundle and its model assets are updated. This work does not deploy to CM5.
 See ATTRIBUTION.txt in each directory for the retained upstream export provenance
 and licensing details. HYDRA-UMC wrapper code does not replace upstream rights.
 
-The same files can also come from a checked download package: see [The mesh package](MESH_PACKAGE.md).
+The model files themselves (STL) are not in the repository tree: they are fetched into `assets/meshes/` from one checked download package the first time the program is started, built or tested, and kept in a cache for reuse (and for working without a network). The folders keep their `ATTRIBUTION.txt`, `metadata.json` and `manifest.json` files in the tree. See [The mesh package](MESH_PACKAGE.md).

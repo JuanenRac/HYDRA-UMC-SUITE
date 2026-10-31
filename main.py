@@ -13,6 +13,13 @@ import sys
 
 
 def main() -> int:
+    # The 3D models are not in the repository tree: a run from source brings them from the verified package
+    # (quiet when they are all there). A frozen program carries them inside. See docs/MESH_PACKAGE.md.
+    if not getattr(sys, "frozen", False):
+        from hydra_suite import mesh_pack
+
+        if mesh_pack.main(["prepare"]) != 0:
+            return 1
     try:
         from qt_suite import run_qtquick
     except ImportError as exc:

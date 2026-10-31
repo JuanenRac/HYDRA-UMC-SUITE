@@ -17,6 +17,7 @@ import http.server
 import io
 import json
 import re
+import shutil
 import sys
 import tarfile
 import tempfile
@@ -88,9 +89,12 @@ def run() -> None:
     files = manifest["files"]
     check("manifest has files", len(files) > 100 and manifest["pack"]["size"] > 0)
     check("manifest paths are sorted and unique", [f["path"] for f in files] == sorted({f["path"] for f in files}))
-    check("every file of the tree matches the manifest by SHA-256", mp.scan(manifest, deep=True) == [])
-    config = mp.load_settings()
-    check("default source is local", config.source == "local")
+    # a file that is present must be the pinned one; the missing ones are brought by `ensure` (the runners call it first)
+    wrong = [e for e in mp.scan(manifest, deep=True) if (mp.MESH_DIR / e["path"]).exists()]
+    check("every mesh of the tree that is present matches the manifest by SHA-256", wrong == [])
+    config = mp.load_settings(env={})
+    check("default source is auto (the tree does not carry the meshes)", config.source == "auto")
+    check("default cache is outside the repository", mp.default_cache_dir() not in mp.ROOT.parents and mp.ROOT not in mp.default_cache_dir().parents)
     check("package address is https", manifest["pack"]["url"].startswith("https://"))
 
     # ---- messages: eight languages, same keys and placeholders -----------------------------------------
@@ -111,10 +115,12 @@ def run() -> None:
         cfg.write_text('{"source": "auto", "url": "https://example.invalid/p.tgz"}', encoding="utf-8")
         s = mp.load_settings(cfg, env={})
         check("settings read from the file", s.source == "auto" and s.url.endswith("p.tgz"))
-        s = mp.load_settings(cfg, env={"HYDRA_UMC_MESH_SOURCE": "download", "HYDRA_UMC_MESH_URL": "https://e.invalid/x"})
+        s = mp.load_settings(cfg, env={"HYDRA_UMC_MESH_SOURCE": "download", "HYDRA_UMC_MESH_URL": "https://e.invalid/x",
+                                       "HYDRA_UMC_MESH_CACHE": "/c", "HYDRA_UMC_MESH_PACKAGE": "/p.tgz"})
         check("environment overrides the file", s.source == "download" and s.url == "https://e.invalid/x")
+        check("cache folder and package path come from the environment", s.cache == "/c" and s.package == "/p.tgz")
         cfg.write_text("not json", encoding="utf-8")
-        check("damaged file falls back to local", mp.load_settings(cfg, env={}).source == "local")
+        check("damaged file falls back to the default (auto)", mp.load_settings(cfg, env={}).source == "auto")
 
         # ---- a small package and a manifest for it ---------------------------------------------------------
         a, b = b"solid a\n" * 50, b"glTF-b" * 80
@@ -133,37 +139,82 @@ def run() -> None:
 
         manifest_path = write_manifest(package)
         mesh_dir = tmp_path / "meshes"
+        cache_dir = tmp_path / "cache"
+
+        def S(**kw) -> mp.Settings:  # noqa: N802 - every Settings of these checks keeps its cache inside the temporary folder
+            kw.setdefault("cache", str(cache_dir))
+            return mp.Settings(**kw)
+
         server = Server(package)
         logs: list[str] = []
         try:
             # local: nothing downloaded, nothing written
-            n = mp.ensure(mp.Settings(source="local", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            n = mp.ensure(S(source="local", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
             check("local never touches the network or the disk", n == 0 and server.hits == 0 and not mesh_dir.exists())
 
             # auto with an empty folder: downloads and writes all three paths (one blob used twice)
-            n = mp.ensure(mp.Settings(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            n = mp.ensure(S(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
             check("auto installs the missing meshes", n == 3 and (mesh_dir / "robots/y/a.stl").read_bytes() == a and (mesh_dir / "machine/b.glb").read_bytes() == b)
             check("one download", server.hits == 1)
 
             # auto with everything present: no network
-            n = mp.ensure(mp.Settings(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            n = mp.ensure(S(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
             check("auto uses the local meshes when all exist", n == 0 and server.hits == 1)
 
             # auto keeps a same-size local file it did not verify (quick scan), download mode repairs it
             (mesh_dir / "machine/b.glb").write_bytes(b"x" * len(b))
-            n = mp.ensure(mp.Settings(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            n = mp.ensure(S(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
             check("auto trusts present files of the right size", n == 0 and server.hits == 1)
-            n = mp.ensure(mp.Settings(source="download", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
-            check("download mode replaces only the file whose hash is wrong", n == 1 and (mesh_dir / "machine/b.glb").read_bytes() == b and server.hits == 2)
+            n = mp.ensure(S(source="download", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            check("download mode replaces only the file whose hash is wrong", n == 1 and (mesh_dir / "machine/b.glb").read_bytes() == b and server.hits == 1)  # the cached package serves the repair
 
             # a deleted file is fetched again in auto
             (mesh_dir / "robots/x/a.stl").unlink()
-            n = mp.ensure(mp.Settings(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            n = mp.ensure(S(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
             check("auto brings back a deleted mesh", n == 1 and (mesh_dir / "robots/x/a.stl").is_file())
             check("no .part files are left behind", not list(mesh_dir.rglob("*.part")))
             check("messages are produced", any("Installed" in line for line in logs))
+
+            # the package stays in the cache and is reused without the network
+            check("the downloaded package is kept in the cache", (cache_dir / "p.tgz").is_file() and not list(cache_dir.glob("*.part")))
+            hits = server.hits
+            shutil.rmtree(mesh_dir)
+            logs.clear()
+            n = mp.ensure(S(source="auto", url=server.url), manifest_path, mesh_dir, log=logs.append, lang="en")
+            check("a cached package is reused with no new download", n == 3 and server.hits == hits and any("already stored" in m for m in logs))
+            # a damaged cached package is thrown away and fetched again
+            (cache_dir / "p.tgz").write_bytes(b"junk")
+            shutil.rmtree(mesh_dir)
+            n = mp.ensure(S(source="auto", url=server.url), manifest_path, mesh_dir, log=lambda _m: None, lang="en")
+            check("a damaged cached package is downloaded again", n == 3 and server.hits == hits + 1 and mp.package_matches(cache_dir / "p.tgz", json.loads(manifest_path.read_text())["pack"]))
         finally:
             server.close()
+
+        # ---- offline: a package file given by path, a dead address, a clear hint -----------------------------
+        given = tmp_path / "given.tgz"
+        given.write_bytes(package)
+        off_dir = tmp_path / "offline_meshes"
+        n = mp.ensure(S(source="auto", url="http://127.0.0.1:9/none.tgz", package=str(given), cache=str(tmp_path / "nocache")),
+                      manifest_path, off_dir, log=lambda _m: None, lang="en")
+        check("a package given by path installs with no network and no cache", n == 3 and not (tmp_path / "nocache").exists())
+        given.write_bytes(package + b"0")
+        try:
+            mp.ensure(S(source="auto", package=str(given)), manifest_path, tmp_path / "off2", log=lambda _m: None)
+            check("a wrong package file is refused", False)
+        except mp.MeshPackError as exc:
+            check("a wrong package file is refused", exc.key == "package_file_bad" and not (tmp_path / "off2").exists())
+        try:
+            mp.ensure(S(source="auto", package=str(tmp_path / "missing.tgz")), manifest_path, tmp_path / "off3", log=lambda _m: None)
+            check("a missing package file is refused", False)
+        except mp.MeshPackError as exc:
+            check("a missing package file is refused", exc.key == "package_file_bad")
+        try:
+            mp.ensure(S(source="auto", url="http://127.0.0.1:9/none.tgz", cache=str(tmp_path / "empty_cache")), manifest_path, tmp_path / "off4", log=lambda _m: None)
+            check("no network and no cache fails with the way out", False)
+        except mp.MeshPackError as exc:
+            check("no network and no cache fails with the way out", exc.key == "failed" and {"file", "url", "cache"} <= set(exc.fields)
+                  and "HYDRA_UMC_MESH_PACKAGE" in mp.say("hint_network", "en", **exc.fields))
+        check("nothing half-written is left in the cache", not list((tmp_path / "empty_cache").glob("*.part")))
 
         # ---- refusals install nothing ----------------------------------------------------------------------
         def refused(payload: bytes, manifest_sha_of: bytes | None = None, files_=entries, expect: str = "package_bad") -> bool:
@@ -172,7 +223,7 @@ def run() -> None:
             try:
                 man = write_manifest(manifest_sha_of if manifest_sha_of is not None else payload, files_)
                 try:
-                    mp.ensure(mp.Settings(source="auto", url=srv.url), man, fresh, log=lambda _m: None)
+                    mp.ensure(S(source="auto", url=srv.url, cache=str(fresh) + "_cache"), man, fresh, log=lambda _m: None)
                 except mp.MeshPackError as exc:
                     return exc.key == expect and not fresh.exists()
                 return False
@@ -190,7 +241,7 @@ def run() -> None:
         try:
             man = write_manifest(package)
             try:
-                mp.ensure(mp.Settings(source="auto", url=srv.url), man, tmp_path / "big", log=lambda _m: None)
+                mp.ensure(S(source="auto", url=srv.url, cache=str(tmp_path / "big_cache")), man, tmp_path / "big", log=lambda _m: None)
                 check("an oversized answer is refused", False)
             except mp.MeshPackError as exc:
                 check("an oversized answer is refused", exc.key == "package_bad" and not (tmp_path / "big").exists())
@@ -208,22 +259,22 @@ def run() -> None:
 
         for url in ("http://example.com/p.tgz", "ftp://127.0.0.1/p.tgz", "file:///etc/passwd"):
             try:
-                mp.ensure(mp.Settings(source="auto", url=url), manifest_path, tmp_path / "ins", log=lambda _m: None)
+                mp.ensure(S(source="auto", url=url, cache=str(tmp_path / "ins_cache")), manifest_path, tmp_path / "ins", log=lambda _m: None)
                 check(f"{url} is refused", False)
             except mp.MeshPackError as exc:
                 check(f"{url} is refused", exc.key == "insecure")
         try:
-            mp.ensure(mp.Settings(source="sometimes"), manifest_path, tmp_path / "m", log=lambda _m: None)
+            mp.ensure(S(source="sometimes"), manifest_path, tmp_path / "m", log=lambda _m: None)
             check("an unknown source is refused", False)
         except mp.MeshPackError as exc:
             check("an unknown source is refused", exc.key == "bad_source")
         try:
-            mp.ensure(mp.Settings(source="auto", url=""), write_manifest(package), tmp_path / "nu", log=lambda _m: None)
+            mp.ensure(S(source="auto", url="", cache=str(tmp_path / "nu_cache")), write_manifest(package), tmp_path / "nu", log=lambda _m: None)
             check("no address is a clear refusal", False)
         except mp.MeshPackError as exc:
             check("no address is a clear refusal", exc.key == "no_url")
         check("every message renders in every language", all(
-            mp.say(k, lang, count=1, size="1", url="u", reason="r", names="n", value="v", error="e")
+            mp.say(k, lang, count=1, size="1", url="u", reason="r", names="n", value="v", error="e", path="p", file="f", cache="c")
             for lang in mp.MESSAGES for k in mp.MESSAGES["en"]
         ))
 

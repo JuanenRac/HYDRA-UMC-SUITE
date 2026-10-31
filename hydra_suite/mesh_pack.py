@@ -15,6 +15,9 @@
 #   source = download  every mesh is verified by its hash and the wrong ones are replaced.
 #
 # Set it in mesh_pack.config.json or with HYDRA_UMC_MESH_SOURCE / HYDRA_UMC_MESH_URL.
+# The downloaded package is kept in a cache folder outside the repository (~/.cache/hydra-umc/meshes, or
+# HYDRA_UMC_MESH_CACHE) and reused while it still matches the pinned checksum. Without network, put the package
+# there or point HYDRA_UMC_MESH_PACKAGE at the file: it is verified the same way.
 # CLI: python -m hydra_suite.mesh_pack status | check | prepare | ensure [--source auto|download]
 # Standard library only.
 # =============================================================================
@@ -39,7 +42,7 @@ MANIFEST_PATH = ROOT / "meshes.pack.json"
 CONFIG_PATH = ROOT / "mesh_pack.config.json"
 
 SOURCES = ("local", "auto", "download")
-DEFAULT_CONFIG = {"source": "local", "url": "", "timeout_seconds": 60}
+DEFAULT_CONFIG = {"source": "auto", "url": "", "timeout_seconds": 60, "cache_dir": "", "package": ""}
 _SHA = re.compile(r"^[0-9a-f]{64}$")
 _BAD_SEGMENT = re.compile(r"^(\.|\.\.|)$")
 
@@ -58,6 +61,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "Unknown source {value}; use local, auto or download.",
         "failed": "Download failed: {error}",
         "insecure": "Only https addresses are accepted (http only for 127.0.0.1 and localhost).",
+        "cached": "Using the package already stored at {path}.",
+        "hint_network": "Without network: download {file} once on a computer with Internet ({url}), copy it to {cache} (or set HYDRA_UMC_MESH_PACKAGE to its path) and run this again.",
+        "package_file_bad": "The package file {path} is missing or does not match the pinned manifest; nothing was installed.",
     },
     "es": {
         "local": "Paquete de mallas: el origen es local, se usan las mallas del árbol de trabajo; no se descarga nada.",
@@ -72,6 +78,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "Origen desconocido {value}; usa local, auto o download.",
         "failed": "Falló la descarga: {error}",
         "insecure": "Solo se aceptan direcciones https (http solo para 127.0.0.1 y localhost).",
+        "cached": "Se usa el paquete ya guardado en {path}.",
+        "hint_network": "Sin red: descarga {file} una vez en un equipo con Internet ({url}), cópialo a {cache} (o pon en HYDRA_UMC_MESH_PACKAGE su ruta) y vuelve a ejecutar.",
+        "package_file_bad": "El fichero del paquete {path} no existe o no coincide con el manifiesto fijado; no se instaló nada.",
     },
     "de": {
         "local": "Netzpaket: Quelle ist lokal, die Netze des Arbeitsverzeichnisses werden verwendet; es wird nichts heruntergeladen.",
@@ -86,6 +95,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "Unbekannte Quelle {value}; verwende local, auto oder download.",
         "failed": "Download fehlgeschlagen: {error}",
         "insecure": "Nur https-Adressen werden akzeptiert (http nur für 127.0.0.1 und localhost).",
+        "cached": "Das bereits unter {path} gespeicherte Paket wird verwendet.",
+        "hint_network": "Ohne Netzwerk: Lade {file} einmal auf einem Rechner mit Internet herunter ({url}), kopiere es nach {cache} (oder setze HYDRA_UMC_MESH_PACKAGE auf seinen Pfad) und starte erneut.",
+        "package_file_bad": "Die Paketdatei {path} fehlt oder passt nicht zum festgelegten Manifest; es wurde nichts installiert.",
     },
     "fr": {
         "local": "Paquet de maillages : la source est locale, les maillages de l'arborescence sont utilisés ; rien n'est téléchargé.",
@@ -100,6 +112,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "Source inconnue {value} ; utilisez local, auto ou download.",
         "failed": "Échec du téléchargement : {error}",
         "insecure": "Seules les adresses https sont acceptées (http uniquement pour 127.0.0.1 et localhost).",
+        "cached": "Utilisation du paquet déjà enregistré dans {path}.",
+        "hint_network": "Sans réseau : téléchargez {file} une fois sur un ordinateur avec Internet ({url}), copiez-le dans {cache} (ou placez son chemin dans HYDRA_UMC_MESH_PACKAGE) puis relancez.",
+        "package_file_bad": "Le fichier du paquet {path} est absent ou ne correspond pas au manifeste fixé ; rien n'a été installé.",
     },
     "it": {
         "local": "Pacchetto di mesh: la sorgente è locale, si usano le mesh dell'albero di lavoro; non viene scaricato nulla.",
@@ -114,6 +129,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "Sorgente sconosciuta {value}; usa local, auto o download.",
         "failed": "Download non riuscito: {error}",
         "insecure": "Sono accettati solo indirizzi https (http solo per 127.0.0.1 e localhost).",
+        "cached": "Si usa il pacchetto già salvato in {path}.",
+        "hint_network": "Senza rete: scarica {file} una volta su un computer con Internet ({url}), copialo in {cache} (oppure imposta HYDRA_UMC_MESH_PACKAGE sul suo percorso) e riavvia.",
+        "package_file_bad": "Il file del pacchetto {path} manca o non corrisponde al manifesto fissato; non è stato installato nulla.",
     },
     "ja": {
         "local": "メッシュパッケージ：ソースはローカルです。作業ツリーのメッシュを使用し、ダウンロードは行いません。",
@@ -128,6 +146,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "不明なソース {value}。local、auto、download のいずれかを指定してください。",
         "failed": "ダウンロードに失敗しました：{error}",
         "insecure": "https のアドレスのみ使用できます（http は 127.0.0.1 と localhost のみ）。",
+        "cached": "{path} に保存済みのパッケージを使用します。",
+        "hint_network": "ネットワークがない場合：インターネットに接続できるコンピューターで {file} を一度ダウンロードし（{url}）、{cache} にコピーして（または HYDRA_UMC_MESH_PACKAGE にそのパスを設定して）もう一度実行してください。",
+        "package_file_bad": "パッケージファイル {path} が存在しないか、固定されたマニフェストと一致しません。何もインストールされませんでした。",
     },
     "zh": {
         "local": "网格包：来源为本地，使用工作树中的网格；不会下载任何内容。",
@@ -142,6 +163,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "未知来源 {value}；请使用 local、auto 或 download。",
         "failed": "下载失败：{error}",
         "insecure": "只接受 https 地址（仅 127.0.0.1 和 localhost 可用 http）。",
+        "cached": "使用已保存在 {path} 的软件包。",
+        "hint_network": "没有网络时：在可联网的电脑上下载一次 {file}（{url}），复制到 {cache}（或将 HYDRA_UMC_MESH_PACKAGE 设为其路径），然后重新运行。",
+        "package_file_bad": "软件包文件 {path} 不存在或与固定的清单不符；未安装任何内容。",
     },
     "pt": {
         "local": "Pacote de malhas: a origem é local, usam-se as malhas da árvore de trabalho; não se transfere nada.",
@@ -156,6 +180,9 @@ MESSAGES: dict[str, dict[str, str]] = {
         "bad_source": "Origem desconhecida {value}; use local, auto ou download.",
         "failed": "A transferência falhou: {error}",
         "insecure": "Só são aceites endereços https (http apenas para 127.0.0.1 e localhost).",
+        "cached": "A usar o pacote já guardado em {path}.",
+        "hint_network": "Sem rede: transfira {file} uma vez num computador com Internet ({url}), copie-o para {cache} (ou defina HYDRA_UMC_MESH_PACKAGE com o seu caminho) e execute novamente.",
+        "package_file_bad": "O ficheiro do pacote {path} não existe ou não corresponde ao manifesto fixado; não foi instalado nada.",
     },
 }
 
@@ -186,6 +213,8 @@ class Settings:
     source: str = "local"
     url: str = ""
     timeout: float = 60.0
+    cache: str = ""  # folder that keeps the downloaded package; empty = ~/.cache/hydra-umc/meshes
+    package: str = ""  # an already downloaded package file (offline use); empty = use the cache or download
 
 
 def load_settings(config_path: Path = CONFIG_PATH, env: dict[str, str] | None = None) -> Settings:
@@ -198,13 +227,15 @@ def load_settings(config_path: Path = CONFIG_PATH, env: dict[str, str] | None = 
                 data.update(loaded)
         except (OSError, ValueError):
             pass  # a damaged file falls back to the conservative default
-    source = str(env.get("HYDRA_UMC_MESH_SOURCE") or data.get("source") or "local").strip().lower()
+    source = str(env.get("HYDRA_UMC_MESH_SOURCE") or data.get("source") or "auto").strip().lower()
     url = str(env.get("HYDRA_UMC_MESH_URL") or data.get("url") or "").strip()
     try:
         timeout = float(data.get("timeout_seconds", 60))
     except (TypeError, ValueError):
         timeout = 60.0
-    return Settings(source=source, url=url, timeout=timeout)
+    cache = str(env.get("HYDRA_UMC_MESH_CACHE") or data.get("cache_dir") or "").strip()
+    package = str(env.get("HYDRA_UMC_MESH_PACKAGE") or data.get("package") or "").strip()
+    return Settings(source=source, url=url, timeout=timeout, cache=cache, package=package)
 
 
 def load_manifest(path: Path = MANIFEST_PATH) -> dict:
@@ -302,7 +333,7 @@ def install_from_package(package: Path, manifest: dict, entries: list[dict], mes
             if mesh_root not in target.parents:
                 raise MeshPackError("package_bad", reason="path")
             targets.append((digest, target))
-    with tempfile.TemporaryDirectory(prefix="hydra-stage-", dir=package.parent) as stage_name:
+    with tempfile.TemporaryDirectory(prefix="hydra-stage-") as stage_name:
         stage = Path(stage_name)
         staged: set[str] = set()
         with tarfile.open(package, mode="r:gz") as tar:
@@ -331,6 +362,55 @@ def install_from_package(package: Path, manifest: dict, entries: list[dict], mes
     return len(targets)
 
 
+def default_cache_dir() -> Path:
+    return Path.home() / ".cache" / "hydra-umc" / "meshes"
+
+
+def package_matches(path: Path, pack: dict) -> bool:
+    """True when the file is the pinned package (size and SHA-256)."""
+    try:
+        if path.stat().st_size != pack["size"]:
+            return False
+        return _sha256_file(path) == pack["sha256"]
+    except OSError:
+        return False
+
+
+def obtain_package(settings: Settings, pack: dict, url: str, workdir: Path,
+                   log: Callable[[str], None], lang: str | None) -> Path:
+    """The verified package file: the one given by path, the cached one, or a fresh download kept in the cache."""
+    if settings.package:
+        given = Path(settings.package).expanduser()
+        if not package_matches(given, pack):
+            raise MeshPackError("package_file_bad", path=str(given))
+        log(say("cached", lang, path=str(given)))
+        return given
+    cache = Path(settings.cache).expanduser() if settings.cache else default_cache_dir()
+    name = pack.get("file", "package.tgz")
+    cached = cache / name
+    if package_matches(cached, pack):
+        log(say("cached", lang, path=str(cached)))
+        return cached
+    log(say("downloading", lang, size=f"{pack['size'] / 2**20:.1f}", url=url))
+    try:
+        cache.mkdir(parents=True, exist_ok=True)
+        target_dir = cache
+    except OSError:
+        target_dir = workdir  # the cache cannot be written: still install, keep nothing
+    part = target_dir / (name + ".part")
+    try:
+        download_package(url, pack, part, settings.timeout)
+    except MeshPackError as exc:
+        part.unlink(missing_ok=True)
+        if exc.key == "failed":
+            exc.fields.update(file=name, url=url, cache=str(cache))
+        raise
+    final = target_dir / name
+    os.replace(part, final)
+    log(say("package_ok", lang))
+    return final
+
+
 def ensure(settings: Settings | None = None, manifest_path: Path = MANIFEST_PATH,
            mesh_dir: Path = MESH_DIR, log: Callable[[str], None] = print,
            lang: str | None = None, source: str | None = None) -> int:
@@ -348,15 +428,12 @@ def ensure(settings: Settings | None = None, manifest_path: Path = MANIFEST_PATH
         log(say("complete", lang, count=len(manifest["files"])))
         return 0
     log(say("needed", lang, count=len(bad)))
-    url = settings.url or manifest["pack"].get("url", "")
-    if not url:
-        raise MeshPackError("no_url")
     pack = manifest["pack"]
-    log(say("downloading", lang, size=f"{pack['size'] / 2**20:.1f}", url=url))
+    url = settings.url or pack.get("url", "")
+    if not url and not settings.package:
+        raise MeshPackError("no_url")
     with tempfile.TemporaryDirectory(prefix="hydra-meshes-") as tmp:
-        package = Path(tmp) / pack.get("file", "package.tgz")
-        download_package(url, pack, package, settings.timeout)
-        log(say("package_ok", lang))
+        package = obtain_package(settings, pack, url, Path(tmp), log, lang)
         count = install_from_package(package, manifest, bad, mesh_dir)
     log(say("installed", lang, count=count))
     return count
@@ -390,14 +467,20 @@ def main(argv: list[str] | None = None) -> int:
         if command == "ensure":
             ensure(source=source)
             return 0
-        if command == "prepare":  # silent under the default source, so the run scripts can call it every time
-            if load_settings().source != "local":
-                ensure()
+        if command == "prepare":  # silent when there is nothing to fetch, so the run scripts can call it every time
+            settings = load_settings()
+            if settings.source != "local":
+                # quiet when nothing is missing, so the run scripts can call it every time
+                if settings.source == "auto" and not scan(load_manifest(), MESH_DIR):
+                    return 0
+                ensure(settings)
             return 0
         print("usage: python -m hydra_suite.mesh_pack status | check | prepare | ensure [--source auto|download]")
         return 2
     except MeshPackError as exc:
         print(say(exc.key, lang, **exc.fields), file=sys.stderr)
+        if exc.key == "failed" and "cache" in exc.fields:
+            print(say("hint_network", lang, **exc.fields), file=sys.stderr)
         return 1
 
 

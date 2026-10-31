@@ -1,5 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+# The 3D models under assets/meshes are not in the repository tree; they come from one verified package
+# (docs/MESH_PACKAGE.md). Stop here, with the way out, instead of building a program with no models.
+import subprocess
+import sys
+
+if subprocess.call([sys.executable, '-m', 'hydra_suite.mesh_pack', 'ensure', '--source', 'auto']) != 0:
+    raise SystemExit('The 3D models are missing and could not be fetched (see above). Run build_exe.bat / build_exe.sh, '
+                     'or python -m hydra_suite.mesh_pack ensure, and see docs/MESH_PACKAGE.md for working offline.')
+
 
 a = Analysis(
     ['main.py'],

@@ -53,7 +53,21 @@ def discover_verifiers() -> list[Path]:
     return sorted(TESTS_DIR.glob("verify_*.py")) + [ROOT / "verify_qt_suite_shell.py"]
 
 
+def ensure_meshes() -> int:
+    """The verifiers read the 3D models, which are not in the tree: bring them from the pinned package first.
+
+    Quiet when they are all there. A failure (no network and no cached package) says how to work offline.
+    """
+    sys.path.insert(0, str(ROOT))
+    from hydra_suite import mesh_pack
+
+    return mesh_pack.main(["prepare"])
+
+
 def main() -> int:
+    if ensure_meshes() != 0:
+        print("OFFLINE_VERIFIERS=FAIL the 3D models are missing and could not be fetched", file=sys.stderr)
+        return 1
     scripts = discover_verifiers()
     if not scripts:
         print("OFFLINE_VERIFIERS=FAIL no tests/verify_*.py scripts were found", file=sys.stderr)

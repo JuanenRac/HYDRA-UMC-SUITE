@@ -111,6 +111,11 @@ echo "      Done."
 echo
 
 echo "[6/7] Compiling HYDRA-UMC_SUITE with PyInstaller..."
+# The 3D models are not in the repository tree: they come from one verified package (see docs/MESH_PACKAGE.md).
+# They are fetched here, before PyInstaller packs assets/, so the binary is never built without them. Offline:
+# put the package in ~/.cache/hydra-umc/meshes or set HYDRA_UMC_MESH_PACKAGE to its path.
+echo "      Checking the 3D models (verified package, cached)..."
+"$VPY" -m hydra_suite.mesh_pack ensure --source auto || { echo "      ERROR: the 3D models are missing and could not be fetched - see the message above." >&2; exit 1; }
 # assets/ (theme QSS + real STL mesh sets) bundled the same way as the
 # Windows build - hydra_suite/ui/theme.py and
 # hydra_suite/render/viewport.py both locate it via
