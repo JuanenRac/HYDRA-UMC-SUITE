@@ -78,6 +78,7 @@
         "state and rules, no widgets"
       ],
       "code": [
+        "hydra_suite/panel_logic/connection_history.py",
         "hydra_suite/panel_logic/server_browser.py",
         "hydra_suite/panel_logic/server_security.py",
         "hydra_suite/panel_logic/viewport.py"

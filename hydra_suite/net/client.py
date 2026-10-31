@@ -618,6 +618,15 @@ class HydraConnection(QObject):
         session gets a real 403 here, not a partial/empty list)."""
         return await self._request_json("GET", "/api/admin/clients", auth=True)
 
+    async def fetch_connection_clients(self) -> tuple[int, object] | None:
+        """GET /api/connections/clients (any signed-in account; a non-administrator only sees its own). A server that predates the
+        history answers 404."""
+        return await self._request_json("GET", "/api/connections/clients", auth=True)
+
+    async def fetch_connection_events(self, limit: int = 30) -> tuple[int, object] | None:
+        """GET /api/connections/events, newest first (the server accepts 1 to 500)."""
+        return await self._request_json("GET", "/api/connections/events", auth=True, params={"limit": max(1, min(int(limit), 500))})
+
     async def fetch_admin_logs(self, lines: int = 300) -> tuple[int, object] | None:
         """GET /api/admin/logs (admin-only)."""
         return await self._request_json("GET", "/api/admin/logs", auth=True, params={"lines": lines})

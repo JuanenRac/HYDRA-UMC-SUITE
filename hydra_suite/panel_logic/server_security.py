@@ -44,6 +44,28 @@ def _confidence_option(raw: object) -> dict | None:
     return {"value": float(value), "source": source}
 
 
+#: The four exposure options: view name -> (section, key) in the answer of the server.
+EXPOSURE_FIELDS = {
+    "cameraOpen": ("camera", "open"),
+    "wsQueryToken": ("websocket", "allowQueryToken"),
+    "logRedaction": ("logging", "redactSecrets"),
+    "voiceSignature": ("voice", "requireSignature"),
+}
+
+
+def _exposure(body: dict) -> dict | None:
+    """The four exposure options (open camera pictures, a token in the WebSocket address, blanking of secrets in the log,
+    signature of a spoken confirmation); None unless the server offers all four, so a half-known set is never shown."""
+    found = {}
+    for name, (section, key) in EXPOSURE_FIELDS.items():
+        raw = body.get(section)
+        option = _option(raw.get(key), bool) if isinstance(raw, dict) else None
+        if option is None:
+            return None
+        found[name] = option
+    return found
+
+
 def parse_state(body: object) -> dict | None:
     """The options in a GET/PUT answer; None for a server that predates them or answers nonsense."""
     if not isinstance(body, dict):
@@ -74,6 +96,8 @@ def parse_state(body: object) -> dict | None:
         "robots": None,
         "health": None,
         "safety": None,
+        "connections": None,
+        "exposure": None,
         "mavlink": None,
     }
     ble = body.get("ble")
@@ -127,6 +151,14 @@ def parse_state(body: object) -> dict | None:
         publish = _option(safety.get("publishGlobalStop"), bool)
         if publish is not None:
             state["safety"] = {"publishGlobalStop": publish}
+    connections = body.get("connections")
+    if isinstance(connections, dict):
+        record = _option(connections.get("recordAddress"), bool)
+        if record is not None:
+            state["connections"] = {"recordAddress": record}
+    exposure = _exposure(body)
+    if exposure is not None:
+        state["exposure"] = exposure
     mavlink = body.get("mavlink")
     if isinstance(mavlink, dict):
         key = _option(mavlink.get("signingKeyFile"), str)
@@ -213,6 +245,39 @@ def safety_patch(publish_global_stop: bool) -> dict:
     return {"safety": {"publishGlobalStop": bool(publish_global_stop)}}
 
 
+def connections_patch(record_address: bool) -> dict:
+    """The request body for the option that keeps the address and user agent of each client in the history of connections (off by default)."""
+    return {"connections": {"recordAddress": bool(record_address)}}
+
+
+def connections_needs_confirmation(current: bool, new: bool) -> bool:
+    """Keeping the address of the clients stores personal data: ask first. Turning it off never asks."""
+    return (not current) and bool(new)
+
+
+def exposure_patch(current: dict, new: dict) -> dict | None:
+    """The request body for the exposure options: only what changed (an option fixed by the server environment must not be sent
+    again); None when nothing changed or a value is missing."""
+    body: dict = {}
+    for name, (section, key) in EXPOSURE_FIELDS.items():
+        if name not in current or name not in new:
+            return None
+        if bool(current[name]) != bool(new[name]):
+            body.setdefault(section, {})[key] = bool(new[name])
+    return body or None
+
+
+def exposure_needs_confirmation(current: dict, new: dict) -> bool:
+    """Opening the camera pictures, accepting a token in the WebSocket address, writing secrets in the log or dropping the signature
+    of a spoken confirmation lowers the protection: ask first. The other direction never asks."""
+    return bool(
+        (not current["cameraOpen"] and new["cameraOpen"])
+        or (not current["wsQueryToken"] and new["wsQueryToken"])
+        or (current["logRedaction"] and not new["logRedaction"])
+        or (current["voiceSignature"] and not new["voiceSignature"])
+    )
+
+
 def robots_needs_confirmation(current_allow: bool, new_allow: bool) -> bool:
     """Allowing a client to enable a robot lowers the protection of safe mode: ask first. Turning it off never asks."""
     return not current_allow and bool(new_allow)
@@ -262,6 +327,14 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_ROBOTS_WARNING")
     if "health_open" in warnings:
         sentence = _("SECURITY_HEALTH_WARNING")
+    if "connection_address_recorded" in warnings:
+        sentence = _("SECURITY_CONNECTIONS_WARNING")
+    if "camera_open" in warnings:
+        sentence = _("SECURITY_EXPOSURE_CAMERA_WARNING")
+    if "ws_query_token_allowed" in warnings:
+        sentence = _("SECURITY_EXPOSURE_WS_WARNING")
+    if "log_redaction_off" in warnings:
+        sentence = _("SECURITY_EXPOSURE_LOG_WARNING")
     if "mavlink_unsigned_allowed" in warnings:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
@@ -288,6 +361,12 @@ EMPTY_VIEW: dict = {
     "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
+    "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
+    "exposureAvailable": False,
+    "exposureCameraOpen": False, "exposureCameraOpenLocked": False, "exposureCameraOpenSource": "",
+    "exposureWsQueryToken": False, "exposureWsQueryTokenLocked": False, "exposureWsQueryTokenSource": "",
+    "exposureLogRedaction": True, "exposureLogRedactionLocked": False, "exposureLogRedactionSource": "",
+    "exposureVoiceSignature": False, "exposureVoiceSignatureLocked": False, "exposureVoiceSignatureSource": "",
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
 }
@@ -396,6 +475,28 @@ def view(state: dict | None) -> dict:
                 "safetyPublishStopSource": source_text(safety["publishGlobalStop"]["source"]),
             }
         )
+    connections = state.get("connections")
+    if connections is not None:
+        out.update(
+            {
+                "connectionsAvailable": True,
+                "connectionsRecord": connections["recordAddress"]["value"],
+                "connectionsRecordLocked": is_locked(connections["recordAddress"]["source"]),
+                "connectionsRecordSource": source_text(connections["recordAddress"]["source"]),
+            }
+        )
+    exposure = state.get("exposure")
+    if exposure is not None:
+        out["exposureAvailable"] = True
+        for name, option in exposure.items():
+            suffix = name[0].upper() + name[1:]
+            out.update(
+                {
+                    "exposure" + suffix: option["value"],
+                    "exposure" + suffix + "Locked": is_locked(option["source"]),
+                    "exposure" + suffix + "Source": source_text(option["source"]),
+                }
+            )
     mavlink = state.get("mavlink")
     if mavlink is not None:
         status = _("SECURITY_MAVLINK_SIGNING_ON") if mavlink["key"]["value"] else _("SECURITY_MAVLINK_SIGNING_OFF")

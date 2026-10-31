@@ -15,6 +15,8 @@
   "/api/camera/{p}/snapshot",
   "/api/cameras/status",
   "/api/claims",
+  "/api/connections/clients",
+  "/api/connections/events",
   "/api/ecosystem/service/{p}/{p}",
   "/api/ecosystem/status",
   "/api/hardware/canota/flash",

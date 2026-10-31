@@ -1341,6 +1341,7 @@ ApplicationWindow {
             ListView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: 120
                 clip: true
                 model: suiteBackend.adminClientsRows
                 spacing: 4
@@ -1367,6 +1368,59 @@ ApplicationWindow {
                         Text { text: modelData.duration; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
                         Text { text: "●"; color: modelData.connected ? window.green : "#ee6b80"; font.pixelSize: 10 }
                     }
+                }
+            }
+            Text { text: suiteBackend.uiText("CONNECTIONS_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 14 }
+            Text { text: suiteBackend.uiText("CONNECTIONS_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: suiteBackend.connectionHistoryStatus !== ""; text: suiteBackend.connectionHistoryStatus; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { text: suiteBackend.uiText("CONNECTIONS_CLIENTS_TITLE"); color: window.muted; font.pixelSize: 9; font.bold: true }
+            Text { visible: suiteBackend.connectionHistoryStatus === "" && suiteBackend.connectionClientRows.length === 0; text: suiteBackend.uiText("CONNECTIONS_CLIENTS_NONE"); color: "#556070"; font.pixelSize: 11 }
+            ListView {
+                objectName: "connectionClientList"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: 110
+                clip: true
+                model: suiteBackend.connectionClientRows
+                spacing: 4
+                delegate: Card {
+                    required property var modelData
+                    width: ListView.view.width
+                    height: 42
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 10
+                        ColumnLayout {
+                            spacing: 2
+                            Layout.fillWidth: true
+                            Text { text: modelData.who; color: window.textPrimary; font.bold: true; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { text: modelData.detail; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                        }
+                        Text { visible: modelData.twoFactor; text: "2FA"; color: window.green; font.bold: true; font.pixelSize: 9 }
+                        Text { text: modelData.sessions; color: modelData.active ? window.green : window.muted; font.pixelSize: 9 }
+                        Text { text: modelData.logins; color: window.muted; font.pixelSize: 9 }
+                        Text { text: modelData.lastSeen; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                    }
+                }
+            }
+            Text { text: suiteBackend.uiText("CONNECTIONS_EVENTS_TITLE"); color: window.muted; font.pixelSize: 9; font.bold: true }
+            Text { visible: suiteBackend.connectionHistoryStatus === "" && suiteBackend.connectionEventRows.length === 0; text: suiteBackend.uiText("CONNECTIONS_EVENTS_NONE"); color: "#556070"; font.pixelSize: 11 }
+            ListView {
+                objectName: "connectionEventList"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: 110
+                clip: true
+                model: suiteBackend.connectionEventRows
+                spacing: 2
+                delegate: RowLayout {
+                    required property var modelData
+                    width: ListView.view.width
+                    spacing: 8
+                    Text { text: modelData.action; color: modelData.failure ? "#ee6b80" : window.textPrimary; font.bold: modelData.failure; font.pixelSize: 10 }
+                    Text { text: modelData.detail; color: "#556070"; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                    Text { text: modelData.ago; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
                 }
             }
         }
@@ -1849,6 +1903,89 @@ ApplicationWindow {
                             text: suiteBackend.uiText("BTN_SAVE")
                             enabled: !suiteBackend.securityView.safetyPublishStopLocked
                             onClicked: suiteBackend.saveSafetyOptions(safetyPublishBox.checked)
+                        }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.connectionsAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: connectionsRecordBox
+                            objectName: "securityConnectionsRecordBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS_RECORD")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.connectionsRecordLocked
+                            checked: suiteBackend.securityView.connectionsRecord === true
+                        }
+                        Text { text: suiteBackend.securityView.connectionsRecordSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityConnectionsSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.connectionsRecordLocked
+                            onClicked: {
+                                var record = connectionsRecordBox.checked
+                                if (suiteBackend.connectionsNeedsConfirmation(record))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_CONNECTIONS"), suiteBackend.uiText("MSG_SECURITY_CONNECTIONS_CONFIRM"), function() { suiteBackend.saveConnectionsOptions(record) })
+                                else
+                                    suiteBackend.saveConnectionsOptions(record)
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.exposureAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: exposureCameraBox
+                            objectName: "securityExposureCameraBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_CAMERA")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.exposureCameraOpenLocked
+                            checked: suiteBackend.securityView.exposureCameraOpen === true
+                        }
+                        Text { text: suiteBackend.securityView.exposureCameraOpenSource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            id: exposureWsBox
+                            objectName: "securityExposureWsBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_WS")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.exposureWsQueryTokenLocked
+                            checked: suiteBackend.securityView.exposureWsQueryToken === true
+                        }
+                        Text { text: suiteBackend.securityView.exposureWsQueryTokenSource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            id: exposureLogBox
+                            objectName: "securityExposureLogBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_LOG")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.exposureLogRedactionLocked
+                            checked: suiteBackend.securityView.exposureLogRedaction === true
+                        }
+                        Text { text: suiteBackend.securityView.exposureLogRedactionSource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            id: exposureVoiceBox
+                            objectName: "securityExposureVoiceBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_VOICE")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.exposureVoiceSignatureLocked
+                            checked: suiteBackend.securityView.exposureVoiceSignature === true
+                        }
+                        Text { text: suiteBackend.securityView.exposureVoiceSignatureSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityExposureSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !(suiteBackend.securityView.exposureCameraOpenLocked && suiteBackend.securityView.exposureWsQueryTokenLocked && suiteBackend.securityView.exposureLogRedactionLocked && suiteBackend.securityView.exposureVoiceSignatureLocked)
+                            onClicked: {
+                                var camera = exposureCameraBox.checked, ws = exposureWsBox.checked, log = exposureLogBox.checked, voice = exposureVoiceBox.checked
+                                if (suiteBackend.exposureNeedsConfirmation(camera, ws, log, voice))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_EXPOSURE"), suiteBackend.uiText("MSG_SECURITY_EXPOSURE_CONFIRM"), function() { suiteBackend.saveExposureOptions(camera, ws, log, voice) })
+                                else
+                                    suiteBackend.saveExposureOptions(camera, ws, log, voice)
+                            }
                         }
                     }
                     ColumnLayout {

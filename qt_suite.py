@@ -81,7 +81,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import server_security
+from hydra_suite.panel_logic import connection_history, server_security
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -424,6 +424,9 @@ class SuiteQtBridge(QObject):
         # advance smoothly between polls, matching that file's own real
         # two-timer design exactly. --
         self._admin_clients: list[dict] = []
+        self._connection_clients: list[dict] = []
+        self._connection_events: list[dict] = []
+        self._connection_status_text = ""
         self._admin_clients_status_text = _("MSG_ADMIN_ONLY")
         self._admin_clients_timer = QTimer(self)
         self._admin_clients_timer.setInterval(_ADMIN_CLIENTS_POLL_MS)
@@ -2706,7 +2709,44 @@ class SuiteQtBridge(QObject):
             for c in sorted_clients
         ]
 
+    # -- Connection history (any signed-in account) --------------------------
+
+    @Property(str, notify=changed)
+    def connectionHistoryStatus(self) -> str:
+        return self._connection_status_text
+
+    @Property("QVariantList", notify=changed)
+    def connectionClientRows(self) -> list[dict[str, object]]:
+        return connection_history.client_rows(self._connection_clients)
+
+    @Property("QVariantList", notify=changed)
+    def connectionEventRows(self) -> list[dict[str, object]]:
+        return connection_history.event_rows(self._connection_events)
+
+    async def _refresh_connection_history(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._connection_clients, self._connection_events, self._connection_status_text = [], [], ""
+            return
+        clients = await conn.fetch_connection_clients()
+        events = await conn.fetch_connection_events(30)
+        problem = connection_history.status_for(clients) or connection_history.status_for(events)
+        self._connection_status_text = problem
+        if problem:
+            self._connection_clients, self._connection_events = [], []
+        else:
+            self._connection_clients = connection_history.parse_clients(clients[1])  # type: ignore[index]
+            self._connection_events = connection_history.parse_events(events[1])  # type: ignore[index]
+
     async def _refresh_admin_clients(self) -> None:
+        try:
+            await self._refresh_connection_history()
+        except Exception as error:  # a damaged answer must not stop the clients list
+            logger.warning("reading the connection history failed: %s", error)
+            self._connection_status_text = _("CONNECTIONS_LOAD_ERROR")
+        await self._refresh_admin_clients_list()
+
+    async def _refresh_admin_clients_list(self) -> None:
         conn = self._controller.active_connection
         if conn is None:
             self._admin_clients_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
@@ -3002,6 +3042,37 @@ class SuiteQtBridge(QObject):
     @Slot(bool)
     def saveHealthOptions(self, open_: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.health_patch(open_)))
+
+    @Slot(bool, result=bool)
+    def connectionsNeedsConfirmation(self, record_address: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("connections"):
+            return False
+        return server_security.connections_needs_confirmation(state["connections"]["recordAddress"]["value"], record_address)
+
+    @Slot(bool)
+    def saveConnectionsOptions(self, record_address: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.connections_patch(record_address)))
+
+    def _exposure_values(self, camera_open: bool, ws_query_token: bool, log_redaction: bool, voice_signature: bool) -> tuple[dict, dict] | None:
+        state = self._security_state
+        if state is None or not state.get("exposure"):
+            return None
+        current = {name: option["value"] for name, option in state["exposure"].items()}
+        new = {"cameraOpen": camera_open, "wsQueryToken": ws_query_token, "logRedaction": log_redaction, "voiceSignature": voice_signature}
+        return current, new
+
+    @Slot(bool, bool, bool, bool, result=bool)
+    def exposureNeedsConfirmation(self, camera_open: bool, ws_query_token: bool, log_redaction: bool, voice_signature: bool) -> bool:
+        values = self._exposure_values(camera_open, ws_query_token, log_redaction, voice_signature)
+        return values is not None and server_security.exposure_needs_confirmation(*values)
+
+    @Slot(bool, bool, bool, bool)
+    def saveExposureOptions(self, camera_open: bool, ws_query_token: bool, log_redaction: bool, voice_signature: bool) -> None:
+        values = self._exposure_values(camera_open, ws_query_token, log_redaction, voice_signature)
+        patch = server_security.exposure_patch(*values) if values is not None else None
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
 
     @Slot(bool)
     def saveSafetyOptions(self, publish_global_stop: bool) -> None:

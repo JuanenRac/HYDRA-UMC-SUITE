@@ -130,5 +130,57 @@ check("only opening the health route asks", [sec.health_needs_confirmation(a, b)
 check("the warning of opening it", sec.known_warning(["health_open"]), _("SECURITY_HEALTH_WARNING"))
 check("every key of the view exists without a server (health and stop included)", set(sec.view(None)) == set(sec.view(hs)), True)
 
+def _opt(value, source="default"):
+    return {"value": value, "source": source}
+
+
+EXPO = {
+    **raw,
+    "camera": {"open": _opt(False)},
+    "websocket": {"allowQueryToken": _opt(False, "env")},
+    "logging": {"redactSecrets": _opt(True)},
+    "voice": {**raw.get("voice", {}), "requireSignature": _opt(False, "config")} if isinstance(raw.get("voice"), dict) else {"requireSignature": _opt(False, "config")},
+    "connections": {"recordAddress": _opt(False)},
+}
+es = sec.parse_state(EXPO)
+check("reads the four exposure options", {k: v["value"] for k, v in es["exposure"].items()}, {"cameraOpen": False, "wsQueryToken": False, "logRedaction": True, "voiceSignature": False})
+check("a server without them shows no exposure card", (plain["exposure"], sec.view(plain)["exposureAvailable"], sec.view(es)["exposureAvailable"]), (None, False, True))
+half = {**EXPO, "camera": {"open": _opt("yes")}}
+check("a half-known set of exposure options is not shown", sec.parse_state(half)["exposure"], None)
+check("the exposure view keeps the origin and the lock", (sec.view(es)["exposureWsQueryTokenLocked"], sec.view(es)["exposureCameraOpenLocked"], sec.view(es)["exposureWsQueryTokenSource"], sec.view(es)["exposureLogRedaction"]), (True, False, _("SECURITY_SOURCE_ENV"), True))
+cur = {"cameraOpen": False, "wsQueryToken": False, "logRedaction": True, "voiceSignature": False}
+check("nothing changed sends nothing", sec.exposure_patch(cur, dict(cur)), None)
+check("only what changed is sent", sec.exposure_patch(cur, {**cur, "cameraOpen": True, "logRedaction": False}), {"camera": {"open": True}, "logging": {"redactSecrets": False}})
+check("the signature goes in the voice section", sec.exposure_patch(cur, {**cur, "voiceSignature": True}), {"voice": {"requireSignature": True}})
+check("a missing value sends nothing", sec.exposure_patch(cur, {"cameraOpen": True}), None)
+check("only lowering a protection asks", [sec.exposure_needs_confirmation(cur, {**cur, k: v}) for k, v in (("cameraOpen", True), ("wsQueryToken", True), ("logRedaction", False), ("voiceSignature", True))], [True, True, True, False])
+check("tightening never asks", sec.exposure_needs_confirmation({"cameraOpen": True, "wsQueryToken": True, "logRedaction": False, "voiceSignature": False}, cur), False)
+check("the exposure warnings", [sec.known_warning([w]) for w in ("camera_open", "ws_query_token_allowed", "log_redaction_off")], [_("SECURITY_EXPOSURE_CAMERA_WARNING"), _("SECURITY_EXPOSURE_WS_WARNING"), _("SECURITY_EXPOSURE_LOG_WARNING")])
+check("the connections option is read, sent and asks only when turned on", (sec.view(es)["connectionsAvailable"], sec.view(plain)["connectionsAvailable"], sec.connections_patch(True), [sec.connections_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))], sec.known_warning(["connection_address_recorded"])), (True, False, {"connections": {"recordAddress": True}}, [True, False, False, False], _("SECURITY_CONNECTIONS_WARNING")))
+check("every key of the view exists without a server (exposure and connections included)", set(sec.view(None)) == set(sec.view(es)), True)
+
+# -- the simple history of connections --
+from datetime import datetime, timezone
+
+from hydra_suite.panel_logic import connection_history as hist
+
+NOW = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+CLIENT = {"id": "0123456789abcdef", "kind": "suite", "user": "ana", "app_version": "0.7.3", "origin": "local", "two_factor": True,
+          "first_seen_utc": "2026-01-01T10:00:00Z", "last_seen_utc": "2026-01-01T11:59:30Z", "active_sessions": 2, "logins_ok": 5, "logins_failed": 1, "ip": "10.0.0.2", "agent": "x"}
+EVENT = {"id": 7, "at_utc": "2026-01-01T11:00:00Z", "action": "login_failed", "client_kind": "android", "client_id": "0123456789abcdef", "user": "bob"}
+check("reads the clients and drops a damaged one", [c["user"] for c in hist.parse_clients({"clients": [CLIENT, {**CLIENT, "id": "zz"}, 5, {**CLIENT, "last_seen_utc": "never"}]})], ["ana"])
+check("reads the events and drops a damaged one", [e["id"] for e in hist.parse_events({"events": [EVENT, {**EVENT, "action": "explode"}, {**EVENT, "id": 0}, None]})], [7])
+check("nonsense gives an empty list", (hist.parse_clients(None), hist.parse_clients({"clients": "x"}), hist.parse_events([])), ([], [], []))
+check("an unknown kind is shown as other", hist.parse_client({**CLIENT, "kind": "toaster"})["kind"], "other")
+check("the time since a date", [hist.ago(t, NOW) for t in ("2026-01-01T11:59:55Z", "2026-01-01T11:48:00Z", "2026-01-01T08:56:00Z", "2025-12-29T12:00:00Z", "bad", None)], ["5s", "12m", "3h 4m", "3d", "-", "-"])
+rows = hist.client_rows(hist.parse_clients({"clients": [CLIENT]}), NOW)
+check("a client row", (rows[0]["who"], rows[0]["twoFactor"], rows[0]["active"], rows[0]["lastSeen"], rows[0]["sessions"]), ("ana", True, True, "30s", _("CONNECTIONS_SESSIONS", open=2)))
+check("the address only shows when the server sent it", ("10.0.0.2" in rows[0]["detail"], "10.0.0.2" in hist.client_rows(hist.parse_clients({"clients": [{**CLIENT, "ip": None}]}), NOW)[0]["detail"]), (True, False))
+erows = hist.event_rows(hist.parse_events({"events": [EVENT, {**EVENT, "id": 8, "action": "login", "user": None}]}), NOW)
+check("a refused sign-in is painted as a failure", [r["failure"] for r in erows], [True, False])
+check("an event without a user says so", _("CONNECTIONS_NO_USER") in erows[1]["detail"], True)
+check("the sentences for a server that cannot answer", [hist.status_for(r) for r in ((200, {}), (404, None), (403, None), (401, None), (500, None), None)], ["", _("CONNECTIONS_UNSUPPORTED"), _("CONNECTIONS_FORBIDDEN"), _("CONNECTIONS_FORBIDDEN"), _("CONNECTIONS_LOAD_ERROR"), _("CONNECTIONS_LOAD_ERROR")])
+check("every kind, origin and action has a sentence", all(_(k) != k for k in [f"CONNECTIONS_KIND_{x.upper()}" for x in hist.CLIENT_KINDS] + ["CONNECTIONS_ORIGIN_LOCAL", "CONNECTIONS_ORIGIN_REMOTE"] + [f"CONNECTIONS_ACTION_{x.upper()}" for x in hist.ACTIONS]), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

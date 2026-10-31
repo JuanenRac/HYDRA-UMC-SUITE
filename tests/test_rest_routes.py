@@ -22,7 +22,7 @@ CONTRACT = ROOT.parent / "HYDRA-UMC-SDK" / "contracts" / "openapi" / "v1" / "ser
 LITERAL = re.compile(r"""["'](/api/[^"'\s]*)["']""")
 
 # Routes the server already serves but the shared contract does not list yet; remove each one once the contract has it.
-NOT_YET_IN_CONTRACT: set[str] = set()
+NOT_YET_IN_CONTRACT: set[str] = {"/api/connections/clients", "/api/connections/events"}
 
 
 def called_routes() -> list[str]:
