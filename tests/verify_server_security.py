@@ -119,5 +119,16 @@ check("only allowing it asks", [sec.robots_needs_confirmation(a, b) for a, b in 
 check("the warning of allowing it", sec.known_warning(["robot_enable_allowed"]), _("SECURITY_ROBOTS_WARNING"))
 check("every key of the view exists without a server (robots included)", set(sec.view(None)) == set(sec.view(rb)), True)
 
+HEALTH = {**raw, "health": {"open": {"value": False, "source": "default"}}, "safety": {"publishGlobalStop": {"value": True, "source": "env"}}}
+hs = sec.parse_state(HEALTH)
+check("reads the health route and the stop announcement options", (hs["health"], hs["safety"]), ({"open": {"value": False, "source": "default"}}, {"publishGlobalStop": {"value": True, "source": "env"}}))
+check("a server without them shows no section", (plain["health"], plain["safety"], sec.view(plain)["healthAvailable"], sec.view(plain)["safetyAvailable"], sec.view(hs)["healthAvailable"], sec.view(hs)["safetyAvailable"]), (None, None, False, False, True, True))
+check("a damaged option is dropped, not the rest", (sec.parse_state({**HEALTH, "health": {"open": {"value": "yes", "source": "default"}}})["health"], sec.parse_state({**HEALTH, "safety": {"publishGlobalStop": {"value": True, "source": "nowhere"}}})["safety"], sec.parse_state({**HEALTH, "safety": 3})["tls"]["enabled"]), (None, None, False))
+check("the health and stop views", (sec.view(hs)["healthOpen"], sec.view(hs)["healthOpenLocked"], sec.view(hs)["safetyPublishStop"], sec.view(hs)["safetyPublishStopLocked"]), (False, False, True, True))
+check("the health and stop requests", (sec.health_patch(True), sec.safety_patch(False)), ({"health": {"open": True}}, {"safety": {"publishGlobalStop": False}}))
+check("only opening the health route asks", [sec.health_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))], [True, False, False, False])
+check("the warning of opening it", sec.known_warning(["health_open"]), _("SECURITY_HEALTH_WARNING"))
+check("every key of the view exists without a server (health and stop included)", set(sec.view(None)) == set(sec.view(hs)), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

@@ -2992,6 +2992,21 @@ class SuiteQtBridge(QObject):
     def saveRobotsOptions(self, allow_enable: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.robots_patch(allow_enable)))
 
+    @Slot(bool, result=bool)
+    def healthNeedsConfirmation(self, open_: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("health"):
+            return False
+        return server_security.health_needs_confirmation(state["health"]["open"]["value"], open_)
+
+    @Slot(bool)
+    def saveHealthOptions(self, open_: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.health_patch(open_)))
+
+    @Slot(bool)
+    def saveSafetyOptions(self, publish_global_stop: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.safety_patch(publish_global_stop)))
+
     @Slot(str, bool, result=bool)
     def mavlinkNeedsConfirmation(self, signing_key_file: str, allow_unsigned: bool) -> bool:
         state = self._security_state

@@ -1802,6 +1802,56 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.healthAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: healthOpenBox
+                            objectName: "securityHealthOpenBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_HEALTH_OPEN")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.healthOpenLocked
+                            checked: suiteBackend.securityView.healthOpen === true
+                        }
+                        Text { text: suiteBackend.securityView.healthOpenSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityHealthSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.healthOpenLocked
+                            onClicked: {
+                                var open = healthOpenBox.checked
+                                if (suiteBackend.healthNeedsConfirmation(open))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_HEALTH"), suiteBackend.uiText("MSG_SECURITY_HEALTH_CONFIRM"), function() { suiteBackend.saveHealthOptions(open) })
+                                else
+                                    suiteBackend.saveHealthOptions(open)
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.securityView.safetyAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_STOP"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: safetyPublishBox
+                            objectName: "securitySafetyPublishBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_STOP_PUBLISH")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.safetyPublishStopLocked
+                            checked: suiteBackend.securityView.safetyPublishStop === true
+                        }
+                        Text { text: suiteBackend.securityView.safetyPublishStopSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_STOP_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securitySafetySave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.safetyPublishStopLocked
+                            onClicked: suiteBackend.saveSafetyOptions(safetyPublishBox.checked)
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.mavlinkAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

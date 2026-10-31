@@ -72,6 +72,8 @@ def parse_state(body: object) -> dict | None:
         "mqtt": None,
         "voice": None,
         "robots": None,
+        "health": None,
+        "safety": None,
         "mavlink": None,
     }
     ble = body.get("ble")
@@ -115,6 +117,16 @@ def parse_state(body: object) -> dict | None:
         allow = _option(robots.get("allowEnable"), bool)
         if allow is not None:
             state["robots"] = {"allowEnable": allow}
+    health = body.get("health")
+    if isinstance(health, dict):
+        opened = _option(health.get("open"), bool)
+        if opened is not None:
+            state["health"] = {"open": opened}
+    safety = body.get("safety")
+    if isinstance(safety, dict):
+        publish = _option(safety.get("publishGlobalStop"), bool)
+        if publish is not None:
+            state["safety"] = {"publishGlobalStop": publish}
     mavlink = body.get("mavlink")
     if isinstance(mavlink, dict):
         key = _option(mavlink.get("signingKeyFile"), str)
@@ -186,6 +198,21 @@ def robots_patch(allow_enable: bool) -> dict:
     return {"robots": {"allowEnable": bool(allow_enable)}}
 
 
+def health_patch(open_: bool) -> dict:
+    """The request body for the option that lets anyone on the network read GET /health without signing in (off by default)."""
+    return {"health": {"open": bool(open_)}}
+
+
+def health_needs_confirmation(current_open: bool, new_open: bool) -> bool:
+    """Opening the health route to clients that are not signed in widens what the network can read: ask first. Closing it never asks."""
+    return (not current_open) and bool(new_open)
+
+
+def safety_patch(publish_global_stop: bool) -> dict:
+    """The request body for the option that announces a global stop on the MQTT bridge (off by default; announcing a stop never asks)."""
+    return {"safety": {"publishGlobalStop": bool(publish_global_stop)}}
+
+
 def robots_needs_confirmation(current_allow: bool, new_allow: bool) -> bool:
     """Allowing a client to enable a robot lowers the protection of safe mode: ask first. Turning it off never asks."""
     return not current_allow and bool(new_allow)
@@ -233,6 +260,8 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_VOICE_CONFIDENCE_WARNING")
     if "robot_enable_allowed" in warnings:
         sentence = _("SECURITY_ROBOTS_WARNING")
+    if "health_open" in warnings:
+        sentence = _("SECURITY_HEALTH_WARNING")
     if "mavlink_unsigned_allowed" in warnings:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
@@ -257,6 +286,8 @@ EMPTY_VIEW: dict = {
     "voiceAvailable": False, "voiceHeard": False, "voiceHeardLocked": False, "voiceHeardSource": "",
     "voiceConfidence": "0.6", "voiceConfidenceLocked": False, "voiceConfidenceSource": "",
     "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
+    "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
+    "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
 }
@@ -343,6 +374,26 @@ def view(state: dict | None) -> dict:
                 "robotsAllowEnable": robots["allowEnable"]["value"],
                 "robotsAllowEnableLocked": is_locked(robots["allowEnable"]["source"]),
                 "robotsAllowEnableSource": source_text(robots["allowEnable"]["source"]),
+            }
+        )
+    health = state.get("health")
+    if health is not None:
+        out.update(
+            {
+                "healthAvailable": True,
+                "healthOpen": health["open"]["value"],
+                "healthOpenLocked": is_locked(health["open"]["source"]),
+                "healthOpenSource": source_text(health["open"]["source"]),
+            }
+        )
+    safety = state.get("safety")
+    if safety is not None:
+        out.update(
+            {
+                "safetyAvailable": True,
+                "safetyPublishStop": safety["publishGlobalStop"]["value"],
+                "safetyPublishStopLocked": is_locked(safety["publishGlobalStop"]["source"]),
+                "safetyPublishStopSource": source_text(safety["publishGlobalStop"]["source"]),
             }
         )
     mavlink = state.get("mavlink")

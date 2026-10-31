@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Two more switches in the server security screen:** whether `GET /health` answers without a sign-in (off by default; opening it asks first) and whether the server announces a global stop on the MQTT bridge (off by default). Each shows where its value comes from, is locked when the server's environment fixes it, and appears only when the server offers it. Texts in the eight languages; verified in `tests/verify_server_security.py`.
+
 ## [0.7.3] - Safe mode of a robot, pytest running the verifiers, the progress of a CAN flash, state changes at most 20 times a second and the unit of a mesh declared by its model
 
 - **The progress of a CAN flash cycle reaches the connection:** the server relays each progress line to admin sessions as a `canota_progress` message; the connection now keeps the latest line (`last_canota_progress`) and announces each one with the `canota_progress` signal, so a flasher view can show the live phase and percentage while the flash request is pending. Before, the message was dropped. 1 new verifier.
