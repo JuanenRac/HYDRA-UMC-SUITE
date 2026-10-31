@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-44%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-45%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.4-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 44 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 33 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 45 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 33 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.7.4` |
 | 成熟度 | 可用 |
-| 测试 | 44 (`python tools/run_offline_verifiers.py`) |
+| 测试 | 45 (`python tools/run_offline_verifiers.py`) |
 | 技术栈 | Python 3.12 / PySide6 |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -56,7 +56,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 44 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 45 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
 
@@ -204,7 +204,7 @@ python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 
 ## 🧪 测试
 
-运行 `python tools/run_offline_verifiers.py` 会执行 44 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
+运行 `python tools/run_offline_verifiers.py` 会执行 45 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 

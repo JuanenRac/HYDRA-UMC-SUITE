@@ -103,3 +103,4 @@ bundle and its model assets are updated. This work does not deploy to CM5.
 See ATTRIBUTION.txt in each directory for the retained upstream export provenance
 and licensing details. HYDRA-UMC wrapper code does not replace upstream rights.
 
+The same files can also come from a checked download package: see [The mesh package](MESH_PACKAGE.md).

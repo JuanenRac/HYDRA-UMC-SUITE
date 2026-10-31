@@ -1,0 +1,4249 @@
+{
+ "schema": 1,
+ "pack": {
+  "name": "hydra-umc-meshes",
+  "revision": 1,
+  "file": "hydra-umc-meshes-1.tgz",
+  "url": "https://github.com/JuanenRac/HYDRA-UMC-MESHES/releases/download/meshes-1/hydra-umc-meshes-1.tgz",
+  "sha256": "cbba8a5eccb97ad2017acc7d01a936999ec6bc99f8858921cc110ccc76ebb375",
+  "size": 45572082,
+  "unique_blobs": 340
+ },
+ "files": [
+  {
+   "path": "heatedbeds/default/HeatedBed100x100x5mm.stl",
+   "sha256": "e6b41d408c6d4a9380c256fa481e5d9a0bb34421e38dc33f0a8735493e114a8f",
+   "size": 163884
+  },
+  {
+   "path": "heatedbeds/default/HeatedBed200x100x5mm.stl",
+   "sha256": "1be86ed2bbf11bd4ae1756c93b799bb1d72d9fba8c33eacb4ddb68bbde0908bb",
+   "size": 163884
+  },
+  {
+   "path": "heatedbeds/default/HeatedBed200x200x5mm.stl",
+   "sha256": "dcaff84d4a743dd0482cfdd55b4b465bd5369f6c91642cdbf48f1c5cf2b21731",
+   "size": 171884
+  },
+  {
+   "path": "heatedbeds/default/HeatedBed255x255x5mm.stl",
+   "sha256": "1a932bcbfe0779e2d5d658220c31b34cc37852a2199962f4204965f74f0cb0c9",
+   "size": 175884
+  },
+  {
+   "path": "machine-cnc/juanencnc/base.stl",
+   "sha256": "57a16a1fa135ba9360b6713c152fabb6e0d67f862d654567a52975edced8f9a2",
+   "size": 1632084
+  },
+  {
+   "path": "machine-cnc/juanencnc/nozzle_left.stl",
+   "sha256": "67842b31aabeb3322ddb0275e5165cd7e2899a2d6123456e65d93e4d73f70b8e",
+   "size": 393484
+  },
+  {
+   "path": "machine-cnc/juanencnc/nozzle_right.stl",
+   "sha256": "16f257f9fd568aaf418b15c29752a2e84ff152615b61aa54b794fadc79a14aa7",
+   "size": 395184
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/12mm-strip-feeder.stl",
+   "sha256": "7e1d4e840709f431392a0e130a00b99d31872ff8ef47630c2cc241072b055180",
+   "size": 267584
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/16mm-strip-feeder.stl",
+   "sha256": "9d59afe3a44a7c0a11a096e4c015e2ffe6a2ff86bfd50eece78a37c942c64f88",
+   "size": 271484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/24mm-strip-feeder.stl",
+   "sha256": "0105695bd52ccf9592f59a20ddd94f1322207883fbade0b07b116f7d4c46377d",
+   "size": 200084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/32mm-strip-feeder.stl",
+   "sha256": "d5a9f85c82754c0b14a9ffe2756041a8b9ca0f867d074aff8851240457b69d57",
+   "size": 188984
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/525mm-MGN12H.stl",
+   "sha256": "89b9d2f14d71f29a5b7b645862b7132216b07099d0311debd304736ea19366b4",
+   "size": 250284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/550mm-MGN12H001_001.stl",
+   "sha256": "9340aa59ebbe6c66b0ea4e014e0bb0b8f317d977a2aad7fff347a2113d617f2b",
+   "size": 261284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/550mm-MGN12H001_002.stl",
+   "sha256": "f84d621b5ac3fec428f82c0ce90f030203b90034c3c3d8f85dbbb43c93bc2bf2",
+   "size": 261284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/8mm-strip-feeder.stl",
+   "sha256": "d780e4e2a91c25f6ae164822549c91650c3ce0b989031cc5dcf9699caba6a63d",
+   "size": 347984
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-idler002.stl",
+   "sha256": "5e73f0fa83d2a09d3fe1d9b24c6ad0de523ed0d4f58e44124fda39ac8e166c7d",
+   "size": 554284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-idler003.stl",
+   "sha256": "f97f2048a1cb85a69300d01042b6feca04fda19457782a062231928739c803f3",
+   "size": 554284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-idler004.stl",
+   "sha256": "8c529126a8bf0e4265a3027e29b5737b8baf9ed2605667dc41cbdc58863d393d",
+   "size": 554284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-idler005.stl",
+   "sha256": "87852182e2c55b3d42d3311aa422f4088352ebfc24029e0c98c9b99d724f6ed0",
+   "size": 554284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-pulley002.stl",
+   "sha256": "8809ca181ef23dcebff5887269463f1913f1096ca526dfd15c864eff1a9662d0",
+   "size": 191484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-pulley003.stl",
+   "sha256": "174125ba402fb0979847614b2467b213805db33d481734874d0e4cd1756105f9",
+   "size": 191484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-pulley004.stl",
+   "sha256": "eb3bdaebe5be9a67458d269fd82be24941f35cee965a6c762c00c4b5289414e7",
+   "size": 191484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/GT2-pulley005.stl",
+   "sha256": "1a957f51a5df8f73dc572fc8de24bdf8cabeff1518ee1e130e7eabb3901611af",
+   "size": 191484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/MGN12H-linear-rail-carriage.stl",
+   "sha256": "7245f36eebba0a4acf3789d86e619a320de865a75274bfb5b5206061521604dd",
+   "size": 302084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/MGN12H-linear-rail-carriage001.stl",
+   "sha256": "633bbcd7716f5e5a4207915a80e6b50a9b22a0596a0ff2099ef3371d90742c31",
+   "size": 302084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/MGN12H001_002.stl",
+   "sha256": "6e305dc7247785b8311030dd5b0bb9bbad8f366fe54f5f8b1490c46776a704b9",
+   "size": 302084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/NEMA11-hollow-shaft-stepper002.stl",
+   "sha256": "de9b712d43fac9ff602a015883b91e7e14162d921ecfbb040980c5fd861f75c9",
+   "size": 277784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/NEMA11-hollow-shaft-stepper003.stl",
+   "sha256": "5e66f599891e6fe4610f25cecb17e1ae9cdf7d9476547203dfd840a6c1ed0d5f",
+   "size": 277784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/NEMA17-stepper003.stl",
+   "sha256": "83b68b69f9efcdc6364e471ed27abad4252f80ad0d63e73bcbb6117e26aa0030",
+   "size": 76484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/NEMA17-stepper004.stl",
+   "sha256": "912883d530368be9e7f9d2b6f831f24c7fc189f84787c89a3bb64d9be10da7aa",
+   "size": 76484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/NEMA17-stepper005.stl",
+   "sha256": "8565bdf025d2c8ed84a2ff927c2bd30bb6c3c3ca6a2d48a7ca70d5d08e483ee4",
+   "size": 76484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/NEMA17-stepper006.stl",
+   "sha256": "f7874f90d9d9c42b725071771b65478b62c3ed7f878d754588250458e98ace4a",
+   "size": 76484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/adj-strip-feeder.stl",
+   "sha256": "e1ac47a5a42abbb5b162af55800fe02b2a2dd757296c0814727440e34e2493bc",
+   "size": 211684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/aux-staging-plate-foot.stl",
+   "sha256": "9d05be231724d20a6bec802c6505e09c1b4a651c68ee72700e5280a1a11ac019",
+   "size": 58684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/back-leg-extension_001.stl",
+   "sha256": "a57d5a92a09b1bdd7e84bcccde5b3f72bdd34a717d2ad38dd5133ed3fafbc871",
+   "size": 81884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/back-leg-extension_002.stl",
+   "sha256": "e487da43c3575b63a9777d7342580fc0f0bfdfe4882bc25df3eaf46f4687d6d1",
+   "size": 81884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/back-leg.stl",
+   "sha256": "589924fee7045ae05826ef01e425f3f12f177e7a4e6d45135a70233426bcdcb9",
+   "size": 285484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/back-leg001.stl",
+   "sha256": "52c643614ba0bd21a0f664837fb49e089b863801419db699874bbedf91e1c0f4",
+   "size": 285484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/belt-clamp007.stl",
+   "sha256": "4cb1ab22b2923f5f6b4e3cbe18267c787baad2257da028ef204b21f86e784da0",
+   "size": 66884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/belt-clamp008.stl",
+   "sha256": "a77f420b4987c6d850cbaa36a7af5a9e0f9fdba72861fdb6ef9ccd75a8360fd0",
+   "size": 66884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/belt-clamp009.stl",
+   "sha256": "3f16e3e7e00af13d055f39cfd1bc3fc8ecae102e161f3c91b91c43cd39669e5f",
+   "size": 66884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/belt-clamp010.stl",
+   "sha256": "0a1d0084f736caff9e7575eb0ad86e87dd1914ff3c070a56b2fc9148865d02a5",
+   "size": 66884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/belt-clamp013.stl",
+   "sha256": "7cb684862e18b916f7dafaf6cd1a32d17dc51aa7a3a14b00ad1a5e16b7876048",
+   "size": 66884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/belt-clamp014.stl",
+   "sha256": "3e70481ddf2328c9a42803961f3a31e1a5f41afbac8371272eea7d90b173efa3",
+   "size": 66884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/blade12_004.stl",
+   "sha256": "7b25269285c2c7b20de98f78dcf9261259337c2c93f43b630feba65468fbaa58",
+   "size": 418984
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/blade12_005.stl",
+   "sha256": "a4d358daf95a559085d5e689f9dee27e418e5379dfa2a9247d2fd82209e7a3e0",
+   "size": 417784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/blade13_003.stl",
+   "sha256": "e2e67b030bea90515d6ceb3c4da448a7a91e0f1fd2ba8c83aac3e0fdab6658ec",
+   "size": 417184
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/blade13_004.stl",
+   "sha256": "ee4390ebbe47b849214890e27da490b3fd6cd06f521c6622f36e7fdc0b66f12e",
+   "size": 416384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/board-mount-dynamic_001.stl",
+   "sha256": "f58f37933afdee701cd3772c3d01f2f15eb00c31127298f391959edf3d385423",
+   "size": 14084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/board-mount-static_001.stl",
+   "sha256": "4e4a2a0b337c4529b393f11efc28be79e7a25cdf6698c0fae6f3c6fdaa50366c",
+   "size": 21184
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/board-support_001.stl",
+   "sha256": "ec058d433ba0a3eff92c7cd49be764f70579b2a2627b09e6412ecac489d14324",
+   "size": 19384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/bottom-camera-cover.stl",
+   "sha256": "701c1300b251f64ce5b0cf6784495dc11c9d3df8ac3251c2021d163df9bbf21c",
+   "size": 44284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/bottom-camera-mount.stl",
+   "sha256": "a09268c4be3e72aea3b29947ecdb4781a68f7febfba70a0a3034ad0a28f939ee",
+   "size": 428784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/bottom-camera_001.stl",
+   "sha256": "b50e05821a80583dbd25d09dc47daeda13557d17c96100249b91baafa8ac961d",
+   "size": 253484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/bottom-light-mount.stl",
+   "sha256": "9b06ff2d595bd27c32d5e511ecac10d6d71b5cb54fee8c87ee402e6b70ac0b06",
+   "size": 65184
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/bottom-ring-light.stl",
+   "sha256": "5461fb1f47c562d523fef891efd8f51176152063108cdb24fccf267c957e2a3f",
+   "size": 335584
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/cable-splay.stl",
+   "sha256": "2adb16ab0be2b7acb6aebd3d24e8bbd688936e22d4268ed0b831373c23f3381f",
+   "size": 104684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/control-box-lid.stl",
+   "sha256": "6e7cbef8b359fe044ded4be8aabfc9022cbe117a43662ccce366962a3c3e75a0",
+   "size": 556284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/control-box_001.stl",
+   "sha256": "a8f8e0962915b3b091ae0e9645891f7213178e782e1a2ac32ad8e99937da70e9",
+   "size": 589684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/corner-bracket006.stl",
+   "sha256": "5ccc087f69d585d4a6306f2b26e9a61386f8e0680160a76bfb95f280ec5a7b35",
+   "size": 12284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/corner-bracket007.stl",
+   "sha256": "6cb0ae3db7f831e78a45e0cb80e185d1d29e32ea2c7207f88643641914b4480b",
+   "size": 12284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/datum-board-mount.stl",
+   "sha256": "1d75af539ba8dcf65c47097cee3f3c17ddca2e80dc808893353733771eb907cf",
+   "size": 37484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/datum-board.stl",
+   "sha256": "bb9fc41fc4f8a9ece771bf35a46bce66483e8ffc1ce406b152bee580c46cc693",
+   "size": 196684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/drag-chain-link_001.stl",
+   "sha256": "c9706810fecc1df6242b76c302c9564bc2816aa6e089277a34763d7a40cb27e5",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/drag-chain-link_002.stl",
+   "sha256": "5a74bafb646e95b555e5efdb62003d918137194934f25565bc298bc1f3ecef63",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/drag-chain-link_003.stl",
+   "sha256": "5f355673c12487c4fe93d93b7b9c387154ef587af046bcc9cc0b16c779f72906",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/drag-chain-link_004.stl",
+   "sha256": "e1a3f520870841dd6563ff2fb29900b7a978f0c34d3d822fa83875acb363f48e",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/extrusion-cable-clip.stl",
+   "sha256": "b9cd642408edc46e1c46740c00057e898cb9170b7a78795652d5786981fecfce",
+   "size": 31284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/extrusion-cable-clip002.stl",
+   "sha256": "9b2e8e2bd29931013a14d963060ccad138198f5fdea2f33319bdee99ebd55162",
+   "size": 31284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/extrusion-cable-clip003.stl",
+   "sha256": "eca2c3a7aac7e202688ceadb8ccdf5768b79ce2b8048bff1320ae5c00e05a607",
+   "size": 31284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/extrusion-cable-clip004.stl",
+   "sha256": "c57de5dbc47d2d5cfa6093fc243986259e768693f04b94594189fbede83362d3",
+   "size": 31284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/extrusion-cable-clip005.stl",
+   "sha256": "46d75f850a2f96ff2c9968beda3d9ae6fb50c97cf1d16d24ca2e4eb04c393195",
+   "size": 31284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/front-left-leg.stl",
+   "sha256": "b7658886577a297e9f388b42b3ef814a09c586abfad27eed40071555f416b532",
+   "size": 150984
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/front-leg-extension_001.stl",
+   "sha256": "71cb9584c3ecb4d129e2f5f30f99d4c69bff77f4f86ba0de2adad6ea4321883f",
+   "size": 43284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/front-leg-extension_002.stl",
+   "sha256": "30573a7e923b07b72b67740b26a29fbae433da648774aafdf07e492626f4e1c2",
+   "size": 43284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/front-right-leg.stl",
+   "sha256": "ed3d4c4f3b2328ec30c6378bbe150a06ac87cc8757de6e5189cbb2c3fc490dc9",
+   "size": 141484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/ldo-drag-chain-end_Body_001.stl",
+   "sha256": "d3d592bd3e244fd7ac9ed631ae7a50a1bdaaca9ad94833820f3166b9bee5b94a",
+   "size": 30684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/ldo-drag-chain-end_Body_003.stl",
+   "sha256": "9f0cff471fcaf9a41c52fdeb9b52214a441873e3a76c1b45b855c52b796779ee",
+   "size": 30684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/ldo-drag-chain-end_Body_005.stl",
+   "sha256": "c9aa8fd453fb5e4fc94d365241c53612d57bb7d255612b4c89ead5326358b2c5",
+   "size": 30684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/ldo-drag-chain-end_Body_006.stl",
+   "sha256": "4fb2d02f318db9e2f2aa3a29bfc8122ea9c24c03a2ce1d0acd5f4cd574dd9e61",
+   "size": 30684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/linear-rail-100mm_001.stl",
+   "sha256": "4f5150e995fd40ed5217eb50fd26493276af35816a03b1c2356916446be68b9f",
+   "size": 72684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/linear-rail-100mm_002.stl",
+   "sha256": "6c98ece55b4cd8a8269c945a1f8cc9ae9b2c9964eb11d6c0a531660f6150bdc6",
+   "size": 72684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/mgn9-linear-rail-carriage.stl",
+   "sha256": "73634a8be4b78904a0592cbcf1be6e7f6c2597ec2d37220ff3327c74377b6819",
+   "size": 43484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/mgn9-linear-rail-carriage001.stl",
+   "sha256": "a429d60e12eb3c4109621b54552daac9594f95c4c59f857d73e1a0d8493b19ca",
+   "size": 43484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/n08-nozzle.stl",
+   "sha256": "693e26789c7e135dc0ce4e9a3fa5469c5b7fb3e5bfc1ccfb786bcf58e86a34b0",
+   "size": 50784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/n40-nozzle.stl",
+   "sha256": "478435d8d401bc58056b067e11ccb3059ce2329d968c9047524bf10636fe221b",
+   "size": 52084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/nozzle-camera-mask_001.stl",
+   "sha256": "d569e8df4707a6482a8ed152df43a78068e3075766827f99a509e2f49c1492d2",
+   "size": 87184
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/nozzle-camera-mask_002.stl",
+   "sha256": "0fafb29b9ae60fe4a7c7bb2341444543cf97209a2ce77c011a8b092ce6c99ca3",
+   "size": 87984
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/nozzle-holder_001.stl",
+   "sha256": "643ffdb4d26ee535e3b696fb63664d61eb53f3a2b93e0af3946672f030dad8a5",
+   "size": 505784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/nozzle-holder_002.stl",
+   "sha256": "70f937221f06021440ada5a17fe16fd79c8e9ece224b6027e83cfe1ad83fc2b4",
+   "size": 505784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/nozzle-rack.stl",
+   "sha256": "10e4959f8a90cbf701f8b41a0b1450a732a470b81630ebefb7e8b6eb0f263e5f",
+   "size": 373884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/pcb-staging-plate-aux.stl",
+   "sha256": "781e5d41eb52404147dad1ecadfe6ce263d5fe7692a2223fb6010cc850e5ab04",
+   "size": 1022884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/pcb-staging-plate.stl",
+   "sha256": "08e004b86925b281033877350dd459858d5b863dbd1196a1e5cfd5b347a7c0dc",
+   "size": 720084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/peek-cable-2.stl",
+   "sha256": "63bb4949a88f6e79f805c1f5a144318231be9dd6549373c1accbbceb506d23b7",
+   "size": 15284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/peek-cable-clamp.stl",
+   "sha256": "a8039d1196e112910c738765e517810301f6262be8b40152c9e3a612b8eab38d",
+   "size": 15284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/peek-cable-clamp004.stl",
+   "sha256": "ea58859b99c08e2e45d499de5245254cf3e4215e27d78abcf992eff5c01e7c0f",
+   "size": 15284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/reducing-union-tee-4-6-4.stl",
+   "sha256": "397e16c5d547ed4ca49fe332fc333cbe1a0374c41422f5e0dab352b27c4968b5",
+   "size": 231884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/reducing-union-tee-4-6-4_01.stl",
+   "sha256": "db8ef1140cc0c3c81b8982b104393b30c8cc52083a4d228e3a271dac4612abd6",
+   "size": 231884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/rotary-pneumatic-adapter_001.stl",
+   "sha256": "f11053425bc04e92dc9f9522b8e93cae361c11c0d5ed94f4b9df79a9593721d9",
+   "size": 122784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/rotary-pneumatic-adapter_002.stl",
+   "sha256": "362c388af5baaa9cdc38d1247dc970164dac194b0d362070486080106af69e60",
+   "size": 122784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/secondary-fid-mount_001.stl",
+   "sha256": "d5014088e876c5706df4edf4d1cc53827c67fed01a2b84905acabb4241cbfaea",
+   "size": 24684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/solenoid-valve003.stl",
+   "sha256": "6ed716b2788354717da3962ecd479df0141d1a69ee2c8e18a59c9dbb7c389a99",
+   "size": 160284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/solenoid-valve004.stl",
+   "sha256": "8a02f4e4b37dee89feae93773e3cfd57ebbba8655653e4a8ac801d8b19d367c4",
+   "size": 160084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/squaring-bracket.stl",
+   "sha256": "87d7c42bacb4ed30d49b104d599fc4c05a8a20ac95872b1aeac38ac569c0bdaa",
+   "size": 169784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/top-camera001.stl",
+   "sha256": "4473d73dad33b6f7b0a09e31f16b04d6e93a21ce41f7271e08d31cec679a60fa",
+   "size": 388484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/top-light-mount.stl",
+   "sha256": "0a7a649a40a51f52497ae80e9222676ab7f231dcbd6da60bdc425e856af258b6",
+   "size": 95784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/top-ring-light.stl",
+   "sha256": "eb36b5ae37fe5c86ea9ce663339ec338e3d577bed25003dddedcef0ab828fb03",
+   "size": 327084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vacuum-pump002.stl",
+   "sha256": "b8c832d8a774e0f55a36d7d648846b0853ebf060966adfe1ae284e0f69c423c1",
+   "size": 24784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vacuum-pump003.stl",
+   "sha256": "795192ea2d01beba0751fd734ea3ac8cf439ee5a6feef8d6a8bd0fd42014ff1c",
+   "size": 24784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm.stl",
+   "sha256": "e6348d05004e7ea7b88a015f25feb84b00199ec322fbd6c222510178533500d8",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm001.stl",
+   "sha256": "ba5916c9efe803b33be69f712e20bb08ce84adc3a58733e84101eaefe809842d",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm002.stl",
+   "sha256": "a52720281334b77dfd77027874dd09e0cb0dbfe47ae452c74aa7c7d1af0c5d5e",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm003.stl",
+   "sha256": "cd7efa35dc7ff4c97430a8d6dd00734e7e3ef4118357472d01e45d2e984fa969",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm007.stl",
+   "sha256": "5be347e32dd338bb950e99b89b86d756c253ee7f2d5a58624eb533d64aab1087",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm008.stl",
+   "sha256": "4d694ade19b9063024c4b20c2b71142c6609b73cc3f072a8d6b61875d5db53b5",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/vslot-extrusion-20mmx20mmx600mm009.stl",
+   "sha256": "b03e8de56c15086f15912ccf31cc93bb6ff8567900237aa05b8b776ecdc4c64f",
+   "size": 42084
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-belt-tension-arm.stl",
+   "sha256": "370af1bf3cb65867f611ff353d33e94b0b7734d1e6b4b46125fc1c9f4cdbafe8",
+   "size": 88784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-cable-chain-support.stl",
+   "sha256": "a8dc26b5a4f874d6f2282a1b3174625e2c988c3841955c0c1eca7f90a1022dee",
+   "size": 37484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-gantry-back.stl",
+   "sha256": "ccff314dc90a0294c76f8df23ebf375e4a706be25c11b1767bc88bea05bdfeee",
+   "size": 355184
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-gantry-front.stl",
+   "sha256": "cac9a7f294b9edebfdbe8b5d877f1d2c9e283f35a5974639b21c706683312747",
+   "size": 275884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-gantry-gt2-belt.stl",
+   "sha256": "353d115295648f4bca4707e54b951202f1790e5585507d4541f06e2e59d86b5f",
+   "size": 26284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-idler-mount.stl",
+   "sha256": "732657fa72e55469af6535031ce507d090036fc14f8de17f99c2200e9a148762",
+   "size": 142484
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/x-motor-mount.stl",
+   "sha256": "23e44fd3665188d82cfe5c615cfd6332fefbc30c753848d2ecf1683d2858b63f",
+   "size": 180584
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/xy-limit_001.stl",
+   "sha256": "6e296be9fddd179333537ee42431dc78d76059dfa5d78f470ecb75ff10e425f6",
+   "size": 404784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-001.stl",
+   "sha256": "35ac291d324c7765109a08d4b7f7314f2d6e8f274609673305c476dbb45f1147",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-002.stl",
+   "sha256": "13fc436d328df1faf75ff6708566db7a96cce6df0e0b7773e5152c5ea2778d57",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-003.stl",
+   "sha256": "15734ab434bb3834cf766f0274e95b9d2e42eee6b56b52b5fd60b9ea2666aebd",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-004.stl",
+   "sha256": "42fb3c416a342140585c8c8a3d8b44d15c3c13bfdb3bc6a8be643f619043a64f",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-005.stl",
+   "sha256": "1032044ce1042c714c89fabf81bd9bd69a5734090830c228ad044296fad8e151",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-006.stl",
+   "sha256": "efc58ebd488d6cccddef00d13ab1b817a54baa100e103065f9454beb54c96071",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-007.stl",
+   "sha256": "8dc10c067c9eefea67d099b7c66dc546720e3ba528ae642616db1b664159bf8f",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-008.stl",
+   "sha256": "ca6fb8681f30531e839413948060c0c964cdd97d3a81850202d0094d991c9fae",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-009.stl",
+   "sha256": "c2965890cc50ef6728b138314193b58ff7208668f748be18a0700b36f9149294",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-010.stl",
+   "sha256": "df93733f5c349d29e7b8ad90582f2097ff095170742a43316ffe90bd6d6da8d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-011.stl",
+   "sha256": "d3d99e5efd24df4388fa65c8fe4e051247e08d6687270c74820466a292d49345",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-012.stl",
+   "sha256": "d259897dc51fca7b8799b3bde5d64df9c7adfba545e0265b020b0324daf63fc5",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-013.stl",
+   "sha256": "5830f2d73d8eacd5076f9880b152cd8f0b322d52d5391be9c89c64cc25585b6a",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-014.stl",
+   "sha256": "b1e35c7c181062fa07771cb562ecb139b974233415acf646c6ad5c61b0839c4c",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-015.stl",
+   "sha256": "59f5a06645abd96f40cb549aba00e4788b0dcdaa676452d9e6acb49d7b76dd46",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-016.stl",
+   "sha256": "0522b72ce46fd31cf2ffc60150c4185182906afc13ba200e9287ea92587ae499",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-017.stl",
+   "sha256": "162d51e22a545dd984aea3da36f954818c50fe662e248f0d23a04a4ed7dd48a8",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-018.stl",
+   "sha256": "b6f242c784568cade6870f7be6c67f58936edda1313befd932c6ca2785898365",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-019.stl",
+   "sha256": "c665b0e97ec706199aad8022ea0c7503de0830ecf6e01e08156416a0ceeb6afd",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-020.stl",
+   "sha256": "9360d2a336f740e99020f980260a40ed78624ead5c93a2efd2d49fe3befdd5f1",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-021.stl",
+   "sha256": "918fb445534ae38d98e27dcfc0f6b4a834d3b05d88679fee16347333d172e8c7",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-022.stl",
+   "sha256": "4c4be2a5372d84bf5bd7358b9e7ce1c2897797ce20d1e4db531356fb98a86165",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-023.stl",
+   "sha256": "cccf298662a0b21e97830049828b775b1bf5bc623c2bdf177576bb5b7e49a986",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-024.stl",
+   "sha256": "f63404ba5a9efb0085adff682f7b06b9f10bb44f25eb80d1761e26c1702e4d86",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-025.stl",
+   "sha256": "d00a5a4db0e6d4f2255cbb9b52b95a40a4105552077794928d79bc5f28a32293",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-026.stl",
+   "sha256": "61fa81d2a164de8cae670b07d3a884b8fea12a007a954ef836eeeb5e735b231f",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-027.stl",
+   "sha256": "a0b90274bf822c4154fad53a1c789210fda96c55ade1ba523971dbdacb93eed4",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-028.stl",
+   "sha256": "d40b95494bd0d2a01519460ab2ee5718a0cd723ed5ec1682f7c01f7d778e654e",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-029.stl",
+   "sha256": "6b9a017a7b7b10e0d76ffbe862259b319729c7bc4645a6cababbc4f995cc758d",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-drag-chain-link-030.stl",
+   "sha256": "8053b16f05fdd11ec2443b415ec26037183a3d9444a15bc70359433f7b31f5d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-gantry-gt2-belt_left.stl",
+   "sha256": "a7f398bf10fbef36910af3c006f634e473496dcfe93b3eb30fc921f75725d674",
+   "size": 26284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-gantry-gt2-belt_right.stl",
+   "sha256": "4d20747186dce328e67c3c99cd6ddd08093e61a9caa30fa344da2787806f81e9",
+   "size": 26284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-gantry-left002.stl",
+   "sha256": "d17bbd97e12398dbab1746a95559493821d8b978df9f1728fd91f438ff1d2766",
+   "size": 133284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-gantry-right002.stl",
+   "sha256": "d113d2bea26c14f1fad7f75e2703ad6b3abcc21913b7504c7446f3d5aab4c6ff",
+   "size": 133284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y-limit-striker_Body_001.stl",
+   "sha256": "124c286b95585ec0d2fde9df896079cd0bd58de9180b2a0a6110aadf1ec15e8a",
+   "size": 35884
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y1-belt-tension-arm.stl",
+   "sha256": "937d1133e584de1f36935fcbd31ca380f20a9875374a87ec4457dec06cb24fa9",
+   "size": 88784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/y2-belt-tension-arm.stl",
+   "sha256": "f33ed38abaa80abae7308be3bfc516c1a7768740b6f609cc677cf9acfb1fcb6c",
+   "size": 88784
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/z-belt-loop.stl",
+   "sha256": "4935c6cebe7a0046f3689e514f5156baba144139c4368a9a75fde2947cba403c",
+   "size": 11284
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/z-gantry-backplate-left001.stl",
+   "sha256": "6a535891ab99d08b8a7b764fad08b7fdc2348b685fea111d3c9a769bac9f7031",
+   "size": 219684
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/z-gantry-backplate-right002.stl",
+   "sha256": "74a6612c15f6dc2d20702665b970b51a2dc5cd7576a17cd8a78179647ff4d427",
+   "size": 101584
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/z-gantry-left001.stl",
+   "sha256": "6d6544796e7a8649194e31e6f067edfe877307371925ac2b8ed4c5cdd515002d",
+   "size": 162384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/z-gantry-right001.stl",
+   "sha256": "6d60c74f38c1c43f8270f08ad7b88014684c4da896bb573b89c8794d046bf003",
+   "size": 162384
+  },
+  {
+   "path": "machine-cnc/juanencnc/parts/z-limit_001.stl",
+   "sha256": "f0b3b1ebfc5411beae6d898ba659d21ca9f948d6cbb1796ee465945230f1f0ff",
+   "size": 342284
+  },
+  {
+   "path": "machine-cnc/juanencnc/x_carriage.stl",
+   "sha256": "69afe58dcd1b5dbfa9fd49d7e4f958988352e93acd101ec468773efe306507ff",
+   "size": 959484
+  },
+  {
+   "path": "machine-cnc/juanencnc/y_carriage.stl",
+   "sha256": "90eb10e91d5ff200dfc071ab9d9db11104cd8528d67e662692168273ca4779af",
+   "size": 1192984
+  },
+  {
+   "path": "machine-cnc/juanencnc/z_carriage_left.stl",
+   "sha256": "d401b57c66590987bdfb4faecb9858a2a51869c6b78b4d78a19f31c87f8d1324",
+   "size": 757984
+  },
+  {
+   "path": "machine-cnc/juanencnc/z_carriage_right.stl",
+   "sha256": "74a8ca9036444d97b0a5ac9ac7be5576f01198f4c7b7e2f4c55c2457deeaabea",
+   "size": 690284
+  },
+  {
+   "path": "machine-laser/juanenlaser/base.stl",
+   "sha256": "57a16a1fa135ba9360b6713c152fabb6e0d67f862d654567a52975edced8f9a2",
+   "size": 1632084
+  },
+  {
+   "path": "machine-laser/juanenlaser/nozzle_left.stl",
+   "sha256": "67842b31aabeb3322ddb0275e5165cd7e2899a2d6123456e65d93e4d73f70b8e",
+   "size": 393484
+  },
+  {
+   "path": "machine-laser/juanenlaser/nozzle_right.stl",
+   "sha256": "16f257f9fd568aaf418b15c29752a2e84ff152615b61aa54b794fadc79a14aa7",
+   "size": 395184
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/12mm-strip-feeder.stl",
+   "sha256": "7e1d4e840709f431392a0e130a00b99d31872ff8ef47630c2cc241072b055180",
+   "size": 267584
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/16mm-strip-feeder.stl",
+   "sha256": "9d59afe3a44a7c0a11a096e4c015e2ffe6a2ff86bfd50eece78a37c942c64f88",
+   "size": 271484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/24mm-strip-feeder.stl",
+   "sha256": "0105695bd52ccf9592f59a20ddd94f1322207883fbade0b07b116f7d4c46377d",
+   "size": 200084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/32mm-strip-feeder.stl",
+   "sha256": "d5a9f85c82754c0b14a9ffe2756041a8b9ca0f867d074aff8851240457b69d57",
+   "size": 188984
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/525mm-MGN12H.stl",
+   "sha256": "89b9d2f14d71f29a5b7b645862b7132216b07099d0311debd304736ea19366b4",
+   "size": 250284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/550mm-MGN12H001_001.stl",
+   "sha256": "9340aa59ebbe6c66b0ea4e014e0bb0b8f317d977a2aad7fff347a2113d617f2b",
+   "size": 261284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/550mm-MGN12H001_002.stl",
+   "sha256": "f84d621b5ac3fec428f82c0ce90f030203b90034c3c3d8f85dbbb43c93bc2bf2",
+   "size": 261284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/8mm-strip-feeder.stl",
+   "sha256": "d780e4e2a91c25f6ae164822549c91650c3ce0b989031cc5dcf9699caba6a63d",
+   "size": 347984
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-idler002.stl",
+   "sha256": "5e73f0fa83d2a09d3fe1d9b24c6ad0de523ed0d4f58e44124fda39ac8e166c7d",
+   "size": 554284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-idler003.stl",
+   "sha256": "f97f2048a1cb85a69300d01042b6feca04fda19457782a062231928739c803f3",
+   "size": 554284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-idler004.stl",
+   "sha256": "8c529126a8bf0e4265a3027e29b5737b8baf9ed2605667dc41cbdc58863d393d",
+   "size": 554284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-idler005.stl",
+   "sha256": "87852182e2c55b3d42d3311aa422f4088352ebfc24029e0c98c9b99d724f6ed0",
+   "size": 554284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-pulley002.stl",
+   "sha256": "8809ca181ef23dcebff5887269463f1913f1096ca526dfd15c864eff1a9662d0",
+   "size": 191484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-pulley003.stl",
+   "sha256": "174125ba402fb0979847614b2467b213805db33d481734874d0e4cd1756105f9",
+   "size": 191484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-pulley004.stl",
+   "sha256": "eb3bdaebe5be9a67458d269fd82be24941f35cee965a6c762c00c4b5289414e7",
+   "size": 191484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/GT2-pulley005.stl",
+   "sha256": "1a957f51a5df8f73dc572fc8de24bdf8cabeff1518ee1e130e7eabb3901611af",
+   "size": 191484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/MGN12H-linear-rail-carriage.stl",
+   "sha256": "7245f36eebba0a4acf3789d86e619a320de865a75274bfb5b5206061521604dd",
+   "size": 302084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/MGN12H-linear-rail-carriage001.stl",
+   "sha256": "633bbcd7716f5e5a4207915a80e6b50a9b22a0596a0ff2099ef3371d90742c31",
+   "size": 302084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/MGN12H001_002.stl",
+   "sha256": "6e305dc7247785b8311030dd5b0bb9bbad8f366fe54f5f8b1490c46776a704b9",
+   "size": 302084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/NEMA11-hollow-shaft-stepper002.stl",
+   "sha256": "de9b712d43fac9ff602a015883b91e7e14162d921ecfbb040980c5fd861f75c9",
+   "size": 277784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/NEMA11-hollow-shaft-stepper003.stl",
+   "sha256": "5e66f599891e6fe4610f25cecb17e1ae9cdf7d9476547203dfd840a6c1ed0d5f",
+   "size": 277784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/NEMA17-stepper003.stl",
+   "sha256": "83b68b69f9efcdc6364e471ed27abad4252f80ad0d63e73bcbb6117e26aa0030",
+   "size": 76484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/NEMA17-stepper004.stl",
+   "sha256": "912883d530368be9e7f9d2b6f831f24c7fc189f84787c89a3bb64d9be10da7aa",
+   "size": 76484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/NEMA17-stepper005.stl",
+   "sha256": "8565bdf025d2c8ed84a2ff927c2bd30bb6c3c3ca6a2d48a7ca70d5d08e483ee4",
+   "size": 76484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/NEMA17-stepper006.stl",
+   "sha256": "f7874f90d9d9c42b725071771b65478b62c3ed7f878d754588250458e98ace4a",
+   "size": 76484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/adj-strip-feeder.stl",
+   "sha256": "e1ac47a5a42abbb5b162af55800fe02b2a2dd757296c0814727440e34e2493bc",
+   "size": 211684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/aux-staging-plate-foot.stl",
+   "sha256": "9d05be231724d20a6bec802c6505e09c1b4a651c68ee72700e5280a1a11ac019",
+   "size": 58684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/back-leg-extension_001.stl",
+   "sha256": "a57d5a92a09b1bdd7e84bcccde5b3f72bdd34a717d2ad38dd5133ed3fafbc871",
+   "size": 81884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/back-leg-extension_002.stl",
+   "sha256": "e487da43c3575b63a9777d7342580fc0f0bfdfe4882bc25df3eaf46f4687d6d1",
+   "size": 81884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/back-leg.stl",
+   "sha256": "589924fee7045ae05826ef01e425f3f12f177e7a4e6d45135a70233426bcdcb9",
+   "size": 285484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/back-leg001.stl",
+   "sha256": "52c643614ba0bd21a0f664837fb49e089b863801419db699874bbedf91e1c0f4",
+   "size": 285484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/belt-clamp007.stl",
+   "sha256": "4cb1ab22b2923f5f6b4e3cbe18267c787baad2257da028ef204b21f86e784da0",
+   "size": 66884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/belt-clamp008.stl",
+   "sha256": "a77f420b4987c6d850cbaa36a7af5a9e0f9fdba72861fdb6ef9ccd75a8360fd0",
+   "size": 66884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/belt-clamp009.stl",
+   "sha256": "3f16e3e7e00af13d055f39cfd1bc3fc8ecae102e161f3c91b91c43cd39669e5f",
+   "size": 66884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/belt-clamp010.stl",
+   "sha256": "0a1d0084f736caff9e7575eb0ad86e87dd1914ff3c070a56b2fc9148865d02a5",
+   "size": 66884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/belt-clamp013.stl",
+   "sha256": "7cb684862e18b916f7dafaf6cd1a32d17dc51aa7a3a14b00ad1a5e16b7876048",
+   "size": 66884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/belt-clamp014.stl",
+   "sha256": "3e70481ddf2328c9a42803961f3a31e1a5f41afbac8371272eea7d90b173efa3",
+   "size": 66884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/blade12_004.stl",
+   "sha256": "7b25269285c2c7b20de98f78dcf9261259337c2c93f43b630feba65468fbaa58",
+   "size": 418984
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/blade12_005.stl",
+   "sha256": "a4d358daf95a559085d5e689f9dee27e418e5379dfa2a9247d2fd82209e7a3e0",
+   "size": 417784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/blade13_003.stl",
+   "sha256": "e2e67b030bea90515d6ceb3c4da448a7a91e0f1fd2ba8c83aac3e0fdab6658ec",
+   "size": 417184
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/blade13_004.stl",
+   "sha256": "ee4390ebbe47b849214890e27da490b3fd6cd06f521c6622f36e7fdc0b66f12e",
+   "size": 416384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/board-mount-dynamic_001.stl",
+   "sha256": "f58f37933afdee701cd3772c3d01f2f15eb00c31127298f391959edf3d385423",
+   "size": 14084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/board-mount-static_001.stl",
+   "sha256": "4e4a2a0b337c4529b393f11efc28be79e7a25cdf6698c0fae6f3c6fdaa50366c",
+   "size": 21184
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/board-support_001.stl",
+   "sha256": "ec058d433ba0a3eff92c7cd49be764f70579b2a2627b09e6412ecac489d14324",
+   "size": 19384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/bottom-camera-cover.stl",
+   "sha256": "701c1300b251f64ce5b0cf6784495dc11c9d3df8ac3251c2021d163df9bbf21c",
+   "size": 44284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/bottom-camera-mount.stl",
+   "sha256": "a09268c4be3e72aea3b29947ecdb4781a68f7febfba70a0a3034ad0a28f939ee",
+   "size": 428784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/bottom-camera_001.stl",
+   "sha256": "b50e05821a80583dbd25d09dc47daeda13557d17c96100249b91baafa8ac961d",
+   "size": 253484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/bottom-light-mount.stl",
+   "sha256": "9b06ff2d595bd27c32d5e511ecac10d6d71b5cb54fee8c87ee402e6b70ac0b06",
+   "size": 65184
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/bottom-ring-light.stl",
+   "sha256": "5461fb1f47c562d523fef891efd8f51176152063108cdb24fccf267c957e2a3f",
+   "size": 335584
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/cable-splay.stl",
+   "sha256": "2adb16ab0be2b7acb6aebd3d24e8bbd688936e22d4268ed0b831373c23f3381f",
+   "size": 104684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/control-box-lid.stl",
+   "sha256": "6e7cbef8b359fe044ded4be8aabfc9022cbe117a43662ccce366962a3c3e75a0",
+   "size": 556284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/control-box_001.stl",
+   "sha256": "a8f8e0962915b3b091ae0e9645891f7213178e782e1a2ac32ad8e99937da70e9",
+   "size": 589684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/corner-bracket006.stl",
+   "sha256": "5ccc087f69d585d4a6306f2b26e9a61386f8e0680160a76bfb95f280ec5a7b35",
+   "size": 12284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/corner-bracket007.stl",
+   "sha256": "6cb0ae3db7f831e78a45e0cb80e185d1d29e32ea2c7207f88643641914b4480b",
+   "size": 12284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/datum-board-mount.stl",
+   "sha256": "1d75af539ba8dcf65c47097cee3f3c17ddca2e80dc808893353733771eb907cf",
+   "size": 37484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/datum-board.stl",
+   "sha256": "bb9fc41fc4f8a9ece771bf35a46bce66483e8ffc1ce406b152bee580c46cc693",
+   "size": 196684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/drag-chain-link_001.stl",
+   "sha256": "c9706810fecc1df6242b76c302c9564bc2816aa6e089277a34763d7a40cb27e5",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/drag-chain-link_002.stl",
+   "sha256": "5a74bafb646e95b555e5efdb62003d918137194934f25565bc298bc1f3ecef63",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/drag-chain-link_003.stl",
+   "sha256": "5f355673c12487c4fe93d93b7b9c387154ef587af046bcc9cc0b16c779f72906",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/drag-chain-link_004.stl",
+   "sha256": "e1a3f520870841dd6563ff2fb29900b7a978f0c34d3d822fa83875acb363f48e",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/extrusion-cable-clip.stl",
+   "sha256": "b9cd642408edc46e1c46740c00057e898cb9170b7a78795652d5786981fecfce",
+   "size": 31284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/extrusion-cable-clip002.stl",
+   "sha256": "9b2e8e2bd29931013a14d963060ccad138198f5fdea2f33319bdee99ebd55162",
+   "size": 31284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/extrusion-cable-clip003.stl",
+   "sha256": "eca2c3a7aac7e202688ceadb8ccdf5768b79ce2b8048bff1320ae5c00e05a607",
+   "size": 31284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/extrusion-cable-clip004.stl",
+   "sha256": "c57de5dbc47d2d5cfa6093fc243986259e768693f04b94594189fbede83362d3",
+   "size": 31284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/extrusion-cable-clip005.stl",
+   "sha256": "46d75f850a2f96ff2c9968beda3d9ae6fb50c97cf1d16d24ca2e4eb04c393195",
+   "size": 31284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/front-left-leg.stl",
+   "sha256": "b7658886577a297e9f388b42b3ef814a09c586abfad27eed40071555f416b532",
+   "size": 150984
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/front-leg-extension_001.stl",
+   "sha256": "71cb9584c3ecb4d129e2f5f30f99d4c69bff77f4f86ba0de2adad6ea4321883f",
+   "size": 43284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/front-leg-extension_002.stl",
+   "sha256": "30573a7e923b07b72b67740b26a29fbae433da648774aafdf07e492626f4e1c2",
+   "size": 43284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/front-right-leg.stl",
+   "sha256": "ed3d4c4f3b2328ec30c6378bbe150a06ac87cc8757de6e5189cbb2c3fc490dc9",
+   "size": 141484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/ldo-drag-chain-end_Body_001.stl",
+   "sha256": "d3d592bd3e244fd7ac9ed631ae7a50a1bdaaca9ad94833820f3166b9bee5b94a",
+   "size": 30684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/ldo-drag-chain-end_Body_003.stl",
+   "sha256": "9f0cff471fcaf9a41c52fdeb9b52214a441873e3a76c1b45b855c52b796779ee",
+   "size": 30684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/ldo-drag-chain-end_Body_005.stl",
+   "sha256": "c9aa8fd453fb5e4fc94d365241c53612d57bb7d255612b4c89ead5326358b2c5",
+   "size": 30684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/ldo-drag-chain-end_Body_006.stl",
+   "sha256": "4fb2d02f318db9e2f2aa3a29bfc8122ea9c24c03a2ce1d0acd5f4cd574dd9e61",
+   "size": 30684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/linear-rail-100mm_001.stl",
+   "sha256": "4f5150e995fd40ed5217eb50fd26493276af35816a03b1c2356916446be68b9f",
+   "size": 72684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/linear-rail-100mm_002.stl",
+   "sha256": "6c98ece55b4cd8a8269c945a1f8cc9ae9b2c9964eb11d6c0a531660f6150bdc6",
+   "size": 72684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/mgn9-linear-rail-carriage.stl",
+   "sha256": "73634a8be4b78904a0592cbcf1be6e7f6c2597ec2d37220ff3327c74377b6819",
+   "size": 43484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/mgn9-linear-rail-carriage001.stl",
+   "sha256": "a429d60e12eb3c4109621b54552daac9594f95c4c59f857d73e1a0d8493b19ca",
+   "size": 43484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/n08-nozzle.stl",
+   "sha256": "693e26789c7e135dc0ce4e9a3fa5469c5b7fb3e5bfc1ccfb786bcf58e86a34b0",
+   "size": 50784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/n40-nozzle.stl",
+   "sha256": "478435d8d401bc58056b067e11ccb3059ce2329d968c9047524bf10636fe221b",
+   "size": 52084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/nozzle-camera-mask_001.stl",
+   "sha256": "d569e8df4707a6482a8ed152df43a78068e3075766827f99a509e2f49c1492d2",
+   "size": 87184
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/nozzle-camera-mask_002.stl",
+   "sha256": "0fafb29b9ae60fe4a7c7bb2341444543cf97209a2ce77c011a8b092ce6c99ca3",
+   "size": 87984
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/nozzle-holder_001.stl",
+   "sha256": "643ffdb4d26ee535e3b696fb63664d61eb53f3a2b93e0af3946672f030dad8a5",
+   "size": 505784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/nozzle-holder_002.stl",
+   "sha256": "70f937221f06021440ada5a17fe16fd79c8e9ece224b6027e83cfe1ad83fc2b4",
+   "size": 505784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/nozzle-rack.stl",
+   "sha256": "10e4959f8a90cbf701f8b41a0b1450a732a470b81630ebefb7e8b6eb0f263e5f",
+   "size": 373884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/pcb-staging-plate-aux.stl",
+   "sha256": "781e5d41eb52404147dad1ecadfe6ce263d5fe7692a2223fb6010cc850e5ab04",
+   "size": 1022884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/pcb-staging-plate.stl",
+   "sha256": "08e004b86925b281033877350dd459858d5b863dbd1196a1e5cfd5b347a7c0dc",
+   "size": 720084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/peek-cable-2.stl",
+   "sha256": "63bb4949a88f6e79f805c1f5a144318231be9dd6549373c1accbbceb506d23b7",
+   "size": 15284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/peek-cable-clamp.stl",
+   "sha256": "a8039d1196e112910c738765e517810301f6262be8b40152c9e3a612b8eab38d",
+   "size": 15284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/peek-cable-clamp004.stl",
+   "sha256": "ea58859b99c08e2e45d499de5245254cf3e4215e27d78abcf992eff5c01e7c0f",
+   "size": 15284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/reducing-union-tee-4-6-4.stl",
+   "sha256": "397e16c5d547ed4ca49fe332fc333cbe1a0374c41422f5e0dab352b27c4968b5",
+   "size": 231884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/reducing-union-tee-4-6-4_01.stl",
+   "sha256": "db8ef1140cc0c3c81b8982b104393b30c8cc52083a4d228e3a271dac4612abd6",
+   "size": 231884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/rotary-pneumatic-adapter_001.stl",
+   "sha256": "f11053425bc04e92dc9f9522b8e93cae361c11c0d5ed94f4b9df79a9593721d9",
+   "size": 122784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/rotary-pneumatic-adapter_002.stl",
+   "sha256": "362c388af5baaa9cdc38d1247dc970164dac194b0d362070486080106af69e60",
+   "size": 122784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/secondary-fid-mount_001.stl",
+   "sha256": "d5014088e876c5706df4edf4d1cc53827c67fed01a2b84905acabb4241cbfaea",
+   "size": 24684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/solenoid-valve003.stl",
+   "sha256": "6ed716b2788354717da3962ecd479df0141d1a69ee2c8e18a59c9dbb7c389a99",
+   "size": 160284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/solenoid-valve004.stl",
+   "sha256": "8a02f4e4b37dee89feae93773e3cfd57ebbba8655653e4a8ac801d8b19d367c4",
+   "size": 160084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/squaring-bracket.stl",
+   "sha256": "87d7c42bacb4ed30d49b104d599fc4c05a8a20ac95872b1aeac38ac569c0bdaa",
+   "size": 169784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/top-camera001.stl",
+   "sha256": "4473d73dad33b6f7b0a09e31f16b04d6e93a21ce41f7271e08d31cec679a60fa",
+   "size": 388484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/top-light-mount.stl",
+   "sha256": "0a7a649a40a51f52497ae80e9222676ab7f231dcbd6da60bdc425e856af258b6",
+   "size": 95784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/top-ring-light.stl",
+   "sha256": "eb36b5ae37fe5c86ea9ce663339ec338e3d577bed25003dddedcef0ab828fb03",
+   "size": 327084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vacuum-pump002.stl",
+   "sha256": "b8c832d8a774e0f55a36d7d648846b0853ebf060966adfe1ae284e0f69c423c1",
+   "size": 24784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vacuum-pump003.stl",
+   "sha256": "795192ea2d01beba0751fd734ea3ac8cf439ee5a6feef8d6a8bd0fd42014ff1c",
+   "size": 24784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm.stl",
+   "sha256": "e6348d05004e7ea7b88a015f25feb84b00199ec322fbd6c222510178533500d8",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm001.stl",
+   "sha256": "ba5916c9efe803b33be69f712e20bb08ce84adc3a58733e84101eaefe809842d",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm002.stl",
+   "sha256": "a52720281334b77dfd77027874dd09e0cb0dbfe47ae452c74aa7c7d1af0c5d5e",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm003.stl",
+   "sha256": "cd7efa35dc7ff4c97430a8d6dd00734e7e3ef4118357472d01e45d2e984fa969",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm007.stl",
+   "sha256": "5be347e32dd338bb950e99b89b86d756c253ee7f2d5a58624eb533d64aab1087",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm008.stl",
+   "sha256": "4d694ade19b9063024c4b20c2b71142c6609b73cc3f072a8d6b61875d5db53b5",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/vslot-extrusion-20mmx20mmx600mm009.stl",
+   "sha256": "b03e8de56c15086f15912ccf31cc93bb6ff8567900237aa05b8b776ecdc4c64f",
+   "size": 42084
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-belt-tension-arm.stl",
+   "sha256": "370af1bf3cb65867f611ff353d33e94b0b7734d1e6b4b46125fc1c9f4cdbafe8",
+   "size": 88784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-cable-chain-support.stl",
+   "sha256": "a8dc26b5a4f874d6f2282a1b3174625e2c988c3841955c0c1eca7f90a1022dee",
+   "size": 37484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-gantry-back.stl",
+   "sha256": "ccff314dc90a0294c76f8df23ebf375e4a706be25c11b1767bc88bea05bdfeee",
+   "size": 355184
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-gantry-front.stl",
+   "sha256": "cac9a7f294b9edebfdbe8b5d877f1d2c9e283f35a5974639b21c706683312747",
+   "size": 275884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-gantry-gt2-belt.stl",
+   "sha256": "353d115295648f4bca4707e54b951202f1790e5585507d4541f06e2e59d86b5f",
+   "size": 26284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-idler-mount.stl",
+   "sha256": "732657fa72e55469af6535031ce507d090036fc14f8de17f99c2200e9a148762",
+   "size": 142484
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/x-motor-mount.stl",
+   "sha256": "23e44fd3665188d82cfe5c615cfd6332fefbc30c753848d2ecf1683d2858b63f",
+   "size": 180584
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/xy-limit_001.stl",
+   "sha256": "6e296be9fddd179333537ee42431dc78d76059dfa5d78f470ecb75ff10e425f6",
+   "size": 404784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-001.stl",
+   "sha256": "35ac291d324c7765109a08d4b7f7314f2d6e8f274609673305c476dbb45f1147",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-002.stl",
+   "sha256": "13fc436d328df1faf75ff6708566db7a96cce6df0e0b7773e5152c5ea2778d57",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-003.stl",
+   "sha256": "15734ab434bb3834cf766f0274e95b9d2e42eee6b56b52b5fd60b9ea2666aebd",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-004.stl",
+   "sha256": "42fb3c416a342140585c8c8a3d8b44d15c3c13bfdb3bc6a8be643f619043a64f",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-005.stl",
+   "sha256": "1032044ce1042c714c89fabf81bd9bd69a5734090830c228ad044296fad8e151",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-006.stl",
+   "sha256": "efc58ebd488d6cccddef00d13ab1b817a54baa100e103065f9454beb54c96071",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-007.stl",
+   "sha256": "8dc10c067c9eefea67d099b7c66dc546720e3ba528ae642616db1b664159bf8f",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-008.stl",
+   "sha256": "ca6fb8681f30531e839413948060c0c964cdd97d3a81850202d0094d991c9fae",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-009.stl",
+   "sha256": "c2965890cc50ef6728b138314193b58ff7208668f748be18a0700b36f9149294",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-010.stl",
+   "sha256": "df93733f5c349d29e7b8ad90582f2097ff095170742a43316ffe90bd6d6da8d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-011.stl",
+   "sha256": "d3d99e5efd24df4388fa65c8fe4e051247e08d6687270c74820466a292d49345",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-012.stl",
+   "sha256": "d259897dc51fca7b8799b3bde5d64df9c7adfba545e0265b020b0324daf63fc5",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-013.stl",
+   "sha256": "5830f2d73d8eacd5076f9880b152cd8f0b322d52d5391be9c89c64cc25585b6a",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-014.stl",
+   "sha256": "b1e35c7c181062fa07771cb562ecb139b974233415acf646c6ad5c61b0839c4c",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-015.stl",
+   "sha256": "59f5a06645abd96f40cb549aba00e4788b0dcdaa676452d9e6acb49d7b76dd46",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-016.stl",
+   "sha256": "0522b72ce46fd31cf2ffc60150c4185182906afc13ba200e9287ea92587ae499",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-017.stl",
+   "sha256": "162d51e22a545dd984aea3da36f954818c50fe662e248f0d23a04a4ed7dd48a8",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-018.stl",
+   "sha256": "b6f242c784568cade6870f7be6c67f58936edda1313befd932c6ca2785898365",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-019.stl",
+   "sha256": "c665b0e97ec706199aad8022ea0c7503de0830ecf6e01e08156416a0ceeb6afd",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-020.stl",
+   "sha256": "9360d2a336f740e99020f980260a40ed78624ead5c93a2efd2d49fe3befdd5f1",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-021.stl",
+   "sha256": "918fb445534ae38d98e27dcfc0f6b4a834d3b05d88679fee16347333d172e8c7",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-022.stl",
+   "sha256": "4c4be2a5372d84bf5bd7358b9e7ce1c2897797ce20d1e4db531356fb98a86165",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-023.stl",
+   "sha256": "cccf298662a0b21e97830049828b775b1bf5bc623c2bdf177576bb5b7e49a986",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-024.stl",
+   "sha256": "f63404ba5a9efb0085adff682f7b06b9f10bb44f25eb80d1761e26c1702e4d86",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-025.stl",
+   "sha256": "d00a5a4db0e6d4f2255cbb9b52b95a40a4105552077794928d79bc5f28a32293",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-026.stl",
+   "sha256": "61fa81d2a164de8cae670b07d3a884b8fea12a007a954ef836eeeb5e735b231f",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-027.stl",
+   "sha256": "a0b90274bf822c4154fad53a1c789210fda96c55ade1ba523971dbdacb93eed4",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-028.stl",
+   "sha256": "d40b95494bd0d2a01519460ab2ee5718a0cd723ed5ec1682f7c01f7d778e654e",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-029.stl",
+   "sha256": "6b9a017a7b7b10e0d76ffbe862259b319729c7bc4645a6cababbc4f995cc758d",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-drag-chain-link-030.stl",
+   "sha256": "8053b16f05fdd11ec2443b415ec26037183a3d9444a15bc70359433f7b31f5d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-gantry-gt2-belt_left.stl",
+   "sha256": "a7f398bf10fbef36910af3c006f634e473496dcfe93b3eb30fc921f75725d674",
+   "size": 26284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-gantry-gt2-belt_right.stl",
+   "sha256": "4d20747186dce328e67c3c99cd6ddd08093e61a9caa30fa344da2787806f81e9",
+   "size": 26284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-gantry-left002.stl",
+   "sha256": "d17bbd97e12398dbab1746a95559493821d8b978df9f1728fd91f438ff1d2766",
+   "size": 133284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-gantry-right002.stl",
+   "sha256": "d113d2bea26c14f1fad7f75e2703ad6b3abcc21913b7504c7446f3d5aab4c6ff",
+   "size": 133284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y-limit-striker_Body_001.stl",
+   "sha256": "124c286b95585ec0d2fde9df896079cd0bd58de9180b2a0a6110aadf1ec15e8a",
+   "size": 35884
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y1-belt-tension-arm.stl",
+   "sha256": "937d1133e584de1f36935fcbd31ca380f20a9875374a87ec4457dec06cb24fa9",
+   "size": 88784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/y2-belt-tension-arm.stl",
+   "sha256": "f33ed38abaa80abae7308be3bfc516c1a7768740b6f609cc677cf9acfb1fcb6c",
+   "size": 88784
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/z-belt-loop.stl",
+   "sha256": "4935c6cebe7a0046f3689e514f5156baba144139c4368a9a75fde2947cba403c",
+   "size": 11284
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/z-gantry-backplate-left001.stl",
+   "sha256": "6a535891ab99d08b8a7b764fad08b7fdc2348b685fea111d3c9a769bac9f7031",
+   "size": 219684
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/z-gantry-backplate-right002.stl",
+   "sha256": "74a6612c15f6dc2d20702665b970b51a2dc5cd7576a17cd8a78179647ff4d427",
+   "size": 101584
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/z-gantry-left001.stl",
+   "sha256": "6d6544796e7a8649194e31e6f067edfe877307371925ac2b8ed4c5cdd515002d",
+   "size": 162384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/z-gantry-right001.stl",
+   "sha256": "6d60c74f38c1c43f8270f08ad7b88014684c4da896bb573b89c8794d046bf003",
+   "size": 162384
+  },
+  {
+   "path": "machine-laser/juanenlaser/parts/z-limit_001.stl",
+   "sha256": "f0b3b1ebfc5411beae6d898ba659d21ca9f948d6cbb1796ee465945230f1f0ff",
+   "size": 342284
+  },
+  {
+   "path": "machine-laser/juanenlaser/x_carriage.stl",
+   "sha256": "69afe58dcd1b5dbfa9fd49d7e4f958988352e93acd101ec468773efe306507ff",
+   "size": 959484
+  },
+  {
+   "path": "machine-laser/juanenlaser/y_carriage.stl",
+   "sha256": "90eb10e91d5ff200dfc071ab9d9db11104cd8528d67e662692168273ca4779af",
+   "size": 1192984
+  },
+  {
+   "path": "machine-laser/juanenlaser/z_carriage_left.stl",
+   "sha256": "d401b57c66590987bdfb4faecb9858a2a51869c6b78b4d78a19f31c87f8d1324",
+   "size": 757984
+  },
+  {
+   "path": "machine-laser/juanenlaser/z_carriage_right.stl",
+   "sha256": "74a8ca9036444d97b0a5ac9ac7be5576f01198f4c7b7e2f4c55c2457deeaabea",
+   "size": 690284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/base.stl",
+   "sha256": "57a16a1fa135ba9360b6713c152fabb6e0d67f862d654567a52975edced8f9a2",
+   "size": 1632084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/nozzle_left.stl",
+   "sha256": "67842b31aabeb3322ddb0275e5165cd7e2899a2d6123456e65d93e4d73f70b8e",
+   "size": 393484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/nozzle_right.stl",
+   "sha256": "16f257f9fd568aaf418b15c29752a2e84ff152615b61aa54b794fadc79a14aa7",
+   "size": 395184
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/12mm-strip-feeder.stl",
+   "sha256": "7e1d4e840709f431392a0e130a00b99d31872ff8ef47630c2cc241072b055180",
+   "size": 267584
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/16mm-strip-feeder.stl",
+   "sha256": "9d59afe3a44a7c0a11a096e4c015e2ffe6a2ff86bfd50eece78a37c942c64f88",
+   "size": 271484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/24mm-strip-feeder.stl",
+   "sha256": "0105695bd52ccf9592f59a20ddd94f1322207883fbade0b07b116f7d4c46377d",
+   "size": 200084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/32mm-strip-feeder.stl",
+   "sha256": "d5a9f85c82754c0b14a9ffe2756041a8b9ca0f867d074aff8851240457b69d57",
+   "size": 188984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/525mm-MGN12H.stl",
+   "sha256": "89b9d2f14d71f29a5b7b645862b7132216b07099d0311debd304736ea19366b4",
+   "size": 250284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/550mm-MGN12H001_001.stl",
+   "sha256": "9340aa59ebbe6c66b0ea4e014e0bb0b8f317d977a2aad7fff347a2113d617f2b",
+   "size": 261284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/550mm-MGN12H001_002.stl",
+   "sha256": "f84d621b5ac3fec428f82c0ce90f030203b90034c3c3d8f85dbbb43c93bc2bf2",
+   "size": 261284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/8mm-strip-feeder.stl",
+   "sha256": "d780e4e2a91c25f6ae164822549c91650c3ce0b989031cc5dcf9699caba6a63d",
+   "size": 347984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-idler002.stl",
+   "sha256": "5e73f0fa83d2a09d3fe1d9b24c6ad0de523ed0d4f58e44124fda39ac8e166c7d",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-idler003.stl",
+   "sha256": "f97f2048a1cb85a69300d01042b6feca04fda19457782a062231928739c803f3",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-idler004.stl",
+   "sha256": "8c529126a8bf0e4265a3027e29b5737b8baf9ed2605667dc41cbdc58863d393d",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-idler005.stl",
+   "sha256": "87852182e2c55b3d42d3311aa422f4088352ebfc24029e0c98c9b99d724f6ed0",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-pulley002.stl",
+   "sha256": "8809ca181ef23dcebff5887269463f1913f1096ca526dfd15c864eff1a9662d0",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-pulley003.stl",
+   "sha256": "174125ba402fb0979847614b2467b213805db33d481734874d0e4cd1756105f9",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-pulley004.stl",
+   "sha256": "eb3bdaebe5be9a67458d269fd82be24941f35cee965a6c762c00c4b5289414e7",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/GT2-pulley005.stl",
+   "sha256": "1a957f51a5df8f73dc572fc8de24bdf8cabeff1518ee1e130e7eabb3901611af",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/MGN12H-linear-rail-carriage.stl",
+   "sha256": "7245f36eebba0a4acf3789d86e619a320de865a75274bfb5b5206061521604dd",
+   "size": 302084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/MGN12H-linear-rail-carriage001.stl",
+   "sha256": "633bbcd7716f5e5a4207915a80e6b50a9b22a0596a0ff2099ef3371d90742c31",
+   "size": 302084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/MGN12H001_002.stl",
+   "sha256": "6e305dc7247785b8311030dd5b0bb9bbad8f366fe54f5f8b1490c46776a704b9",
+   "size": 302084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/NEMA11-hollow-shaft-stepper002.stl",
+   "sha256": "de9b712d43fac9ff602a015883b91e7e14162d921ecfbb040980c5fd861f75c9",
+   "size": 277784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/NEMA11-hollow-shaft-stepper003.stl",
+   "sha256": "5e66f599891e6fe4610f25cecb17e1ae9cdf7d9476547203dfd840a6c1ed0d5f",
+   "size": 277784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/NEMA17-stepper003.stl",
+   "sha256": "83b68b69f9efcdc6364e471ed27abad4252f80ad0d63e73bcbb6117e26aa0030",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/NEMA17-stepper004.stl",
+   "sha256": "912883d530368be9e7f9d2b6f831f24c7fc189f84787c89a3bb64d9be10da7aa",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/NEMA17-stepper005.stl",
+   "sha256": "8565bdf025d2c8ed84a2ff927c2bd30bb6c3c3ca6a2d48a7ca70d5d08e483ee4",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/NEMA17-stepper006.stl",
+   "sha256": "f7874f90d9d9c42b725071771b65478b62c3ed7f878d754588250458e98ace4a",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/adj-strip-feeder.stl",
+   "sha256": "e1ac47a5a42abbb5b162af55800fe02b2a2dd757296c0814727440e34e2493bc",
+   "size": 211684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/aux-staging-plate-foot.stl",
+   "sha256": "9d05be231724d20a6bec802c6505e09c1b4a651c68ee72700e5280a1a11ac019",
+   "size": 58684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/back-leg-extension_001.stl",
+   "sha256": "a57d5a92a09b1bdd7e84bcccde5b3f72bdd34a717d2ad38dd5133ed3fafbc871",
+   "size": 81884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/back-leg-extension_002.stl",
+   "sha256": "e487da43c3575b63a9777d7342580fc0f0bfdfe4882bc25df3eaf46f4687d6d1",
+   "size": 81884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/back-leg.stl",
+   "sha256": "589924fee7045ae05826ef01e425f3f12f177e7a4e6d45135a70233426bcdcb9",
+   "size": 285484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/back-leg001.stl",
+   "sha256": "52c643614ba0bd21a0f664837fb49e089b863801419db699874bbedf91e1c0f4",
+   "size": 285484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/belt-clamp007.stl",
+   "sha256": "4cb1ab22b2923f5f6b4e3cbe18267c787baad2257da028ef204b21f86e784da0",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/belt-clamp008.stl",
+   "sha256": "a77f420b4987c6d850cbaa36a7af5a9e0f9fdba72861fdb6ef9ccd75a8360fd0",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/belt-clamp009.stl",
+   "sha256": "3f16e3e7e00af13d055f39cfd1bc3fc8ecae102e161f3c91b91c43cd39669e5f",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/belt-clamp010.stl",
+   "sha256": "0a1d0084f736caff9e7575eb0ad86e87dd1914ff3c070a56b2fc9148865d02a5",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/belt-clamp013.stl",
+   "sha256": "7cb684862e18b916f7dafaf6cd1a32d17dc51aa7a3a14b00ad1a5e16b7876048",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/belt-clamp014.stl",
+   "sha256": "3e70481ddf2328c9a42803961f3a31e1a5f41afbac8371272eea7d90b173efa3",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/blade12_004.stl",
+   "sha256": "7b25269285c2c7b20de98f78dcf9261259337c2c93f43b630feba65468fbaa58",
+   "size": 418984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/blade12_005.stl",
+   "sha256": "a4d358daf95a559085d5e689f9dee27e418e5379dfa2a9247d2fd82209e7a3e0",
+   "size": 417784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/blade13_003.stl",
+   "sha256": "e2e67b030bea90515d6ceb3c4da448a7a91e0f1fd2ba8c83aac3e0fdab6658ec",
+   "size": 417184
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/blade13_004.stl",
+   "sha256": "ee4390ebbe47b849214890e27da490b3fd6cd06f521c6622f36e7fdc0b66f12e",
+   "size": 416384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/board-mount-dynamic_001.stl",
+   "sha256": "f58f37933afdee701cd3772c3d01f2f15eb00c31127298f391959edf3d385423",
+   "size": 14084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/board-mount-static_001.stl",
+   "sha256": "4e4a2a0b337c4529b393f11efc28be79e7a25cdf6698c0fae6f3c6fdaa50366c",
+   "size": 21184
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/board-support_001.stl",
+   "sha256": "ec058d433ba0a3eff92c7cd49be764f70579b2a2627b09e6412ecac489d14324",
+   "size": 19384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/bottom-camera-cover.stl",
+   "sha256": "701c1300b251f64ce5b0cf6784495dc11c9d3df8ac3251c2021d163df9bbf21c",
+   "size": 44284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/bottom-camera-mount.stl",
+   "sha256": "a09268c4be3e72aea3b29947ecdb4781a68f7febfba70a0a3034ad0a28f939ee",
+   "size": 428784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/bottom-camera_001.stl",
+   "sha256": "b50e05821a80583dbd25d09dc47daeda13557d17c96100249b91baafa8ac961d",
+   "size": 253484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/bottom-light-mount.stl",
+   "sha256": "9b06ff2d595bd27c32d5e511ecac10d6d71b5cb54fee8c87ee402e6b70ac0b06",
+   "size": 65184
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/bottom-ring-light.stl",
+   "sha256": "5461fb1f47c562d523fef891efd8f51176152063108cdb24fccf267c957e2a3f",
+   "size": 335584
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/cable-splay.stl",
+   "sha256": "2adb16ab0be2b7acb6aebd3d24e8bbd688936e22d4268ed0b831373c23f3381f",
+   "size": 104684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/control-box-lid.stl",
+   "sha256": "6e7cbef8b359fe044ded4be8aabfc9022cbe117a43662ccce366962a3c3e75a0",
+   "size": 556284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/control-box_001.stl",
+   "sha256": "a8f8e0962915b3b091ae0e9645891f7213178e782e1a2ac32ad8e99937da70e9",
+   "size": 589684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/corner-bracket006.stl",
+   "sha256": "5ccc087f69d585d4a6306f2b26e9a61386f8e0680160a76bfb95f280ec5a7b35",
+   "size": 12284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/corner-bracket007.stl",
+   "sha256": "6cb0ae3db7f831e78a45e0cb80e185d1d29e32ea2c7207f88643641914b4480b",
+   "size": 12284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/datum-board-mount.stl",
+   "sha256": "1d75af539ba8dcf65c47097cee3f3c17ddca2e80dc808893353733771eb907cf",
+   "size": 37484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/datum-board.stl",
+   "sha256": "bb9fc41fc4f8a9ece771bf35a46bce66483e8ffc1ce406b152bee580c46cc693",
+   "size": 196684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/drag-chain-link_001.stl",
+   "sha256": "c9706810fecc1df6242b76c302c9564bc2816aa6e089277a34763d7a40cb27e5",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/drag-chain-link_002.stl",
+   "sha256": "5a74bafb646e95b555e5efdb62003d918137194934f25565bc298bc1f3ecef63",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/drag-chain-link_003.stl",
+   "sha256": "5f355673c12487c4fe93d93b7b9c387154ef587af046bcc9cc0b16c779f72906",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/drag-chain-link_004.stl",
+   "sha256": "e1a3f520870841dd6563ff2fb29900b7a978f0c34d3d822fa83875acb363f48e",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/extrusion-cable-clip.stl",
+   "sha256": "b9cd642408edc46e1c46740c00057e898cb9170b7a78795652d5786981fecfce",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/extrusion-cable-clip002.stl",
+   "sha256": "9b2e8e2bd29931013a14d963060ccad138198f5fdea2f33319bdee99ebd55162",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/extrusion-cable-clip003.stl",
+   "sha256": "eca2c3a7aac7e202688ceadb8ccdf5768b79ce2b8048bff1320ae5c00e05a607",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/extrusion-cable-clip004.stl",
+   "sha256": "c57de5dbc47d2d5cfa6093fc243986259e768693f04b94594189fbede83362d3",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/extrusion-cable-clip005.stl",
+   "sha256": "46d75f850a2f96ff2c9968beda3d9ae6fb50c97cf1d16d24ca2e4eb04c393195",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/front-left-leg.stl",
+   "sha256": "b7658886577a297e9f388b42b3ef814a09c586abfad27eed40071555f416b532",
+   "size": 150984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/front-leg-extension_001.stl",
+   "sha256": "71cb9584c3ecb4d129e2f5f30f99d4c69bff77f4f86ba0de2adad6ea4321883f",
+   "size": 43284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/front-leg-extension_002.stl",
+   "sha256": "30573a7e923b07b72b67740b26a29fbae433da648774aafdf07e492626f4e1c2",
+   "size": 43284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/front-right-leg.stl",
+   "sha256": "ed3d4c4f3b2328ec30c6378bbe150a06ac87cc8757de6e5189cbb2c3fc490dc9",
+   "size": 141484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/ldo-drag-chain-end_Body_001.stl",
+   "sha256": "d3d592bd3e244fd7ac9ed631ae7a50a1bdaaca9ad94833820f3166b9bee5b94a",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/ldo-drag-chain-end_Body_003.stl",
+   "sha256": "9f0cff471fcaf9a41c52fdeb9b52214a441873e3a76c1b45b855c52b796779ee",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/ldo-drag-chain-end_Body_005.stl",
+   "sha256": "c9aa8fd453fb5e4fc94d365241c53612d57bb7d255612b4c89ead5326358b2c5",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/ldo-drag-chain-end_Body_006.stl",
+   "sha256": "4fb2d02f318db9e2f2aa3a29bfc8122ea9c24c03a2ce1d0acd5f4cd574dd9e61",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/linear-rail-100mm_001.stl",
+   "sha256": "4f5150e995fd40ed5217eb50fd26493276af35816a03b1c2356916446be68b9f",
+   "size": 72684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/linear-rail-100mm_002.stl",
+   "sha256": "6c98ece55b4cd8a8269c945a1f8cc9ae9b2c9964eb11d6c0a531660f6150bdc6",
+   "size": 72684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/mgn9-linear-rail-carriage.stl",
+   "sha256": "73634a8be4b78904a0592cbcf1be6e7f6c2597ec2d37220ff3327c74377b6819",
+   "size": 43484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/mgn9-linear-rail-carriage001.stl",
+   "sha256": "a429d60e12eb3c4109621b54552daac9594f95c4c59f857d73e1a0d8493b19ca",
+   "size": 43484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/n08-nozzle.stl",
+   "sha256": "693e26789c7e135dc0ce4e9a3fa5469c5b7fb3e5bfc1ccfb786bcf58e86a34b0",
+   "size": 50784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/n40-nozzle.stl",
+   "sha256": "478435d8d401bc58056b067e11ccb3059ce2329d968c9047524bf10636fe221b",
+   "size": 52084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/nozzle-camera-mask_001.stl",
+   "sha256": "d569e8df4707a6482a8ed152df43a78068e3075766827f99a509e2f49c1492d2",
+   "size": 87184
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/nozzle-camera-mask_002.stl",
+   "sha256": "0fafb29b9ae60fe4a7c7bb2341444543cf97209a2ce77c011a8b092ce6c99ca3",
+   "size": 87984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/nozzle-holder_001.stl",
+   "sha256": "643ffdb4d26ee535e3b696fb63664d61eb53f3a2b93e0af3946672f030dad8a5",
+   "size": 505784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/nozzle-holder_002.stl",
+   "sha256": "70f937221f06021440ada5a17fe16fd79c8e9ece224b6027e83cfe1ad83fc2b4",
+   "size": 505784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/nozzle-rack.stl",
+   "sha256": "10e4959f8a90cbf701f8b41a0b1450a732a470b81630ebefb7e8b6eb0f263e5f",
+   "size": 373884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/pcb-staging-plate-aux.stl",
+   "sha256": "781e5d41eb52404147dad1ecadfe6ce263d5fe7692a2223fb6010cc850e5ab04",
+   "size": 1022884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/pcb-staging-plate.stl",
+   "sha256": "08e004b86925b281033877350dd459858d5b863dbd1196a1e5cfd5b347a7c0dc",
+   "size": 720084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/peek-cable-2.stl",
+   "sha256": "63bb4949a88f6e79f805c1f5a144318231be9dd6549373c1accbbceb506d23b7",
+   "size": 15284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/peek-cable-clamp.stl",
+   "sha256": "a8039d1196e112910c738765e517810301f6262be8b40152c9e3a612b8eab38d",
+   "size": 15284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/peek-cable-clamp004.stl",
+   "sha256": "ea58859b99c08e2e45d499de5245254cf3e4215e27d78abcf992eff5c01e7c0f",
+   "size": 15284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/reducing-union-tee-4-6-4.stl",
+   "sha256": "397e16c5d547ed4ca49fe332fc333cbe1a0374c41422f5e0dab352b27c4968b5",
+   "size": 231884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/reducing-union-tee-4-6-4_01.stl",
+   "sha256": "db8ef1140cc0c3c81b8982b104393b30c8cc52083a4d228e3a271dac4612abd6",
+   "size": 231884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/rotary-pneumatic-adapter_001.stl",
+   "sha256": "f11053425bc04e92dc9f9522b8e93cae361c11c0d5ed94f4b9df79a9593721d9",
+   "size": 122784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/rotary-pneumatic-adapter_002.stl",
+   "sha256": "362c388af5baaa9cdc38d1247dc970164dac194b0d362070486080106af69e60",
+   "size": 122784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/secondary-fid-mount_001.stl",
+   "sha256": "d5014088e876c5706df4edf4d1cc53827c67fed01a2b84905acabb4241cbfaea",
+   "size": 24684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/solenoid-valve003.stl",
+   "sha256": "6ed716b2788354717da3962ecd479df0141d1a69ee2c8e18a59c9dbb7c389a99",
+   "size": 160284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/solenoid-valve004.stl",
+   "sha256": "8a02f4e4b37dee89feae93773e3cfd57ebbba8655653e4a8ac801d8b19d367c4",
+   "size": 160084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/squaring-bracket.stl",
+   "sha256": "87d7c42bacb4ed30d49b104d599fc4c05a8a20ac95872b1aeac38ac569c0bdaa",
+   "size": 169784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/top-camera001.stl",
+   "sha256": "4473d73dad33b6f7b0a09e31f16b04d6e93a21ce41f7271e08d31cec679a60fa",
+   "size": 388484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/top-light-mount.stl",
+   "sha256": "0a7a649a40a51f52497ae80e9222676ab7f231dcbd6da60bdc425e856af258b6",
+   "size": 95784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/top-ring-light.stl",
+   "sha256": "eb36b5ae37fe5c86ea9ce663339ec338e3d577bed25003dddedcef0ab828fb03",
+   "size": 327084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vacuum-pump002.stl",
+   "sha256": "b8c832d8a774e0f55a36d7d648846b0853ebf060966adfe1ae284e0f69c423c1",
+   "size": 24784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vacuum-pump003.stl",
+   "sha256": "795192ea2d01beba0751fd734ea3ac8cf439ee5a6feef8d6a8bd0fd42014ff1c",
+   "size": 24784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm.stl",
+   "sha256": "e6348d05004e7ea7b88a015f25feb84b00199ec322fbd6c222510178533500d8",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm001.stl",
+   "sha256": "ba5916c9efe803b33be69f712e20bb08ce84adc3a58733e84101eaefe809842d",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm002.stl",
+   "sha256": "a52720281334b77dfd77027874dd09e0cb0dbfe47ae452c74aa7c7d1af0c5d5e",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm003.stl",
+   "sha256": "cd7efa35dc7ff4c97430a8d6dd00734e7e3ef4118357472d01e45d2e984fa969",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm007.stl",
+   "sha256": "5be347e32dd338bb950e99b89b86d756c253ee7f2d5a58624eb533d64aab1087",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm008.stl",
+   "sha256": "4d694ade19b9063024c4b20c2b71142c6609b73cc3f072a8d6b61875d5db53b5",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/vslot-extrusion-20mmx20mmx600mm009.stl",
+   "sha256": "b03e8de56c15086f15912ccf31cc93bb6ff8567900237aa05b8b776ecdc4c64f",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-belt-tension-arm.stl",
+   "sha256": "370af1bf3cb65867f611ff353d33e94b0b7734d1e6b4b46125fc1c9f4cdbafe8",
+   "size": 88784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-cable-chain-support.stl",
+   "sha256": "a8dc26b5a4f874d6f2282a1b3174625e2c988c3841955c0c1eca7f90a1022dee",
+   "size": 37484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-gantry-back.stl",
+   "sha256": "ccff314dc90a0294c76f8df23ebf375e4a706be25c11b1767bc88bea05bdfeee",
+   "size": 355184
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-gantry-front.stl",
+   "sha256": "cac9a7f294b9edebfdbe8b5d877f1d2c9e283f35a5974639b21c706683312747",
+   "size": 275884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-gantry-gt2-belt.stl",
+   "sha256": "353d115295648f4bca4707e54b951202f1790e5585507d4541f06e2e59d86b5f",
+   "size": 26284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-idler-mount.stl",
+   "sha256": "732657fa72e55469af6535031ce507d090036fc14f8de17f99c2200e9a148762",
+   "size": 142484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/x-motor-mount.stl",
+   "sha256": "23e44fd3665188d82cfe5c615cfd6332fefbc30c753848d2ecf1683d2858b63f",
+   "size": 180584
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/xy-limit_001.stl",
+   "sha256": "6e296be9fddd179333537ee42431dc78d76059dfa5d78f470ecb75ff10e425f6",
+   "size": 404784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-001.stl",
+   "sha256": "35ac291d324c7765109a08d4b7f7314f2d6e8f274609673305c476dbb45f1147",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-002.stl",
+   "sha256": "13fc436d328df1faf75ff6708566db7a96cce6df0e0b7773e5152c5ea2778d57",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-003.stl",
+   "sha256": "15734ab434bb3834cf766f0274e95b9d2e42eee6b56b52b5fd60b9ea2666aebd",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-004.stl",
+   "sha256": "42fb3c416a342140585c8c8a3d8b44d15c3c13bfdb3bc6a8be643f619043a64f",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-005.stl",
+   "sha256": "1032044ce1042c714c89fabf81bd9bd69a5734090830c228ad044296fad8e151",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-006.stl",
+   "sha256": "efc58ebd488d6cccddef00d13ab1b817a54baa100e103065f9454beb54c96071",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-007.stl",
+   "sha256": "8dc10c067c9eefea67d099b7c66dc546720e3ba528ae642616db1b664159bf8f",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-008.stl",
+   "sha256": "ca6fb8681f30531e839413948060c0c964cdd97d3a81850202d0094d991c9fae",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-009.stl",
+   "sha256": "c2965890cc50ef6728b138314193b58ff7208668f748be18a0700b36f9149294",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-010.stl",
+   "sha256": "df93733f5c349d29e7b8ad90582f2097ff095170742a43316ffe90bd6d6da8d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-011.stl",
+   "sha256": "d3d99e5efd24df4388fa65c8fe4e051247e08d6687270c74820466a292d49345",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-012.stl",
+   "sha256": "d259897dc51fca7b8799b3bde5d64df9c7adfba545e0265b020b0324daf63fc5",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-013.stl",
+   "sha256": "5830f2d73d8eacd5076f9880b152cd8f0b322d52d5391be9c89c64cc25585b6a",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-014.stl",
+   "sha256": "b1e35c7c181062fa07771cb562ecb139b974233415acf646c6ad5c61b0839c4c",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-015.stl",
+   "sha256": "59f5a06645abd96f40cb549aba00e4788b0dcdaa676452d9e6acb49d7b76dd46",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-016.stl",
+   "sha256": "0522b72ce46fd31cf2ffc60150c4185182906afc13ba200e9287ea92587ae499",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-017.stl",
+   "sha256": "162d51e22a545dd984aea3da36f954818c50fe662e248f0d23a04a4ed7dd48a8",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-018.stl",
+   "sha256": "b6f242c784568cade6870f7be6c67f58936edda1313befd932c6ca2785898365",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-019.stl",
+   "sha256": "c665b0e97ec706199aad8022ea0c7503de0830ecf6e01e08156416a0ceeb6afd",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-020.stl",
+   "sha256": "9360d2a336f740e99020f980260a40ed78624ead5c93a2efd2d49fe3befdd5f1",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-021.stl",
+   "sha256": "918fb445534ae38d98e27dcfc0f6b4a834d3b05d88679fee16347333d172e8c7",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-022.stl",
+   "sha256": "4c4be2a5372d84bf5bd7358b9e7ce1c2897797ce20d1e4db531356fb98a86165",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-023.stl",
+   "sha256": "cccf298662a0b21e97830049828b775b1bf5bc623c2bdf177576bb5b7e49a986",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-024.stl",
+   "sha256": "f63404ba5a9efb0085adff682f7b06b9f10bb44f25eb80d1761e26c1702e4d86",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-025.stl",
+   "sha256": "d00a5a4db0e6d4f2255cbb9b52b95a40a4105552077794928d79bc5f28a32293",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-026.stl",
+   "sha256": "61fa81d2a164de8cae670b07d3a884b8fea12a007a954ef836eeeb5e735b231f",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-027.stl",
+   "sha256": "a0b90274bf822c4154fad53a1c789210fda96c55ade1ba523971dbdacb93eed4",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-028.stl",
+   "sha256": "d40b95494bd0d2a01519460ab2ee5718a0cd723ed5ec1682f7c01f7d778e654e",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-029.stl",
+   "sha256": "6b9a017a7b7b10e0d76ffbe862259b319729c7bc4645a6cababbc4f995cc758d",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-drag-chain-link-030.stl",
+   "sha256": "8053b16f05fdd11ec2443b415ec26037183a3d9444a15bc70359433f7b31f5d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-gantry-gt2-belt_left.stl",
+   "sha256": "a7f398bf10fbef36910af3c006f634e473496dcfe93b3eb30fc921f75725d674",
+   "size": 26284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-gantry-gt2-belt_right.stl",
+   "sha256": "4d20747186dce328e67c3c99cd6ddd08093e61a9caa30fa344da2787806f81e9",
+   "size": 26284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-gantry-left002.stl",
+   "sha256": "d17bbd97e12398dbab1746a95559493821d8b978df9f1728fd91f438ff1d2766",
+   "size": 133284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-gantry-right002.stl",
+   "sha256": "d113d2bea26c14f1fad7f75e2703ad6b3abcc21913b7504c7446f3d5aab4c6ff",
+   "size": 133284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y-limit-striker_Body_001.stl",
+   "sha256": "124c286b95585ec0d2fde9df896079cd0bd58de9180b2a0a6110aadf1ec15e8a",
+   "size": 35884
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y1-belt-tension-arm.stl",
+   "sha256": "937d1133e584de1f36935fcbd31ca380f20a9875374a87ec4457dec06cb24fa9",
+   "size": 88784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/y2-belt-tension-arm.stl",
+   "sha256": "f33ed38abaa80abae7308be3bfc516c1a7768740b6f609cc677cf9acfb1fcb6c",
+   "size": 88784
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/z-belt-loop.stl",
+   "sha256": "4935c6cebe7a0046f3689e514f5156baba144139c4368a9a75fde2947cba403c",
+   "size": 11284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/z-gantry-backplate-left001.stl",
+   "sha256": "6a535891ab99d08b8a7b764fad08b7fdc2348b685fea111d3c9a769bac9f7031",
+   "size": 219684
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/z-gantry-backplate-right002.stl",
+   "sha256": "74a6612c15f6dc2d20702665b970b51a2dc5cd7576a17cd8a78179647ff4d427",
+   "size": 101584
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/z-gantry-left001.stl",
+   "sha256": "6d6544796e7a8649194e31e6f067edfe877307371925ac2b8ed4c5cdd515002d",
+   "size": 162384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/z-gantry-right001.stl",
+   "sha256": "6d60c74f38c1c43f8270f08ad7b88014684c4da896bb573b89c8794d046bf003",
+   "size": 162384
+  },
+  {
+   "path": "machine-pnp/juanenpnp/parts/z-limit_001.stl",
+   "sha256": "f0b3b1ebfc5411beae6d898ba659d21ca9f948d6cbb1796ee465945230f1f0ff",
+   "size": 342284
+  },
+  {
+   "path": "machine-pnp/juanenpnp/x_carriage.stl",
+   "sha256": "69afe58dcd1b5dbfa9fd49d7e4f958988352e93acd101ec468773efe306507ff",
+   "size": 959484
+  },
+  {
+   "path": "machine-pnp/juanenpnp/y_carriage.stl",
+   "sha256": "90eb10e91d5ff200dfc071ab9d9db11104cd8528d67e662692168273ca4779af",
+   "size": 1192984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/z_carriage_left.stl",
+   "sha256": "d401b57c66590987bdfb4faecb9858a2a51869c6b78b4d78a19f31c87f8d1324",
+   "size": 757984
+  },
+  {
+   "path": "machine-pnp/juanenpnp/z_carriage_right.stl",
+   "sha256": "74a8ca9036444d97b0a5ac9ac7be5576f01198f4c7b7e2f4c55c2457deeaabea",
+   "size": 690284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/base.stl",
+   "sha256": "57a16a1fa135ba9360b6713c152fabb6e0d67f862d654567a52975edced8f9a2",
+   "size": 1632084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/nozzle_left.stl",
+   "sha256": "67842b31aabeb3322ddb0275e5165cd7e2899a2d6123456e65d93e4d73f70b8e",
+   "size": 393484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/nozzle_right.stl",
+   "sha256": "16f257f9fd568aaf418b15c29752a2e84ff152615b61aa54b794fadc79a14aa7",
+   "size": 395184
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/12mm-strip-feeder.stl",
+   "sha256": "7e1d4e840709f431392a0e130a00b99d31872ff8ef47630c2cc241072b055180",
+   "size": 267584
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/16mm-strip-feeder.stl",
+   "sha256": "9d59afe3a44a7c0a11a096e4c015e2ffe6a2ff86bfd50eece78a37c942c64f88",
+   "size": 271484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/24mm-strip-feeder.stl",
+   "sha256": "0105695bd52ccf9592f59a20ddd94f1322207883fbade0b07b116f7d4c46377d",
+   "size": 200084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/32mm-strip-feeder.stl",
+   "sha256": "d5a9f85c82754c0b14a9ffe2756041a8b9ca0f867d074aff8851240457b69d57",
+   "size": 188984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/525mm-MGN12H.stl",
+   "sha256": "89b9d2f14d71f29a5b7b645862b7132216b07099d0311debd304736ea19366b4",
+   "size": 250284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/550mm-MGN12H001_001.stl",
+   "sha256": "9340aa59ebbe6c66b0ea4e014e0bb0b8f317d977a2aad7fff347a2113d617f2b",
+   "size": 261284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/550mm-MGN12H001_002.stl",
+   "sha256": "f84d621b5ac3fec428f82c0ce90f030203b90034c3c3d8f85dbbb43c93bc2bf2",
+   "size": 261284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/8mm-strip-feeder.stl",
+   "sha256": "d780e4e2a91c25f6ae164822549c91650c3ce0b989031cc5dcf9699caba6a63d",
+   "size": 347984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-idler002.stl",
+   "sha256": "5e73f0fa83d2a09d3fe1d9b24c6ad0de523ed0d4f58e44124fda39ac8e166c7d",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-idler003.stl",
+   "sha256": "f97f2048a1cb85a69300d01042b6feca04fda19457782a062231928739c803f3",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-idler004.stl",
+   "sha256": "8c529126a8bf0e4265a3027e29b5737b8baf9ed2605667dc41cbdc58863d393d",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-idler005.stl",
+   "sha256": "87852182e2c55b3d42d3311aa422f4088352ebfc24029e0c98c9b99d724f6ed0",
+   "size": 554284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-pulley002.stl",
+   "sha256": "8809ca181ef23dcebff5887269463f1913f1096ca526dfd15c864eff1a9662d0",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-pulley003.stl",
+   "sha256": "174125ba402fb0979847614b2467b213805db33d481734874d0e4cd1756105f9",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-pulley004.stl",
+   "sha256": "eb3bdaebe5be9a67458d269fd82be24941f35cee965a6c762c00c4b5289414e7",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/GT2-pulley005.stl",
+   "sha256": "1a957f51a5df8f73dc572fc8de24bdf8cabeff1518ee1e130e7eabb3901611af",
+   "size": 191484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/MGN12H-linear-rail-carriage.stl",
+   "sha256": "7245f36eebba0a4acf3789d86e619a320de865a75274bfb5b5206061521604dd",
+   "size": 302084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/MGN12H-linear-rail-carriage001.stl",
+   "sha256": "633bbcd7716f5e5a4207915a80e6b50a9b22a0596a0ff2099ef3371d90742c31",
+   "size": 302084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/MGN12H001_002.stl",
+   "sha256": "6e305dc7247785b8311030dd5b0bb9bbad8f366fe54f5f8b1490c46776a704b9",
+   "size": 302084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/NEMA11-hollow-shaft-stepper002.stl",
+   "sha256": "de9b712d43fac9ff602a015883b91e7e14162d921ecfbb040980c5fd861f75c9",
+   "size": 277784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/NEMA11-hollow-shaft-stepper003.stl",
+   "sha256": "5e66f599891e6fe4610f25cecb17e1ae9cdf7d9476547203dfd840a6c1ed0d5f",
+   "size": 277784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/NEMA17-stepper003.stl",
+   "sha256": "83b68b69f9efcdc6364e471ed27abad4252f80ad0d63e73bcbb6117e26aa0030",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/NEMA17-stepper004.stl",
+   "sha256": "912883d530368be9e7f9d2b6f831f24c7fc189f84787c89a3bb64d9be10da7aa",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/NEMA17-stepper005.stl",
+   "sha256": "8565bdf025d2c8ed84a2ff927c2bd30bb6c3c3ca6a2d48a7ca70d5d08e483ee4",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/NEMA17-stepper006.stl",
+   "sha256": "f7874f90d9d9c42b725071771b65478b62c3ed7f878d754588250458e98ace4a",
+   "size": 76484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/adj-strip-feeder.stl",
+   "sha256": "e1ac47a5a42abbb5b162af55800fe02b2a2dd757296c0814727440e34e2493bc",
+   "size": 211684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/aux-staging-plate-foot.stl",
+   "sha256": "9d05be231724d20a6bec802c6505e09c1b4a651c68ee72700e5280a1a11ac019",
+   "size": 58684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/back-leg-extension_001.stl",
+   "sha256": "a57d5a92a09b1bdd7e84bcccde5b3f72bdd34a717d2ad38dd5133ed3fafbc871",
+   "size": 81884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/back-leg-extension_002.stl",
+   "sha256": "e487da43c3575b63a9777d7342580fc0f0bfdfe4882bc25df3eaf46f4687d6d1",
+   "size": 81884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/back-leg.stl",
+   "sha256": "589924fee7045ae05826ef01e425f3f12f177e7a4e6d45135a70233426bcdcb9",
+   "size": 285484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/back-leg001.stl",
+   "sha256": "52c643614ba0bd21a0f664837fb49e089b863801419db699874bbedf91e1c0f4",
+   "size": 285484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/belt-clamp007.stl",
+   "sha256": "4cb1ab22b2923f5f6b4e3cbe18267c787baad2257da028ef204b21f86e784da0",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/belt-clamp008.stl",
+   "sha256": "a77f420b4987c6d850cbaa36a7af5a9e0f9fdba72861fdb6ef9ccd75a8360fd0",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/belt-clamp009.stl",
+   "sha256": "3f16e3e7e00af13d055f39cfd1bc3fc8ecae102e161f3c91b91c43cd39669e5f",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/belt-clamp010.stl",
+   "sha256": "0a1d0084f736caff9e7575eb0ad86e87dd1914ff3c070a56b2fc9148865d02a5",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/belt-clamp013.stl",
+   "sha256": "7cb684862e18b916f7dafaf6cd1a32d17dc51aa7a3a14b00ad1a5e16b7876048",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/belt-clamp014.stl",
+   "sha256": "3e70481ddf2328c9a42803961f3a31e1a5f41afbac8371272eea7d90b173efa3",
+   "size": 66884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/blade12_004.stl",
+   "sha256": "7b25269285c2c7b20de98f78dcf9261259337c2c93f43b630feba65468fbaa58",
+   "size": 418984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/blade12_005.stl",
+   "sha256": "a4d358daf95a559085d5e689f9dee27e418e5379dfa2a9247d2fd82209e7a3e0",
+   "size": 417784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/blade13_003.stl",
+   "sha256": "e2e67b030bea90515d6ceb3c4da448a7a91e0f1fd2ba8c83aac3e0fdab6658ec",
+   "size": 417184
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/blade13_004.stl",
+   "sha256": "ee4390ebbe47b849214890e27da490b3fd6cd06f521c6622f36e7fdc0b66f12e",
+   "size": 416384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/board-mount-dynamic_001.stl",
+   "sha256": "f58f37933afdee701cd3772c3d01f2f15eb00c31127298f391959edf3d385423",
+   "size": 14084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/board-mount-static_001.stl",
+   "sha256": "4e4a2a0b337c4529b393f11efc28be79e7a25cdf6698c0fae6f3c6fdaa50366c",
+   "size": 21184
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/board-support_001.stl",
+   "sha256": "ec058d433ba0a3eff92c7cd49be764f70579b2a2627b09e6412ecac489d14324",
+   "size": 19384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/bottom-camera-cover.stl",
+   "sha256": "701c1300b251f64ce5b0cf6784495dc11c9d3df8ac3251c2021d163df9bbf21c",
+   "size": 44284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/bottom-camera-mount.stl",
+   "sha256": "a09268c4be3e72aea3b29947ecdb4781a68f7febfba70a0a3034ad0a28f939ee",
+   "size": 428784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/bottom-camera_001.stl",
+   "sha256": "b50e05821a80583dbd25d09dc47daeda13557d17c96100249b91baafa8ac961d",
+   "size": 253484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/bottom-light-mount.stl",
+   "sha256": "9b06ff2d595bd27c32d5e511ecac10d6d71b5cb54fee8c87ee402e6b70ac0b06",
+   "size": 65184
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/bottom-ring-light.stl",
+   "sha256": "5461fb1f47c562d523fef891efd8f51176152063108cdb24fccf267c957e2a3f",
+   "size": 335584
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/cable-splay.stl",
+   "sha256": "2adb16ab0be2b7acb6aebd3d24e8bbd688936e22d4268ed0b831373c23f3381f",
+   "size": 104684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/control-box-lid.stl",
+   "sha256": "6e7cbef8b359fe044ded4be8aabfc9022cbe117a43662ccce366962a3c3e75a0",
+   "size": 556284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/control-box_001.stl",
+   "sha256": "a8f8e0962915b3b091ae0e9645891f7213178e782e1a2ac32ad8e99937da70e9",
+   "size": 589684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/corner-bracket006.stl",
+   "sha256": "5ccc087f69d585d4a6306f2b26e9a61386f8e0680160a76bfb95f280ec5a7b35",
+   "size": 12284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/corner-bracket007.stl",
+   "sha256": "6cb0ae3db7f831e78a45e0cb80e185d1d29e32ea2c7207f88643641914b4480b",
+   "size": 12284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/datum-board-mount.stl",
+   "sha256": "1d75af539ba8dcf65c47097cee3f3c17ddca2e80dc808893353733771eb907cf",
+   "size": 37484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/datum-board.stl",
+   "sha256": "bb9fc41fc4f8a9ece771bf35a46bce66483e8ffc1ce406b152bee580c46cc693",
+   "size": 196684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/drag-chain-link_001.stl",
+   "sha256": "c9706810fecc1df6242b76c302c9564bc2816aa6e089277a34763d7a40cb27e5",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/drag-chain-link_002.stl",
+   "sha256": "5a74bafb646e95b555e5efdb62003d918137194934f25565bc298bc1f3ecef63",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/drag-chain-link_003.stl",
+   "sha256": "5f355673c12487c4fe93d93b7b9c387154ef587af046bcc9cc0b16c779f72906",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/drag-chain-link_004.stl",
+   "sha256": "e1a3f520870841dd6563ff2fb29900b7a978f0c34d3d822fa83875acb363f48e",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/extrusion-cable-clip.stl",
+   "sha256": "b9cd642408edc46e1c46740c00057e898cb9170b7a78795652d5786981fecfce",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/extrusion-cable-clip002.stl",
+   "sha256": "9b2e8e2bd29931013a14d963060ccad138198f5fdea2f33319bdee99ebd55162",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/extrusion-cable-clip003.stl",
+   "sha256": "eca2c3a7aac7e202688ceadb8ccdf5768b79ce2b8048bff1320ae5c00e05a607",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/extrusion-cable-clip004.stl",
+   "sha256": "c57de5dbc47d2d5cfa6093fc243986259e768693f04b94594189fbede83362d3",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/extrusion-cable-clip005.stl",
+   "sha256": "46d75f850a2f96ff2c9968beda3d9ae6fb50c97cf1d16d24ca2e4eb04c393195",
+   "size": 31284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/front-left-leg.stl",
+   "sha256": "b7658886577a297e9f388b42b3ef814a09c586abfad27eed40071555f416b532",
+   "size": 150984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/front-leg-extension_001.stl",
+   "sha256": "71cb9584c3ecb4d129e2f5f30f99d4c69bff77f4f86ba0de2adad6ea4321883f",
+   "size": 43284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/front-leg-extension_002.stl",
+   "sha256": "30573a7e923b07b72b67740b26a29fbae433da648774aafdf07e492626f4e1c2",
+   "size": 43284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/front-right-leg.stl",
+   "sha256": "ed3d4c4f3b2328ec30c6378bbe150a06ac87cc8757de6e5189cbb2c3fc490dc9",
+   "size": 141484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/ldo-drag-chain-end_Body_001.stl",
+   "sha256": "d3d592bd3e244fd7ac9ed631ae7a50a1bdaaca9ad94833820f3166b9bee5b94a",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/ldo-drag-chain-end_Body_003.stl",
+   "sha256": "9f0cff471fcaf9a41c52fdeb9b52214a441873e3a76c1b45b855c52b796779ee",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/ldo-drag-chain-end_Body_005.stl",
+   "sha256": "c9aa8fd453fb5e4fc94d365241c53612d57bb7d255612b4c89ead5326358b2c5",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/ldo-drag-chain-end_Body_006.stl",
+   "sha256": "4fb2d02f318db9e2f2aa3a29bfc8122ea9c24c03a2ce1d0acd5f4cd574dd9e61",
+   "size": 30684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/linear-rail-100mm_001.stl",
+   "sha256": "4f5150e995fd40ed5217eb50fd26493276af35816a03b1c2356916446be68b9f",
+   "size": 72684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/linear-rail-100mm_002.stl",
+   "sha256": "6c98ece55b4cd8a8269c945a1f8cc9ae9b2c9964eb11d6c0a531660f6150bdc6",
+   "size": 72684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/mgn9-linear-rail-carriage.stl",
+   "sha256": "73634a8be4b78904a0592cbcf1be6e7f6c2597ec2d37220ff3327c74377b6819",
+   "size": 43484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/mgn9-linear-rail-carriage001.stl",
+   "sha256": "a429d60e12eb3c4109621b54552daac9594f95c4c59f857d73e1a0d8493b19ca",
+   "size": 43484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/n08-nozzle.stl",
+   "sha256": "693e26789c7e135dc0ce4e9a3fa5469c5b7fb3e5bfc1ccfb786bcf58e86a34b0",
+   "size": 50784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/n40-nozzle.stl",
+   "sha256": "478435d8d401bc58056b067e11ccb3059ce2329d968c9047524bf10636fe221b",
+   "size": 52084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/nozzle-camera-mask_001.stl",
+   "sha256": "d569e8df4707a6482a8ed152df43a78068e3075766827f99a509e2f49c1492d2",
+   "size": 87184
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/nozzle-camera-mask_002.stl",
+   "sha256": "0fafb29b9ae60fe4a7c7bb2341444543cf97209a2ce77c011a8b092ce6c99ca3",
+   "size": 87984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/nozzle-holder_001.stl",
+   "sha256": "643ffdb4d26ee535e3b696fb63664d61eb53f3a2b93e0af3946672f030dad8a5",
+   "size": 505784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/nozzle-holder_002.stl",
+   "sha256": "70f937221f06021440ada5a17fe16fd79c8e9ece224b6027e83cfe1ad83fc2b4",
+   "size": 505784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/nozzle-rack.stl",
+   "sha256": "10e4959f8a90cbf701f8b41a0b1450a732a470b81630ebefb7e8b6eb0f263e5f",
+   "size": 373884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/pcb-staging-plate-aux.stl",
+   "sha256": "781e5d41eb52404147dad1ecadfe6ce263d5fe7692a2223fb6010cc850e5ab04",
+   "size": 1022884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/pcb-staging-plate.stl",
+   "sha256": "08e004b86925b281033877350dd459858d5b863dbd1196a1e5cfd5b347a7c0dc",
+   "size": 720084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/peek-cable-2.stl",
+   "sha256": "63bb4949a88f6e79f805c1f5a144318231be9dd6549373c1accbbceb506d23b7",
+   "size": 15284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/peek-cable-clamp.stl",
+   "sha256": "a8039d1196e112910c738765e517810301f6262be8b40152c9e3a612b8eab38d",
+   "size": 15284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/peek-cable-clamp004.stl",
+   "sha256": "ea58859b99c08e2e45d499de5245254cf3e4215e27d78abcf992eff5c01e7c0f",
+   "size": 15284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/reducing-union-tee-4-6-4.stl",
+   "sha256": "397e16c5d547ed4ca49fe332fc333cbe1a0374c41422f5e0dab352b27c4968b5",
+   "size": 231884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/reducing-union-tee-4-6-4_01.stl",
+   "sha256": "db8ef1140cc0c3c81b8982b104393b30c8cc52083a4d228e3a271dac4612abd6",
+   "size": 231884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/rotary-pneumatic-adapter_001.stl",
+   "sha256": "f11053425bc04e92dc9f9522b8e93cae361c11c0d5ed94f4b9df79a9593721d9",
+   "size": 122784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/rotary-pneumatic-adapter_002.stl",
+   "sha256": "362c388af5baaa9cdc38d1247dc970164dac194b0d362070486080106af69e60",
+   "size": 122784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/secondary-fid-mount_001.stl",
+   "sha256": "d5014088e876c5706df4edf4d1cc53827c67fed01a2b84905acabb4241cbfaea",
+   "size": 24684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/solenoid-valve003.stl",
+   "sha256": "6ed716b2788354717da3962ecd479df0141d1a69ee2c8e18a59c9dbb7c389a99",
+   "size": 160284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/solenoid-valve004.stl",
+   "sha256": "8a02f4e4b37dee89feae93773e3cfd57ebbba8655653e4a8ac801d8b19d367c4",
+   "size": 160084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/squaring-bracket.stl",
+   "sha256": "87d7c42bacb4ed30d49b104d599fc4c05a8a20ac95872b1aeac38ac569c0bdaa",
+   "size": 169784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/top-camera001.stl",
+   "sha256": "4473d73dad33b6f7b0a09e31f16b04d6e93a21ce41f7271e08d31cec679a60fa",
+   "size": 388484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/top-light-mount.stl",
+   "sha256": "0a7a649a40a51f52497ae80e9222676ab7f231dcbd6da60bdc425e856af258b6",
+   "size": 95784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/top-ring-light.stl",
+   "sha256": "eb36b5ae37fe5c86ea9ce663339ec338e3d577bed25003dddedcef0ab828fb03",
+   "size": 327084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vacuum-pump002.stl",
+   "sha256": "b8c832d8a774e0f55a36d7d648846b0853ebf060966adfe1ae284e0f69c423c1",
+   "size": 24784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vacuum-pump003.stl",
+   "sha256": "795192ea2d01beba0751fd734ea3ac8cf439ee5a6feef8d6a8bd0fd42014ff1c",
+   "size": 24784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm.stl",
+   "sha256": "e6348d05004e7ea7b88a015f25feb84b00199ec322fbd6c222510178533500d8",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm001.stl",
+   "sha256": "ba5916c9efe803b33be69f712e20bb08ce84adc3a58733e84101eaefe809842d",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm002.stl",
+   "sha256": "a52720281334b77dfd77027874dd09e0cb0dbfe47ae452c74aa7c7d1af0c5d5e",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm003.stl",
+   "sha256": "cd7efa35dc7ff4c97430a8d6dd00734e7e3ef4118357472d01e45d2e984fa969",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm007.stl",
+   "sha256": "5be347e32dd338bb950e99b89b86d756c253ee7f2d5a58624eb533d64aab1087",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm008.stl",
+   "sha256": "4d694ade19b9063024c4b20c2b71142c6609b73cc3f072a8d6b61875d5db53b5",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/vslot-extrusion-20mmx20mmx600mm009.stl",
+   "sha256": "b03e8de56c15086f15912ccf31cc93bb6ff8567900237aa05b8b776ecdc4c64f",
+   "size": 42084
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-belt-tension-arm.stl",
+   "sha256": "370af1bf3cb65867f611ff353d33e94b0b7734d1e6b4b46125fc1c9f4cdbafe8",
+   "size": 88784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-cable-chain-support.stl",
+   "sha256": "a8dc26b5a4f874d6f2282a1b3174625e2c988c3841955c0c1eca7f90a1022dee",
+   "size": 37484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-gantry-back.stl",
+   "sha256": "ccff314dc90a0294c76f8df23ebf375e4a706be25c11b1767bc88bea05bdfeee",
+   "size": 355184
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-gantry-front.stl",
+   "sha256": "cac9a7f294b9edebfdbe8b5d877f1d2c9e283f35a5974639b21c706683312747",
+   "size": 275884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-gantry-gt2-belt.stl",
+   "sha256": "353d115295648f4bca4707e54b951202f1790e5585507d4541f06e2e59d86b5f",
+   "size": 26284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-idler-mount.stl",
+   "sha256": "732657fa72e55469af6535031ce507d090036fc14f8de17f99c2200e9a148762",
+   "size": 142484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/x-motor-mount.stl",
+   "sha256": "23e44fd3665188d82cfe5c615cfd6332fefbc30c753848d2ecf1683d2858b63f",
+   "size": 180584
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/xy-limit_001.stl",
+   "sha256": "6e296be9fddd179333537ee42431dc78d76059dfa5d78f470ecb75ff10e425f6",
+   "size": 404784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-001.stl",
+   "sha256": "35ac291d324c7765109a08d4b7f7314f2d6e8f274609673305c476dbb45f1147",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-002.stl",
+   "sha256": "13fc436d328df1faf75ff6708566db7a96cce6df0e0b7773e5152c5ea2778d57",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-003.stl",
+   "sha256": "15734ab434bb3834cf766f0274e95b9d2e42eee6b56b52b5fd60b9ea2666aebd",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-004.stl",
+   "sha256": "42fb3c416a342140585c8c8a3d8b44d15c3c13bfdb3bc6a8be643f619043a64f",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-005.stl",
+   "sha256": "1032044ce1042c714c89fabf81bd9bd69a5734090830c228ad044296fad8e151",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-006.stl",
+   "sha256": "efc58ebd488d6cccddef00d13ab1b817a54baa100e103065f9454beb54c96071",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-007.stl",
+   "sha256": "8dc10c067c9eefea67d099b7c66dc546720e3ba528ae642616db1b664159bf8f",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-008.stl",
+   "sha256": "ca6fb8681f30531e839413948060c0c964cdd97d3a81850202d0094d991c9fae",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-009.stl",
+   "sha256": "c2965890cc50ef6728b138314193b58ff7208668f748be18a0700b36f9149294",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-010.stl",
+   "sha256": "df93733f5c349d29e7b8ad90582f2097ff095170742a43316ffe90bd6d6da8d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-011.stl",
+   "sha256": "d3d99e5efd24df4388fa65c8fe4e051247e08d6687270c74820466a292d49345",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-012.stl",
+   "sha256": "d259897dc51fca7b8799b3bde5d64df9c7adfba545e0265b020b0324daf63fc5",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-013.stl",
+   "sha256": "5830f2d73d8eacd5076f9880b152cd8f0b322d52d5391be9c89c64cc25585b6a",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-014.stl",
+   "sha256": "b1e35c7c181062fa07771cb562ecb139b974233415acf646c6ad5c61b0839c4c",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-015.stl",
+   "sha256": "59f5a06645abd96f40cb549aba00e4788b0dcdaa676452d9e6acb49d7b76dd46",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-016.stl",
+   "sha256": "0522b72ce46fd31cf2ffc60150c4185182906afc13ba200e9287ea92587ae499",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-017.stl",
+   "sha256": "162d51e22a545dd984aea3da36f954818c50fe662e248f0d23a04a4ed7dd48a8",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-018.stl",
+   "sha256": "b6f242c784568cade6870f7be6c67f58936edda1313befd932c6ca2785898365",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-019.stl",
+   "sha256": "c665b0e97ec706199aad8022ea0c7503de0830ecf6e01e08156416a0ceeb6afd",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-020.stl",
+   "sha256": "9360d2a336f740e99020f980260a40ed78624ead5c93a2efd2d49fe3befdd5f1",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-021.stl",
+   "sha256": "918fb445534ae38d98e27dcfc0f6b4a834d3b05d88679fee16347333d172e8c7",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-022.stl",
+   "sha256": "4c4be2a5372d84bf5bd7358b9e7ce1c2897797ce20d1e4db531356fb98a86165",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-023.stl",
+   "sha256": "cccf298662a0b21e97830049828b775b1bf5bc623c2bdf177576bb5b7e49a986",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-024.stl",
+   "sha256": "f63404ba5a9efb0085adff682f7b06b9f10bb44f25eb80d1761e26c1702e4d86",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-025.stl",
+   "sha256": "d00a5a4db0e6d4f2255cbb9b52b95a40a4105552077794928d79bc5f28a32293",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-026.stl",
+   "sha256": "61fa81d2a164de8cae670b07d3a884b8fea12a007a954ef836eeeb5e735b231f",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-027.stl",
+   "sha256": "a0b90274bf822c4154fad53a1c789210fda96c55ade1ba523971dbdacb93eed4",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-028.stl",
+   "sha256": "d40b95494bd0d2a01519460ab2ee5718a0cd723ed5ec1682f7c01f7d778e654e",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-029.stl",
+   "sha256": "6b9a017a7b7b10e0d76ffbe862259b319729c7bc4645a6cababbc4f995cc758d",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-drag-chain-link-030.stl",
+   "sha256": "8053b16f05fdd11ec2443b415ec26037183a3d9444a15bc70359433f7b31f5d8",
+   "size": 79384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-gantry-gt2-belt_left.stl",
+   "sha256": "a7f398bf10fbef36910af3c006f634e473496dcfe93b3eb30fc921f75725d674",
+   "size": 26284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-gantry-gt2-belt_right.stl",
+   "sha256": "4d20747186dce328e67c3c99cd6ddd08093e61a9caa30fa344da2787806f81e9",
+   "size": 26284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-gantry-left002.stl",
+   "sha256": "d17bbd97e12398dbab1746a95559493821d8b978df9f1728fd91f438ff1d2766",
+   "size": 133284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-gantry-right002.stl",
+   "sha256": "d113d2bea26c14f1fad7f75e2703ad6b3abcc21913b7504c7446f3d5aab4c6ff",
+   "size": 133284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y-limit-striker_Body_001.stl",
+   "sha256": "124c286b95585ec0d2fde9df896079cd0bd58de9180b2a0a6110aadf1ec15e8a",
+   "size": 35884
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y1-belt-tension-arm.stl",
+   "sha256": "937d1133e584de1f36935fcbd31ca380f20a9875374a87ec4457dec06cb24fa9",
+   "size": 88784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/y2-belt-tension-arm.stl",
+   "sha256": "f33ed38abaa80abae7308be3bfc516c1a7768740b6f609cc677cf9acfb1fcb6c",
+   "size": 88784
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/z-belt-loop.stl",
+   "sha256": "4935c6cebe7a0046f3689e514f5156baba144139c4368a9a75fde2947cba403c",
+   "size": 11284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/z-gantry-backplate-left001.stl",
+   "sha256": "6a535891ab99d08b8a7b764fad08b7fdc2348b685fea111d3c9a769bac9f7031",
+   "size": 219684
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/z-gantry-backplate-right002.stl",
+   "sha256": "74a6612c15f6dc2d20702665b970b51a2dc5cd7576a17cd8a78179647ff4d427",
+   "size": 101584
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/z-gantry-left001.stl",
+   "sha256": "6d6544796e7a8649194e31e6f067edfe877307371925ac2b8ed4c5cdd515002d",
+   "size": 162384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/z-gantry-right001.stl",
+   "sha256": "6d60c74f38c1c43f8270f08ad7b88014684c4da896bb573b89c8794d046bf003",
+   "size": 162384
+  },
+  {
+   "path": "machine-pnp/lumenpnp/parts/z-limit_001.stl",
+   "sha256": "f0b3b1ebfc5411beae6d898ba659d21ca9f948d6cbb1796ee465945230f1f0ff",
+   "size": 342284
+  },
+  {
+   "path": "machine-pnp/lumenpnp/x_carriage.stl",
+   "sha256": "69afe58dcd1b5dbfa9fd49d7e4f958988352e93acd101ec468773efe306507ff",
+   "size": 959484
+  },
+  {
+   "path": "machine-pnp/lumenpnp/y_carriage.stl",
+   "sha256": "90eb10e91d5ff200dfc071ab9d9db11104cd8528d67e662692168273ca4779af",
+   "size": 1192984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/z_carriage_left.stl",
+   "sha256": "d401b57c66590987bdfb4faecb9858a2a51869c6b78b4d78a19f31c87f8d1324",
+   "size": 757984
+  },
+  {
+   "path": "machine-pnp/lumenpnp/z_carriage_right.stl",
+   "sha256": "74a8ca9036444d97b0a5ac9ac7be5576f01198f4c7b7e2f4c55c2457deeaabea",
+   "size": 690284
+  },
+  {
+   "path": "racks/default/assembly.stl",
+   "sha256": "f5dfab800af5b69ffbef22ad04fac364f5e3f4841d8c779ed1c73f2d98d8bcb2",
+   "size": 325484
+  },
+  {
+   "path": "racks/default/base.stl",
+   "sha256": "a9946b237d07de84d2848a31077a571444c42f9887ac17bc30519aba1fa6811d",
+   "size": 26284
+  },
+  {
+   "path": "racks/default/guide.stl",
+   "sha256": "9bcc6d055df82276c742a64b2914ec68b1c3a63d1bdfce64430d7696fc07dcd7",
+   "size": 5784
+  },
+  {
+   "path": "racks/default/wall.stl",
+   "sha256": "22520e873662f80caab5d9d3f378d15d56b892d7e18c418cff76b49543c1b624",
+   "size": 5884
+  },
+  {
+   "path": "robots-5-dof/koch/base_link.stl",
+   "sha256": "318319a694d56d5e1689165e0be0fe8cdc3a8e6f0e24f49debbe4d3acbf3b9b1",
+   "size": 41884
+  },
+  {
+   "path": "robots-5-dof/koch/elbow_to_wrist.stl",
+   "sha256": "556baf0946adc733fe3d9e34426d15d7113fbe68d179a29740c890e9dc797eff",
+   "size": 55384
+  },
+  {
+   "path": "robots-5-dof/koch/elbow_to_wrist_extension.stl",
+   "sha256": "f0a7a6df9c9615e3851f45473e529cb0bd211a43c2b7d810f06a0a51a25272c4",
+   "size": 55684
+  },
+  {
+   "path": "robots-5-dof/koch/gripper_static_finger.stl",
+   "sha256": "e0dd1cd95f81daa6e390e00cefb67d862794496c7b91f19ad190f88cad6728df",
+   "size": 72984
+  },
+  {
+   "path": "robots-5-dof/koch/shoulder_rotation.stl",
+   "sha256": "ec57e078e4ce10e458d536029dbdac04178e19fe1d8fd9d5ad6a6b2532ed15d2",
+   "size": 41684
+  },
+  {
+   "path": "robots-5-dof/koch/shoulder_to_elbow.stl",
+   "sha256": "3c0fbd8fe25b8f6aa04eab34c069cb782ca44bce8d339654ebe3e69cd18f50d3",
+   "size": 69184
+  },
+  {
+   "path": "robots-5-dof/so100/Base.stl",
+   "sha256": "bb8afb0303c0125f265a797625cfaf646ac214d5d2dc9c986348c415755e2a74",
+   "size": 443484
+  },
+  {
+   "path": "robots-5-dof/so100/Fixed_Jaw.stl",
+   "sha256": "5528867073033eaa4c27a8087180954f3f0635bd69d517d5cace92f01dd266b2",
+   "size": 264584
+  },
+  {
+   "path": "robots-5-dof/so100/Lower_Arm.stl",
+   "sha256": "a04511bc65cbb702b2d6023764de947888b06a09fbf272803f39c22724329a3e",
+   "size": 347184
+  },
+  {
+   "path": "robots-5-dof/so100/Rotation_Pitch.stl",
+   "sha256": "4a1476f57d28d2c065bc0ede6a674cb3ebacf1193372916ef1e0ff32eeb92cf0",
+   "size": 347584
+  },
+  {
+   "path": "robots-5-dof/so100/Upper_Arm.stl",
+   "sha256": "d97ad37c90400fe39bb2d5ace8b4290f3d1262e13f1d4f166494421752d5f3b7",
+   "size": 215184
+  },
+  {
+   "path": "robots-5-dof/so100/Wrist_Pitch_Roll.stl",
+   "sha256": "58e83ce1c8b24e1fa3a79672ea965ea4143986c81a21386dcd6da1cbcfdc94bb",
+   "size": 341684
+  },
+  {
+   "path": "robots-6-dof/ar3/base_link.STL",
+   "sha256": "f8b96f4aa7c7de4dab95b215ebcdac5ce36a595707a25ecc6da57f5ed2c10bbc",
+   "size": 339184
+  },
+  {
+   "path": "robots-6-dof/ar3/link_1.STL",
+   "sha256": "743507f987f849ee0942f30edfa3b3296c33e870e48b922f483654657e8e2d9a",
+   "size": 514184
+  },
+  {
+   "path": "robots-6-dof/ar3/link_2.STL",
+   "sha256": "e4554ce7ae2badad720857e64e7800bd38383e4b271846fc72971625bca464f2",
+   "size": 633384
+  },
+  {
+   "path": "robots-6-dof/ar3/link_3.STL",
+   "sha256": "307fa136abed7e53f7b15ce6d515c8a8915a14e1fc2cfd37e53982f60ee37196",
+   "size": 296384
+  },
+  {
+   "path": "robots-6-dof/ar3/link_4.STL",
+   "sha256": "1d6ad5e9e0dfabbc3e32368e1a2c55592a26d70fbfc0dbd653a51890a9a6775d",
+   "size": 585184
+  },
+  {
+   "path": "robots-6-dof/ar3/link_5.STL",
+   "sha256": "69f19d63a53a0bf9a2ea631b1ab3f6d3b042a2dcc1a1b7f3d557661cfbc36928",
+   "size": 205884
+  },
+  {
+   "path": "robots-6-dof/ar3/link_6.STL",
+   "sha256": "711acc764b171207581f2edc786d762d305a2af607d11ba1ab2f53cd50441a73",
+   "size": 41784
+  },
+  {
+   "path": "robots-6-dof/ar4/base_link.STL",
+   "sha256": "f8b96f4aa7c7de4dab95b215ebcdac5ce36a595707a25ecc6da57f5ed2c10bbc",
+   "size": 339184
+  },
+  {
+   "path": "robots-6-dof/ar4/link_1.STL",
+   "sha256": "ef7a9341b02854138b99c3c003953686fba1fcff1716a059aef22eba2afa37eb",
+   "size": 513084
+  },
+  {
+   "path": "robots-6-dof/ar4/link_2.STL",
+   "sha256": "cbbff7e7f8ece5600ecb2d8dd939a0758531effcf733479d8539f8b581c18d72",
+   "size": 633384
+  },
+  {
+   "path": "robots-6-dof/ar4/link_3.STL",
+   "sha256": "41c930ffb8a53d6de89c8eceac62fb21ad6ee4b758abb183fdf1dd8d75e69ded",
+   "size": 296384
+  },
+  {
+   "path": "robots-6-dof/ar4/link_4.STL",
+   "sha256": "d7d65745064f0fba57b833a7863752f6d0a24faa3881688cc4ba3ddf8dd830c8",
+   "size": 585134
+  },
+  {
+   "path": "robots-6-dof/ar4/link_5.STL",
+   "sha256": "6b690cf6b11271d19312973e66965ac8a0bdde2e420d974c987627c4f9358d5b",
+   "size": 2152484
+  },
+  {
+   "path": "robots-6-dof/ar4/link_6.STL",
+   "sha256": "e616fb23e1f76010f23f7b63c67364d66e1fa6f93f0d903fce872f87a49b3250",
+   "size": 98384
+  },
+  {
+   "path": "robots-6-dof/edo/base_link.STL",
+   "sha256": "34f7f9b3fd9b9780f03689f7b3c981fd6395bfdfe4cb439e45bd23451a6e2b4c",
+   "size": 3978184
+  },
+  {
+   "path": "robots-6-dof/edo/link_1.STL",
+   "sha256": "5d858e145d38c442364273d0f9858c7ad8371e4683d7999d943c3e5a63496a40",
+   "size": 3232584
+  },
+  {
+   "path": "robots-6-dof/edo/link_2.STL",
+   "sha256": "53620c3de3da1856cfe0d998aac2ec123a177b02524aea0b0aa2e309634945ce",
+   "size": 7120084
+  },
+  {
+   "path": "robots-6-dof/edo/link_3.STL",
+   "sha256": "0758189d3525e921f50a7cf51a27312fbb9e24606da02f01ca234fe44391d280",
+   "size": 3608234
+  },
+  {
+   "path": "robots-6-dof/edo/link_4.STL",
+   "sha256": "bdfd03492fa79b829f87221d7fc408983f7b52559a7c86d8498e55ec3954a584",
+   "size": 3371184
+  },
+  {
+   "path": "robots-6-dof/edo/link_5.STL",
+   "sha256": "0a0ad1a8ef96762fce6dd4e809242f905e1d82352181eb88fabc409d3f9b39d7",
+   "size": 3301084
+  },
+  {
+   "path": "robots-6-dof/edo/link_6.STL",
+   "sha256": "927d527fb498dadfe69a46929f4ddc5bcb3c6ec2fd3c86d39af223bce451bd54",
+   "size": 168984
+  },
+  {
+   "path": "robots-6-dof/faze4/base_link.STL",
+   "sha256": "531a99929b10ad6d8e44c2e7eaf231ddcd1b0aaec36c3bd38b0f7bccb7f98287",
+   "size": 5995684
+  },
+  {
+   "path": "robots-6-dof/faze4/hvataljka.STL",
+   "sha256": "ec48a36a0445c5de5475363cf729d956e722101766d5ea59f4b54067f8e86458",
+   "size": 133684
+  },
+  {
+   "path": "robots-6-dof/faze4/lakat.STL",
+   "sha256": "8f7135ab7ac6b0c39382b84c5b0b28d3ed2913404ac62d070e90cc6dfc892a58",
+   "size": 2008184
+  },
+  {
+   "path": "robots-6-dof/faze4/nadlaktica.STL",
+   "sha256": "554ac9d46a11e1ac50bba60412d450c4c77c7e8c48b536e61e391e095e19286e",
+   "size": 2809884
+  },
+  {
+   "path": "robots-6-dof/faze4/podlaktica.STL",
+   "sha256": "10f5e3eb7cef2e424fbb034b12ca1336a02bdefa8bdf499882541eb8c767b3d4",
+   "size": 1658184
+  },
+  {
+   "path": "robots-6-dof/faze4/rotary_base.STL",
+   "sha256": "cef1394a26e4434a3df032c00871cfdec30d8f768a325485613bc1bc2f8ec520",
+   "size": 930484
+  },
+  {
+   "path": "robots-6-dof/faze4/saka.STL",
+   "sha256": "63d7ea859a2f7624d574a2528ae9872cb1db3be22e16d6b766d2b0512394a736",
+   "size": 524884
+  },
+  {
+   "path": "robots-6-dof/gen2/arm.STL",
+   "sha256": "cc77aeb83ea0e648fd4e028fa5dcca91c14af098cbd27a19c44befe4e5792a92",
+   "size": 410884
+  },
+  {
+   "path": "robots-6-dof/gen2/base.STL",
+   "sha256": "5889fe8e3c490dc41b8532c92deb7895dbf62ecd1544bd43942681efe0336b60",
+   "size": 853484
+  },
+  {
+   "path": "robots-6-dof/gen2/forearm.STL",
+   "sha256": "48cdf606a4d84b329bdb37508cc2aac522312ad61c216c3dbc8106f7df022256",
+   "size": 350384
+  },
+  {
+   "path": "robots-6-dof/gen2/hand_2finger.STL",
+   "sha256": "ce4ebd0c7a258e5f8ef52da36fbf2c12c3b7a484feac60eb1f8eeedae15bddb5",
+   "size": 2522684
+  },
+  {
+   "path": "robots-6-dof/gen2/shoulder.STL",
+   "sha256": "142067f7985c4fe9cdd94738a0fa8a7fa2d0ed713851d275c4491048b6157e99",
+   "size": 410184
+  },
+  {
+   "path": "robots-6-dof/gen2/wrist_spherical_1.STL",
+   "sha256": "e703075888eeded30c99b3daa83a98513ef3dfb6d57456b89f2f2240781bd62d",
+   "size": 387384
+  },
+  {
+   "path": "robots-6-dof/gen2/wrist_spherical_2.STL",
+   "sha256": "7eafa8be6d2d91ca4592c1bb642c116d879b5c0ba952a0ec3dc9d111a86b5dbd",
+   "size": 387384
+  },
+  {
+   "path": "robots-6-dof/gen3lite/arm_link.STL",
+   "sha256": "2daa1e649cd64d19865c13ab977a7b09a560218a25a969f741b41bd1d869c582",
+   "size": 696084
+  },
+  {
+   "path": "robots-6-dof/gen3lite/base_link.STL",
+   "sha256": "84025360b601d1afdec0b65f1fcfc1e1ff12c91db9e8952f38d89f20bd54fb6d",
+   "size": 1867984
+  },
+  {
+   "path": "robots-6-dof/gen3lite/forearm_link.STL",
+   "sha256": "5365cd2365c42f0394b9bd068677efa5176a380168600a188bb2e30d1e488d8b",
+   "size": 829884
+  },
+  {
+   "path": "robots-6-dof/gen3lite/lower_wrist_link.STL",
+   "sha256": "3d1e64b98c39bec3d7c4008e9a46ff78b03797e0280c2b93de68fe4ebc510dfc",
+   "size": 260984
+  },
+  {
+   "path": "robots-6-dof/gen3lite/shoulder_link.STL",
+   "sha256": "e01094c1339d3d161796f4aedbb195ac1b3ae713449b28d027276ccd6b7d2564",
+   "size": 251384
+  },
+  {
+   "path": "robots-6-dof/gen3lite/upper_wrist_link.STL",
+   "sha256": "a261314019b98d57177517b36ce4ced97e2c7791b99bd062e5ecf9768b6a5060",
+   "size": 1134284
+  },
+  {
+   "path": "robots-6-dof/lite6/base.stl",
+   "sha256": "84f69488a1de60c76c23f83b1759ed76e9235bd56b4b98b4c997c24c18ba7b42",
+   "size": 231884
+  },
+  {
+   "path": "robots-6-dof/lite6/link1.stl",
+   "sha256": "41d28af66c2fbd6a93b9fb5f9cfceb3c1de1f021928006871ae4e9d813f8459a",
+   "size": 172584
+  },
+  {
+   "path": "robots-6-dof/lite6/link2.stl",
+   "sha256": "d082d23629f1fe619bfc664208039e177cf774a6f953c2c1722aec20edd73ca4",
+   "size": 207084
+  },
+  {
+   "path": "robots-6-dof/lite6/link3.stl",
+   "sha256": "ff11c8164bb932cfdfedf27f875e5d5bd3ae13df128c44809da1bf15b712d759",
+   "size": 621084
+  },
+  {
+   "path": "robots-6-dof/lite6/link4.stl",
+   "sha256": "902ef2e6c6f66f0fa72b8b7e242ea75ea85af7dfd35581997ceaf475e25a4954",
+   "size": 752384
+  },
+  {
+   "path": "robots-6-dof/lite6/link5.stl",
+   "sha256": "3e0c201146a4444a08493d83a273f81b0298a723186a2bb27ede21c574237a41",
+   "size": 541084
+  },
+  {
+   "path": "robots-6-dof/lite6/link6.stl",
+   "sha256": "36a7bad22997a0938884485997f026b602bd952674a22d3a8e47cc160cde70d8",
+   "size": 247884
+  },
+  {
+   "path": "robots-6-dof/m710ic/base_link.stl",
+   "sha256": "735025e11ee5151efa8195ac1c173e802508501f9ad2966d0ae9458135d97550",
+   "size": 6484
+  },
+  {
+   "path": "robots-6-dof/m710ic/link_1.stl",
+   "sha256": "8b06c990a59cff11ecfd8591ef2cb28e82dfc9a4b09a66a37120b438254bf8f0",
+   "size": 9884
+  },
+  {
+   "path": "robots-6-dof/m710ic/link_2.stl",
+   "sha256": "3643cf81852a24110a1dcd6fb54f52e33c7924eccf0256d3a2213ecedd075942",
+   "size": 9684
+  },
+  {
+   "path": "robots-6-dof/m710ic/link_3.stl",
+   "sha256": "b12c943bde2a74200b80546d143af9e690bda0f31d57bbc557aecba0def83ba3",
+   "size": 10884
+  },
+  {
+   "path": "robots-6-dof/m710ic/link_4.stl",
+   "sha256": "7d7f8f9895e4b269957878c45493a0badbc185995712b6b3c8485e4944ce9927",
+   "size": 9084
+  },
+  {
+   "path": "robots-6-dof/m710ic/link_5.stl",
+   "sha256": "057a98509c0f4ed38b0aa1299987e00e29709dd79202fd814f0a5b063c6c1bb6",
+   "size": 13284
+  },
+  {
+   "path": "robots-6-dof/m710ic/link_6.stl",
+   "sha256": "988fd22d05756d22036574b4a50e083d355caca97613b921bef6eaf8a7a544b5",
+   "size": 13984
+  },
+  {
+   "path": "robots-6-dof/parol6/L1.STL",
+   "sha256": "f4f7446b9fd8ddccee2e4948d14270d1bb1544ccc72d301315f316fe52d9d0db",
+   "size": 2617984
+  },
+  {
+   "path": "robots-6-dof/parol6/L2.STL",
+   "sha256": "41b54c4f747551fd494d0f0c7d73eb0d8fea60a4f97e23042032a7566b3a70d8",
+   "size": 1620784
+  },
+  {
+   "path": "robots-6-dof/parol6/L3.STL",
+   "sha256": "4a3584a29eee9266dc0c7bc22224f2c282aa275b65a35999f9316604b1483e2f",
+   "size": 142984
+  },
+  {
+   "path": "robots-6-dof/parol6/L4.STL",
+   "sha256": "b34747db1d8fd1f60448a855a8470d9fe0aab7bc44b483f1ba69370c552f5f48",
+   "size": 355484
+  },
+  {
+   "path": "robots-6-dof/parol6/L5.STL",
+   "sha256": "a6128037ab3bb73d8cc75e3b8c95ff617f3741da4d8e6eea566e4b6805ee11c4",
+   "size": 1173484
+  },
+  {
+   "path": "robots-6-dof/parol6/L6.STL",
+   "sha256": "8bb5aeba3923421418f2498080cac2c61b898aee343e4dc52c8a24b852742446",
+   "size": 288184
+  },
+  {
+   "path": "robots-6-dof/parol6/base_link.STL",
+   "sha256": "a775b6e791a3f8f49a669b20ad96bd9eb20544d9f54334a13f591034619d0931",
+   "size": 3021884
+  },
+  {
+   "path": "robots-6-dof/piper/base_link.STL",
+   "sha256": "fd4a3d6d0266205fe3f725f048645be66592c23564db22e08b0807d5569b2c64",
+   "size": 607384
+  },
+  {
+   "path": "robots-6-dof/piper/link1.STL",
+   "sha256": "9ee6e1d67c0241f42a0dbaf5c676d19230375ed078ee1943bb8c4c37ab303d14",
+   "size": 447784
+  },
+  {
+   "path": "robots-6-dof/piper/link2.STL",
+   "sha256": "0d37675b699b643f2e15348de99aed535fac10dc5f09a79b8e4b0acfaf4e0378",
+   "size": 3658384
+  },
+  {
+   "path": "robots-6-dof/piper/link3.STL",
+   "sha256": "e8ae51f17c0c7f6d67b753922e2cc269f5e8372a65734f859231639a64fe8fad",
+   "size": 1845784
+  },
+  {
+   "path": "robots-6-dof/piper/link4.STL",
+   "sha256": "efa33022976218f246f736a6133494b5d0e5486e8b50b52900c42f285ae85558",
+   "size": 877984
+  },
+  {
+   "path": "robots-6-dof/piper/link5.STL",
+   "sha256": "a1c69d1c7f6f8c60e2c82331c0f444725200ed4053d3e5ec23aa82cb5db5b29f",
+   "size": 833684
+  },
+  {
+   "path": "robots-6-dof/piper/link6.STL",
+   "sha256": "88374973bc3bd9e7389b5853cd6e555af9731c30b658b1ee6f85be34a126cb92",
+   "size": 58884
+  },
+  {
+   "path": "robots-6-dof/ur10classic/base.stl",
+   "sha256": "c2049e55f6ddbd827d89342c5e3d277b62493db681d28f44ca555db1a288e2cf",
+   "size": 18384
+  },
+  {
+   "path": "robots-6-dof/ur10classic/forearm.stl",
+   "sha256": "dc90009a4863cbdb350f2a40e40ca25db0ddba1eb6811e0e0d3c914293f365d0",
+   "size": 53784
+  },
+  {
+   "path": "robots-6-dof/ur10classic/shoulder.stl",
+   "sha256": "8f2b5085694ffb5208da1099bd9c5b381155a82c5fec1bc72bb050f3c30c0ece",
+   "size": 49384
+  },
+  {
+   "path": "robots-6-dof/ur10classic/upperarm.stl",
+   "sha256": "c84a410a76cf8d25e1d830d9033a4e501fb16baeb2bf0116367a0cdb98c75fbb",
+   "size": 61284
+  },
+  {
+   "path": "robots-6-dof/ur10classic/wrist1.stl",
+   "sha256": "c33737b72a82d61a9d4b1c3abb75eab8349e935c60340f59b7d1ed004ac16142",
+   "size": 44384
+  },
+  {
+   "path": "robots-6-dof/ur10classic/wrist2.stl",
+   "sha256": "8070916b9042dce67c85fccaa94fa60308722945405a58abc6070c1bb8de9bb9",
+   "size": 42084
+  },
+  {
+   "path": "robots-6-dof/ur10classic/wrist3.stl",
+   "sha256": "07401ab0442bb02772aca606889146ff5fc0b30c8f037e4b2878cfefb1b7c443",
+   "size": 24384
+  },
+  {
+   "path": "robots-6-dof/ur10e/base.stl",
+   "sha256": "8a214f3f650e703fa081bd4bd8b1caeb0667598bec22d8b0e572efb97d06e957",
+   "size": 22984
+  },
+  {
+   "path": "robots-6-dof/ur10e/forearm.stl",
+   "sha256": "7005ed835336ec03ce6a299a356c774bfe2ba989051e37b2a66406173dcb3c96",
+   "size": 67284
+  },
+  {
+   "path": "robots-6-dof/ur10e/shoulder.stl",
+   "sha256": "3f7c5f7ee742cf2d57130829be9f20b25625b3513d676ac5e20ca46ae84fd528",
+   "size": 85284
+  },
+  {
+   "path": "robots-6-dof/ur10e/upperarm.stl",
+   "sha256": "663a935951c802b1c16ad7478e7ce754b2d48efb828bbe5d3915fb6bb51cd7db",
+   "size": 93784
+  },
+  {
+   "path": "robots-6-dof/ur10e/wrist1.stl",
+   "sha256": "1408c3a0a29385fefe30ed44fceca56d2254f51ea93c75c404976816992324cc",
+   "size": 66984
+  },
+  {
+   "path": "robots-6-dof/ur10e/wrist2.stl",
+   "sha256": "4b9e74eab991af3dc9d38c3dfaad2c5bc69591fadc855f7966627ba4d0956579",
+   "size": 89184
+  },
+  {
+   "path": "robots-6-dof/ur10e/wrist3.stl",
+   "sha256": "7038904dd03dfea56212191ac61d26746b379dbddfd517b905e13c01e1c12e6a",
+   "size": 6984
+  },
+  {
+   "path": "robots-6-dof/ur16e/base.stl",
+   "sha256": "8a214f3f650e703fa081bd4bd8b1caeb0667598bec22d8b0e572efb97d06e957",
+   "size": 22984
+  },
+  {
+   "path": "robots-6-dof/ur16e/forearm.stl",
+   "sha256": "fc1c07390183b3874d66e3005795063980bc4f4a786504999f2e86250dcbfe0f",
+   "size": 99584
+  },
+  {
+   "path": "robots-6-dof/ur16e/shoulder.stl",
+   "sha256": "3f7c5f7ee742cf2d57130829be9f20b25625b3513d676ac5e20ca46ae84fd528",
+   "size": 85284
+  },
+  {
+   "path": "robots-6-dof/ur16e/upperarm.stl",
+   "sha256": "5c1eacd146739265039ccb0b75649b83719f67cb36cca42d1d11a8e4cd929175",
+   "size": 136984
+  },
+  {
+   "path": "robots-6-dof/ur16e/wrist1.stl",
+   "sha256": "1408c3a0a29385fefe30ed44fceca56d2254f51ea93c75c404976816992324cc",
+   "size": 66984
+  },
+  {
+   "path": "robots-6-dof/ur16e/wrist2.stl",
+   "sha256": "4b9e74eab991af3dc9d38c3dfaad2c5bc69591fadc855f7966627ba4d0956579",
+   "size": 89184
+  },
+  {
+   "path": "robots-6-dof/ur16e/wrist3.stl",
+   "sha256": "7038904dd03dfea56212191ac61d26746b379dbddfd517b905e13c01e1c12e6a",
+   "size": 6984
+  },
+  {
+   "path": "robots-6-dof/ur20/base.stl",
+   "sha256": "455a01c50280f986471a86fefe1b2b3e86f7f1afd9fb32493a4febc42d0388f0",
+   "size": 21884
+  },
+  {
+   "path": "robots-6-dof/ur20/forearm.stl",
+   "sha256": "4bd860969e56358c6aed65be1268b13a83535541aacac746323dcff217d3a815",
+   "size": 124384
+  },
+  {
+   "path": "robots-6-dof/ur20/shoulder.stl",
+   "sha256": "f20bd5197388f050d5cf752ff980b4a117b8559d4dc5b0ba95a52f9c3e76d182",
+   "size": 27084
+  },
+  {
+   "path": "robots-6-dof/ur20/upperarm.stl",
+   "sha256": "0093cb733ea040e9ec715b9b4a5add42961ab99efab752abd0c0b1e933a578fa",
+   "size": 121484
+  },
+  {
+   "path": "robots-6-dof/ur20/wrist1.stl",
+   "sha256": "19bc042d09f58aa2a0646dead171955f4d6f3518ef9b4c5a99ba6b565536532e",
+   "size": 36484
+  },
+  {
+   "path": "robots-6-dof/ur20/wrist2.stl",
+   "sha256": "0a2972fb64f334297bc8bdd42e343f572f109bdbfd867a93785763d9b4095740",
+   "size": 28084
+  },
+  {
+   "path": "robots-6-dof/ur20/wrist3.stl",
+   "sha256": "d985f80bc6ab8d6979e9e9267c1ac2442a804d9905022b1fd77eb1dbb7de93f4",
+   "size": 15784
+  },
+  {
+   "path": "robots-6-dof/ur3classic/base.stl",
+   "sha256": "a4632b7941b0a090c0817255d01a1b3e759b47291487c5742d621395a0a8df2e",
+   "size": 399684
+  },
+  {
+   "path": "robots-6-dof/ur3classic/forearm.stl",
+   "sha256": "08a578aa50bba584f236591b25dfdf0a03a060f05946a7d1c450d800cae5cbb8",
+   "size": 246784
+  },
+  {
+   "path": "robots-6-dof/ur3classic/shoulder.stl",
+   "sha256": "c6a66fc64afa98f694307014cb5ec9cd73a3c4a03730cdbee700a835292ce3d0",
+   "size": 393334
+  },
+  {
+   "path": "robots-6-dof/ur3classic/upperarm.stl",
+   "sha256": "81ccc4d6ee7cac170ace494dc88cf2930f78a1d7edf3c38a96e6b1b90c540c60",
+   "size": 513234
+  },
+  {
+   "path": "robots-6-dof/ur3classic/wrist1.stl",
+   "sha256": "fec8baaeffb31e3de92e62a5b5ce4dba1e3d36cf253ff2a0346c32a6c2b7ef6d",
+   "size": 183684
+  },
+  {
+   "path": "robots-6-dof/ur3classic/wrist2.stl",
+   "sha256": "efb209b3659d4864d17bbdacb1820f9be45aa7b6418c42fda447d6ff7a1da220",
+   "size": 183634
+  },
+  {
+   "path": "robots-6-dof/ur3classic/wrist3.stl",
+   "sha256": "27ad47ace7b5318c2259de92f340e13e25a119f91fb42e5c40d608850db06883",
+   "size": 26484
+  },
+  {
+   "path": "robots-6-dof/ur3e/base.stl",
+   "sha256": "2838ae72d4b6f1421083209ebdd9ea5cecd3a19a9b3ca60f4e0ad3300beeb648",
+   "size": 21784
+  },
+  {
+   "path": "robots-6-dof/ur3e/forearm.stl",
+   "sha256": "cbb4b2d2f024d05af7dad9cbaf018a11a360693ca5b96d3de89ea7ff2480bfca",
+   "size": 51384
+  },
+  {
+   "path": "robots-6-dof/ur3e/shoulder.stl",
+   "sha256": "2edd8898d06fd4dd289e27dae047598ec7fa61e1860682452b57ed70c0e836d6",
+   "size": 90684
+  },
+  {
+   "path": "robots-6-dof/ur3e/upperarm.stl",
+   "sha256": "009baa2a00697891cdc191a3cd9d4eae9106ba09c6e78db8d509b1c84fbaa41f",
+   "size": 101084
+  },
+  {
+   "path": "robots-6-dof/ur3e/wrist1.stl",
+   "sha256": "458cbd3b36b0419e9fafd13bfd1f1cd9fd47e4c31191d6c078b239f220dcfd28",
+   "size": 63584
+  },
+  {
+   "path": "robots-6-dof/ur3e/wrist2.stl",
+   "sha256": "d2b00401f97d1a1d951a1a99c7dc74589009f80b6817d1c633cc793dcec083ad",
+   "size": 72784
+  },
+  {
+   "path": "robots-6-dof/ur3e/wrist3.stl",
+   "sha256": "0795382b1ff170be3ce66ab44da8f4f41fd08096661471801fc627712d9c592f",
+   "size": 8084
+  },
+  {
+   "path": "robots-6-dof/ur5classic/base.stl",
+   "sha256": "c7af57d109de6a73f57943613bb000346518df06bb5ae119a2e80cf00bcbebde",
+   "size": 28984
+  },
+  {
+   "path": "robots-6-dof/ur5classic/forearm.stl",
+   "sha256": "8e79aa80a532494ba5320c30b40363ff63d228e3d59e2904703dca341dcba2ac",
+   "size": 52584
+  },
+  {
+   "path": "robots-6-dof/ur5classic/shoulder.stl",
+   "sha256": "1d62e23a8c3ff9e6334fb157c805e6202037bcfca65bc6a36c5c9ae866751b3b",
+   "size": 33784
+  },
+  {
+   "path": "robots-6-dof/ur5classic/upperarm.stl",
+   "sha256": "55c11ac0ad1e144f230849b2033532e8b140b2e818ea497296d08dfb88757440",
+   "size": 58884
+  },
+  {
+   "path": "robots-6-dof/ur5classic/wrist1.stl",
+   "sha256": "0a1fd12150140efdee91650dcb4c2d0443065551a9207a2d2dbde58ff1fb4eb7",
+   "size": 35184
+  },
+  {
+   "path": "robots-6-dof/ur5classic/wrist2.stl",
+   "sha256": "c1d9f7843366068cb331f3f5c43fa716d3eceeb8c80216eccbbc878905dab123",
+   "size": 35184
+  },
+  {
+   "path": "robots-6-dof/ur5classic/wrist3.stl",
+   "sha256": "cf7220397b56f1d3047be9465eea1181d471b40fc82728052e31c97588585b4b",
+   "size": 22384
+  },
+  {
+   "path": "robots-6-dof/ur5e/base.stl",
+   "sha256": "9a145e0d46f2130afdf2a2e8825a00a929870c4c3d6d8e4d1adc5f04db3aac1b",
+   "size": 21084
+  },
+  {
+   "path": "robots-6-dof/ur5e/forearm.stl",
+   "sha256": "2e7423cab807c34160ec4f770daee5e747d70e777eb01b7beeace2b8c5751816",
+   "size": 53284
+  },
+  {
+   "path": "robots-6-dof/ur5e/shoulder.stl",
+   "sha256": "ceb92532177daa77682f5fbd628e01c2137d168f949a7a706ce1dabe9f002387",
+   "size": 70084
+  },
+  {
+   "path": "robots-6-dof/ur5e/upperarm.stl",
+   "sha256": "ee893044caf00075cb55b4cf666d1f1311c7979786212a501009f33bee945209",
+   "size": 99684
+  },
+  {
+   "path": "robots-6-dof/ur5e/wrist1.stl",
+   "sha256": "f8c9f9337b6fd98c75f052e96de10e14a107ddb6874ba6b904e546f8a4e4f43a",
+   "size": 59584
+  },
+  {
+   "path": "robots-6-dof/ur5e/wrist2.stl",
+   "sha256": "2964a63f60ce3e3cf3ad55bcf190d7876d50e373cb64b70a57cea5885eaf3c86",
+   "size": 67584
+  },
+  {
+   "path": "robots-6-dof/ur5e/wrist3.stl",
+   "sha256": "83b3666b4ae2badd54af0d2c25a921682ecbc29e849eec646c3ed55fb74c78a3",
+   "size": 7184
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_1_base.stl",
+   "sha256": "d100cafe656671ca8fde98fb6a4cf2d1b746995c51c61c25ad9ea2715635d146",
+   "size": 99984
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_2_shoulder.stl",
+   "sha256": "139745a74055cb0b23430bb5bc032bf68cf7bea5e4975c8f4c04107ae005f7f0",
+   "size": 63884
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_3_upper_arm.stl",
+   "sha256": "900f236320dd3d500870c5fde763b2d47502d51e043a5c377875e70237108729",
+   "size": 102984
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_4_upper_forearm.stl",
+   "sha256": "4104fc54bbfb8a9b533029f1e7e3ade3d54d638372b3195daa0c98f57e0295b5",
+   "size": 49584
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_5_lower_forearm.stl",
+   "sha256": "66814e27fa728056416e25e02e89eb7d34c51d51c51e7c3df873829037ddc6b8",
+   "size": 99884
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_6_wrist.stl",
+   "sha256": "90eb145c85627968c3776ae6de23ccff7e112c9dd713c46bc9acdfdaa859a048",
+   "size": 70784
+  },
+  {
+   "path": "robots-6-dof/vx300s/vx300s_7_gripper.stl",
+   "sha256": "786c1077bfd226f14219581b11d5f19464ca95b17132e0bb7532503568f5af90",
+   "size": 450084
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_1_base.stl",
+   "sha256": "69facd590abff70fa03431497ead2c7f1aabe616d55af594288e9bf36b1fd067",
+   "size": 75584
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_2_shoulder.stl",
+   "sha256": "337b4cb7e9b637ee3dca6a737becf831fe5f95b790b34f9a97e5cf11475fc222",
+   "size": 61884
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_3_upper_arm.stl",
+   "sha256": "b4550b3a79e83d0ca9e1a65e490ff4e25b667e8a7d8e94bab441851c96eb11fa",
+   "size": 70484
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_4_upper_forearm.stl",
+   "sha256": "1a64efc97dc129bc277afee75c129de27721e8fedcad45a4ec8b251f44542f23",
+   "size": 30084
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_5_lower_forearm.stl",
+   "sha256": "1445950b7f5ce2cf374b98711df296acd6c2b4df24c3937b413bcb6beb037603",
+   "size": 149084
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_6_wrist.stl",
+   "sha256": "8602fe1313765caceec64faff5ec919ec09c57c614b87f1c1c625dcef1e3df5a",
+   "size": 57684
+  },
+  {
+   "path": "robots-6-dof/wx250s/wx250s_7_gripper.stl",
+   "sha256": "6dbc189d3787ca62e09a8cf3f928ceca70c5c184a95c97ac6587805aa6a1ec6d",
+   "size": 17684
+  },
+  {
+   "path": "robots-6-dof/xarm6/base.stl",
+   "sha256": "d3d61f2888bc39eecb8583babc7dddccb92f2ccd55aa32cd6f1dce6193feb3b6",
+   "size": 123284
+  },
+  {
+   "path": "robots-6-dof/xarm6/link1.stl",
+   "sha256": "103a81f9f00c217247f8b6c8f19b3afcbc9288852082389044d88a4a321cd8cd",
+   "size": 188084
+  },
+  {
+   "path": "robots-6-dof/xarm6/link2.stl",
+   "sha256": "20ef55e34f8a63bb65108ed3134c4b22d911b55cd496ca5562b3978cba88ac77",
+   "size": 1305984
+  },
+  {
+   "path": "robots-6-dof/xarm6/link3.stl",
+   "sha256": "f1503bc0c1fe8d39f4c509dba7288d9130954a35a1bcbaa0fca95d083fed3ffe",
+   "size": 212484
+  },
+  {
+   "path": "robots-6-dof/xarm6/link4.stl",
+   "sha256": "2a9952085fef91045380dac9825d9ad5a75867196933bc2cb1c3a635c23b0b7e",
+   "size": 228984
+  },
+  {
+   "path": "robots-6-dof/xarm6/link5.stl",
+   "sha256": "bfca01aae4255803ba2f5391c93836b91e1761e069275e38a9656ff2d53f45a4",
+   "size": 383034
+  },
+  {
+   "path": "robots-6-dof/xarm6/link6.stl",
+   "sha256": "b90cb1b373e65c035d7965bde92f4e2aedacdbbd57785a9018cd996b6b0b688e",
+   "size": 129884
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link00.stl",
+   "sha256": "d75a404679bd85795b09fdc95cfd490211d1bced9a8b9228b2e737394f8dccbf",
+   "size": 818684
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link01.stl",
+   "sha256": "489238d3af107b967e57d260887363b3ffc635b2005e378b8f6d881f796da649",
+   "size": 2813284
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link02.stl",
+   "sha256": "20b767758fce2d00991180abb5893cb1208c99ca912b9d787821ee3f28214949",
+   "size": 1306284
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link03.stl",
+   "sha256": "bc367e92accb5653e7f59ce8f92c67f6fe5ca58adb6f34b58b10e2c98ac3adf1",
+   "size": 1679084
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link04.stl",
+   "sha256": "cf597837f10e7c062f24234f80c443f1ccd5f29db0eb8acd47f639612248e804",
+   "size": 1263884
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link05.stl",
+   "sha256": "11672541c399a9fe93621f30f323f012d8216a064749dabf437bf849c0ea81bc",
+   "size": 901584
+  },
+  {
+   "path": "robots-6-dof/z1/z1_Link06.stl",
+   "sha256": "c6f401da94b1dd329ff3ab4cc094fcab034f514db8edaa95a3e84d457d313431",
+   "size": 114584
+  },
+  {
+   "path": "vacuum-tables/default/VacuumTable160x120x15mm.stl",
+   "sha256": "0b511ad44e6e688632168481c5715152f1a0eb11a9ec6ff20f4bf7f4e2559bc8",
+   "size": 753484
+  },
+  {
+   "path": "vacuum-tables/default/VacuumTable230x210x15mm.stl",
+   "sha256": "40ca23146544f5bf3cfbf748a5f533dc552428edb150374985b4dda409768e74",
+   "size": 1678084
+  },
+  {
+   "path": "vacuum-tables/default/VacuumTable230x250x15mm.stl",
+   "sha256": "f2e5a209b36108e0d8990046887edd1758d9b0f8e10a7bc11de563d6cc1f9af0",
+   "size": 1967084
+  },
+  {
+   "path": "vacuum-tables/default/VacuumTable232x217x15mm.stl",
+   "sha256": "2fffd11fb5e7f533867e399b195e3d0a5b72275ca1fa579d33ba7a30af71faff",
+   "size": 1931084
+  },
+  {
+   "path": "vacuum-tables/default/VacuumTable240x240x15mm.stl",
+   "sha256": "6ed9ac2a14687c1f35edc1be2828c71e6cc92efc95ae919f1c377a45b81e857b",
+   "size": 1987484
+  },
+  {
+   "path": "vacuum-tables/default/VacuumTable250x250x15mm.stl",
+   "sha256": "236457c199ef5f885287c80fd72fa27dd79479a82884553cc53b4d5a7f90858f",
+   "size": 1979084
+  }
+ ]
+}

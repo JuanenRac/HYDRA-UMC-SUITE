@@ -42,5 +42,9 @@ else
     VPY="python3"
 fi
 
+# Fetches the verified mesh package only when mesh_pack.config.json (or HYDRA_UMC_MESH_SOURCE) asks for it;
+# with the default source (local) this does nothing.
+"$VPY" -m hydra_suite.mesh_pack prepare || exit $?
+
 "$VPY" main.py "$@"
 exit $?

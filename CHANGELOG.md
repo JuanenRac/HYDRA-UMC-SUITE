@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The meshes can come from one downloadable package:** `meshes.pack.json` pins the SHA-256 of a package and of every mesh, and `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) can bring the meshes of the tree to that state. The source is chosen in `mesh_pack.config.json` or with `HYDRA_UMC_MESH_SOURCE`: `local` (the default, nothing changes and nothing is downloaded), `auto` (the local meshes are used when all are present, only the missing ones are fetched) or `download` (every mesh is checked by its hash). A package that does not match installs nothing; only `https` addresses are accepted. `run.sh` and `run.bat` call the silent `prepare` step. Messages in the eight languages; verified in `tests/verify_mesh_pack.py`. See `docs/MESH_PACKAGE.md`.
+
 ## [0.7.4] - The history of connections, the exposure and connection switches in the server security screen, the routes the app calls fixed by a test and an updated certificate bundle
 
 - **The certificate bundle is updated:** the pinned certificate-authority bundle moves to its latest release, which fixes a reported weakness in the previous one.

@@ -38,5 +38,10 @@ REM The python of the venv is used directly (no activate script); without a venv
 set "VPY=python"
 if exist .venv\Scripts\python.exe set "VPY=%CD%\.venv\Scripts\python.exe"
 
+REM Fetches the verified mesh package only when mesh_pack.config.json (or HYDRA_UMC_MESH_SOURCE) asks for it;
+REM with the default source (local) this does nothing.
+"%VPY%" -m hydra_suite.mesh_pack prepare
+if errorlevel 1 goto :done
 "%VPY%" main.py %*
+:done
 %KEEP_OPEN%
