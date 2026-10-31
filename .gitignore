@@ -17,3 +17,11 @@ hydra_suite_config.json.tmp
 
 # Local trash folder the model editors create inside the mesh folders, and their temporary backups
 .trash/
+
+# The 3D model files come from the verified mesh package (docs/MESH_PACKAGE.md); a download must never be committed.
+# A new model is added on purpose with git add -f and goes into a new revision of the package.
+assets/meshes/**/*.stl
+assets/meshes/**/*.STL
+assets/meshes/**/*.glb
+assets/meshes/**/*.amf
+assets/meshes/**/*.3mf
