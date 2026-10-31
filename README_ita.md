@@ -208,6 +208,10 @@ Copie STL indipendenti per JuanenPnP, JuanenCNC e JuanenLaser; LumenPnP mantiene
 
 Questi modelli originali JuanenPNP / HYDRA-UMC e i sorgenti SCAD sono sotto GPL-3.0; non sono il CAD della macchina Opulo.
 
+### Mesh da un unico pacchetto
+
+`meshes.pack.json` fissa lo SHA-256 di un pacchetto e di ogni mesh condivisa con HYDRA-UMC-STUDIO, e `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) porta le mesh dell'albero a quello stato. L'origine è `local` (predefinita: nulla cambia e nulla viene scaricato), `auto` (si usano le mesh locali quando ci sono tutte; si scaricano solo quelle mancanti) o `download` (ogni mesh è verificata dal suo hash), scelta in `mesh_pack.config.json` o con `HYDRA_UMC_MESH_SOURCE`. Un pacchetto che non corrisponde non installa nulla e sono accettati solo indirizzi `https`; `run.sh` e `run.bat` chiamano il passo silenzioso `prepare`. Messaggi negli otto idiomi. Vedi [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md).
+
 ## 🔒 Sicurezza e protezione
 
 | Minaccia | Difesa | Dove |
@@ -555,6 +559,11 @@ Dove leggere di più:
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** — cosa è reale e verificato end-to-end oggi, rispetto a cosa resta deliberatamente fuori portata.
 * **[installer/README.md](installer/README.md)** — come costruire l'installer `.exe` per Windows e il pacchetto `.deb` per Linux.
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — le mesh 3D come un unico pacchetto con checksum fissato: origini `local`, `auto` e `download`, e i comandi che le verificano e le scaricano.
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — modelli di macchina indipendenti: come si sceglie un modello e a chi appartiene.
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — rack di ingresso e uscita configurabili: configurazione e compatibilità.
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — modelli di piano riscaldato: scelta e dimensioni dei quattro preset.
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — modelli di tavolo a vuoto: come sceglierne uno per un robot.
 * [Base di sicurezza dell'ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [Modello delle minacce dell'ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [Registro delle modifiche di questo repository](CHANGELOG.md)

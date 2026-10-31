@@ -212,6 +212,10 @@ Cópias STL independentes para o JuanenPnP, o JuanenCNC e o JuanenLaser; o Lumen
 
 Estes ativos originais JuanenPNP / HYDRA-UMC e as suas fontes SCAD usam GPL-3.0; não são CAD de máquinas da Opulo.
 
+### Malhas a partir de um único pacote
+
+`meshes.pack.json` fixa o SHA-256 de um pacote e de cada malha partilhada com o HYDRA-UMC-STUDIO, e `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) deixa as malhas da árvore nesse estado. A origem é `local` (por omissão: nada muda e nada é descarregado), `auto` (usam-se as malhas locais quando estão todas; só se descarregam as que faltam) ou `download` (cada malha é verificada pelo seu hash), escolhida em `mesh_pack.config.json` ou com `HYDRA_UMC_MESH_SOURCE`. Um pacote que não coincide não instala nada e só se aceitam endereços `https`; `run.sh` e `run.bat` chamam o passo silencioso `prepare`. Mensagens nos oito idiomas. Ver [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md).
+
 ## 🔒 Segurança e proteção
 
 | Ameaça | Defesa | Onde |
@@ -556,6 +560,11 @@ Onde ler mais:
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** — o que é real e está verificado de ponta a ponta hoje, face ao que continua deliberadamente fora de âmbito.
 * **[installer/README.md](installer/README.md)** — como construir o instalador `.exe` para Windows e o pacote `.deb` para Linux.
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — as malhas 3D como um único pacote com soma de verificação fixada: origens `local`, `auto` e `download`, e os comandos que as verificam e descarregam.
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — modelos de máquina independentes: como se escolhe um modelo e a quem pertence.
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — tabuleiros de entrada e saída configuráveis: configuração e compatibilidade.
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — modelos de cama aquecida: seleção e dimensões das quatro predefinições.
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — modelos de mesa de vácuo: como escolher um para um robô.
 * [Base de segurança do ecossistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [Modelo de ameaças do ecossistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [Registo de alterações deste repositório](CHANGELOG.md)

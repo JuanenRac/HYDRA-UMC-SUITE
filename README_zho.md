@@ -146,6 +146,10 @@ JuanenPnP、JuanenCNC 和 JuanenLaser 使用独立的 STL 副本，LumenPnP 保�
 
 这些原创JuanenPNP / HYDRA-UMC模型及其SCAD源文件采用GPL-3.0；它们不是Opulo机器的CAD文件。
 
+### 网格来自单一软件包
+
+`meshes.pack.json` 固定软件包以及与 HYDRA-UMC-STUDIO 共享的每个网格的 SHA-256，`python -m hydra_suite.mesh_pack`（`status`、`check`、`ensure`、`prepare`）会使目录树中的网格达到该状态。来源为 `local`（默认：不改变任何内容，也不下载任何内容）、`auto`（本地网格齐全时使用本地网格，只获取缺少的）或 `download`（逐个按哈希校验每个网格），在 `mesh_pack.config.json` 中或用 `HYDRA_UMC_MESH_SOURCE` 选择。不匹配的软件包不会安装任何东西，且只接受 `https` 地址；`run.sh` 和 `run.bat` 会调用静默的 `prepare` 步骤。消息有八种语言。参见 [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md)。
+
 ## 🔒 安全与防护
 
 | 威胁 | 防御 | 位置 |
@@ -465,6 +469,11 @@ HYDRA-UMC-SUITE/
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** —— 今天哪些是真实且端到端验证过的，哪些是刻意仍未纳入范围的。
 * **[installer/README.md](installer/README.md)** —— 如何构建 Windows `.exe` 安装程序和 Linux `.deb` 软件包。
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — 以固定校验和的单一软件包提供的 3D 网格：来源 `local`、`auto` 和 `download`，以及检查和获取它们的命令。
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — 独立的机器模型：如何选择模型以及它归谁所有。
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — 可配置的输入和输出料架：配置与兼容性。
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — 热床模型：四个预设的选择和尺寸。
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — 真空台模型：如何为机器人选择。
 * [生态系统的安全基线](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [生态系统的威胁模型](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [本仓库的更新日志](CHANGELOG.md)

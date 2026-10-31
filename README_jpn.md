@@ -146,6 +146,10 @@ JuanenPnP、JuanenCNC、JuanenLaser は独立した STL コピーを使用し、
 
 これらのオリジナルJuanenPNP / HYDRA-UMCモデルとSCADソースはGPL-3.0です。Opulo製マシンのCADではありません。
 
+### メッシュを 1 つのパッケージから
+
+`meshes.pack.json` はパッケージと HYDRA-UMC-STUDIO と共有する各メッシュの SHA-256 を固定し、`python -m hydra_suite.mesh_pack`（`status`、`check`、`ensure`、`prepare`）でツリーのメッシュをその状態にします。取得元は `local`（既定：何も変えず何もダウンロードしない）、`auto`（ローカルのメッシュがすべてあればそれを使い、足りないものだけ取得）、`download`（各メッシュをハッシュで検証）から、`mesh_pack.config.json` または `HYDRA_UMC_MESH_SOURCE` で選びます。一致しないパッケージは何もインストールせず、`https` のアドレスだけを受け付けます。`run.sh` と `run.bat` は静かな `prepare` 手順を呼びます。メッセージは 8 言語です。[`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md) を参照してください。
+
 ## 🔒 セキュリティと安全
 
 | 脅威 | 防御 | 場所 |
@@ -465,6 +469,11 @@ HYDRA-UMC-SUITE/
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** —— 今日の時点で実際にエンドツーエンドで検証済みのものと、意図的にまだ対象外のもの。
 * **[installer/README.md](installer/README.md)** —— Windows 用 `.exe` インストーラーと Linux 用 `.deb` パッケージのビルド方法。
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — チェックサムを固定した 1 つのパッケージとしての 3D メッシュ。取得元 `local`、`auto`、`download` と、検証・取得のコマンド。
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — 独立した機械モデル：モデルの選び方と所有者。
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — 設定可能な入力・出力ラック：設定と互換性。
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — ヒートベッドのモデル：4 つのプリセットの選択と寸法。
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — 真空テーブルのモデル：ロボットに割り当てる方法。
 * [エコシステムのセキュリティ基準](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [エコシステムの脅威モデル](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [このリポジトリの変更履歴](CHANGELOG.md)

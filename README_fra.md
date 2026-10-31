@@ -211,6 +211,10 @@ Copies STL indépendantes pour JuanenPnP, JuanenCNC et JuanenLaser ; LumenPnP co
 
 Ces modèles originaux JuanenPNP / HYDRA-UMC et leurs sources SCAD sont sous GPL-3.0 ; ce ne sont pas les fichiers CAO de la machine Opulo.
 
+### Maillages depuis un seul paquet
+
+`meshes.pack.json` fixe le SHA-256 d'un paquet et de chaque maillage partagé avec HYDRA-UMC-STUDIO, et `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) amène les maillages de l'arbre à cet état. La source est `local` (par défaut : rien ne change et rien n'est téléchargé), `auto` (les maillages locaux sont utilisés quand tous sont présents ; seuls les manquants sont récupérés) ou `download` (chaque maillage est vérifié par son empreinte), choisie dans `mesh_pack.config.json` ou avec `HYDRA_UMC_MESH_SOURCE`. Un paquet qui ne correspond pas n'installe rien et seules les adresses `https` sont acceptées ; `run.sh` et `run.bat` appellent l'étape silencieuse `prepare`. Messages dans les huit langues. Voir [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md).
+
 ## 🔒 Sécurité et protection
 
 | Menace | Défense | Où |
@@ -558,6 +562,11 @@ Où lire la suite :
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** — ce qui est réel et vérifié de bout en bout aujourd'hui, par opposition à ce qui reste délibérément hors périmètre.
 * **[installer/README.md](installer/README.md)** — comment construire l'installateur `.exe` Windows et le paquet `.deb` Linux.
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — les maillages 3D en un seul paquet à somme de contrôle fixée : sources `local`, `auto` et `download`, et les commandes qui les vérifient et les récupèrent.
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — modèles de machine indépendants : comment un modèle est choisi et à qui il appartient.
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — bacs d'entrée et de sortie configurables : configuration et compatibilité.
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — modèles de plateau chauffant : choix et dimensions des quatre préréglages.
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — modèles de table à vide : comment en choisir un pour un robot.
 * [Base de sécurité de l'écosystème](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [Modèle de menaces de l'écosystème](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [Journal des modifications de ce dépôt](CHANGELOG.md)

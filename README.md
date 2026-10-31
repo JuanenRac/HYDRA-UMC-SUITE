@@ -204,6 +204,10 @@ Independent STL copies for JuanenPnP, JuanenCNC and JuanenLaser; LumenPnP stays 
 
 These original JuanenPNP / HYDRA-UMC assets and their SCAD sources use GPL-3.0; they are not Opulo machine CAD.
 
+### Meshes from One Package
+
+`meshes.pack.json` pins the SHA-256 of a package and of every mesh shared with HYDRA-UMC-STUDIO, and `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) brings the meshes of the tree to that state. The source is `local` (the default: nothing changes and nothing is downloaded), `auto` (the local meshes are used when all are present, only the missing ones are fetched) or `download` (every mesh is checked by its hash), chosen in `mesh_pack.config.json` or with `HYDRA_UMC_MESH_SOURCE`. A package that does not match installs nothing and only `https` addresses are accepted; `run.sh` and `run.bat` call the silent `prepare` step. Messages in the eight languages. See [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md).
+
 ## 🔒 Security & Safety
 
 | Threat | Defence | Where |
@@ -546,6 +550,11 @@ Where to read more:
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** — what's real and verified end-to-end today versus what's deliberately still out of scope.
 * **[installer/README.md](installer/README.md)** — building the Windows `.exe` installer and the Linux `.deb` package.
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — the 3D meshes as one package with a pinned checksum: sources `local`, `auto` and `download`, and the commands that check and fetch them.
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — independent machine models: how a model is selected and who owns it.
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — configurable input and output racks: configuration and compatibility.
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — heated bed models: selection and dimensions of the four presets.
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — vacuum table models: how to select one for a robot.
 * [Security baseline of the ecosystem](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [Threat model of the ecosystem](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [Changelog of this repository](CHANGELOG.md)

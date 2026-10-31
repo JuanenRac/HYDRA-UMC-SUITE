@@ -207,6 +207,10 @@ Copias STL independientes para JuanenPnP, JuanenCNC y JuanenLaser; LumenPnP cons
 
 Estos diseños originales JuanenPNP / HYDRA-UMC y sus fuentes SCAD usan GPL-3.0; no son el CAD de la máquina de Opulo.
 
+### Mallas desde un único paquete
+
+`meshes.pack.json` fija el SHA-256 de un paquete y de cada malla compartida con HYDRA-UMC-STUDIO, y `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) deja las mallas del árbol en ese estado. El origen es `local` (por defecto: no cambia nada y no se descarga nada), `auto` (se usan las mallas locales cuando están todas; solo se descargan las que faltan) o `download` (cada malla se comprueba por su hash), elegido en `mesh_pack.config.json` o con `HYDRA_UMC_MESH_SOURCE`. Un paquete que no coincide no instala nada y solo se aceptan direcciones `https`; `run.sh` y `run.bat` llaman al paso silencioso `prepare`. Mensajes en los ocho idiomas. Véase [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md).
+
 ## 🔒 Seguridad y protección
 
 | Amenaza | Defensa | Dónde |
@@ -552,6 +556,11 @@ Dónde leer más:
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** — qué es real y está verificado de extremo a extremo hoy frente a lo que sigue deliberadamente fuera de alcance.
 * **[installer/README.md](installer/README.md)** — cómo construir el instalador `.exe` de Windows y el paquete `.deb` de Linux.
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — las mallas 3D como un único paquete con suma de verificación fijada: orígenes `local`, `auto` y `download`, y los comandos que las comprueban y descargan.
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — modelos de máquina independientes: cómo se elige un modelo y a quién pertenece.
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — bandejas de entrada y salida configurables: configuración y compatibilidad.
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — modelos de cama caliente: selección y dimensiones de los cuatro ajustes preestablecidos.
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — modelos de mesa de vacío: cómo elegir uno para un robot.
 * [Base de seguridad del ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [Modelo de amenazas del ecosistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [Historial de cambios de este repositorio](CHANGELOG.md)

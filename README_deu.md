@@ -207,6 +207,10 @@ Separate STL-Kopien für JuanenPnP, JuanenCNC und JuanenLaser; LumenPnP behält 
 
 Diese originalen JuanenPNP-/HYDRA-UMC-Modelle und ihre SCAD-Quellen stehen unter GPL-3.0; sie sind nicht die Maschinen-CAD-Dateien von Opulo.
 
+### Meshes aus einem Paket
+
+`meshes.pack.json` legt das SHA-256 eines Pakets und jedes mit HYDRA-UMC-STUDIO geteilten Meshes fest, und `python -m hydra_suite.mesh_pack` (`status`, `check`, `ensure`, `prepare`) bringt die Meshes des Baums in diesen Zustand. Die Quelle ist `local` (Standard: nichts ändert sich, nichts wird geladen), `auto` (die lokalen Meshes werden verwendet, wenn alle vorhanden sind; nur fehlende werden geholt) oder `download` (jedes Mesh wird über seinen Hash geprüft), gewählt in `mesh_pack.config.json` oder mit `HYDRA_UMC_MESH_SOURCE`. Ein nicht passendes Paket installiert nichts, und nur `https`-Adressen werden angenommen; `run.sh` und `run.bat` rufen den stillen Schritt `prepare` auf. Meldungen in den acht Sprachen. Siehe [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md).
+
 ## 🔒 Sicherheit und Schutz
 
 | Bedrohung | Abwehr | Wo |
@@ -554,6 +558,11 @@ Hier steht mehr:
 
 * **[docs/ROADMAP.md](docs/ROADMAP.md)** — was heute real und Ende-zu-Ende verifiziert ist, im Vergleich zu dem, was bewusst noch außerhalb des Umfangs liegt.
 * **[installer/README.md](installer/README.md)** — den Windows-`.exe`-Installer und das Linux-`.deb`-Paket bauen.
+* **[docs/MESH_PACKAGE.md](docs/MESH_PACKAGE.md)** — die 3D-Meshes als ein Paket mit festgelegter Prüfsumme: die Quellen `local`, `auto` und `download` und die Befehle zum Prüfen und Holen.
+* **[docs/MACHINE_ASSETS.md](docs/MACHINE_ASSETS.md)** — unabhängige Maschinenmodelle: wie ein Modell gewählt wird und wem es gehört.
+* **[docs/RACK_MODELS.md](docs/RACK_MODELS.md)** — konfigurierbare Ein- und Ausgaberegale: Konfiguration und Kompatibilität.
+* **[docs/HEATED_BED_MODELS.md](docs/HEATED_BED_MODELS.md)** — Heizbett-Modelle: Auswahl und Abmessungen der vier Voreinstellungen.
+* **[docs/VACUUM_TABLE_MODELS.md](docs/VACUUM_TABLE_MODELS.md)** — Vakuumtisch-Modelle: wie man eines für einen Roboter wählt.
 * [Sicherheitsgrundlage des Ökosystems](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
 * [Bedrohungsmodell des Ökosystems](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
 * [Änderungsprotokoll dieses Repositorys](CHANGELOG.md)
