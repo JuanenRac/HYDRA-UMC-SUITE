@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.4] - The history of connections, the exposure and connection switches in the server security screen, the routes the app calls fixed by a test and an updated certificate bundle
+
 - **The certificate bundle is updated:** the pinned certificate-authority bundle moves to its latest release, which fixes a reported weakness in the previous one.
 - **Exposure and connection switches in the server security screen:** four more options of the server appear in one card, "Exposure and logs": open camera pictures, a token in the WebSocket address, blanking of secrets in the log and the signature of a confirmed spoken request. All start on the safe side, show where their value comes from, are locked when the server's environment fixes them, appear only when the server offers all four, send only what changed and ask before a protection is lowered. A fifth switch keeps the address and user agent of each client in the connection history (off by default; turning it on asks first).
 - **Connection history:** the clients panel now also shows the clients the server has seen (kind, user, version, open sessions, sign-ins that worked or were refused, last seen) and the latest sign-ins and sign-outs, read from the connection routes of the server, with a plain message when the server is too old to offer them or the account may not see them. Texts in the eight languages; verified in `tests/verify_server_security.py`.
