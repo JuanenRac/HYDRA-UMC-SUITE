@@ -73,6 +73,15 @@ INSTALL_FIELDS = {
 }
 
 
+#: What came of the last request to the job dispatcher to read its file again. "none": nothing asked yet (no chip).
+RELOAD_STATES: tuple[str, ...] = ("none", "pending", "applied", "failed", "not_configured")
+
+
+def parse_dispatcher_reload(raw: object) -> str:
+    """The state the server reports, or "none" when it predates the field or sends something unknown."""
+    return raw if isinstance(raw, str) and raw in RELOAD_STATES else "none"
+
+
 def _job_dispatcher(raw: object) -> dict | None:
     """The options of the job dispatcher in the answer of the server; None for a server that predates them or answers nonsense."""
     if not isinstance(raw, dict):
@@ -98,6 +107,7 @@ def _job_dispatcher(raw: object) -> dict | None:
         "allow": allow,
         "timeout": timeout,
         "editable": replan.get("editable") is True,
+        "reload": parse_dispatcher_reload(replan.get("reload")),
     }
 
 
@@ -676,6 +686,8 @@ def view(state: dict | None) -> dict:
                 "jdTimeout": f"{job_dispatcher['timeout']['value']:g}",
                 "jdReplanEditable": job_dispatcher["editable"],
                 "jdReplanNote": _("LBL_SECURITY_JD_REPLAN_HELP") if job_dispatcher["editable"] else _("LBL_SECURITY_JD_NOT_EDITABLE"),
+                "jdReloadState": job_dispatcher["reload"],
+                "jdReloadText": "" if job_dispatcher["reload"] == "none" else _("LBL_JD_RELOAD") + ": " + _("LBL_JD_RELOAD_" + job_dispatcher["reload"].upper()),
             }
         )
     connections = state.get("connections")

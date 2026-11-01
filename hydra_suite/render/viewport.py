@@ -184,6 +184,21 @@ class GLMeshBuffer:
         gl.glDeleteVertexArrays(1, [self.vao])
 
 
+class GLResources:
+    """The GL objects every renderer of one GL context can share: the linked program with its uniform locations, the
+    buffers of each mesh set (loaded once per mesh directory, not once per view), the colors of the parts and the
+    frames of the machines. Vertex arrays and buffers belong to one context, so renderers share this only when they
+    draw in the same context (SharedGLContext below); a renderer that owns its own context gets a private one."""
+
+    def __init__(self) -> None:
+        self.program: int | None = None
+        self.uniforms: dict[str, int] = {}
+        self.generic_buffers: list[GLMeshBuffer] = []
+        self.mesh_buffers_by_dir: dict[str, dict[str, GLMeshBuffer]] = {}
+        self.part_colors_by_dir: dict[str, dict[str, str]] = {}
+        self.machine_frames: dict = {}
+
+
 class RobotGLRenderer:
     """Every real GL call and every piece of pose/camera state for the 3D
     viewport - genuinely context-agnostic. `make_current`/`done_current`
@@ -194,9 +209,10 @@ class RobotGLRenderer:
     renderer belongs to - see RobotViewport/qt_suite.py's own
     OffscreenRobotRenderer for the two real owners."""
 
-    def __init__(self, make_current: Callable[[], None], done_current: Callable[[], None]):
+    def __init__(self, make_current: Callable[[], None], done_current: Callable[[], None], resources: GLResources | None = None):
         self._make_current = make_current
         self._done_current = done_current
+        self._resources = resources if resources is not None else GLResources()
 
         self._program: int | None = None
         self._gl_ready = False
@@ -212,11 +228,11 @@ class RobotGLRenderer:
         # model - no point re-uploading identical geometry to the GPU for
         # each one) rather than eagerly loading all 9 robots' meshes at
         # startup, most of which may never be viewed in a given session.
-        self._mesh_buffers_by_dir: dict[str, dict[str, GLMeshBuffer]] = {}
+        self._mesh_buffers_by_dir = self._resources.mesh_buffers_by_dir
         # Real per-part color overrides (part_colors.py) - loaded once per
         # mesh_dir alongside its own mesh set in _load_mesh_set(), same
         # cache-once discipline STUDIO's own usePartColors.ts documents.
-        self._part_colors_by_dir: dict[str, dict[str, str]] = {}
+        self._part_colors_by_dir = self._resources.part_colors_by_dir
         # Generic rig: one buffer per SEGMENTS index, built once (fixed
         # geometry - only the pose changes frame to frame).
         self._generic_buffers: list[GLMeshBuffer] = []
@@ -249,7 +265,7 @@ class RobotGLRenderer:
         # mesh-loading/draw path genuinely differs (real STL set vs.
         # primitives built from Segment).
         self._pnp_machine_type: str | None = None
-        self._machine_frames: dict = {}
+        self._machine_frames = self._resources.machine_frames
         self._pnp_pose: tuple[float, float, float, float, float] = (0.0, 0.0, 0.0, 0.0, 0.0)
         self._pending_pnp_mesh_load = False
 
@@ -443,16 +459,22 @@ class RobotGLRenderer:
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glClearColor(1.0, 1.0, 1.0, 1.0)  # white 3D viewport background, per explicit request
 
-        self._program = self._compile_program(VERTEX_SHADER, FRAGMENT_SHADER)
-        self._uniforms = {
-            name: gl.glGetUniformLocation(self._program, name)
-            for name in ("uModel", "uView", "uProjection", "uNormalMatrix", "uBaseColor", "uCameraPos")
-        }
-
-        self._generic_buffers = [
-            GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
-            for seg in SEGMENTS
-        ]
+        # The program and the buffers of the generic rig are built once per context: a second renderer of the same
+        # context uses the ones the first one made.
+        res = self._resources
+        if res.program is None:
+            res.program = self._compile_program(VERTEX_SHADER, FRAGMENT_SHADER)
+            res.uniforms = {
+                name: gl.glGetUniformLocation(res.program, name)
+                for name in ("uModel", "uView", "uProjection", "uNormalMatrix", "uBaseColor", "uCameraPos")
+            }
+            res.generic_buffers = [
+                GLMeshBuffer(make_cylinder_mesh(*seg.size) if seg.kind == "cylinder" else make_box_mesh(*seg.size))
+                for seg in SEGMENTS
+            ]
+        self._program = res.program
+        self._uniforms = res.uniforms
+        self._generic_buffers = res.generic_buffers
 
         self._gl_ready = True
         if self._pending_module_rebuild:
@@ -462,11 +484,11 @@ class RobotGLRenderer:
             ]
             self._pending_module_rebuild = False
         if self._pending_pnp_mesh_load:
-            if self._pnp_machine_type is not None:
+            if self._pnp_machine_type is not None and machine_mesh_dir(self._pnp_machine_type) not in self._mesh_buffers_by_dir:
                 self._load_mesh_set(machine_mesh_dir(self._pnp_machine_type), PNP_ALL_MESH_NAMES, PNP_ALL_MESH_FILES)
             self._pending_pnp_mesh_load = False
         entry = ROBOT_REGISTRY[self._model_name]
-        if entry.family in ("ur", "quat"):
+        if entry.family in ("ur", "quat") and entry.mesh_dir not in self._mesh_buffers_by_dir:
             self._load_mesh_set(entry.mesh_dir, entry.link_names, entry.mesh_files)
 
     def resize_gl(self, w: int, h: int) -> None:
@@ -608,26 +630,26 @@ class RobotGLRenderer:
         return program
 
 
-class OffscreenRobotRenderer:
-    """The Qt Quick shell's own real render path for the 3D Viewport
-    panel - a genuinely separate QOpenGLContext/QOffscreenSurface/
-    QOpenGLFramebufferObject, entirely independent of Qt Quick's own
-    scenegraph (which defaults to Direct3D11 on Windows, not OpenGL).
-    Reuses RobotGLRenderer's exact real rendering code rather than a
-    second, drifting copy - see this module's own header. Deliberately
-    NOT Qt Quick's own QQuickFramebufferObject: that API requires the
-    whole app's Quick backend forced onto OpenGL (QQuickWindow's own
-    graphics API is a real, global, one-shot choice made before any
-    window exists) just to support this one panel, and needs real
-    same-API GPU resource sharing with Quick's own render thread. This
-    class trades a same-thread glReadPixels() round trip (real, but
-    cheap for a robot preview - not a 60fps game) for zero backend/
-    threading risk to the rest of this app: every render() call happens
-    synchronously on the calling (GUI/asyncio) thread, right after a
-    real state mutation, with no window ever created for this context -
-    the result is a plain QImage the caller hands to QML through the
-    same real QQuickImageProvider pattern CameraFrameProvider already
-    uses for live camera frames."""
+class SharedGLContext:
+    """The one offscreen OpenGL context every 3D view of the interface draws in. Each view used to create a context of
+    its own (a surface, a context, a compiled program and a full copy of the meshes); with about nine views that was
+    nine copies of the same geometry on the graphics card. Now they draw one after the other in this context, each
+    into its own framebuffer, and share the program and the mesh buffers (`resources`). Everything runs on the thread
+    of the interface, so nothing needs a lock; the counter makes make_current / done_current nest."""
+
+    _instance: "SharedGLContext | None" = None
+
+    @classmethod
+    def get(cls) -> "SharedGLContext":
+        # Kept on this class even when a subclass asks, so there is only ever one.
+        if SharedGLContext._instance is None:
+            SharedGLContext._instance = cls()
+        return SharedGLContext._instance
+
+    @classmethod
+    def reset(cls) -> None:
+        """Forgets the context (at shutdown, and in the checks); the next view creates a new one."""
+        SharedGLContext._instance = None
 
     def __init__(self) -> None:
         fmt = QSurfaceFormat()
@@ -639,33 +661,47 @@ class OffscreenRobotRenderer:
         self._surface.setFormat(fmt)
         self._surface.create()
         if not self._surface.isValid():
-            raise RuntimeError("Failed to create an offscreen surface for the 3D Viewport panel")
+            raise RuntimeError("Failed to create an offscreen surface for the 3D views")
 
         self._context = QOpenGLContext()
         self._context.setFormat(fmt)
         if not self._context.create():
-            raise RuntimeError("Failed to create an offscreen OpenGL context for the 3D Viewport panel")
+            raise RuntimeError("Failed to create an offscreen OpenGL context for the 3D views")
 
+        self.resources = GLResources()
+        # Only the outermost make_current / done_current pair touches the real context. Letting an inner doneCurrent() run
+        # and making the context current again a moment later left it in a state where the next framebuffer object
+        # construction segfaulted (found by bisecting a minimal script, not guessed).
+        self._current_depth = 0
+
+    def make_current(self) -> None:
+        if self._current_depth == 0:
+            self._context.makeCurrent(self._surface)
+        self._current_depth += 1
+
+    def done_current(self) -> None:
+        self._current_depth -= 1
+        if self._current_depth == 0:
+            self._context.doneCurrent()
+
+
+class OffscreenRobotRenderer:
+    """The Qt Quick shell's own real render path for a 3D view: a framebuffer of its own in the one shared offscreen
+    context (SharedGLContext), independent of Qt Quick's own scene graph (which defaults to Direct3D11 on Windows,
+    not OpenGL). Reuses RobotGLRenderer's exact rendering code rather than a second, drifting copy - see this
+    module's own header. Deliberately NOT Qt Quick's own QQuickFramebufferObject: that API requires the whole
+    app's Quick backend forced onto OpenGL (a global, one-shot choice made before any window exists) just to
+    support these panels. This class trades a same-thread read-back (cheap for a robot preview - not a 60fps game)
+    for zero backend or threading risk to the rest of the app: every render() call happens synchronously on the
+    calling thread, right after a real state change, and the result is a plain QImage the caller hands to QML
+    through an image provider, the pattern CameraFrameProvider already uses for live camera frames."""
+
+    def __init__(self) -> None:
+        self._shared = SharedGLContext.get()
         self._fbo: QOpenGLFramebufferObject | None = None
         self._width = 640
         self._height = 480
-        # Real, reproducible bug found here (not a theory): initialize_gl()
-        # for the real default model (UR5e, "ur" family) triggers its own
-        # nested make_current()/done_current() cycle via _load_mesh_set()
-        # (RobotGLRenderer's real, pre-existing lazy-mesh-load path, also
-        # used correctly by the QOpenGLWidget side). Against THIS class's
-        # own standalone QOpenGLContext/QOffscreenSurface pair specifically
-        # (not the widget's own Qt-managed context), letting that inner
-        # doneCurrent() actually run and then re-running makeCurrent() a
-        # moment later left the context in a state where the very next
-        # QOpenGLFramebufferObject construction segfaults - confirmed by
-        # bisecting a real, minimal repro script line by line, not a
-        # guess. A simple reentrancy counter - only the OUTERMOST
-        # make_current()/done_current() pair here ever touches the real
-        # context - fixes it for real.
-        self._current_depth = 0
-
-        self._renderer = RobotGLRenderer(self._make_current, self._done_current)
+        self._renderer = RobotGLRenderer(self._make_current, self._done_current, self._shared.resources)
         self._make_current()
         try:
             self._renderer.initialize_gl()
@@ -674,14 +710,10 @@ class OffscreenRobotRenderer:
             self._done_current()
 
     def _make_current(self) -> None:
-        if self._current_depth == 0:
-            self._context.makeCurrent(self._surface)
-        self._current_depth += 1
+        self._shared.make_current()
 
     def _done_current(self) -> None:
-        self._current_depth -= 1
-        if self._current_depth == 0:
-            self._context.doneCurrent()
+        self._shared.done_current()
 
     def _ensure_fbo(self) -> None:
         if self._fbo is not None and self._fbo.size().width() == self._width and self._fbo.size().height() == self._height:
@@ -715,6 +747,8 @@ class OffscreenRobotRenderer:
         try:
             self._ensure_fbo()
             self._fbo.bind()
+            # The context is shared: another view may have left its own viewport behind.
+            self._renderer.resize_gl(self._width, self._height)
             self._renderer.paint_gl()
             self._fbo.release()
             return self._fbo.toImage()

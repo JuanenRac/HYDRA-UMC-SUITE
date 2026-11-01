@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The state of the reload of the job dispatcher in Server Admin:** next to the replanning options a line says what came of the request to read the dispatcher file again (pending, applied, failed or not configured), read from `jobDispatcher.replan.reload`, in the eight languages; after a save the screen asks the server again every two seconds until the dispatcher has answered.
+- **One module for the session of a server:** who is signed in, the token and the refresh token, the role, the refusal of the credentials and the wait the login limiter asks for are one object (`net/session.py`) with the rules that read it, instead of loose fields of the connection changed from half a dozen places.
+- **Local and global settings by role:** an account that is not an administrator no longer sees the screens that change the global settings (modules, racks, cameras, the models of the catalog) as if it could use them: they are greyed out with a note saying that only an administrator changes them.
+- **The edits of a robot as commands:** enabling, resetting and resizing the XY table is sent as the `xyTableConfig` command, under the reservation and If-Match rules of every other command, instead of rewriting the whole settings tree where the last writer wins; a server that predates the command gets the tree as before. The plan that decides which commands say a change (`robot_edits.py`) is the one HYDRA-UMC-STUDIO makes.
+- **One scheduler for the pollers:** the ten timers that asked the server for what a screen shows are jobs of one scheduler (`scheduler.py`) driven by a single timer, and only the jobs of the screen on view run.
+- **One GL context for the 3D views:** the views draw one after the other in a single offscreen context and share the program and the buffers of every mesh set, instead of each view creating a context and loading its own copy of the meshes.
+- **One table of joint ranges and home poses:** `assets/kinematic_data.json` is read by this program and by HYDRA-UMC-STUDIO instead of two tables typed by hand; a check compares it with the kinematics of every model and, when both repositories sit side by side, with the copy of STUDIO.
+
 ## [0.7.7] - A Planning and operation screen under Ecosystem and the job dispatcher options in Server Admin
 
 - **A Planning and operation screen under Ecosystem:** the same five functions as STUDIO (dry run of a plan, estimates of the job dispatcher, remaining useful life, reader of `train plan --json`, state of the window statistics of the data lake), with the same checks, in the eight languages. The client only makes those exact requests through the relay of the server.

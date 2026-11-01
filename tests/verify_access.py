@@ -184,8 +184,8 @@ def live_sim():
 def joints():
     check("joints: a model with a published range", joint_range_deg("Parol6 (6-DOF)", "j1"), (-97.4, 187.4))
     check("joints: another", joint_range_deg("UR3e (6-DOF)", "j3"), (-180.0, 180.0))
-    check("joints: a model without one gets the generic range", (joint_range_deg("Z1 (6-DOF)", "j1"), joint_range_deg(None, "j2")), (GENERIC_RANGE_DEG, GENERIC_RANGE_DEG))
-    check("joints: twelve models have a table of six joints", (len(JOINT_LIMITS_DEG), {len(v) for v in JOINT_LIMITS_DEG.values()}), (12, {6}))
+    check("joints: a model without one gets the generic range", (joint_range_deg("Generic (6-DOF)", "j1"), joint_range_deg(None, "j2")), (GENERIC_RANGE_DEG, GENERIC_RANGE_DEG))
+    check("joints: every model of the shared file has a table of six joints", (len(JOINT_LIMITS_DEG), {len(v) for v in JOINT_LIMITS_DEG.values()}), (24, {6}))
     check("joints: clamped to the range", (clamp_joint("Parol6 (6-DOF)", "j1", 500), clamp_joint("Parol6 (6-DOF)", "j1", -500), clamp_joint("Parol6 (6-DOF)", "j1", 10)), (187.4, -97.4, 10))
     check("joints: every range is ordered", all(low < high for table in JOINT_LIMITS_DEG.values() for low, high in table.values()), True)
 

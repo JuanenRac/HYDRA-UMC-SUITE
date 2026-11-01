@@ -16,12 +16,14 @@ HydraConnection, so a check can exercise it without a window.
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 import json
 import os
 import random
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,7 +35,8 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickImageProvider
 from PySide6.QtQuickControls2 import QQuickStyle
 
-from hydra_suite import __version__, access, logging_handler
+from hydra_suite import __version__, access, logging_handler, robot_edits
+from hydra_suite.scheduler import TICK_MS as SCHEDULER_TICK_MS, PollScheduler
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
 from hydra_suite.can_ota import (
     GITHUB_FIRMWARE_REPO,
@@ -160,6 +163,11 @@ _MODULE_CONFIGS: dict[str, dict[str, object]] = {
 }
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
+# The screens whose controls change global settings (the settings tree, which the server takes from an administrator only).
+_SETTINGS_PANELS = frozenset({"xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "robots_catalog"})
+# While the dispatcher has not answered the request to read its file again: seconds between two questions to the server, and how many times at most.
+_RELOAD_POLL_S = 2.0
+_RELOAD_POLL_TRIES = 8
 _ACCESS_POLL_MS = 10000
 #: A reservation of this program is renewed when it has less than this left.
 _CLAIM_RENEW_BELOW_S = 90
@@ -428,12 +436,15 @@ class SuiteQtBridge(QObject):
         self._connection_events: list[dict] = []
         self._connection_status_text = ""
         self._admin_clients_status_text = _("MSG_ADMIN_ONLY")
-        self._admin_clients_timer = QTimer(self)
-        self._admin_clients_timer.setInterval(_ADMIN_CLIENTS_POLL_MS)
-        self._admin_clients_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_admin_clients()))
-        self._admin_clients_tick_timer = QTimer(self)
-        self._admin_clients_tick_timer.setInterval(1000)
-        self._admin_clients_tick_timer.timeout.connect(self.changed.emit)
+        # One scheduler for every poller (hydra_suite/scheduler.py): a single timer of the interface drives all of them, and
+        # only the jobs of the screen on view are started (see _apply_poller_gates).
+        self._scheduler = PollScheduler()
+        self._scheduler_timer = QTimer(self)
+        self._scheduler_timer.setInterval(SCHEDULER_TICK_MS)
+        self._scheduler_timer.timeout.connect(self._scheduler.tick)
+        self._scheduler_timer.start()
+        self._admin_clients_timer = self._scheduler.add("admin_clients", _ADMIN_CLIENTS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_admin_clients()))
+        self._admin_clients_tick_timer = self._scheduler.add("admin_clients_clock", 1000, self.changed.emit)
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_clients()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
@@ -449,9 +460,7 @@ class SuiteQtBridge(QObject):
         self._admin_logs_cleared_anchor: str | None = None
         self._admin_logs_cleared_at_empty = False
         self._admin_logs_status_text = _("MSG_ADMIN_ONLY")
-        self._admin_logs_timer = QTimer(self)
-        self._admin_logs_timer.setInterval(_ADMIN_LOGS_POLL_MS)
-        self._admin_logs_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_admin_logs()))
+        self._admin_logs_timer = self._scheduler.add("admin_logs", _ADMIN_LOGS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_admin_logs()))
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_logs()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_logs()))
         asyncio.ensure_future(self._refresh_admin_logs())
@@ -599,9 +608,7 @@ class SuiteQtBridge(QObject):
         self._camera_recording_ids: set[int] = set()
         self._camera_capture_error: str = ""
         controller.active_state_changed.connect(self._on_cameras_state_changed)
-        self._camera_status_timer = QTimer(self)
-        self._camera_status_timer.setInterval(3000)
-        self._camera_status_timer.timeout.connect(lambda: asyncio.ensure_future(self._poll_camera_status()))
+        self._camera_status_timer = self._scheduler.add("camera_status", 3000, lambda: asyncio.ensure_future(self._poll_camera_status()))
         # -- real Camera Media parity gap closed - see the former camera_media panel's
         # own header comment for the full "why this parses frames itself"
         # reasoning; this reuses the exact same parse_mjpeg_frames() (never
@@ -703,20 +710,14 @@ class SuiteQtBridge(QObject):
         # -- Access: reservations, Live / Sim and the arming of the jog of the selected robot. The reservations and
         # the limits are read from the server every 10 seconds while the Robot Control screen is open. --
         self._access_busy = False
-        self._access_robot_timer = QTimer(self)
-        self._access_robot_timer.setInterval(_ACCESS_POLL_MS)
-        self._access_robot_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
-        self._access_tick_timer = QTimer(self)
-        self._access_tick_timer.setInterval(1000)
-        self._access_tick_timer.timeout.connect(self.changed.emit)
+        self._access_robot_timer = self._scheduler.add("access_robot", _ACCESS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
+        self._access_tick_timer = self._scheduler.add("access_clock", 1000, self.changed.emit)
 
         # -- Safety limits (administrators): the form is edited in QML; this keeps what the server holds. --
         self._safety_message = ""
         self._safety_error = ""
         self._safety_loading = False
-        self._safety_timer = QTimer(self)
-        self._safety_timer.setInterval(_ACCESS_POLL_MS)
-        self._safety_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
+        self._safety_timer = self._scheduler.add("safety_limits", _ACCESS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
         self._safety_version = 0
         self._safety_form_cache: dict = {}
         # The server pushes the reservations when they change: the screen follows at once.
@@ -774,20 +775,14 @@ class SuiteQtBridge(QObject):
         self._supervisor_status = _("LBL_ES_NO_ACTIVE_SERVER")
         self._supervisor_live = ""
         self._supervisor_version = 0
-        self._supervisor_timer = QTimer(self)
-        self._supervisor_timer.setInterval(supervisor_logic.POLL_MS)
-        self._supervisor_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_supervisor()))
+        self._supervisor_timer = self._scheduler.add("system_supervisor", supervisor_logic.POLL_MS, lambda: asyncio.ensure_future(self._refresh_supervisor()))
         controller.active_connection_changed.connect(self._on_supervisor_connection_changed)
         # -- Ecosystem health (GET /api/ecosystem/health): the last good answer stays on screen while a later read fails. --
         self._eco_health: dict | None = None
         self._eco_health_filter = "all"
         self._eco_health_status = ""
-        self._eco_health_timer = QTimer(self)
-        self._eco_health_timer.setInterval(ecosystem_health.POLL_MS)
-        self._eco_health_timer.timeout.connect(lambda: asyncio.ensure_future(self._refresh_eco_health()))
-        self._eco_health_tick = QTimer(self)
-        self._eco_health_tick.setInterval(1000)
-        self._eco_health_tick.timeout.connect(self.changed.emit)
+        self._eco_health_timer = self._scheduler.add("ecosystem_health", ecosystem_health.POLL_MS, lambda: asyncio.ensure_future(self._refresh_eco_health()))
+        self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self.changed.emit)
         controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
         self._apply_poller_gates()
 
@@ -1461,6 +1456,19 @@ class SuiteQtBridge(QObject):
                     await conn.refresh_access(robot_id)
         self._safety_version += 1
         self.changed.emit()
+
+    # -- Local and global settings by role -------------------------------------------
+
+    @Property(bool, notify=changed)
+    def canEditSettings(self) -> bool:
+        """Whether the account of the active server may change the global settings. Without a server there is nothing to refuse."""
+        conn = self._controller.active_connection
+        return conn is None or conn.may_edit_settings
+
+    @Property(bool, notify=changed)
+    def settingsLocked(self) -> bool:
+        """True on a screen that changes global settings (modules, racks, cameras, models of the catalog...) for an account that may not."""
+        return self._active_key in _SETTINGS_PANELS and not self.canEditSettings
 
     # -- Safety limits (administrators) ----------------------------------------------
 
@@ -3369,7 +3377,31 @@ class SuiteQtBridge(QObject):
                     self._security_state = state
                 self._security_warning = server_security.known_warning(body.get("warnings"))
                 self._security_message = _("SECURITY_SAVED")
+                if self._dispatcher_reload_pending():
+                    asyncio.ensure_future(self._follow_dispatcher_reload())
         self.changed.emit()
+
+    def _dispatcher_reload_pending(self) -> bool:
+        state = self._security_state
+        return bool(state and state.get("jobDispatcher") and state["jobDispatcher"].get("reload") == "pending")
+
+    async def _follow_dispatcher_reload(self) -> None:
+        """While the dispatcher has not answered the request to read its file again, asks the server again every
+        _RELOAD_POLL_S seconds (a few times at most); only the state of the chip changes, not what is being edited."""
+        for _attempt in range(_RELOAD_POLL_TRIES):
+            await asyncio.sleep(_RELOAD_POLL_S)
+            conn = self._controller.active_connection
+            if conn is None or not conn.is_admin:
+                return
+            result = await conn.fetch_admin_server_config()
+            if result is None or result[0] != 200 or not isinstance(result[1], dict):
+                continue
+            state = server_security.parse_state(result[1])
+            if state is not None:
+                self._security_state = state
+                self.changed.emit()
+            if not self._dispatcher_reload_pending():
+                return
 
     @Slot(str)
     def saveAdminServerPort(self, text: str) -> None:
@@ -3808,6 +3840,22 @@ class SuiteQtBridge(QObject):
     def setXyJogStep(self, value: float) -> None:
         self._xy_jog_step_mm = value
 
+    def _edit_robot(self, robot: RobotView, updates: dict, mutate: Callable[[RobotView], None]) -> None:
+        """Changes the data of a robot the way the server takes it: as the commands of hydra_suite/robot_edits.py, carried out
+        under the reservation and If-Match rules of every command, and only what no command covers through the settings
+        tree. A server that predates the commands, or an edit none of them covers, uses the tree as before."""
+        conn = self._controller.active_connection
+        plan = robot_edits.plan_robot_edits(robot.raw, updates)
+        if conn is None or not conn.has_edit_commands or not plan.commands:
+            mutate(robot)
+            self._controller.push_active_state()
+            return
+        for name, params in plan.commands:
+            self._controller.send_robot_command(robot.id, name, params, mutate)
+        if plan.rest:
+            mutate(robot)
+            self._controller.push_active_state()
+
     @Slot()
     def enableXyTable(self) -> None:
         robot = self._xy_selected_robot()
@@ -3816,8 +3864,7 @@ class SuiteQtBridge(QObject):
         # Matches XYTableConfig.tsx's own handleAddTable() exactly: only
         # the flag, no xyTable block yet - see the former xy_table panel's
         # header for why.
-        robot.set_has_xy_table(True)
-        self._controller.push_active_state()
+        self._edit_robot(robot, {"hasXYTable": True}, lambda r: r.set_has_xy_table(True))
         self.changed.emit()
 
     @Slot()
@@ -3825,8 +3872,7 @@ class SuiteQtBridge(QObject):
         robot = self._xy_selected_robot()
         if robot is None:
             return
-        robot.set_has_xy_table(False)
-        self._controller.push_active_state()
+        self._edit_robot(robot, {"hasXYTable": False}, lambda r: r.set_has_xy_table(False))
         self.changed.emit()
 
     @Slot()
@@ -3834,8 +3880,8 @@ class SuiteQtBridge(QObject):
         robot = self._xy_selected_robot()
         if robot is None:
             return
-        robot.set_xy_table(_default_xy_table())
-        self._controller.push_active_state()
+        default_table = _default_xy_table()
+        self._edit_robot(robot, {"xyTable": default_table}, lambda r: r.set_xy_table(copy.deepcopy(default_table)))
         self.changed.emit()
 
     @Slot(int)
@@ -3846,9 +3892,9 @@ class SuiteQtBridge(QObject):
         table = robot.xy_table
         if not table:
             return  # matches XYTableConfig.tsx's own handleSizeChange() no-op guard
-        table["tableSize"]["width"] = value
-        robot.set_xy_table(table)
-        self._controller.push_active_state()
+        resized = copy.deepcopy(table)
+        resized["tableSize"]["width"] = value
+        self._edit_robot(robot, {"xyTable": resized}, lambda r: r.set_xy_table(copy.deepcopy(resized)))
         self.changed.emit()
 
     @Slot(int)
@@ -3859,9 +3905,9 @@ class SuiteQtBridge(QObject):
         table = robot.xy_table
         if not table:
             return
-        table["tableSize"]["length"] = value
-        robot.set_xy_table(table)
-        self._controller.push_active_state()
+        resized = copy.deepcopy(table)
+        resized["tableSize"]["length"] = value
+        self._edit_robot(robot, {"xyTable": resized}, lambda r: r.set_xy_table(copy.deepcopy(resized)))
         self.changed.emit()
 
     @Slot(str, int)

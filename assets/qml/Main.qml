@@ -566,10 +566,24 @@ ApplicationWindow {
         Card {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Text {
+                objectName: "settingsLockedNote"
+                visible: suiteBackend.settingsLocked
+                text: suiteBackend.uiText("LBL_SETTINGS_ADMIN_ONLY")
+                color: "#fbbf24"
+                font.bold: true
+                font.pixelSize: 11
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 6
+                z: 10
+            }
             Loader {
                 id: contentLoader
                 anchors.fill: parent
                 anchors.margins: 16
+                enabled: !suiteBackend.settingsLocked
+                opacity: suiteBackend.settingsLocked ? 0.6 : 1.0
                 sourceComponent: {
                     if (suiteBackend.activePanel === "logs") return logsComponent
                     if (suiteBackend.activePanel === "overview") return overviewComponent
@@ -1951,6 +1965,14 @@ ApplicationWindow {
                             text: suiteBackend.securityView.jdTimeout
                         }
                         Text { text: suiteBackend.securityView.jdReplanNote; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text {
+                            objectName: "securityJdReloadChip"
+                            visible: suiteBackend.securityView.jdReloadState !== undefined && suiteBackend.securityView.jdReloadState !== "none"
+                            text: suiteBackend.securityView.jdReloadText || ""
+                            font.bold: true
+                            font.pixelSize: 10
+                            color: suiteBackend.securityView.jdReloadState === "applied" ? "#34d399" : (suiteBackend.securityView.jdReloadState === "failed" ? "#f87171" : (suiteBackend.securityView.jdReloadState === "pending" ? "#fbbf24" : "#94a3b8"))
+                        }
                         Button {
                             objectName: "securityJdSave"
                             text: suiteBackend.uiText("BTN_SAVE")

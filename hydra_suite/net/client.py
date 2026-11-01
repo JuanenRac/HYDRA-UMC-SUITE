@@ -37,11 +37,12 @@ import httpx
 import websockets
 from PySide6.QtCore import QObject, Signal
 
-from hydra_suite import __version__, access, command_sequence
+from hydra_suite import __version__, access, command_sequence, robot_edits
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic.totp import normalize_code
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
+from hydra_suite.net.session import Session
 
 logger = logging.getLogger(__name__)
 
@@ -296,41 +297,9 @@ class HydraConnection(QObject):
         # implies) - GET has no such requirement, so a connection with no
         # token can still read state, but every write 401s and the WebSocket
         # upgrade is rejected outright (code 1008) until login() succeeds.
-        self._token: str | None = None
-        # Opaque refresh token from /api/login - exchanged at /api/refresh for
-        # a new access token when the JWT expires, so a station left open for
-        # days keeps control without asking for the password again.
-        self._refresh_token: str | None = None
+        # Who is signed in and with which token: one object (net/session.py), read through the properties below.
+        self.session = Session()
         self._renew_lock = asyncio.Lock()
-        # True once the server answered a login with 401/403 (or there are no
-        # credentials to send): retrying the same credentials only burns the
-        # server's login rate limit, so the reconnect loop waits for the
-        # operator to edit them (which reconnects from scratch).
-        self._login_rejected = False
-        # The code of the second step, typed by the operator for the next sign-in only: it is sent once and forgotten
-        # (a code works once), and it is never saved. `needs_totp` is set when the server asked for it.
-        self.totp_code = ""
-        self.needs_totp = False
-        # None = never attempted yet, then True/False after every login()
-        # call - lets the server list show a real per-server "login failed"
-        # state instead of every non-active server just sitting at whatever
-        # the row said when it was first added (see
-        # the former server browser's own use of this).
-        self.login_ok: bool | None = None
-        # Set only when the server's own login rate limiter (server.ts's
-        # loginRateLimiter, default 5 attempts/15min/IP) rejects a login
-        # with 429 - see login()'s own comment for the real bug this fixes:
-        # _run()'s reconnect loop used to retry login() every
-        # RECONNECT_DELAY_S regardless of WHY it failed, exhausting that
-        # budget in ~15s and then looking "broken" for the full lockout
-        # window on every server this app connected to.
-        self._login_retry_after_s: float | None = None
-        # This session's role ('admin' | 'operator'), from /api/login's own
-        # response - same field HYDRA-UMC STUDIO's store.tsx now reads too
-        # (decodeJwtRole()). Gates the Ecosystem > Connected Apps / Server
-        # Logs / Server Admin panels the same way server.ts's own
-        # requireAdmin already gates their backing routes.
-        self.role: str | None = None
         # Per-robot generation counter guarding send_command()'s own
         # rollback-on-failure - see that method's own comment and its
         # HYDRA-UMC-IOS-CONTROL/ANDROID-CONTROL/DSI/STUDIO equivalents for
@@ -374,10 +343,78 @@ class HydraConnection(QObject):
         self.last_canota_progress: dict | None = None  # the latest progress line of a CAN flash cycle, None before the first
         # Whether the server was last seen to understand the "table" command (true until it says otherwise).
         self.has_table_command = True
+        # Whether the server was last seen to understand the edit commands of a robot (points, loop, model, role, combine,
+        # joints, xyTableConfig: hydra_suite/robot_edits.py); true until it says otherwise, then the settings tree carries them.
+        self.has_edit_commands = True
 
     @property
     def is_connected(self) -> bool:
         return self._ws is not None and not self._closing
+
+    # The fields of the session, under the names the rest of the program has always read.
+    @property
+    def _token(self) -> str | None:
+        return self.session.token
+
+    @_token.setter
+    def _token(self, value: str | None) -> None:
+        self.session.token = value
+
+    @property
+    def _refresh_token(self) -> str | None:
+        return self.session.refresh_token
+
+    @_refresh_token.setter
+    def _refresh_token(self, value: str | None) -> None:
+        self.session.refresh_token = value
+
+    @property
+    def role(self) -> str | None:
+        return self.session.role
+
+    @role.setter
+    def role(self, value: str | None) -> None:
+        self.session.role = value
+
+    @property
+    def login_ok(self) -> bool | None:
+        return self.session.login_ok
+
+    @login_ok.setter
+    def login_ok(self, value: bool | None) -> None:
+        self.session.login_ok = value
+
+    @property
+    def _login_rejected(self) -> bool:
+        return self.session.login_rejected
+
+    @_login_rejected.setter
+    def _login_rejected(self, value: bool) -> None:
+        self.session.login_rejected = value
+
+    @property
+    def _login_retry_after_s(self) -> float | None:
+        return self.session.login_retry_after_s
+
+    @_login_retry_after_s.setter
+    def _login_retry_after_s(self, value: float | None) -> None:
+        self.session.login_retry_after_s = value
+
+    @property
+    def totp_code(self) -> str:
+        return self.session.totp_code
+
+    @totp_code.setter
+    def totp_code(self, value: str) -> None:
+        self.session.totp_code = value
+
+    @property
+    def needs_totp(self) -> bool:
+        return self.session.needs_totp
+
+    @needs_totp.setter
+    def needs_totp(self, value: bool) -> None:
+        self.session.needs_totp = value
 
     async def login(self) -> bool:
         """POSTs /api/login using self.info.username/password, stores the
@@ -455,31 +492,26 @@ class HydraConnection(QObject):
             self.login_changed.emit(False, detail)
             return False
         self._login_retry_after_s = None
-        if not isinstance(data, dict):
-            data = {}
-        token = data.get("token")
-        if not token:
+        if not self.session.accept_login(data):
             detail = _("MSG_NET_LOGIN_NO_TOKEN")
             self.login_ok = False
             self.error.emit(detail)
             self.login_changed.emit(False, detail)
             return False
-        self._token = token
-        refresh = data.get("refreshToken")
-        self._refresh_token = refresh if isinstance(refresh, str) and refresh else None
-        self._login_rejected = False
-        self.role = data.get("role") if isinstance(data.get("role"), str) else None
-        self.needs_totp = False
-        self.login_ok = True
         self.login_changed.emit(True, "")
         return True
 
     @property
     def is_admin(self) -> bool:
-        return self.role == "admin"
+        return self.session.is_admin
+
+    @property
+    def may_edit_settings(self) -> bool:
+        """Whether this account may change the global settings (an operator or a viewer may not: the server refuses it)."""
+        return self.session.may_edit_settings
 
     def _auth_headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        return self.session.auth_headers()
 
     def auth_headers(self) -> dict[str, str]:
         """Public: the bearer header for requests made outside this class
@@ -503,16 +535,9 @@ class HydraConnection(QObject):
                     body = resp.json() if resp.status_code == 200 else None
                 except (httpx.HTTPError, ValueError):
                     body = None
-                if isinstance(body, dict) and isinstance(body.get("token"), str) and body["token"]:
-                    self._token = body["token"]
-                    new_refresh = body.get("refreshToken")
-                    if isinstance(new_refresh, str) and new_refresh:
-                        self._refresh_token = new_refresh
-                    if isinstance(body.get("role"), str):
-                        self.role = body["role"]
+                if self.session.accept_refresh(body):
                     return True
-            self._token = None
-            self._refresh_token = None
+            self.session.drop()
             return await self.login()
 
     async def _http(
@@ -926,7 +951,7 @@ class HydraConnection(QObject):
         payload_json = json.dumps(payload, sort_keys=True)
         if payload_json == self._last_payload_json:
             return  # unchanged since our own last confirmed send/receive - nothing to do
-        if self.role in ("operator", "viewer"):
+        if not self.may_edit_settings:
             # POST /api/settings and the `settings` message of the WebSocket take the whole tree from an administrator
             # only. An operator's edit used to be sent and refused after every change; it stays in this window instead,
             # and the person is told once. The robot commands (jog, play, stop, speed, table) go through the atomic route.
@@ -1082,6 +1107,11 @@ class HydraConnection(QObject):
                         # A server that predates the table command: remember it and do the same with the jogs it understands.
                         self.has_table_command = False
                         resp = await send_table_as_jogs()
+                    elif command in robot_edits.EDIT_COMMANDS and resp.status_code == 400 and access.is_unknown_command(resp.status_code, _body_code(resp), _body_error(resp)):
+                        # A server that predates the edit commands: remember it, keep the local change and let the settings tree carry it.
+                        self.has_edit_commands = False
+                        await self.push_state()
+                        return
                 if resp.status_code >= 400:
                     self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_COMMAND")))
                     rollback_if_current()
@@ -1306,7 +1336,7 @@ class HydraConnection(QObject):
         """One request of the second-step family: (status, parsed body, Retry-After). Unlike the other calls it does not
         renew the session and repeat itself on a 401: a wrong password or code is an answer here, and sending it twice would
         count twice against the server's wait. Status 0 means the server could not be reached."""
-        headers = {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        headers = self.session.auth_headers()
         try:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 resp = await client.request(method, f"{self.info.base_url}{path}", headers=headers, json=body, timeout=5.0)
