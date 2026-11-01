@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.7] - A Planning and operation screen under Ecosystem and the job dispatcher options in Server Admin
+
 - **A Planning and operation screen under Ecosystem:** the same five functions as STUDIO (dry run of a plan, estimates of the job dispatcher, remaining useful life, reader of `train plan --json`, state of the window statistics of the data lake), with the same checks, in the eight languages. The client only makes those exact requests through the relay of the server.
 
 
