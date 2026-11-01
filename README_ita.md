@@ -58,6 +58,12 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Software | 🟡 | Funziona per il suo scopo principale; la verifica di onestà qui sopra elenca ciò che manca ancora |
 | Test | 🟢 | 53 test automatici, eseguiti a ogni modifica |
 | Hardware reale | 🔴 | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
+| Interfaccia e protocolli | 🟡 | Le rotte o i messaggi offerti sono documentati e provati con un client; non tutti i client li hanno ancora usati |
+| Integrazione | 🟠 | I suoi messaggi e le sue rotte sono verificati rispetto ai contratti condivisi dell'SDK; non ha ancora funzionato insieme all'apparecchiatura reale |
+| Sicurezza | 🟡 | Il controllo degli accessi, i limiti d'ingresso o le firme sono implementati e provati su un computer; nessuno al di fuori del progetto li ha rivisti |
+| Distribuzione | 🟠 | Pubblicato come release; l'installazione su una macchina pulita è documentata ma non registrata |
+| Arresto e sicurezza | 🟠 | Il percorso di arresto e i suoi limiti sono implementati e provati con simulatori; non hanno mai funzionato su una macchina reale e questo non è un sistema di sicurezza certificato |
+| Lingue e accessibilità | 🟡 | L'interfaccia e la sua guida sono in otto lingue; l'uso con tastiera e screen reader non è stato provato |
 | Documentazione | 🟢 | README in otto lingue, verificato rispetto al manifesto a ogni modifica |
 
 ## 🎯 Panoramica
