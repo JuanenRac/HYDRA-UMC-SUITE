@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.8] - One module for the session of a server, local and global settings by role, the edits of a robot as commands, one scheduler for the pollers, one GL context for the 3D views and the state of the reload of the job dispatcher
+
 - **The state of the reload of the job dispatcher in Server Admin:** next to the replanning options a line says what came of the request to read the dispatcher file again (pending, applied, failed or not configured), read from `jobDispatcher.replan.reload`, in the eight languages; after a save the screen asks the server again every two seconds until the dispatcher has answered.
 - **One module for the session of a server:** who is signed in, the token and the refresh token, the role, the refusal of the credentials and the wait the login limiter asks for are one object (`net/session.py`) with the rules that read it, instead of loose fields of the connection changed from half a dozen places.
 - **Local and global settings by role:** an account that is not an administrator no longer sees the screens that change the global settings (modules, racks, cameras, the models of the catalog) as if it could use them: they are greyed out with a note saying that only an administrator changes them.
