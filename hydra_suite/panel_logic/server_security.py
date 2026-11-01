@@ -73,6 +73,34 @@ INSTALL_FIELDS = {
 }
 
 
+def _job_dispatcher(raw: object) -> dict | None:
+    """The options of the job dispatcher in the answer of the server; None for a server that predates them or answers nonsense."""
+    if not isinstance(raw, dict):
+        return None
+    relay, replan = raw.get("stopRelay"), raw.get("replan")
+    if not isinstance(relay, dict) or not isinstance(replan, dict):
+        return None
+    enabled = _option(relay.get("enabled"), bool)
+    allow = _option(replan.get("allowUnconfirmed"), bool)
+    timeout = _option(replan.get("stopAckTimeoutSeconds"), (int, float))
+    if enabled is None or allow is None or timeout is None:
+        return None
+    robot_map: dict[str, int] = {}
+    raw_map = relay.get("robotMap")
+    if isinstance(raw_map, dict):
+        for dispatcher_id, number in raw_map.items():
+            if isinstance(dispatcher_id, str) and isinstance(number, int) and not isinstance(number, bool):
+                robot_map[dispatcher_id] = number
+    return {
+        "relay": enabled,
+        "robotMap": robot_map,
+        "relayAppliesOnRestart": relay.get("appliesOnRestart") is True,
+        "allow": allow,
+        "timeout": timeout,
+        "editable": replan.get("editable") is True,
+    }
+
+
 def _install(body: dict) -> dict | None:
     """The two installation options (the password of an IP camera handed over through the environment, TLS switched on by a new
     installation); None unless the server offers both, so a half-known set is never shown."""
@@ -118,6 +146,7 @@ def parse_state(body: object) -> dict | None:
         "ecosystemHealth": None,
         "rul": None,
         "safety": None,
+        "jobDispatcher": None,
         "connections": None,
         "exposure": None,
         "install": None,
@@ -184,6 +213,9 @@ def parse_state(body: object) -> dict | None:
         publish = _option(safety.get("publishGlobalStop"), bool)
         if publish is not None:
             state["safety"] = {"publishGlobalStop": publish}
+    job_dispatcher = _job_dispatcher(body.get("jobDispatcher"))
+    if job_dispatcher is not None:
+        state["jobDispatcher"] = job_dispatcher
     connections = body.get("connections")
     if isinstance(connections, dict):
         record = _option(connections.get("recordAddress"), bool)
@@ -287,6 +319,60 @@ def ecosystem_health_patch(enabled: bool) -> dict:
     """The request body for the option that lets operators and administrators read GET /api/ecosystem/health (off by default). Turning
     it on never asks: the route is read only and shows no port, address or unit to anyone but an administrator."""
     return {"ecosystemHealth": {"enabled": bool(enabled)}}
+
+
+MAX_STOP_ACK_TIMEOUT_SECONDS = 86400
+_DISPATCHER_ROBOT_ID = re.compile(r"[A-Za-z0-9._:-]{1,64}")
+
+
+def robot_map_text(robot_map: dict) -> str:
+    """The robot map as text, one `id = number` per line, in the order of the ids."""
+    return "\n".join(f"{dispatcher_id} = {robot_map[dispatcher_id]}" for dispatcher_id in sorted(robot_map))
+
+
+def parse_robot_map_text(text: str) -> dict | None:
+    """The text back to a map; None when a line is not `id = number`, an id is not valid, a number is not a whole number of 0 or more or an id repeats."""
+    result: dict[str, int] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        match = re.fullmatch(r"([^=\s]+)\s*=\s*(\d+)", line)
+        if match is None or _DISPATCHER_ROBOT_ID.fullmatch(match.group(1)) is None or match.group(1) in result:
+            return None
+        result[match.group(1)] = int(match.group(2))
+    return result if len(result) <= 1000 else None
+
+
+def parse_timeout(text: str) -> float | None:
+    """What was typed as the wait for the confirmed stop: a number greater than 0 and at most 86400 (a comma counts as the decimal point); None otherwise."""
+    cleaned = text.strip().replace(",", ".")
+    if not re.fullmatch(r"\d*\.?\d+|\d+\.", cleaned):
+        return None
+    value = float(cleaned)
+    return value if 0 < value <= MAX_STOP_ACK_TIMEOUT_SECONDS else None
+
+
+def job_dispatcher_patch(relay_enabled: bool, map_text: str, replan_editable: bool, allow_unconfirmed: bool, timeout_text: str) -> dict | None:
+    """The request body for the job dispatcher options; None when the robot map or the wait is not valid. The replanning part is left out when the server cannot write the file of the dispatcher."""
+    robot_map = parse_robot_map_text(map_text)
+    if robot_map is None:
+        return None
+    body: dict = {"stopRelay": {"enabled": bool(relay_enabled), "robotMap": robot_map}}
+    if replan_editable:
+        seconds = parse_timeout(timeout_text)
+        if seconds is None:
+            return None
+        body["replan"] = {"allowUnconfirmed": bool(allow_unconfirmed), "stopAckTimeoutSeconds": seconds}
+    return {"jobDispatcher": body}
+
+
+def job_dispatcher_needs_confirmation(current: dict, patch: dict) -> bool:
+    """Switching the delivery on, or letting a job go to another robot without a confirmed stop, asks first."""
+    new = patch["jobDispatcher"]
+    relay_on = not current["relay"]["value"] and new["stopRelay"]["enabled"]
+    unconfirmed = "replan" in new and not current["allow"]["value"] and new["replan"]["allowUnconfirmed"]
+    return bool(relay_on or unconfirmed)
 
 
 def safety_patch(publish_global_stop: bool) -> dict:
@@ -406,6 +492,10 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_INSTALL_CAMERA_WARNING")
     if "new_install_tls_off" in warnings:
         sentence = _("SECURITY_INSTALL_TLS_WARNING")
+    if "job_stop_relay_on" in warnings:
+        sentence = _("SECURITY_JD_WARNING_RELAY")
+    if "replan_unconfirmed_allowed" in warnings:
+        sentence = _("SECURITY_JD_WARNING_REPLAN")
     if "mavlink_unsigned_allowed" in warnings:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
@@ -434,6 +524,8 @@ EMPTY_VIEW: dict = {
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
+    "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
+    "jdReplanEditable": False, "jdReplanNote": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
     "exposureAvailable": False,
     "exposureCameraOpen": False, "exposureCameraOpenLocked": False, "exposureCameraOpenSource": "",
@@ -569,6 +661,21 @@ def view(state: dict | None) -> dict:
                 "safetyPublishStop": safety["publishGlobalStop"]["value"],
                 "safetyPublishStopLocked": is_locked(safety["publishGlobalStop"]["source"]),
                 "safetyPublishStopSource": source_text(safety["publishGlobalStop"]["source"]),
+            }
+        )
+    job_dispatcher = state.get("jobDispatcher")
+    if job_dispatcher is not None:
+        out.update(
+            {
+                "jdAvailable": True,
+                "jdRelay": job_dispatcher["relay"]["value"],
+                "jdRelayLocked": is_locked(job_dispatcher["relay"]["source"]),
+                "jdRelaySource": source_text(job_dispatcher["relay"]["source"]) + (" " + _("SECURITY_RESTART_NOTE") if job_dispatcher["relayAppliesOnRestart"] else ""),
+                "jdMapText": robot_map_text(job_dispatcher["robotMap"]),
+                "jdAllow": job_dispatcher["allow"]["value"],
+                "jdTimeout": f"{job_dispatcher['timeout']['value']:g}",
+                "jdReplanEditable": job_dispatcher["editable"],
+                "jdReplanNote": _("LBL_SECURITY_JD_REPLAN_HELP") if job_dispatcher["editable"] else _("LBL_SECURITY_JD_NOT_EDITABLE"),
             }
         )
     connections = state.get("connections")

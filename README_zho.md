@@ -118,6 +118,7 @@ HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立�
 - **📷 摄像头** —— 每个控制器的真实摄像头名册（存在哪些摄像头、其类型、连接状态，以及一个真实的 USB/IP（RTSP）来源类型切换，配有通用、不限品牌的主机/端口/路径/凭证字段），与真实服务器同步，方式与此处的其他每个面板相同，还带有真实的实时视频：元数据自始至终都是真实的，每张摄像头卡片都会渲染真实的 MJPEG 视频流本身（HYDRA-UMC-VISION-STREAMER 自身的 `stream serve`，通过 HYDRA-UMC-SERVER 的 `GET /api/camera/:id/stream` 中继）。通过一个真实的 JPEG SOI/EOI 标记扫描客户端（与 HYDRA-UMC-ANDROID-CONTROL 自身的 `MjpegStreamParser.kt` 已经使用的真实方法相同）实现，已对真实 USB 和 IP 硬件验证。
 - **🛠️ 工具附件配置，11/11 面板全部完成** —— CNC、激光、加热床、真空吸附台、ATC（自动换具装置）、XY 工作台、料架管理、Pick & Place、Kinematic Brain Stage、Flasher 以及 Tester——与 HYDRA-UMC STUDIO 自身的每一个工具专属界面实现了真实的功能对等，每一个都是忠实移植（包括 STUDIO 自身源代码中有时有些怪异的真实行为，故意在此处完整复现而非"修复"），每个都有自己真实的无头测试覆盖。CNC/激光/加热床/真空吸附台共享一个 `moduleConfigComponent` 实现（STUDIO 自身的 `CNC.tsx`/`Laser.tsx` 除模块键外完全相同）；其余 7 个各自需要一个专门构建的真实面板。加热床和真空台通过 `render/module_rig.py` 使用 STL。PnP、CNC 和激光使用 `render/pnp_rig.py`，每个独立文件夹包含 7 个运动部件网格和 160 个独立零件。`OffscreenRobotRenderer` 显示各个总成。参见[机器模型](docs/MACHINE_ASSETS.md)。
 - **🔑 两步登录** - **生态系统 > Server Admin** 有一张用于您当前登录账户的卡片(在其所有者开启之前是关闭的):otpauth 地址的二维码(由一个与网页程序生成相同图案的小型编码器在此绘制)、带复制按钮的可手动输入密钥、第一个验证码，以及只显示一次的十个一次性恢复码。服务器凭据对话框有一个供已开启账户使用的验证码输入栏(只在内存中保留给那一次登录，绝不保存)，**生态系统 > 用户**有一个按钮，可为丢失手机和恢复码的账户移除第二步。
+- **Server Admin 中的作业调度器选项**（仅管理员）：停止请求转交的开关和机器人映射表（`jobDispatcher.stopRelay.enabled` 与 `robotMap`），以及重新规划的两个选项（`allowUnconfirmed`、`stopAckTimeoutSeconds`），后者由服务器写入调度器的配置文件（需要 `HYDRA_UMC_JOB_DISPATCHER_CONFIG`；调度器在下次启动时读取）。开启转交，或允许作业在没有确认停止的情况下转给其他机器人，会先要求确认。
 
 ---
 

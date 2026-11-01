@@ -897,6 +897,22 @@ SECURITY_HEALTH_WARNING=GET /health ora risponde senza accesso (solo un rapporto
 LBL_SECURITY_STOP=Annuncio dell'arresto globale
 LBL_SECURITY_STOP_PUBLISH=Annunciare un arresto globale sul bridge MQTT (SAFE_STOP trattenuto)
 LBL_SECURITY_STOP_HELP=Disattivato per impostazione predefinita. Richiede il bridge MQTT attivo. Lo stato resta finché un amministratore lo rilascia.
+TITLE_SECURITY_JD=Dispatcher dei lavori
+LBL_SECURITY_JD_RELAY=Consegnare ai robot le richieste di arresto del dispatcher dei lavori (spento per impostazione predefinita)
+LBL_SECURITY_JD_RELAY_HELP=Il server legge le richieste di arresto, ferma il robot indicato e solo dopo le conferma. L'interruttore vale dal prossimo avvio del server; la mappa dei robot vale subito.
+LBL_SECURITY_JD_MAP=Mappa dei robot (una per riga: id del robot nel dispatcher = numero del robot in questo server)
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=Un robot che non è nella mappa non viene mai fermato né confermato.
+MSG_SECURITY_JD_MAP_INVALID=La mappa dei robot non è valida: scrivi una riga per robot come "id = numero" (un id di 1-64 lettere, cifre, . _ : - e un numero da 0 in su).
+LBL_SECURITY_JD_REPLAN=Ripianificazione del dispatcher dei lavori
+LBL_SECURITY_JD_ALLOW=Rimettere un lavoro in coda anche se il robot muto non ha mai confermato il suo arresto (spento per impostazione predefinita)
+LBL_SECURITY_JD_TIMEOUT=Secondi di attesa dell'arresto confermato (più di 0, al massimo 86400)
+MSG_SECURITY_JD_TIMEOUT_INVALID=L'attesa deve essere un numero maggiore di 0 e al massimo 86400.
+LBL_SECURITY_JD_REPLAN_HELP=Il server scrive questi due valori nel file di configurazione del dispatcher; il dispatcher li legge all'avvio.
+LBL_SECURITY_JD_NOT_EDITABLE=Il deployment non ha indicato il file di configurazione del dispatcher (HYDRA_UMC_JOB_DISPATCHER_CONFIG): queste due opzioni non si possono cambiare qui.
+MSG_SECURITY_JD_CONFIRM=Attivare la consegna delle richieste di arresto, o lasciare che un lavoro passi a un altro robot senza arresto confermato? Controlla prima la mappa dei robot.
+SECURITY_JD_WARNING_RELAY=La consegna delle richieste di arresto è attiva; inizia al prossimo avvio del server.
+SECURITY_JD_WARNING_REPLAN=Ora un lavoro può passare a un altro robot anche se il robot muto non ha mai confermato il suo arresto.
 LBL_SECURITY_CONNECTIONS=Cronologia delle connessioni
 LBL_SECURITY_CONNECTIONS_RECORD=Conservare indirizzo e user agent di ogni client nella cronologia delle connessioni
 LBL_SECURITY_CONNECTIONS_HELP=Disattivato per impostazione predefinita: la cronologia funziona anche senza. Se attivo, solo gli amministratori li vedono.

@@ -1907,6 +1907,62 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.jdAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("TITLE_SECURITY_JD"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: jdRelayBox
+                            objectName: "securityJdRelayBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_JD_RELAY")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.jdRelayLocked
+                            checked: suiteBackend.securityView.jdRelay === true
+                        }
+                        Text { text: suiteBackend.securityView.jdRelaySource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_RELAY_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        TextArea {
+                            id: jdMapField
+                            objectName: "securityJdMapField"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 80
+                            font.family: "monospace"
+                            placeholderText: suiteBackend.uiText("LBL_SECURITY_JD_MAP_PLACEHOLDER")
+                            text: suiteBackend.securityView.jdMapText
+                        }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_REPLAN"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: jdAllowBox
+                            objectName: "securityJdAllowBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_JD_ALLOW")
+                            palette.windowText: window.textPrimary
+                            enabled: suiteBackend.securityView.jdReplanEditable === true
+                            checked: suiteBackend.securityView.jdAllow === true
+                        }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_TIMEOUT"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        TextField {
+                            id: jdTimeoutField
+                            objectName: "securityJdTimeoutField"
+                            Layout.preferredWidth: 120
+                            enabled: suiteBackend.securityView.jdReplanEditable === true
+                            text: suiteBackend.securityView.jdTimeout
+                        }
+                        Text { text: suiteBackend.securityView.jdReplanNote; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityJdSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            onClicked: {
+                                var relay = jdRelayBox.checked, map = jdMapField.text, allow = jdAllowBox.checked, timeout = jdTimeoutField.text
+                                if (suiteBackend.jobDispatcherNeedsConfirmation(relay, map, allow, timeout))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_JD"), suiteBackend.uiText("MSG_SECURITY_JD_CONFIRM"), function() { suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout) })
+                                else
+                                    suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

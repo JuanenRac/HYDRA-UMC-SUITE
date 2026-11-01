@@ -896,6 +896,22 @@ SECURITY_HEALTH_WARNING=GET /health はサインインなしで応答するよ�
 LBL_SECURITY_STOP=グローバル停止の通知
 LBL_SECURITY_STOP_PUBLISH=MQTT ブリッジでグローバル停止を通知する(保持された SAFE_STOP)
 LBL_SECURITY_STOP_HELP=既定ではオフ。MQTT ブリッジがオンである必要があります。管理者が解除するまで状態は保持されます。
+TITLE_SECURITY_JD=ジョブディスパッチャー
+LBL_SECURITY_JD_RELAY=ジョブディスパッチャーの停止要求をロボットに届ける（既定ではオフ）
+LBL_SECURITY_JD_RELAY_HELP=サーバーは停止要求を読み、そこで指名されたロボットを停止し、その後にだけ確認応答を返します。スイッチはサーバーの次回起動から有効になり、ロボット対応表はすぐに有効になります。
+LBL_SECURITY_JD_MAP=ロボット対応表（1 行に 1 台：ディスパッチャーのロボット ID = このサーバーでのロボット番号）
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=対応表にないロボットは停止も確認応答もされません。
+MSG_SECURITY_JD_MAP_INVALID=ロボット対応表が正しくありません。ロボットごとに「ID = 番号」の形式で 1 行ずつ書いてください（ID は英数字と . _ : - の 1〜64 文字、番号は 0 以上）。
+LBL_SECURITY_JD_REPLAN=ジョブディスパッチャーの再計画
+LBL_SECURITY_JD_ALLOW=無応答のロボットが停止を確認しなくても、ジョブをキューに戻す（既定ではオフ）
+LBL_SECURITY_JD_TIMEOUT=確認済みの停止を待つ秒数（0 より大きく 86400 以下）
+MSG_SECURITY_JD_TIMEOUT_INVALID=待ち時間は 0 より大きく 86400 以下の数でなければなりません。
+LBL_SECURITY_JD_REPLAN_HELP=サーバーはこの 2 つの値をディスパッチャーの設定ファイルに書き込みます。ディスパッチャーは起動時に読み込みます。
+LBL_SECURITY_JD_NOT_EDITABLE=配備でディスパッチャーの設定ファイル（HYDRA_UMC_JOB_DISPATCHER_CONFIG）が指定されていないため、この 2 つのオプションはここでは変更できません。
+MSG_SECURITY_JD_CONFIRM=停止要求の配送をオンにしますか。または確認済みの停止なしにジョブを別のロボットへ渡せるようにしますか。先にロボット対応表を確認してください。
+SECURITY_JD_WARNING_RELAY=停止要求の配送がオンになりました。サーバーの次回起動から動作します。
+SECURITY_JD_WARNING_REPLAN=無応答のロボットが停止を確認しなくても、ジョブを別のロボットへ渡せるようになりました。
 LBL_SECURITY_CONNECTIONS=接続履歴
 LBL_SECURITY_CONNECTIONS_RECORD=各クライアントのアドレスとユーザーエージェントを接続履歴に保存する
 LBL_SECURITY_CONNECTIONS_HELP=既定ではオフです。これらがなくても履歴は機能します。オンにすると管理者だけに表示されます。

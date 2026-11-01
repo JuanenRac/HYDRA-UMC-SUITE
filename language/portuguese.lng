@@ -896,6 +896,22 @@ SECURITY_HEALTH_WARNING=GET /health responde agora sem iniciar sessão (apenas u
 LBL_SECURITY_STOP=Anúncio da paragem global
 LBL_SECURITY_STOP_PUBLISH=Anunciar uma paragem global na ponte MQTT (SAFE_STOP retido)
 LBL_SECURITY_STOP_HELP=Desativado por predefinição. Requer a ponte MQTT ativa. O estado mantém-se até um administrador o libertar.
+TITLE_SECURITY_JD=Despachante de trabalhos
+LBL_SECURITY_JD_RELAY=Entregar aos robôs os pedidos de paragem do despachante de trabalhos (desativado por predefinição)
+LBL_SECURITY_JD_RELAY_HELP=O servidor lê os pedidos de paragem, pára o robô aí nomeado e só depois os confirma. O interruptor aplica-se no próximo arranque do servidor; o mapa de robôs aplica-se de imediato.
+LBL_SECURITY_JD_MAP=Mapa de robôs (um por linha: id do robô no despachante = número do robô neste servidor)
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=Um robô que não está no mapa nunca é parado nem confirmado.
+MSG_SECURITY_JD_MAP_INVALID=O mapa de robôs não é válido: escreva uma linha por robô como "id = número" (um id de 1 a 64 letras, dígitos, . _ : - e um número de 0 ou mais).
+LBL_SECURITY_JD_REPLAN=Replaneamento do despachante de trabalhos
+LBL_SECURITY_JD_ALLOW=Devolver um trabalho à fila mesmo que o robô mudo nunca tenha confirmado a sua paragem (desativado por predefinição)
+LBL_SECURITY_JD_TIMEOUT=Segundos de espera pela paragem confirmada (mais de 0, no máximo 86400)
+MSG_SECURITY_JD_TIMEOUT_INVALID=A espera tem de ser um número maior que 0 e no máximo 86400.
+LBL_SECURITY_JD_REPLAN_HELP=O servidor escreve estes dois valores no ficheiro de configuração do despachante; o despachante lê-os ao arrancar.
+LBL_SECURITY_JD_NOT_EDITABLE=A instalação não indicou o ficheiro de configuração do despachante (HYDRA_UMC_JOB_DISPATCHER_CONFIG): estas duas opções não podem ser alteradas aqui.
+MSG_SECURITY_JD_CONFIRM=Ativar a entrega dos pedidos de paragem, ou deixar um trabalho passar a outro robô sem paragem confirmada? Verifique primeiro o mapa de robôs.
+SECURITY_JD_WARNING_RELAY=A entrega dos pedidos de paragem está ativada; começa a funcionar no próximo arranque do servidor.
+SECURITY_JD_WARNING_REPLAN=Agora um trabalho pode passar a outro robô mesmo que o robô mudo nunca tenha confirmado a sua paragem.
 LBL_SECURITY_CONNECTIONS=Histórico de ligações
 LBL_SECURITY_CONNECTIONS_RECORD=Guardar o endereço e o agente de utilizador de cada cliente no histórico de ligações
 LBL_SECURITY_CONNECTIONS_HELP=Desativado por omissão: o histórico funciona sem eles. Quando ativo, só os administradores os veem.

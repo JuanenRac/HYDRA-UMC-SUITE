@@ -897,6 +897,22 @@ SECURITY_HEALTH_WARNING=GET /health responde ahora sin iniciar sesión (solo un 
 LBL_SECURITY_STOP=Anuncio de parada global
 LBL_SECURITY_STOP_PUBLISH=Anunciar una parada global en el puente MQTT (SAFE_STOP retenido)
 LBL_SECURITY_STOP_HELP=Desactivado por defecto. Requiere el puente MQTT activo. El estado permanece hasta que un administrador lo libere.
+TITLE_SECURITY_JD=Despachador de trabajos
+LBL_SECURITY_JD_RELAY=Entregar a los robots las peticiones de parada del despachador de trabajos (apagado por defecto)
+LBL_SECURITY_JD_RELAY_HELP=El servidor lee las peticiones de parada, detiene el robot que se nombra allí y solo entonces las acusa. El interruptor se aplica en el próximo arranque del servidor; el mapa de robots, al instante.
+LBL_SECURITY_JD_MAP=Mapa de robots (uno por línea: id del robot en el despachador = número del robot en este servidor)
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=Un robot que no está en el mapa nunca se detiene ni se acusa.
+MSG_SECURITY_JD_MAP_INVALID=El mapa de robots no es válido: escribe una línea por robot como "id = número" (un id de 1 a 64 letras, dígitos, . _ : - y un número de 0 o más).
+LBL_SECURITY_JD_REPLAN=Replanificación del despachador de trabajos
+LBL_SECURITY_JD_ALLOW=Devolver un trabajo a la cola aunque el robot mudo nunca haya confirmado su parada (apagado por defecto)
+LBL_SECURITY_JD_TIMEOUT=Segundos de espera de la parada confirmada (más de 0, como máximo 86400)
+MSG_SECURITY_JD_TIMEOUT_INVALID=La espera debe ser un número mayor que 0 y como máximo 86400.
+LBL_SECURITY_JD_REPLAN_HELP=El servidor escribe estos dos valores en el fichero de configuración del despachador; el despachador los lee al arrancar.
+LBL_SECURITY_JD_NOT_EDITABLE=El despliegue no indicó el fichero de configuración del despachador (HYDRA_UMC_JOB_DISPATCHER_CONFIG): estas dos opciones no se pueden cambiar aquí.
+MSG_SECURITY_JD_CONFIRM=¿Activar la entrega de las peticiones de parada, o dejar que un trabajo pase a otro robot sin parada confirmada? Revisa antes el mapa de robots.
+SECURITY_JD_WARNING_RELAY=La entrega de las peticiones de parada está activada; empieza a funcionar en el próximo arranque del servidor.
+SECURITY_JD_WARNING_REPLAN=Ahora un trabajo puede pasar a otro robot aunque el robot mudo nunca haya confirmado su parada.
 LBL_SECURITY_CONNECTIONS=Historial de conexiones
 LBL_SECURITY_CONNECTIONS_RECORD=Guardar la dirección y el agente de usuario de cada cliente en el historial de conexiones
 LBL_SECURITY_CONNECTIONS_HELP=Desactivado por defecto: el historial funciona sin ellos. Si se activa, solo los administradores los ven.

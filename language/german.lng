@@ -897,6 +897,22 @@ SECURITY_HEALTH_WARNING=GET /health antwortet jetzt ohne Anmeldung (nur ein mini
 LBL_SECURITY_STOP=Ankündigung des globalen Stopps
 LBL_SECURITY_STOP_PUBLISH=Einen globalen Stopp auf der MQTT-Brücke ankündigen (gehaltenes SAFE_STOP)
 LBL_SECURITY_STOP_HELP=Standardmäßig aus. Die MQTT-Brücke muss eingeschaltet sein. Der Zustand bleibt, bis ein Administrator ihn freigibt.
+TITLE_SECURITY_JD=Job-Dispatcher
+LBL_SECURITY_JD_RELAY=Die Stopp-Anfragen des Job-Dispatchers an die Roboter zustellen (standardmäßig aus)
+LBL_SECURITY_JD_RELAY_HELP=Der Server liest die Stopp-Anfragen, stoppt den dort genannten Roboter und bestätigt sie erst dann. Der Schalter gilt ab dem nächsten Start des Servers; die Roboterzuordnung gilt sofort.
+LBL_SECURITY_JD_MAP=Roboterzuordnung (eine pro Zeile: Roboter-ID im Dispatcher = Roboternummer in diesem Server)
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=Ein Roboter, der nicht in der Zuordnung steht, wird nie gestoppt und nie bestätigt.
+MSG_SECURITY_JD_MAP_INVALID=Die Roboterzuordnung ist ungültig: Schreibe pro Roboter eine Zeile "ID = Nummer" (eine ID aus 1 bis 64 Buchstaben, Ziffern, . _ : - und eine Nummer ab 0).
+LBL_SECURITY_JD_REPLAN=Neuplanung des Job-Dispatchers
+LBL_SECURITY_JD_ALLOW=Einen Job auch dann in die Warteschlange zurückgeben, wenn der stumme Roboter seinen Stopp nie bestätigt hat (standardmäßig aus)
+LBL_SECURITY_JD_TIMEOUT=Sekunden Wartezeit auf den bestätigten Stopp (mehr als 0, höchstens 86400)
+MSG_SECURITY_JD_TIMEOUT_INVALID=Die Wartezeit muss eine Zahl größer als 0 und höchstens 86400 sein.
+LBL_SECURITY_JD_REPLAN_HELP=Der Server schreibt diese beiden Werte in die Konfigurationsdatei des Dispatchers; der Dispatcher liest sie beim Start.
+LBL_SECURITY_JD_NOT_EDITABLE=Die Bereitstellung hat die Konfigurationsdatei des Dispatchers nicht benannt (HYDRA_UMC_JOB_DISPATCHER_CONFIG): Diese beiden Optionen lassen sich hier nicht ändern.
+MSG_SECURITY_JD_CONFIRM=Die Zustellung der Stopp-Anfragen einschalten oder einen Job ohne bestätigten Stopp an einen anderen Roboter gehen lassen? Prüfe zuerst die Roboterzuordnung.
+SECURITY_JD_WARNING_RELAY=Die Zustellung der Stopp-Anfragen ist an; sie arbeitet ab dem nächsten Start des Servers.
+SECURITY_JD_WARNING_REPLAN=Ein Job kann jetzt an einen anderen Roboter gehen, auch wenn der stumme Roboter seinen Stopp nie bestätigt hat.
 LBL_SECURITY_CONNECTIONS=Verbindungsverlauf
 LBL_SECURITY_CONNECTIONS_RECORD=Adresse und User-Agent jedes Clients im Verbindungsverlauf speichern
 LBL_SECURITY_CONNECTIONS_HELP=Standardmäßig aus: Der Verlauf funktioniert auch ohne sie. Wenn aktiv, sehen nur Administratoren sie.

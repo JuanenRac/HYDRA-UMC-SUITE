@@ -896,6 +896,22 @@ SECURITY_HEALTH_WARNING=GET /health now answers without a sign-in (only a bare h
 LBL_SECURITY_STOP=Global stop announcement
 LBL_SECURITY_STOP_PUBLISH=Announce a global stop on the MQTT bridge (retained SAFE_STOP)
 LBL_SECURITY_STOP_HELP=Off by default. Needs the MQTT bridge on. The state stays until an administrator releases it.
+TITLE_SECURITY_JD=Job dispatcher
+LBL_SECURITY_JD_RELAY=Deliver the stop requests of the job dispatcher to the robots (off by default)
+LBL_SECURITY_JD_RELAY_HELP=The server reads the stop requests, stops the robot named there and only then acknowledges them. The switch applies on the next start of the server; the robot map applies at once.
+LBL_SECURITY_JD_MAP=Robot map (one per line: dispatcher robot id = robot number in this server)
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=A robot that is not in the map is never stopped nor acknowledged.
+MSG_SECURITY_JD_MAP_INVALID=The robot map is not valid: write one line per robot as "id = number" (an id of 1 to 64 letters, digits, . _ : - and a number of 0 or more).
+LBL_SECURITY_JD_REPLAN=Replanning of the job dispatcher
+LBL_SECURITY_JD_ALLOW=Send a job back to the queue even if the silent robot never confirmed its stop (off by default)
+LBL_SECURITY_JD_TIMEOUT=Seconds to wait for the confirmed stop (more than 0, at most 86400)
+MSG_SECURITY_JD_TIMEOUT_INVALID=The wait must be a number greater than 0 and at most 86400.
+LBL_SECURITY_JD_REPLAN_HELP=The server writes these two values into the configuration file of the dispatcher; the dispatcher reads them when it starts.
+LBL_SECURITY_JD_NOT_EDITABLE=The deployment did not name the configuration file of the dispatcher (HYDRA_UMC_JOB_DISPATCHER_CONFIG): these two options cannot be changed here.
+MSG_SECURITY_JD_CONFIRM=Switch the delivery of stop requests on, or let a job go to another robot without a confirmed stop? Check the robot map first.
+SECURITY_JD_WARNING_RELAY=The delivery of the stop requests is on; it starts working at the next start of the server.
+SECURITY_JD_WARNING_REPLAN=A job can now go to another robot even if the silent robot never confirmed its stop.
 LBL_SECURITY_CONNECTIONS=Connection history
 LBL_SECURITY_CONNECTIONS_RECORD=Keep the address and user agent of each client in the connection history
 LBL_SECURITY_CONNECTIONS_HELP=Off by default: the history works without them. When on, only administrators are shown them.

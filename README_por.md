@@ -184,6 +184,7 @@ O HYDRA-UMC SUITE tem uma única interface, escrita em Qt Quick (QML): uma `Appl
   articuladas e 160 peças individuais por diretoria de máquina independente. O
   `OffscreenRobotRenderer` renderiza cada montagem. Ver [ativos das máquinas](docs/MACHINE_ASSETS.md).
 - **🔑 Início de sessão em dois passos** - **Ecossistema > Server Admin** tem um cartão para a conta com que entrou (desativado até o seu dono o ativar): um código QR do endereço otpauth (desenhado aqui por um pequeno codificador que faz o mesmo símbolo do programa web), a chave para escrever à mão com um botão de copiar, o primeiro código e os dez códigos de recuperação de uso único mostrados uma vez. A caixa de credenciais do servidor tem um campo para o código de uma conta que o tenha ativado (guardado em memória só para esse início de sessão, nunca gravado) e **Ecossistema > Utilizadores** tem um botão que remove o segundo passo de uma conta que perdeu o telemóvel e os códigos de recuperação.
+- **Opções do despachante de trabalhos no Server Admin** (só administradores): o interruptor e o mapa de robôs da entrega dos pedidos de paragem (`jobDispatcher.stopRelay.enabled` e `robotMap`) e as duas opções do replaneamento (`allowUnconfirmed`, `stopAckTimeoutSeconds`), que o servidor escreve no ficheiro de configuração do despachante (precisa de `HYDRA_UMC_JOB_DISPATCHER_CONFIG`; o despachante lê-as no próximo arranque). Ativar a entrega, ou deixar um trabalho passar a outro robô sem paragem confirmada, pede primeiro uma confirmação.
 
 ---
 

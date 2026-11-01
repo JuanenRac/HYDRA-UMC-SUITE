@@ -199,5 +199,27 @@ check("an event without a user says so", _("CONNECTIONS_NO_USER") in erows[1]["d
 check("the sentences for a server that cannot answer", [hist.status_for(r) for r in ((200, {}), (404, None), (403, None), (401, None), (500, None), None)], ["", _("CONNECTIONS_UNSUPPORTED"), _("CONNECTIONS_FORBIDDEN"), _("CONNECTIONS_FORBIDDEN"), _("CONNECTIONS_LOAD_ERROR"), _("CONNECTIONS_LOAD_ERROR")])
 check("every kind, origin and action has a sentence", all(_(k) != k for k in [f"CONNECTIONS_KIND_{x.upper()}" for x in hist.CLIENT_KINDS] + ["CONNECTIONS_ORIGIN_LOCAL", "CONNECTIONS_ORIGIN_REMOTE"] + [f"CONNECTIONS_ACTION_{x.upper()}" for x in hist.ACTIONS]), True)
 
+# -- the options of the job dispatcher --
+JD = {"stopRelay": {"enabled": {"value": False, "source": "default"}, "robotMap": {"arm-2": 2, "arm-1": 1}, "appliesOnRestart": True},
+      "replan": {"allowUnconfirmed": {"value": False, "source": "default"}, "stopAckTimeoutSeconds": {"value": 45, "source": "config"}, "editable": True}}
+jd_state = sec.parse_state({**GOOD, "jobDispatcher": JD})
+check("reads the options of the job dispatcher", (jd_state["jobDispatcher"]["robotMap"], jd_state["jobDispatcher"]["editable"], jd_state["jobDispatcher"]["timeout"]["value"]), ({"arm-2": 2, "arm-1": 1}, True, 45))
+check("a server without them, or with damaged ones, shows no section", (sec.parse_state(GOOD)["jobDispatcher"], sec.parse_state({**GOOD, "jobDispatcher": {**JD, "replan": {**JD["replan"], "stopAckTimeoutSeconds": {"value": "45", "source": "config"}}}})["jobDispatcher"], sec.view(sec.parse_state(GOOD))["jdAvailable"]), (None, None, False))
+jv = sec.view(jd_state)
+check("the view of the job dispatcher", (jv["jdAvailable"], jv["jdRelay"], jv["jdMapText"], jv["jdTimeout"], jv["jdReplanEditable"], jv["jdReplanNote"] == _("LBL_SECURITY_JD_REPLAN_HELP")), (True, False, "arm-1 = 1\narm-2 = 2", "45", True, True))
+check("without the file of the dispatcher the replanning is read only and says why", sec.view(sec.parse_state({**GOOD, "jobDispatcher": {**JD, "replan": {**JD["replan"], "editable": False}}}))["jdReplanNote"], _("LBL_SECURITY_JD_NOT_EDITABLE"))
+check("the robot map as text and back", (sec.parse_robot_map_text("arm-1 = 1\n\n arm-2=2 \r\n"), sec.parse_robot_map_text("")), ({"arm-1": 1, "arm-2": 2}, {}))
+check("a wrong robot map is refused", [sec.parse_robot_map_text(x) for x in ("arm-1", "arm-1 = x", "arm-1 = -1", "bad id = 1", "= 1", "a = 1\na = 2", "x" * 65 + " = 1")], [None] * 7)
+check("the wait is a number from above 0 to 86400", [sec.parse_timeout(x) for x in ("30", "45,5", "86400", "0", "-1", "86401", "", "abc", "1e3")], [30.0, 45.5, 86400.0, None, None, None, None, None, None])
+check("builds the request, with the replanning only when the server can write the file",
+      (sec.job_dispatcher_patch(True, "arm-1 = 1", True, True, "45"), sec.job_dispatcher_patch(True, "arm-1 = 1", False, True, "nonsense"), sec.job_dispatcher_patch(True, "nonsense", True, True, "45"), sec.job_dispatcher_patch(True, "arm-1 = 1", True, True, "0")),
+      ({"jobDispatcher": {"stopRelay": {"enabled": True, "robotMap": {"arm-1": 1}}, "replan": {"allowUnconfirmed": True, "stopAckTimeoutSeconds": 45.0}}}, {"jobDispatcher": {"stopRelay": {"enabled": True, "robotMap": {"arm-1": 1}}}}, None, None))
+cur = jd_state["jobDispatcher"]
+check("asks first when the delivery is switched on or a job may go without a confirmed stop",
+      [sec.job_dispatcher_needs_confirmation(cur, sec.job_dispatcher_patch(*args)) for args in ((False, "a = 1", True, False, "30"), (True, "a = 1", True, False, "30"), (False, "a = 1", True, True, "30"), (False, "a = 1", True, False, "60"))],
+      [False, True, True, False])
+check("knows the two warnings", (sec.known_warning(["job_stop_relay_on"]) == _("SECURITY_JD_WARNING_RELAY"), sec.known_warning(["replan_unconfirmed_allowed"]) == _("SECURITY_JD_WARNING_REPLAN")), (True, True))
+check("every sentence exists", all(_(k) != k for k in ("TITLE_SECURITY_JD", "LBL_SECURITY_JD_RELAY", "LBL_SECURITY_JD_MAP", "MSG_SECURITY_JD_MAP_INVALID", "MSG_SECURITY_JD_TIMEOUT_INVALID", "MSG_SECURITY_JD_CONFIRM")), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

@@ -896,6 +896,22 @@ SECURITY_HEALTH_WARNING=GET /health 现在无需登录即可响应(仅返回最�
 LBL_SECURITY_STOP=全局停止通告
 LBL_SECURITY_STOP_PUBLISH=在 MQTT 桥上通告全局停止(保留的 SAFE_STOP)
 LBL_SECURITY_STOP_HELP=默认关闭。需要开启 MQTT 桥。该状态会一直保留,直到管理员解除。
+TITLE_SECURITY_JD=作业调度器
+LBL_SECURITY_JD_RELAY=将作业调度器的停止请求转交给机器人（默认关闭）
+LBL_SECURITY_JD_RELAY_HELP=服务器读取停止请求，停止其中指明的机器人，之后才予以确认。开关在服务器下次启动时生效；机器人映射表立即生效。
+LBL_SECURITY_JD_MAP=机器人映射表（每行一个：调度器中的机器人 ID = 本服务器中的机器人编号）
+LBL_SECURITY_JD_MAP_PLACEHOLDER=arm-1 = 1
+LBL_SECURITY_JD_MAP_HELP=不在映射表中的机器人既不会被停止，也不会被确认。
+MSG_SECURITY_JD_MAP_INVALID=机器人映射表无效：每个机器人写一行“ID = 编号”（ID 为 1 到 64 个字母、数字、. _ : - ，编号为 0 或更大）。
+LBL_SECURITY_JD_REPLAN=作业调度器的重新规划
+LBL_SECURITY_JD_ALLOW=即使无响应的机器人从未确认停止，也将作业放回队列（默认关闭）
+LBL_SECURITY_JD_TIMEOUT=等待已确认停止的秒数（大于 0，最多 86400）
+MSG_SECURITY_JD_TIMEOUT_INVALID=等待时间必须是大于 0 且不超过 86400 的数字。
+LBL_SECURITY_JD_REPLAN_HELP=服务器将这两个值写入调度器的配置文件；调度器在启动时读取。
+LBL_SECURITY_JD_NOT_EDITABLE=部署未指定调度器的配置文件（HYDRA_UMC_JOB_DISPATCHER_CONFIG）：这两个选项无法在此处更改。
+MSG_SECURITY_JD_CONFIRM=开启停止请求的转交，或允许作业在没有确认停止的情况下转给其他机器人？请先检查机器人映射表。
+SECURITY_JD_WARNING_RELAY=停止请求的转交已开启；将在服务器下次启动时开始工作。
+SECURITY_JD_WARNING_REPLAN=现在即使无响应的机器人从未确认停止，作业也可以转给其他机器人。
 LBL_SECURITY_CONNECTIONS=连接历史
 LBL_SECURITY_CONNECTIONS_RECORD=在连接历史中保存每个客户端的地址和用户代理
 LBL_SECURITY_CONNECTIONS_HELP=默认关闭：没有它们历史也能工作。开启后仅管理员可见。

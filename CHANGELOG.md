@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The job dispatcher options in Server Admin:** the same card as STUDIO with the switch and the robot map of the delivery of the stop requests and the two options of the replanning, in the eight languages, with the same checks and confirmations.
+
+
 ## [0.7.6] - The 3D models from one downloadable package, a panel of the health of the ecosystem, the version of the client in its identity and switches in Server Admin
 
 - **The client identity carries the version:** every request now sends `X-Hydra-Client: suite/<version>` (for example `suite/0.2.8`) instead of the bare type, as the Android app does. The server compares the type only, so access is opened and closed exactly as before, and keeps the version apart for the history of connections. A version the server would not take (1 to 24 of `0-9 A-Z a-z . _ -`) is left out and the header is just `suite`. New `tests/verify_client_header.py` (the value, what the server reads of it, versions that are refused, a request really sent); `tests/verify_stop_all.py` reads the value from the same function.

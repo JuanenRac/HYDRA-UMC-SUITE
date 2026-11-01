@@ -3188,6 +3188,29 @@ class SuiteQtBridge(QObject):
         if patch is not None:
             asyncio.ensure_future(self._save_security(patch))
 
+    @Slot(bool, str, bool, str, result=bool)
+    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str) -> bool:
+        state = self._security_state
+        if state is None or not state.get("jobDispatcher"):
+            return False
+        current = state["jobDispatcher"]
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text)
+        return patch is not None and server_security.job_dispatcher_needs_confirmation(current, patch)
+
+    @Slot(bool, str, bool, str)
+    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str) -> None:
+        state = self._security_state
+        if state is None or not state.get("jobDispatcher"):
+            return
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text)
+        if patch is None:
+            self._security_message = ""
+            self._security_warning = ""
+            self._security_error = _("MSG_SECURITY_JD_MAP_INVALID") if server_security.parse_robot_map_text(map_text) is None else _("MSG_SECURITY_JD_TIMEOUT_INVALID")
+            self.changed.emit()
+            return
+        asyncio.ensure_future(self._save_security(patch))
+
     @Slot(bool)
     def saveSafetyOptions(self, publish_global_stop: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.safety_patch(publish_global_stop)))
