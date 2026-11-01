@@ -652,6 +652,25 @@ class HydraConnection(QObject):
         except ValueError:
             return resp.status_code, None
 
+    async def relay_request(self, service: str, method: str, path: str, json_body: dict | None = None) -> tuple[int, object] | None:
+        """One of the few requests of the Planning screen through the relay of the server (/api/ai/<service><path>): the dry run of a plan, the
+        estimates of the job dispatcher, the remaining useful life and a read of the window statistics of the data lake. Anything else is
+        refused here before it is sent. The status counts even when the body is not JSON (a plain 404 page); only a request that got no
+        answer at all returns None."""
+        from hydra_suite.panel_logic import planning
+
+        if (service, method, path) not in planning.ALLOWED_REQUESTS:
+            raise ValueError(f"{method} {service}{path} is not a request of the Planning screen")
+        try:
+            kwargs = {"json": json_body} if json_body is not None else {}
+            resp = await self._http(method, f"/api/ai/{service}{path}", timeout=15.0, **kwargs)
+        except httpx.HTTPError:
+            return None
+        try:
+            return resp.status_code, resp.json()
+        except ValueError:
+            return resp.status_code, None
+
     async def fetch_admin_logs(self, lines: int = 300) -> tuple[int, object] | None:
         """GET /api/admin/logs (admin-only)."""
         return await self._request_json("GET", "/api/admin/logs", auth=True, params={"lines": lines})

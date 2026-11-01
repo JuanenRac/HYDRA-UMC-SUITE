@@ -605,6 +605,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "submitted_models") return submittedModelsComponent
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
                     if (suiteBackend.activePanel === "ecosystem_health") return ecosystemHealthComponent
+                    if (suiteBackend.activePanel === "ecosystem_planning") return planningComponent
                     return null
                 }
             }
@@ -5256,6 +5257,107 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    FileDialog {
+        id: trainPlanDialog
+        title: suiteBackend.uiText("PLANNING_TRAIN_LOAD")
+        fileMode: FileDialog.OpenFile
+        nameFilters: ["JSON (*.json)"]
+        onAccepted: suiteBackend.openTrainPlan(selectedFile.toString())
+    }
+
+    Component {
+        id: planningComponent
+        ScrollView {
+            width: contentLoader.width
+            height: contentLoader.height
+            clip: true
+            contentWidth: availableWidth
+            ColumnLayout {
+                width: parent.width
+                spacing: 10
+                Text { text: suiteBackend.uiText("PLANNING_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("PLANNING_INTRO"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+
+                Text { text: suiteBackend.uiText("PLANNING_SIM_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
+                Text { text: suiteBackend.uiText("PLANNING_SIM_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                TextArea {
+                    id: planText
+                    objectName: "planningPlanText"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 150
+                    font.family: "monospace"
+                    text: "{\n  \"steps\": [\n    {\"id\": \"a\", \"primitive\": \"MOVE_TO\", \"robot\": \"r1\", \"params\": {\"location\": \"bin\"}},\n    {\"id\": \"b\", \"primitive\": \"GRIP\", \"robot\": \"r1\", \"params\": {\"target\": \"pcb\"}, \"duration_s\": 0.5, \"depends_on\": [\"a\"]}\n  ],\n  \"constraints\": {\"workspace\": {\"min\": [0, 0, 0], \"max\": [500, 500, 300]}, \"locations\": {\"bin\": [200, 0, 100]}, \"robots\": [\"r1\"]}\n}"
+                }
+                Button { objectName: "planningSimulate"; text: suiteBackend.uiText("PLANNING_SIM_RUN"); enabled: suiteBackend.planningView.busy !== "sim"; onClicked: suiteBackend.simulatePlan(planText.text) }
+                Text { objectName: "planningSimError"; visible: suiteBackend.planningView.simulationError !== ""; text: suiteBackend.planningView.simulationError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                ColumnLayout {
+                    visible: suiteBackend.planningView.simulation !== null && suiteBackend.planningView.simulation !== undefined
+                    Layout.fillWidth: true
+                    Text { objectName: "planningSimVerdict"; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.verdictText : ""; color: suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.accepted ? window.green : "#ee6b80"; font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notExecuted : ""; color: "#556070"; font.pixelSize: 9 }
+                    Repeater {
+                        model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.violations : []
+                        delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                    Repeater {
+                        model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.timeline : []
+                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 10 }
+                    }
+                    Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.makespan : ""; color: "#556070"; font.pixelSize: 10 }
+                }
+
+                Text { text: suiteBackend.uiText("PLANNING_ETA_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
+                Text { text: suiteBackend.uiText("PLANNING_ETA_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Button { objectName: "planningEtaLoad"; text: suiteBackend.uiText("PLANNING_ETA_LOAD"); enabled: suiteBackend.planningView.busy !== "eta"; onClicked: suiteBackend.loadPlanningEta() }
+                Text { objectName: "planningEtaError"; visible: suiteBackend.planningView.etaError !== ""; text: suiteBackend.planningView.etaError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                ColumnLayout {
+                    visible: suiteBackend.planningView.eta !== null && suiteBackend.planningView.eta !== undefined
+                    Layout.fillWidth: true
+                    Text { text: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.drain : ""; color: window.textPrimary; font.pixelSize: 11 }
+                    Text { text: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.empty : ""; color: "#556070"; font.pixelSize: 11 }
+                    Repeater {
+                        model: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.rows : []
+                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 10 }
+                    }
+                }
+
+                Text { text: suiteBackend.uiText("PLANNING_RUL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_POINTS"); color: window.textPrimary; font.pixelSize: 10 }
+                TextArea { id: rulPoints; objectName: "planningRulPoints"; Layout.fillWidth: true; Layout.preferredHeight: 90; font.family: "monospace" }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_LIMIT"); color: window.textPrimary; font.pixelSize: 10 }
+                TextField { id: rulLimit; objectName: "planningRulLimit"; Layout.preferredWidth: 120 }
+                Button { objectName: "planningRulRun"; text: suiteBackend.uiText("PLANNING_RUL_RUN"); enabled: suiteBackend.planningView.busy !== "rul"; onClicked: suiteBackend.estimateRul(rulPoints.text, rulLimit.text) }
+                Text { objectName: "planningRulError"; visible: suiteBackend.planningView.rulError !== ""; text: suiteBackend.planningView.rulError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningRulResult"; visible: suiteBackend.planningView.rul !== ""; text: suiteBackend.planningView.rul; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+
+                Text { text: suiteBackend.uiText("PLANNING_TRAIN_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
+                Text { text: suiteBackend.uiText("PLANNING_TRAIN_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Button { objectName: "planningTrainLoad"; text: suiteBackend.uiText("PLANNING_TRAIN_LOAD"); onClicked: trainPlanDialog.open() }
+                Text { objectName: "planningTrainError"; visible: suiteBackend.planningView.trainError !== ""; text: suiteBackend.planningView.trainError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                ColumnLayout {
+                    visible: suiteBackend.planningView.train !== null && suiteBackend.planningView.train !== undefined
+                    Layout.fillWidth: true
+                    Text { text: suiteBackend.planningView.train ? suiteBackend.planningView.train.name : ""; color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
+                    Text { text: suiteBackend.planningView.train ? suiteBackend.planningView.train.okText : ""; color: window.green; font.pixelSize: 11 }
+                    Repeater {
+                        model: suiteBackend.planningView.train ? suiteBackend.planningView.train.problems : []
+                        delegate: Text { required property var modelData; text: modelData; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                    Repeater {
+                        model: suiteBackend.planningView.train ? suiteBackend.planningView.train.rows : []
+                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 10 }
+                    }
+                }
+
+                Text { text: suiteBackend.uiText("PLANNING_DL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
+                Text { text: suiteBackend.uiText("PLANNING_DL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningWindows"; text: suiteBackend.planningView.windows; color: window.textPrimary; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("PLANNING_DL_DOWNSAMPLING"); color: "#556070"; font.pixelSize: 9 }
             }
         }
     }

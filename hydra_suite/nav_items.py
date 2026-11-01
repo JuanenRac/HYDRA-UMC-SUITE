@@ -52,6 +52,7 @@ HYDRAUMC_ECOSYSTEM_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_ECOSYSTEM_SERVICES", "ecosystem_services"),
     ("DOCK_ECOSYSTEM_TELEMETRY", "ecosystem_telemetry"),
     ("DOCK_ECOSYSTEM_HEALTH", "ecosystem_health"),
+    ("DOCK_ECOSYSTEM_PLANNING", "ecosystem_planning"),
     ("DOCK_AI_FAMILY", "ai_family"),
     ("DOCK_ADMIN_CLIENTS", "admin_clients"),
     ("DOCK_ADMIN_LOGS", "admin_logs"),

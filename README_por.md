@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-47%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-48%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.6-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verificação de honestidade - o que realmente funciona hoje:** a descoberta de rede (análise concorrente de sub-redes + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), a ligação REST+WebSocket em direto e o suporte a enxames (`hydra_suite/net/client.py`, `hydra_suite/app.py`), a cinemática direta real da vista 3D para os 24 modelos de robô reais mais um recurso «Genérico» construído com primitivas (`hydra_suite/render/`, verificada numericamente, bit a bit, contra a FK em TypeScript do próprio HYDRA-UMC STUDIO), os 11 de 11 painéis de configuração de ferramentas acopláveis, a gravação CAN-OTA/SPI-OTA e a renderização MJPEG real das câmaras são reais e testados - 47 scripts offline de verificação/smoke em `tests/` (`python tools/run_offline_verifiers.py`, Qt sem cabeça via `QT_QPA_PLATFORM=offscreen`), todos a passar. A interface é apenas Qt Quick (`qt_suite.py`): os 34 painéis da navegação são código real e funcional, incluindo a vista 3D através de um `OffscreenRobotRenderer` dedicado; a janela clássica foi removida. O que explicitamente AINDA NÃO está feito, segundo a convenção de honestidade deste repositório: os níveis CAN-OTA da cabeça de ferramenta URTC/Expansão avançada não têm túnel de retransmissão de hardware real; e o `combinedWith` (modo de robôs combinados) não está exposto na interface desta aplicação apesar de existir no modelo de dados do próprio STUDIO. O painel Trajetória exporta/importa agora através do formato real `WORKS/*.json` do próprio HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<folder>/index.json`) - um ponto gravado aqui é um Work real e reproduzível a partir de qualquer das aplicações. Consulte o [`docs/ROADMAP.md`](docs/ROADMAP.md) para o desdobramento completo e itemizado do real versus adiado que este parágrafo resume, e o `CHANGELOG.md` para saber exatamente o que já foi entregue.
+**Verificação de honestidade - o que realmente funciona hoje:** a descoberta de rede (análise concorrente de sub-redes + mDNS/Bonjour real, `hydra_suite/net/discovery.py`), a ligação REST+WebSocket em direto e o suporte a enxames (`hydra_suite/net/client.py`, `hydra_suite/app.py`), a cinemática direta real da vista 3D para os 24 modelos de robô reais mais um recurso «Genérico» construído com primitivas (`hydra_suite/render/`, verificada numericamente, bit a bit, contra a FK em TypeScript do próprio HYDRA-UMC STUDIO), os 11 de 11 painéis de configuração de ferramentas acopláveis, a gravação CAN-OTA/SPI-OTA e a renderização MJPEG real das câmaras são reais e testados - 48 scripts offline de verificação/smoke em `tests/` (`python tools/run_offline_verifiers.py`, Qt sem cabeça via `QT_QPA_PLATFORM=offscreen`), todos a passar. A interface é apenas Qt Quick (`qt_suite.py`): os 35 painéis da navegação são código real e funcional, incluindo a vista 3D através de um `OffscreenRobotRenderer` dedicado; a janela clássica foi removida. O que explicitamente AINDA NÃO está feito, segundo a convenção de honestidade deste repositório: os níveis CAN-OTA da cabeça de ferramenta URTC/Expansão avançada não têm túnel de retransmissão de hardware real; e o `combinedWith` (modo de robôs combinados) não está exposto na interface desta aplicação apesar de existir no modelo de dados do próprio STUDIO. O painel Trajetória exporta/importa agora através do formato real `WORKS/*.json` do próprio HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<folder>/index.json`) - um ponto gravado aqui é um Work real e reproduzível a partir de qualquer das aplicações. Consulte o [`docs/ROADMAP.md`](docs/ROADMAP.md) para o desdobramento completo e itemizado do real versus adiado que este parágrafo resume, e o `CHANGELOG.md` para saber exatamente o que já foi entregue.
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versão | `0.7.6` |
 | Maturidade | Funcional |
-| Testes | 47 (`python tools/run_offline_verifiers.py`) |
+| Testes | 48 (`python tools/run_offline_verifiers.py`) |
 | Tecnologia | Python 3.12 / PySide6 |
 | Destino | O PC de quem o usa |
 | Em hardware real | Ainda não: não há registo de execução em hardware real para esta versão |
@@ -56,7 +56,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Área | Estado | O que significa aqui |
 |---|---|---|
 | Software | 🟡 | Funciona para o seu propósito principal; a verificação de honestidade acima lista o que ainda falta |
-| Testes | 🟢 | 47 testes automáticos, executados a cada alteração |
+| Testes | 🟢 | 48 testes automáticos, executados a cada alteração |
 | Hardware real | 🔴 | Ainda não: não há registo de execução em hardware real para esta versão |
 | Documentação | 🟢 | README em oito idiomas, verificado contra o manifesto a cada alteração |
 
@@ -125,7 +125,7 @@ O botão **STOP** está sempre no topo da janela, em todos os painéis. Um cliqu
 
 ### A interface Qt Quick
 
-O HYDRA-UMC SUITE tem uma única interface, escrita em Qt Quick (QML): uma `ApplicationWindow` independente (`assets/qml/Main.qml`) que o `qt_suite.py` liga ao `SuiteController` sem alterações. É o mesmo padrão que usam o HYDRA-UMC-OS-REBUILDER, o HYDRA-UMC-UPDATER, o URTC-TESTER, o URTC-FLASHER e o HYDRA-UMC-EDITOR-URDF, e a mesma forma do HYDRA-UMC-STUDIO: uma barra lateral de navegação (um menu raiz mais os submenus Industrial, URTC e HYDRA-UMC, em `hydra_suite/nav_items.py`) e uma única área de conteúdo que mostra um dos 34 painéis de cada vez. A vista 3D e as pré-visualizações são desenhadas por um `OffscreenRobotRenderer` dedicado (um `QOpenGLContext`, um `QOffscreenSurface` e uma framebuffer separados, e não o `QQuickFramebufferObject` próprio do Qt Quick, que obrigaria toda a interface a passar do backend Direct3D 11 que o Qt Quick usa por predefinição no Windows para OpenGL) com o mesmo código de desenho (`RobotGLRenderer`), e entregues ao QML como imagem. A antiga janela clássica (um `QMainWindow` com painéis acopláveis) foi removida; tudo o que fazia vive nesta interface, e `python main.py` inicia-a.
+O HYDRA-UMC SUITE tem uma única interface, escrita em Qt Quick (QML): uma `ApplicationWindow` independente (`assets/qml/Main.qml`) que o `qt_suite.py` liga ao `SuiteController` sem alterações. É o mesmo padrão que usam o HYDRA-UMC-OS-REBUILDER, o HYDRA-UMC-UPDATER, o URTC-TESTER, o URTC-FLASHER e o HYDRA-UMC-EDITOR-URDF, e a mesma forma do HYDRA-UMC-STUDIO: uma barra lateral de navegação (um menu raiz mais os submenus Industrial, URTC e HYDRA-UMC, em `hydra_suite/nav_items.py`) e uma única área de conteúdo que mostra um dos 35 painéis de cada vez. A vista 3D e as pré-visualizações são desenhadas por um `OffscreenRobotRenderer` dedicado (um `QOpenGLContext`, um `QOffscreenSurface` e uma framebuffer separados, e não o `QQuickFramebufferObject` próprio do Qt Quick, que obrigaria toda a interface a passar do backend Direct3D 11 que o Qt Quick usa por predefinição no Windows para OpenGL) com o mesmo código de desenho (`RobotGLRenderer`), e entregues ao QML como imagem. A antiga janela clássica (um `QMainWindow` com painéis acopláveis) foi removida; tudo o que fazia vive nesta interface, e `python main.py` inicia-a.
 
 ### Funcionalidades
 
@@ -185,6 +185,7 @@ O HYDRA-UMC SUITE tem uma única interface, escrita em Qt Quick (QML): uma `Appl
   `OffscreenRobotRenderer` renderiza cada montagem. Ver [ativos das máquinas](docs/MACHINE_ASSETS.md).
 - **🔑 Início de sessão em dois passos** - **Ecossistema > Server Admin** tem um cartão para a conta com que entrou (desativado até o seu dono o ativar): um código QR do endereço otpauth (desenhado aqui por um pequeno codificador que faz o mesmo símbolo do programa web), a chave para escrever à mão com um botão de copiar, o primeiro código e os dez códigos de recuperação de uso único mostrados uma vez. A caixa de credenciais do servidor tem um campo para o código de uma conta que o tenha ativado (guardado em memória só para esse início de sessão, nunca gravado) e **Ecossistema > Utilizadores** tem um botão que remove o segundo passo de uma conta que perdeu o telemóvel e os códigos de recuperação.
 - **Opções do despachante de trabalhos no Server Admin** (só administradores): o interruptor e o mapa de robôs da entrega dos pedidos de paragem (`jobDispatcher.stopRelay.enabled` e `robotMap`) e as duas opções do replaneamento (`allowUnconfirmed`, `stopAckTimeoutSeconds`), que o servidor escreve no ficheiro de configuração do despachante (precisa de `HYDRA_UMC_JOB_DISPATCHER_CONFIG`; o despachante lê-as no próximo arranque). Ativar a entrega, ou deixar um trabalho passar a outro robô sem paragem confirmada, pede primeiro uma confirmação.
+- **Planeamento e operação** (Ecossistema): a simulação de um plano (`POST /plan/simulate` do planeador semântico; nunca executa nada, e uma resposta que diga que o fez não é mostrada), as estimativas do despachante de trabalhos (quando cada trabalho por terminar deve começar e acabar, com o seu intervalo), a vida útil restante de uma série de pontuações, um leitor da saída de `train plan --json` do atualizador (lida de um ficheiro e só mostrada: daqui não se instala nada) e o estado das estatísticas por janela do data lake. Passam pelo relé do servidor (só esses pedidos exatos), e uma função cujo serviço tem o interruptor desligado di-lo.
 
 ---
 
@@ -276,7 +277,7 @@ A versão aparece em **Ajuda > Acerca de**. Compilar com `build_exe.bat` / `buil
 
 ## 🧪 Testes
 
-47 testes automáticos correm com `python tools/run_offline_verifiers.py`. Cada um é um script verificador com muitas verificações, não uma única asserção; precisam do PySide6 e dos outros requisitos, correm numa plataforma Qt sem ecrã e nunca abrem uma ligação a um servidor ou robô real.
+48 testes automáticos correm com `python tools/run_offline_verifiers.py`. Cada um é um script verificador com muitas verificações, não uma única asserção; precisam do PySide6 e dos outros requisitos, correm numa plataforma Qt sem ecrã e nunca abrem uma ligação a um servidor ou robô real.
 
 A CI executa `HYDRA_UMC_CI=1 python tools/ci_validate.py`, que verifica o manifesto, os documentos, os oito README e as imagens.
 

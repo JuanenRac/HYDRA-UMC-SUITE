@@ -81,7 +81,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, ecosystem_health, server_security
+from hydra_suite.panel_logic import connection_history, ecosystem_health, planning, server_security
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -466,6 +466,7 @@ class SuiteQtBridge(QObject):
         self._security_state: dict | None = None
         self._security_message = ""
         self._security_error = ""
+        self._planning: dict[str, object] = {}
         self._security_warning = ""
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_server()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_server()))
@@ -841,6 +842,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_supervisor())
             elif key == "ecosystem_health":
                 asyncio.ensure_future(self._refresh_eco_health())
+            elif key == "ecosystem_planning":
+                asyncio.ensure_future(self._probe_planning_switches())
             elif key == "robots_catalog":
                 self.refreshCatalogPreview()
             self.changed.emit()
@@ -2289,6 +2292,96 @@ class SuiteQtBridge(QObject):
             problem = _("ECOHEALTH_LOAD_ERROR")
         self._eco_health_status = problem
         self.changed.emit()
+
+    # -- Planning and operation (read only views and dry runs) ---------------
+
+    @Property("QVariantMap", notify=changed)
+    def planningView(self) -> dict[str, object]:
+        """What the Planning screen shows; every part already carries the sentences in the language of the interface."""
+        return {
+            "simulation": self._planning.get("simulation"), "simulationError": self._planning.get("simulationError", ""),
+            "eta": self._planning.get("eta"), "etaError": self._planning.get("etaError", ""),
+            "rul": self._planning.get("rul", ""), "rulError": self._planning.get("rulError", ""),
+            "train": self._planning.get("train"), "trainError": self._planning.get("trainError", ""),
+            "windows": planning.switch_text(self._planning.get("windows", "unknown")),
+            "busy": self._planning.get("busy", ""),
+        }
+
+    def _planning_set(self, **values: object) -> None:
+        self._planning.update(values)
+        self.changed.emit()
+
+    @Slot(str)
+    def simulatePlan(self, text: str) -> None:
+        request = planning.parse_plan_request(text)
+        if request is None:
+            self._planning_set(simulation=None, simulationError=_("PLANNING_SIM_INVALID_REQUEST"))
+            return
+        self._planning_set(simulation=None, simulationError="", busy="sim")
+        asyncio.ensure_future(self._planning_call("sim", "semantic-planner", "POST", "/plan/simulate", request))
+
+    @Slot()
+    def loadPlanningEta(self) -> None:
+        self._planning_set(eta=None, etaError="", busy="eta")
+        asyncio.ensure_future(self._planning_call("eta", "job-dispatcher", "GET", "/dispatch/eta", None))
+
+    @Slot(str, str)
+    def estimateRul(self, points_text: str, limit_text: str) -> None:
+        points, limit = planning.parse_rul_points(points_text), planning.parse_limit(limit_text)
+        if points is None or limit is None:
+            self._planning_set(rul="", rulError=_("PLANNING_RUL_INVALID"))
+            return
+        self._planning_set(rul="", rulError="", busy="rul")
+        asyncio.ensure_future(self._planning_call("rul", "anomaly-detector", "POST", "/rul", {"points": points, "limit": limit}))
+
+    @Slot(str)
+    def openTrainPlan(self, path: str) -> None:
+        """Reads the file written by `train plan --json`. It is only shown; nothing is installed from here."""
+        self._planning_set(train=None, trainError="")
+        local_path = QUrl(path).toLocalFile() or path
+        try:
+            with open(local_path, "rb") as handle:
+                data = handle.read(planning.MAX_TRAIN_FILE_BYTES + 1)
+            parsed = planning.parse_train_plan(data.decode("utf-8")) if len(data) <= planning.MAX_TRAIN_FILE_BYTES else None
+        except (OSError, UnicodeDecodeError):
+            parsed = None
+        if parsed is None:
+            self._planning_set(trainError=_("PLANNING_TRAIN_INVALID"))
+        else:
+            self._planning_set(train=planning.train_view(parsed))
+
+    async def _probe_planning_switches(self) -> None:
+        conn = self._controller.active_connection
+        state = "unknown"
+        if conn is not None:
+            try:
+                result = await conn.relay_request("datalake", "GET", "/windows")
+                state = planning.switch_from_status(result[0] if result else None)
+            except Exception as error:  # a damaged answer must not stop the screen
+                logger.warning("reading the switches of the data lake failed: %s", error)
+        self._planning_set(windows=state)
+
+    async def _planning_call(self, which: str, service: str, method: str, path: str, body: dict | None) -> None:
+        conn = self._controller.active_connection
+        result = None
+        if conn is not None:
+            try:
+                result = await conn.relay_request(service, method, path, body)
+            except Exception as error:  # a damaged answer must not stop the screen
+                logger.warning("the %s request of the Planning screen failed: %s", which, error)
+        status, answer = (result if result is not None else (None, None))
+        problem = planning.failure_text(status, answer)
+        values: dict[str, object] = {"busy": ""}
+        if which == "sim":
+            parsed = planning.parse_simulation(answer) if not problem else None
+            values.update(simulation=planning.simulation_view(parsed) if parsed else None, simulationError=problem or ("" if parsed else _("PLANNING_MALFORMED")))
+        elif which == "eta":
+            parsed = planning.parse_eta(answer) if not problem else None
+            values.update(eta=planning.eta_view(parsed) if parsed else None, etaError=problem or ("" if parsed else _("PLANNING_MALFORMED")))
+        elif which == "rul":
+            parsed = planning.parse_rul(answer) if not problem else None
+            values.update(rul=planning.rul_view(parsed) if parsed else "", rulError=problem or ("" if parsed else _("PLANNING_MALFORMED")))
+        self._planning_set(**values)
 
     # -- Robot Control -----------------------------------------------------
 
