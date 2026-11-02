@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Trusted networks in Server Admin:** the security card gets the `trustedNetworks.enabled` option (off by default, locked when the environment fixes it) with where its value comes from, the same as in STUDIO, in the eight languages.
+
+- **A refused HOME / RESET says so:** the sentence for a home the server refused (the pose is not the home pose of its model, or a joint would leave its range) says the robot did not move, in the eight languages.
+
+- **Wording aligned with STUDIO:** ten texts that read differently from STUDIO although they mean the same (delete, joints, memory usage, the CPU load, the failed login and others) now use the words of STUDIO in every language.
+
 ## [0.7.8] - One module for the session of a server, local and global settings by role, the edits of a robot as commands, one scheduler for the pollers, one GL context for the 3D views and the state of the reload of the job dispatcher
 
 - **The state of the reload of the job dispatcher in Server Admin:** next to the replanning options a line says what came of the request to read the dispatcher file again (pending, applied, failed or not configured), read from `jobDispatcher.replan.reload`, in the eight languages; after a save the screen asks the server again every two seconds until the dispatcher has answered.

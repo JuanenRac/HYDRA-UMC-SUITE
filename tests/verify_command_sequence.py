@@ -60,6 +60,11 @@ stale = describe_rejection(FakeResponse(409, {"error": "stale", "code": "stale-s
 reserved = describe_rejection(FakeResponse(409, {"error": "taken"}), "Jog")
 check("stale text differs from reservation text", stale != reserved, True)
 
+check("home refusal code", (access.failure_code_for(400, "home-pose-mismatch"), access.failure_code_for(422, "home-out-of-limits")), ("home_rejected", "home_rejected"))
+home = describe_rejection(FakeResponse(422, {"error": "out of range", "code": "home-out-of-limits"}), "Home")
+plain = describe_rejection(FakeResponse(400, {"error": "bad"}), "Home")
+check("home text differs from the plain refusal and says the robot did not move", (home != plain, "out of range" in home), (True, True))
+
 if failures:
     print(f"{failures} check(s) failed")
     sys.exit(1)

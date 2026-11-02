@@ -218,6 +218,17 @@ def switch(loop):
     check("switch: what is sent", (sec.ecosystem_health_patch(True), sec.ecosystem_health_patch(False)), ({"ecosystemHealth": {"enabled": True}}, {"ecosystemHealth": {"enabled": False}}))
     check("switch: every key of the view exists without a server", set(sec.view(None)) == set(sec.view(locked)), True)
 
+    trusted_plain = sec.parse_state(base)
+    check("trusted networks: a server without the option shows no switch", (trusted_plain["trustedNetworks"], sec.view(trusted_plain)["trustedNetworksAvailable"]), (None, False))
+    trusted_off = sec.parse_state({**base, "trustedNetworks": {"enabled": {"value": False, "source": "default"}}})
+    trusted_locked = sec.parse_state({**base, "trustedNetworks": {"enabled": {"value": True, "source": "env"}}})
+    check("trusted networks: off by default, source shown", (sec.view(trusted_off)["trustedNetworksEnabled"], sec.view(trusted_off)["trustedNetworksEnabledLocked"], sec.view(trusted_off)["trustedNetworksEnabledSource"]), (False, False, _("SECURITY_SOURCE_DEFAULT")))
+    check("trusted networks: fixed by the environment it is locked", (sec.view(trusted_locked)["trustedNetworksEnabled"], sec.view(trusted_locked)["trustedNetworksEnabledLocked"]), (True, True))
+    check("trusted networks: a damaged value shows no switch", sec.parse_state({**base, "trustedNetworks": {"enabled": {"value": "yes", "source": "default"}}})["trustedNetworks"], None)
+    check("trusted networks: what is sent", (sec.trusted_networks_patch(True), sec.trusted_networks_patch(False)), ({"trustedNetworks": {"enabled": True}}, {"trustedNetworks": {"enabled": False}}))
+    check("trusted networks: the warning has its own sentence", (sec.known_warning(["trusted_networks_on"]) != "", sec.known_warning(["trusted_networks_on"]) == _("SECURITY_TRUSTED_WARNING")), (True, True))
+    check("trusted networks: every key of the view exists without a server", set(sec.view(None)) == set(sec.view(trusted_locked)), True)
+
     rul_plain = sec.parse_state(base)
     check("rul: a server without the option shows no switch", (rul_plain["rul"], sec.view(rul_plain)["rulAvailable"]), (None, False))
     rul_off = sec.parse_state({**base, "rul": {"enabled": {"value": False, "source": "default"}}})

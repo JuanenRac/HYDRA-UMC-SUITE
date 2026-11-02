@@ -1986,6 +1986,28 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.trustedNetworksAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: trustedNetworksBox
+                            objectName: "securityTrustedNetworksBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_TRUSTED_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.trustedNetworksEnabledLocked
+                            checked: suiteBackend.securityView.trustedNetworksEnabled === true
+                        }
+                        Text { text: suiteBackend.securityView.trustedNetworksEnabledSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityTrustedNetworksSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.trustedNetworksEnabledLocked
+                            onClicked: suiteBackend.saveTrustedNetworksOptions(trustedNetworksBox.checked)
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

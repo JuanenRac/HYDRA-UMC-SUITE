@@ -226,6 +226,8 @@ def describe_rejection(resp: "httpx.Response", what: str) -> str:
         return _("MSG_NET_REJ_REVISION", what=what)
     if code == "stale-sequence":
         return _("MSG_NET_REJ_STALE", what=what)
+    if code in ("home-pose-mismatch", "home-out-of-limits"):
+        return _("MSG_NET_REJ_HOME", what=what, detail=_body_error(resp))
     if code == "jog-not-armed":
         return _("MSG_NET_REJ_NOT_ARMED", what=what, detail=_body_error(resp))
     if status == 423 or code == "robot-disabled":

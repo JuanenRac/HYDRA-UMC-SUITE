@@ -3236,6 +3236,13 @@ class SuiteQtBridge(QObject):
         asyncio.ensure_future(self._save_security(server_security.connections_patch(record_address)))
 
     @Slot(bool)
+    def saveTrustedNetworksOptions(self, enabled: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("trustedNetworks"):
+            return
+        asyncio.ensure_future(self._save_security(server_security.trusted_networks_patch(enabled)))
+
+    @Slot(bool)
     def saveEcosystemHealthOptions(self, enabled: bool) -> None:
         state = self._security_state
         if state is None or not state.get("ecosystemHealth"):

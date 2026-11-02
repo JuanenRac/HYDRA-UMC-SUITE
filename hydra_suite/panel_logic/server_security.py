@@ -154,6 +154,7 @@ def parse_state(body: object) -> dict | None:
         "robots": None,
         "health": None,
         "ecosystemHealth": None,
+        "trustedNetworks": None,
         "rul": None,
         "safety": None,
         "jobDispatcher": None,
@@ -213,6 +214,11 @@ def parse_state(body: object) -> dict | None:
         enabled = _option(ecosystem_health.get("enabled"), bool)
         if enabled is not None:
             state["ecosystemHealth"] = {"enabled": enabled}
+    trusted = body.get("trustedNetworks")
+    if isinstance(trusted, dict):
+        trusted_enabled = _option(trusted.get("enabled"), bool)
+        if trusted_enabled is not None:
+            state["trustedNetworks"] = {"enabled": trusted_enabled}
     rul = body.get("rul")
     if isinstance(rul, dict):
         rul_enabled = _option(rul.get("enabled"), bool)
@@ -323,6 +329,12 @@ def rul_patch(enabled: bool) -> dict:
     relay (off by default: only an administrator may then). Turning it on never asks: only that one request is opened, with a limit on its
     size and time, and every other write to the detector stays for administrators."""
     return {"rul": {"enabled": bool(enabled)}}
+
+
+def trusted_networks_patch(enabled: bool) -> dict:
+    """The request body for the option that refuses to administer the server from outside the house network and the VPN (off by default).
+    The ranges, the policy for the outside and the second-factor rule are edited in the configuration file of the server, not here."""
+    return {"trustedNetworks": {"enabled": bool(enabled)}}
 
 
 def ecosystem_health_patch(enabled: bool) -> dict:
@@ -490,6 +502,8 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_ROBOTS_WARNING")
     if "health_open" in warnings:
         sentence = _("SECURITY_HEALTH_WARNING")
+    if "trusted_networks_on" in warnings:
+        sentence = _("SECURITY_TRUSTED_WARNING")
     if "connection_address_recorded" in warnings:
         sentence = _("SECURITY_CONNECTIONS_WARNING")
     if "camera_open" in warnings:
@@ -531,6 +545,7 @@ EMPTY_VIEW: dict = {
     "voiceConfidence": "0.6", "voiceConfidenceLocked": False, "voiceConfidenceSource": "",
     "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
+    "trustedNetworksAvailable": False, "trustedNetworksEnabled": False, "trustedNetworksEnabledLocked": False, "trustedNetworksEnabledSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
@@ -651,6 +666,16 @@ def view(state: dict | None) -> dict:
                 "ecosystemHealthEnabled": ecosystem_health["enabled"]["value"],
                 "ecosystemHealthEnabledLocked": is_locked(ecosystem_health["enabled"]["source"]),
                 "ecosystemHealthEnabledSource": source_text(ecosystem_health["enabled"]["source"]),
+            }
+        )
+    trusted = state.get("trustedNetworks")
+    if trusted is not None:
+        out.update(
+            {
+                "trustedNetworksAvailable": True,
+                "trustedNetworksEnabled": trusted["enabled"]["value"],
+                "trustedNetworksEnabledLocked": is_locked(trusted["enabled"]["source"]),
+                "trustedNetworksEnabledSource": source_text(trusted["enabled"]["source"]),
             }
         )
     rul = state.get("rul")

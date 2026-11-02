@@ -157,7 +157,7 @@ def failure_code_for(status: int, server_code: str | None) -> str:
     """The failure of a refused request, refined by the stable `code` of the answer when the server gave one:
     "claim_other_account", "claim_other_controller", "claim_controller_required", "jog_not_armed",
     "robot_disabled" (423: the robot is in safe mode), "enable_not_allowed" and "admin_required" (403: the refusals of enable),
-    "revision_changed" (412: the robot changed since this program read it), "stale_sequence" (409: a newer numbered
+    "revision_changed" (412: the robot changed since this program read it), "home_rejected" (400/422: the server refused to send the robot home), "stale_sequence" (409: a newer numbered
     motion command had already reached the robot), or the plain
     class of the status ("network", "session_expired", "forbidden", "not_found", "claimed", "rejected", "server")."""
     if server_code == "other-account":
@@ -174,6 +174,8 @@ def failure_code_for(status: int, server_code: str | None) -> str:
         return "enable_not_allowed"
     if server_code == "admin-required":
         return "admin_required"
+    if server_code in ("home-pose-mismatch", "home-out-of-limits"):
+        return "home_rejected"
     if server_code == "stale-sequence":
         return "stale_sequence"
     if server_code == "revision-mismatch" or status == 412:
