@@ -112,13 +112,37 @@ gebauter "Generic"-Fallback für jedes Modell ohne eigenen Mesh-Satz.
 
 ## 🖼️ Screenshots
 
-Aufgenommen mit 1920×1080 auf einem Prüfstand, mit Beispieldaten und ohne eine echte Anlage dahinter.
+Aufgenommen auf einem Prüfstand mit erfundenen Beispieldaten und ohne eine echte Anlage dahinter.
 
-<table>
-<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Übersicht: der aktive Controller, seine Systemmetriken und die Liste der Roboter mit Modell, Rolle, Status und Geschwindigkeit." width="100%"><br><sub>Übersicht: der aktive Controller, seine Systemmetriken und die Liste der Roboter mit Modell, Rolle, Status und Geschwindigkeit.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Robotersteuerung: Live- oder Simulationsmodus, die Reservierungstasten, die sechs Gelenkregler, die Wiedergabe und das Werkzeugzubehör." width="100%"><br><sub>Robotersteuerung: Live- oder Simulationsmodus, die Reservierungstasten, die sechs Gelenkregler, die Wiedergabe und das Werkzeugzubehör.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: Platine und Roboterplatz wählen, den Weg des Updates sehen, eine Firmware-Datei auswählen und per CAN flashen." width="100%"><br><sub>Flasher Studio: Platine und Roboterplatz wählen, den Weg des Updates sehen, eine Firmware-Datei auswählen und per CAN flashen.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: die Status-LED, die Ring-LED, der OLED-Modus, die Persistenzprüfung, der Selbsttest und der Rohbus-Monitor einer Platine." width="100%"><br><sub>Tester Center: die Status-LED, die Ring-LED, der OLED-Modus, die Persistenzprüfung, der Selbsttest und der Rohbus-Monitor einer Platine.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Sicherheitsgrenzen: Scharfschaltung des Jogs, Reservierungsregel und die Jog- und Betttemperatur-Obergrenzen je Robotermodell." width="100%"><br><sub>Sicherheitsgrenzen: Scharfschaltung des Jogs, Reservierungsregel und die Jog- und Betttemperatur-Obergrenzen je Robotermodell.</sub></td></tr>
-</table>
+<p align="center">
+  <img src="images/screenshots/overview.png" alt="Übersicht" width="100%">
+</p>
+
+<p align="center"><em>Übersicht: der aktive Controller, seine Systemmetriken und die Liste der Roboter mit Modell, Rolle, Status und Geschwindigkeit.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/robot-control.png" alt="Robotersteuerung" width="100%">
+</p>
+
+<p align="center"><em>Robotersteuerung: Live- oder Simulationsmodus, die Reservierungstasten, die sechs Gelenkregler, die Wiedergabe und das Werkzeugzubehör.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/flasher-studio.png" alt="Flasher Studio" width="100%">
+</p>
+
+<p align="center"><em>Flasher Studio: Platine und Roboterplatz wählen, den Weg des Updates sehen, eine Firmware-Datei auswählen und per CAN flashen.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/tester-center.png" alt="Tester Center" width="100%">
+</p>
+
+<p align="center"><em>Tester Center: die Status-LED, die Ring-LED, der OLED-Modus, die Persistenzprüfung, der Selbsttest und der Rohbus-Monitor einer Platine.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/safety-limits.png" alt="Sicherheitsgrenzen" width="100%">
+</p>
+
+<p align="center"><em>Sicherheitsgrenzen: Scharfschaltung des Jogs, Reservierungsregel und die Jog- und Betttemperatur-Obergrenzen je Robotermodell.</em></p>
 
 ## ✨ Funktionen
 
@@ -440,7 +464,7 @@ HYDRA-UMC-SUITE/
 ├── tests/                                                                                                  Echte Testsuite ohne Anzeige (QApplication, kein Display nötig) - ein verify_*.py pro Panel/Subsystem, plus Kinematik-Ports und manuelle Smoke-Tests, die einen echten laufenden STUDIO-Server brauchen
 ├── installer/                                                                                              Hinweise und Assets zur Plattform-Paketierung
 ├── .vscode/                                                                                                Python-Interpreter-Pfad, Startkonfigurationen, empfohlene Erweiterungen
-├── images/                                                                                                 Banner und Bilder der README
+├── images/                                                                                                 README-Banner und Screenshots
 ├── main.py                                                                                                 Einstiegspunkt - startet die Qt-Quick-Oberfläche (maximiert, min. 1280x720; F11 schaltet echten Vollbildmodus um)
 ├── qt_suite.py                                                                                             Qt-Quick-Frontend - verbindet den unveränderten SuiteController mit QML (alle 33 Panels)
 ├── verify_qt_suite_shell.py                                                                                Echter, hardware-/netzwerkfreier Check der Qt-Quick-Shell - bewusst außerhalb von tests/ (gleicher Grund wie bei URTC-TESTER/URTC-FLASHERs eigenen verify_qt_*.py), ausgeführt mit `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`

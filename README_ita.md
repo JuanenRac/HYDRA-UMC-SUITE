@@ -112,13 +112,37 @@ qualsiasi modello privo di un proprio set di mesh.
 
 ## 🖼️ Schermate
 
-Catturate a 1920×1080 su un banco di prova, con dati di esempio e senza alcuna installazione reale dietro.
+Catturate su un banco di prova con dati di esempio inventati e senza alcuna installazione reale dietro.
 
-<table>
-<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Panoramica: il controllore attivo, le sue metriche di sistema e l'elenco dei robot con modello, ruolo, stato e velocità." width="100%"><br><sub>Panoramica: il controllore attivo, le sue metriche di sistema e l'elenco dei robot con modello, ruolo, stato e velocità.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Controllo del robot: modalità reale o simulata, i pulsanti di prenotazione, i sei cursori dei giunti, la riproduzione e gli accessori dell'utensile." width="100%"><br><sub>Controllo del robot: modalità reale o simulata, i pulsanti di prenotazione, i sei cursori dei giunti, la riproduzione e gli accessori dell'utensile.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: scegli la scheda e lo slot del robot, guarda il percorso dell'aggiornamento, un file di firmware e flashalo via CAN." width="100%"><br><sub>Flasher Studio: scegli la scheda e lo slot del robot, guarda il percorso dell'aggiornamento, un file di firmware e flashalo via CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: il LED di stato, il LED ad anello, la modalità OLED, il controllo di persistenza, l'autotest e il monitor del bus grezzo di una scheda." width="100%"><br><sub>Tester Center: il LED di stato, il LED ad anello, la modalità OLED, il controllo di persistenza, l'autotest e il monitor del bus grezzo di una scheda.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Limiti di sicurezza: armamento del jog, regola delle prenotazioni e i massimi di jog e di temperatura del piano per modello di robot." width="100%"><br><sub>Limiti di sicurezza: armamento del jog, regola delle prenotazioni e i massimi di jog e di temperatura del piano per modello di robot.</sub></td></tr>
-</table>
+<p align="center">
+  <img src="images/screenshots/overview.png" alt="Panoramica" width="100%">
+</p>
+
+<p align="center"><em>Panoramica: il controllore attivo, le sue metriche di sistema e l'elenco dei robot con modello, ruolo, stato e velocità.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/robot-control.png" alt="Controllo del robot" width="100%">
+</p>
+
+<p align="center"><em>Controllo del robot: modalità reale o simulata, i pulsanti di prenotazione, i sei cursori dei giunti, la riproduzione e gli accessori dell'utensile.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/flasher-studio.png" alt="Flasher Studio" width="100%">
+</p>
+
+<p align="center"><em>Flasher Studio: scegli la scheda e lo slot del robot, guarda il percorso dell'aggiornamento, un file di firmware e flashalo via CAN.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/tester-center.png" alt="Tester Center" width="100%">
+</p>
+
+<p align="center"><em>Tester Center: il LED di stato, il LED ad anello, la modalità OLED, il controllo di persistenza, l'autotest e il monitor del bus grezzo di una scheda.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/safety-limits.png" alt="Limiti di sicurezza" width="100%">
+</p>
+
+<p align="center"><em>Limiti di sicurezza: armamento del jog, regola delle prenotazioni e i massimi di jog e di temperatura del piano per modello di robot.</em></p>
 
 ## ✨ Funzionalità
 
@@ -441,7 +465,7 @@ HYDRA-UMC-SUITE/
 ├── tests/                                                                                                  Vera suite di test headless (QApplication, nessun display necessario) - un verify_*.py per pannello/sottosistema, più i porting di cinematica e test di fumo manuali che necessitano un vero server STUDIO in esecuzione
 ├── installer/                                                                                              Note e risorse di packaging per piattaforma
 ├── .vscode/                                                                                                Percorso dell'interprete Python, configurazioni di avvio, estensioni consigliate
-├── images/                                                                                                 banner e immagini del README
+├── images/                                                                                                 Banner e schermate del README
 ├── main.py                                                                                                 Punto di ingresso - avvia l'interfaccia Qt Quick (massimizzata, 1280x720 min.; F11 attiva il vero schermo intero)
 ├── qt_suite.py                                                                                             Interfaccia Qt Quick - collega il SuiteController invariato a QML (tutti i 33 pannelli)
 ├── verify_qt_suite_shell.py                                                                                Verifica reale della shell Qt Quick senza hardware/rete - deliberatamente fuori da tests/ (stesso motivo dei propri verify_qt_*.py di URTC-TESTER/URTC-FLASHER), eseguita con `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`

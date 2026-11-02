@@ -108,13 +108,37 @@ without a dedicated mesh set.
 
 ## 🖼️ Screenshots
 
-Captured at 1920×1080 on a test bench, with sample data and no real installation behind them.
+Captured on a test bench with made-up sample data and no real installation behind them.
 
-<table>
-<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Overview: the active controller, its system metrics and the list of robots with model, role, status and speed." width="100%"><br><sub>Overview: the active controller, its system metrics and the list of robots with model, role, status and speed.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Robot control: live or simulated mode, the reservation buttons, the six joint sliders, playback and the tool accessories." width="100%"><br><sub>Robot control: live or simulated mode, the reservation buttons, the six joint sliders, playback and the tool accessories.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: pick the board and the robot slot, see the route the update takes, choose a firmware file and flash it over CAN." width="100%"><br><sub>Flasher Studio: pick the board and the robot slot, see the route the update takes, choose a firmware file and flash it over CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: the status LED, the ring LED, the OLED mode, the persistence check, the self-test and the raw bus monitor of a board." width="100%"><br><sub>Tester Center: the status LED, the ring LED, the OLED mode, the persistence check, the self-test and the raw bus monitor of a board.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Safety limits: arming of the jog, the reservation rule and the jog and bed-temperature ceilings per robot model." width="100%"><br><sub>Safety limits: arming of the jog, the reservation rule and the jog and bed-temperature ceilings per robot model.</sub></td></tr>
-</table>
+<p align="center">
+  <img src="images/screenshots/overview.png" alt="Overview" width="100%">
+</p>
+
+<p align="center"><em>Overview: the active controller, its system metrics and the list of robots with model, role, status and speed.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/robot-control.png" alt="Robot control" width="100%">
+</p>
+
+<p align="center"><em>Robot control: live or simulated mode, the reservation buttons, the six joint sliders, playback and the tool accessories.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/flasher-studio.png" alt="Flasher Studio" width="100%">
+</p>
+
+<p align="center"><em>Flasher Studio: pick the board and the robot slot, see the route the update takes, choose a firmware file and flash it over CAN.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/tester-center.png" alt="Tester Center" width="100%">
+</p>
+
+<p align="center"><em>Tester Center: the status LED, the ring LED, the OLED mode, the persistence check, the self-test and the raw bus monitor of a board.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/safety-limits.png" alt="Safety limits" width="100%">
+</p>
+
+<p align="center"><em>Safety limits: arming of the jog, the reservation rule and the jog and bed-temperature ceilings per robot model.</em></p>
 
 ## ✨ Features
 
@@ -432,7 +456,7 @@ HYDRA-UMC-SUITE/
 ├── tests/                                                                                                  Real headless test suite (QApplication, no display needed) - one verify_*.py per panel/subsystem, plus kinematics ports and manual smoke tests that need a real running STUDIO server
 ├── installer/                                                                                              Platform packaging notes/assets
 ├── .vscode/                                                                                                Python interpreter path, launch configs, recommended extensions
-├── images/                                                                                                 banner and the pictures of the README
+├── images/                                                                                                 README banner and screenshots
 ├── main.py                                                                                                 Entry point - starts the Qt Quick interface (maximized, 1280x720 min; F11 toggles real full screen)
 ├── qt_suite.py                                                                                             Qt Quick front end - bridges the unchanged SuiteController to QML (all 33 panels)
 ├── verify_qt_suite_shell.py                                                                                Real, hardware/network-free Qt Quick shell check - deliberately kept outside tests/ (same reason as URTC-TESTER/URTC-FLASHER's own verify_qt_*.py), run with `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`

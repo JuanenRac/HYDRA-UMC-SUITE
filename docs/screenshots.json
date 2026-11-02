@@ -1,0 +1,119 @@
+{
+  "screens": [
+    {
+      "file": "overview.png",
+      "alt": {
+        "en": "Overview",
+        "es": "Resumen",
+        "fr": "Vue d'ensemble",
+        "it": "Panoramica",
+        "de": "Übersicht",
+        "zh": "概览",
+        "ja": "概要",
+        "pt": "Resumo"
+      },
+      "caption": {
+        "en": "Overview: the active controller, its system metrics and the list of robots with model, role, status and speed.",
+        "es": "Resumen: el controlador activo, sus métricas del sistema y la lista de robots con modelo, función, estado y velocidad.",
+        "fr": "Vue d'ensemble : le contrôleur actif, ses métriques système et la liste des robots avec modèle, rôle, état et vitesse.",
+        "it": "Panoramica: il controllore attivo, le sue metriche di sistema e l'elenco dei robot con modello, ruolo, stato e velocità.",
+        "de": "Übersicht: der aktive Controller, seine Systemmetriken und die Liste der Roboter mit Modell, Rolle, Status und Geschwindigkeit.",
+        "zh": "概览：当前控制器、其系统指标，以及包含型号、角色、状态和速度的机器人列表。",
+        "ja": "概要：アクティブなコントローラー、そのシステムメトリクス、モデル・役割・状態・速度つきのロボット一覧。",
+        "pt": "Resumo: o controlador ativo, as suas métricas do sistema e a lista de robôs com modelo, função, estado e velocidade."
+      }
+    },
+    {
+      "file": "robot-control.png",
+      "alt": {
+        "en": "Robot control",
+        "es": "Control del robot",
+        "fr": "Contrôle du robot",
+        "it": "Controllo del robot",
+        "de": "Robotersteuerung",
+        "zh": "机器人控制",
+        "ja": "ロボット制御",
+        "pt": "Controlo do robô"
+      },
+      "caption": {
+        "en": "Robot control: live or simulated mode, the reservation buttons, the six joint sliders, playback and the tool accessories.",
+        "es": "Control del robot: modo real o simulado, los botones de reserva, los seis deslizadores de articulación, la reproducción y los accesorios de la herramienta.",
+        "fr": "Contrôle du robot : mode réel ou simulé, les boutons de réservation, les six curseurs d'articulation, la lecture et les accessoires de l'outil.",
+        "it": "Controllo del robot: modalità reale o simulata, i pulsanti di prenotazione, i sei cursori dei giunti, la riproduzione e gli accessori dell'utensile.",
+        "de": "Robotersteuerung: Live- oder Simulationsmodus, die Reservierungstasten, die sechs Gelenkregler, die Wiedergabe und das Werkzeugzubehör.",
+        "zh": "机器人控制：实机或模拟模式、预约按钮、六个关节滑块、回放和工具附件。",
+        "ja": "ロボット制御：実機またはシミュレーションのモード、予約ボタン、6 つの関節スライダー、再生、ツールのアクセサリー。",
+        "pt": "Controlo do robô: modo real ou simulado, os botões de reserva, os seis cursores das articulações, a reprodução e os acessórios da ferramenta."
+      }
+    },
+    {
+      "file": "flasher-studio.png",
+      "alt": {
+        "en": "Flasher Studio",
+        "es": "Flasher Studio",
+        "fr": "Flasher Studio",
+        "it": "Flasher Studio",
+        "de": "Flasher Studio",
+        "zh": "Flasher Studio",
+        "ja": "Flasher Studio",
+        "pt": "Flasher Studio"
+      },
+      "caption": {
+        "en": "Flasher Studio: pick the board and the robot slot, see the route the update takes, choose a firmware file and flash it over CAN.",
+        "es": "Flasher Studio: elige la placa y la ranura del robot, mira la ruta que sigue la actualización, escoge un fichero de firmware y flashéalo por CAN.",
+        "fr": "Flasher Studio : choisissez la carte et l'emplacement du robot, voyez le chemin de la mise à jour, un fichier de firmware, et flashez-le par CAN.",
+        "it": "Flasher Studio: scegli la scheda e lo slot del robot, guarda il percorso dell'aggiornamento, un file di firmware e flashalo via CAN.",
+        "de": "Flasher Studio: Platine und Roboterplatz wählen, den Weg des Updates sehen, eine Firmware-Datei auswählen und per CAN flashen.",
+        "zh": "Flasher Studio：选择开发板和机器人插槽，查看更新经过的路径，选择固件文件并通过 CAN 烧录。",
+        "ja": "Flasher Studio：ボードとロボットスロットを選び、更新の経路を確認して、ファームウェアファイルを CAN で書き込みます。",
+        "pt": "Flasher Studio: escolha a placa e a ranhura do robô, veja o caminho que a atualização segue, escolha um ficheiro de firmware e grave-o por CAN."
+      }
+    },
+    {
+      "file": "tester-center.png",
+      "alt": {
+        "en": "Tester Center",
+        "es": "Tester Center",
+        "fr": "Tester Center",
+        "it": "Tester Center",
+        "de": "Tester Center",
+        "zh": "Tester Center",
+        "ja": "Tester Center",
+        "pt": "Tester Center"
+      },
+      "caption": {
+        "en": "Tester Center: the status LED, the ring LED, the OLED mode, the persistence check, the self-test and the raw bus monitor of a board.",
+        "es": "Tester Center: el LED de estado, el LED en anillo, el modo OLED, la comprobación de persistencia, el autotest y el monitor de bus en bruto de una placa.",
+        "fr": "Tester Center : la LED d'état, la LED en anneau, le mode OLED, le contrôle de persistance, l'autotest et le moniteur de bus brut d'une carte.",
+        "it": "Tester Center: il LED di stato, il LED ad anello, la modalità OLED, il controllo di persistenza, l'autotest e il monitor del bus grezzo di una scheda.",
+        "de": "Tester Center: die Status-LED, die Ring-LED, der OLED-Modus, die Persistenzprüfung, der Selbsttest und der Rohbus-Monitor einer Platine.",
+        "zh": "Tester Center：开发板的状态 LED、环形 LED、OLED 模式、持久化检查、自检和原始总线监视器。",
+        "ja": "Tester Center：ボードのステータス LED、リング LED、OLED モード、永続性チェック、セルフテスト、生バスモニター。",
+        "pt": "Tester Center: o LED de estado, o LED em anel, o modo OLED, a verificação de persistência, o autoteste e o monitor de barramento em bruto de uma placa."
+      }
+    },
+    {
+      "file": "safety-limits.png",
+      "alt": {
+        "en": "Safety limits",
+        "es": "Límites de seguridad",
+        "fr": "Limites de sécurité",
+        "it": "Limiti di sicurezza",
+        "de": "Sicherheitsgrenzen",
+        "zh": "安全限制",
+        "ja": "安全制限",
+        "pt": "Limites de segurança"
+      },
+      "caption": {
+        "en": "Safety limits: arming of the jog, the reservation rule and the jog and bed-temperature ceilings per robot model.",
+        "es": "Límites de seguridad: armado del jog, regla de reservas y los techos de jog y de temperatura de cama por modelo de robot.",
+        "fr": "Limites de sécurité : armement du jog, règle de réservation et plafonds de jog et de température du plateau par modèle de robot.",
+        "it": "Limiti di sicurezza: armamento del jog, regola delle prenotazioni e i massimi di jog e di temperatura del piano per modello di robot.",
+        "de": "Sicherheitsgrenzen: Scharfschaltung des Jogs, Reservierungsregel und die Jog- und Betttemperatur-Obergrenzen je Robotermodell.",
+        "zh": "安全限制：点动的启用、预约规则，以及按机器人型号设置的点动和热床温度上限。",
+        "ja": "安全制限：ジョグの有効化、予約ルール、ロボットモデルごとのジョグとベッド温度の上限。",
+        "pt": "Limites de segurança: armação do jog, regra de reservas e os tetos de jog e de temperatura da cama por modelo de robô."
+      }
+    }
+  ]
+}

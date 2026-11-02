@@ -111,13 +111,37 @@ O **HYDRA-UMC-SUITE** é o centro de comando de ambiente de trabalho da célula 
 
 ## 🖼️ Capturas de ecrã
 
-Capturadas a 1920×1080 numa bancada de testes, com dados de exemplo e sem qualquer instalação real por trás.
+Capturadas numa bancada de testes com dados de exemplo inventados e sem qualquer instalação real por trás.
 
-<table>
-<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="Resumo: o controlador ativo, as suas métricas do sistema e a lista de robôs com modelo, função, estado e velocidade." width="100%"><br><sub>Resumo: o controlador ativo, as suas métricas do sistema e a lista de robôs com modelo, função, estado e velocidade.</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="Controlo do robô: modo real ou simulado, os botões de reserva, os seis cursores das articulações, a reprodução e os acessórios da ferramenta." width="100%"><br><sub>Controlo do robô: modo real ou simulado, os botões de reserva, os seis cursores das articulações, a reprodução e os acessórios da ferramenta.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio: escolha a placa e a ranhura do robô, veja o caminho que a atualização segue, escolha um ficheiro de firmware e grave-o por CAN." width="100%"><br><sub>Flasher Studio: escolha a placa e a ranhura do robô, veja o caminho que a atualização segue, escolha um ficheiro de firmware e grave-o por CAN.</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center: o LED de estado, o LED em anel, o modo OLED, a verificação de persistência, o autoteste e o monitor de barramento em bruto de uma placa." width="100%"><br><sub>Tester Center: o LED de estado, o LED em anel, o modo OLED, a verificação de persistência, o autoteste e o monitor de barramento em bruto de uma placa.</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="Limites de segurança: armação do jog, regra de reservas e os tetos de jog e de temperatura da cama por modelo de robô." width="100%"><br><sub>Limites de segurança: armação do jog, regra de reservas e os tetos de jog e de temperatura da cama por modelo de robô.</sub></td></tr>
-</table>
+<p align="center">
+  <img src="images/screenshots/overview.png" alt="Resumo" width="100%">
+</p>
+
+<p align="center"><em>Resumo: o controlador ativo, as suas métricas do sistema e a lista de robôs com modelo, função, estado e velocidade.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/robot-control.png" alt="Controlo do robô" width="100%">
+</p>
+
+<p align="center"><em>Controlo do robô: modo real ou simulado, os botões de reserva, os seis cursores das articulações, a reprodução e os acessórios da ferramenta.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/flasher-studio.png" alt="Flasher Studio" width="100%">
+</p>
+
+<p align="center"><em>Flasher Studio: escolha a placa e a ranhura do robô, veja o caminho que a atualização segue, escolha um ficheiro de firmware e grave-o por CAN.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/tester-center.png" alt="Tester Center" width="100%">
+</p>
+
+<p align="center"><em>Tester Center: o LED de estado, o LED em anel, o modo OLED, a verificação de persistência, o autoteste e o monitor de barramento em bruto de uma placa.</em></p>
+
+<p align="center">
+  <img src="images/screenshots/safety-limits.png" alt="Limites de segurança" width="100%">
+</p>
+
+<p align="center"><em>Limites de segurança: armação do jog, regra de reservas e os tetos de jog e de temperatura da cama por modelo de robô.</em></p>
 
 ## ✨ Funcionalidades
 
@@ -442,7 +466,7 @@ HYDRA-UMC-SUITE/
 ├── tests/                                                                                                  Suíte de testes real sem cabeça (QApplication, sem ecrã) - um verify_*.py por painel/subsistema, mais portagens de cinemática e testes smoke manuais que precisam de um servidor STUDIO real em execução
 ├── installer/                                                                                              Notas/ativos de empacotamento por plataforma
 ├── .vscode/                                                                                                Caminho do interpretador Python, configurações de lançamento, extensões recomendadas
-├── images/                                                                                                 faixa e imagens do README
+├── images/                                                                                                 Faixa e capturas de ecrã do README
 ├── main.py                                                                                                 Ponto de entrada - inicia a interface Qt Quick (maximizada, 1280x720 mín.; F11 alterna o ecrã inteiro real)
 ├── qt_suite.py                                                                                             Interface Qt Quick - liga o SuiteController sem alterações ao QML (os 33 painéis)
 ├── verify_qt_suite_shell.py                                                                                Verificação real do shell Qt Quick, sem hardware nem rede - deliberadamente fora de tests/ (pela mesma razão dos verify_qt_*.py do URTC-TESTER/URTC-FLASHER), execute com `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py`

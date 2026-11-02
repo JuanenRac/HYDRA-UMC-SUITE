@@ -86,13 +86,37 @@ GPL-3.0-or-later - see LICENSE
 
 ## 🖼️ 屏幕截图
 
-在测试台上以 1920×1080 截取，使用示例数据，背后没有真实的安装。
+在测试台上使用虚构的示例数据截取，背后没有真实的安装。
 
-<table>
-<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="概览：当前控制器、其系统指标，以及包含型号、角色、状态和速度的机器人列表。" width="100%"><br><sub>概览：当前控制器、其系统指标，以及包含型号、角色、状态和速度的机器人列表。</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="机器人控制：实机或模拟模式、预约按钮、六个关节滑块、回放和工具附件。" width="100%"><br><sub>机器人控制：实机或模拟模式、预约按钮、六个关节滑块、回放和工具附件。</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio：选择开发板和机器人插槽，查看更新经过的路径，选择固件文件并通过 CAN 烧录。" width="100%"><br><sub>Flasher Studio：选择开发板和机器人插槽，查看更新经过的路径，选择固件文件并通过 CAN 烧录。</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center：开发板的状态 LED、环形 LED、OLED 模式、持久化检查、自检和原始总线监视器。" width="100%"><br><sub>Tester Center：开发板的状态 LED、环形 LED、OLED 模式、持久化检查、自检和原始总线监视器。</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="安全限制：点动的启用、预约规则，以及按机器人型号设置的点动和热床温度上限。" width="100%"><br><sub>安全限制：点动的启用、预约规则，以及按机器人型号设置的点动和热床温度上限。</sub></td></tr>
-</table>
+<p align="center">
+  <img src="images/screenshots/overview.png" alt="概览" width="100%">
+</p>
+
+<p align="center"><em>概览：当前控制器、其系统指标，以及包含型号、角色、状态和速度的机器人列表。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/robot-control.png" alt="机器人控制" width="100%">
+</p>
+
+<p align="center"><em>机器人控制：实机或模拟模式、预约按钮、六个关节滑块、回放和工具附件。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/flasher-studio.png" alt="Flasher Studio" width="100%">
+</p>
+
+<p align="center"><em>Flasher Studio：选择开发板和机器人插槽，查看更新经过的路径，选择固件文件并通过 CAN 烧录。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/tester-center.png" alt="Tester Center" width="100%">
+</p>
+
+<p align="center"><em>Tester Center：开发板的状态 LED、环形 LED、OLED 模式、持久化检查、自检和原始总线监视器。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/safety-limits.png" alt="安全限制" width="100%">
+</p>
+
+<p align="center"><em>安全限制：点动的启用、预约规则，以及按机器人型号设置的点动和热床温度上限。</em></p>
 
 ## ✨ 功能
 
@@ -351,7 +375,7 @@ HYDRA-UMC-SUITE/
 ├── tests/                                                                                                  真实的无头测试套件（QApplication，无需显示器）—— 每个面板/子系统一个 verify_*.py，外加运动学移植验证和需要真实运行中 STUDIO 服务器的手动烟雾测试
 ├── installer/                                                                                              各平台打包说明与资源
 ├── .vscode/                                                                                                Python 解释器路径、启动配置、推荐扩展
-├── images/                                                                                                 横幅和 README 的图片
+├── images/                                                                                                 README 横幅和截图
 ├── main.py                                                                                                 入口——启动 Qt Quick 界面（最大化，最小 1280x720；F11 切换真正的全屏）
 ├── qt_suite.py                                                                                             Qt Quick 前端——把未改动的 SuiteController 连接到 QML（全部 33 个面板）
 ├── verify_qt_suite_shell.py                                                                                不依赖硬件/网络的真实 Qt Quick 外壳检查 —— 刻意放在 tests/ 之外（与 URTC-TESTER/URTC-FLASHER 自己的 verify_qt_*.py 同样的理由），用 `QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` 运行

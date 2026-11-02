@@ -86,13 +86,37 @@ GPL-3.0-or-later - see LICENSE
 
 ## 🖼️ スクリーンショット
 
-テストベンチで 1920×1080 で撮影。サンプルデータを使用しており、実際の設備は接続されていません。
+テストベンチで架空のサンプルデータを使って撮影したもので、実際の設備は接続されていません。
 
-<table>
-<tr><td width="50%" valign="top"><img src="images/screenshots/overview.png" alt="概要：アクティブなコントローラー、そのシステムメトリクス、モデル・役割・状態・速度つきのロボット一覧。" width="100%"><br><sub>概要：アクティブなコントローラー、そのシステムメトリクス、モデル・役割・状態・速度つきのロボット一覧。</sub></td><td width="50%" valign="top"><img src="images/screenshots/robot-control.png" alt="ロボット制御：実機またはシミュレーションのモード、予約ボタン、6 つの関節スライダー、再生、ツールのアクセサリー。" width="100%"><br><sub>ロボット制御：実機またはシミュレーションのモード、予約ボタン、6 つの関節スライダー、再生、ツールのアクセサリー。</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/flasher-studio.png" alt="Flasher Studio：ボードとロボットスロットを選び、更新の経路を確認して、ファームウェアファイルを CAN で書き込みます。" width="100%"><br><sub>Flasher Studio：ボードとロボットスロットを選び、更新の経路を確認して、ファームウェアファイルを CAN で書き込みます。</sub></td><td width="50%" valign="top"><img src="images/screenshots/tester-center.png" alt="Tester Center：ボードのステータス LED、リング LED、OLED モード、永続性チェック、セルフテスト、生バスモニター。" width="100%"><br><sub>Tester Center：ボードのステータス LED、リング LED、OLED モード、永続性チェック、セルフテスト、生バスモニター。</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="images/screenshots/safety-limits.png" alt="安全制限：ジョグの有効化、予約ルール、ロボットモデルごとのジョグとベッド温度の上限。" width="100%"><br><sub>安全制限：ジョグの有効化、予約ルール、ロボットモデルごとのジョグとベッド温度の上限。</sub></td></tr>
-</table>
+<p align="center">
+  <img src="images/screenshots/overview.png" alt="概要" width="100%">
+</p>
+
+<p align="center"><em>概要：アクティブなコントローラー、そのシステムメトリクス、モデル・役割・状態・速度つきのロボット一覧。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/robot-control.png" alt="ロボット制御" width="100%">
+</p>
+
+<p align="center"><em>ロボット制御：実機またはシミュレーションのモード、予約ボタン、6 つの関節スライダー、再生、ツールのアクセサリー。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/flasher-studio.png" alt="Flasher Studio" width="100%">
+</p>
+
+<p align="center"><em>Flasher Studio：ボードとロボットスロットを選び、更新の経路を確認して、ファームウェアファイルを CAN で書き込みます。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/tester-center.png" alt="Tester Center" width="100%">
+</p>
+
+<p align="center"><em>Tester Center：ボードのステータス LED、リング LED、OLED モード、永続性チェック、セルフテスト、生バスモニター。</em></p>
+
+<p align="center">
+  <img src="images/screenshots/safety-limits.png" alt="安全制限" width="100%">
+</p>
+
+<p align="center"><em>安全制限：ジョグの有効化、予約ルール、ロボットモデルごとのジョグとベッド温度の上限。</em></p>
 
 ## ✨ 機能
 
@@ -351,7 +375,7 @@ HYDRA-UMC-SUITE/
 ├── tests/                                                                                                  実際のヘッドレステストスイート（QApplication、ディスプレイ不要）- パネル/サブシステムごとに1つのverify_*.py、加えて運動学の移植と、実際に稼働中のSTUDIOサーバーが必要な手動スモークテスト
 ├── installer/                                                                                              プラットフォームごとのパッケージング資料・アセット
 ├── .vscode/                                                                                                Pythonインタープリターのパス、起動構成、推奨拡張機能
-├── images/                                                                                                 バナーと README の図
+├── images/                                                                                                 README のバナーとスクリーンショット
 ├── main.py                                                                                                 エントリーポイント - Qt Quick インターフェースを起動(最大化、最小 1280x720。F11 で本当の全画面を切り替え)
 ├── qt_suite.py                                                                                             Qt Quick フロントエンド - 変更のない SuiteController を QML につなぐ(全 33 パネル)
 ├── verify_qt_suite_shell.py                                                                                ハードウェア/ネットワーク不要の本物のQt Quickシェルチェック —— tests/ の外に意図的に配置(URTC-TESTER/URTC-FLASHER自身のverify_qt_*.pyと同じ理由)、`QT_QPA_PLATFORM=offscreen python verify_qt_suite_shell.py` で実行

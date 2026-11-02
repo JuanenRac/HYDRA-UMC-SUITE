@@ -588,14 +588,14 @@
         {
           "name": "images/",
           "desc": {
-            "en": "banner and the pictures of the README",
-            "es": "banner e imágenes del README",
-            "de": "Banner und Bilder der README",
-            "fr": "bannière et images du README",
-            "it": "banner e immagini del README",
-            "ja": "バナーと README の図",
-            "zh": "横幅和 README 的图片",
-            "pt": "faixa e imagens do README"
+            "en": "README banner and screenshots",
+            "es": "Banner y capturas del README",
+            "de": "README-Banner und Screenshots",
+            "fr": "Bannière et captures du README",
+            "it": "Banner e schermate del README",
+            "ja": "README のバナーとスクリーンショット",
+            "zh": "README 横幅和截图",
+            "pt": "Faixa e capturas de ecrã do README"
           }
         }
       ]
