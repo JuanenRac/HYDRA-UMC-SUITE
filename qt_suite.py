@@ -38,6 +38,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hydra_suite import __version__, access, logging_handler, robot_edits
 from hydra_suite.scheduler import TICK_MS as SCHEDULER_TICK_MS, PollScheduler
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
+from hydra_suite.extras_bridge import SuiteExtras
 from hydra_suite.can_ota import (
     GITHUB_FIRMWARE_REPO,
     CanOtaTarget,
@@ -785,6 +786,12 @@ class SuiteQtBridge(QObject):
         self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self.changed.emit)
         controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
         self._apply_poller_gates()
+        # The swarm view, the combined mode, the path viewer and the check of versions (hydra_suite/extras_bridge.py).
+        self._extras = SuiteExtras(self)
+
+    @Property(QObject, constant=True)
+    def extras(self) -> QObject:
+        return self._extras
 
     # -- navigation --------------------------------------------------------
 

@@ -587,6 +587,8 @@ ApplicationWindow {
                 sourceComponent: {
                     if (suiteBackend.activePanel === "logs") return logsComponent
                     if (suiteBackend.activePanel === "overview") return overviewComponent
+                    if (suiteBackend.activePanel === "swarm") return swarmComponent
+                    if (suiteBackend.activePanel === "updates") return updatesComponent
                     if (suiteBackend.activePanel === "servers") return serversComponent
                     if (suiteBackend.activePanel === "robot") return robotComponent
                     if (suiteBackend.activePanel === "trajectory") return trajectoryComponent
@@ -989,6 +991,50 @@ ApplicationWindow {
             }
             Card {
                 Layout.fillWidth: true
+                Layout.preferredHeight: combineBody.implicitHeight + 28
+                ColumnLayout {
+                    id: combineBody
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 14
+                    spacing: 6
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: suiteBackend.uiText("GROUP_COMBINE"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Item { Layout.fillWidth: true }
+                        CheckBox {
+                            objectName: "combinedModeSwitch"
+                            text: suiteBackend.uiText("COMBINE_SWITCH")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.extras.combinedModeEnabled
+                            onToggled: suiteBackend.extras.setCombinedModeEnabled(checked)
+                        }
+                    }
+                    Text { objectName: "combinedStatus"; text: suiteBackend.extras.combinedStatus; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: !suiteBackend.extras.combinedModeEnabled; text: suiteBackend.uiText("COMBINE_SWITCH_HINT"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Flow {
+                        visible: suiteBackend.extras.combinedModeEnabled
+                        Layout.fillWidth: true
+                        spacing: 12
+                        Repeater {
+                            model: suiteBackend.extras.combineOptions
+                            delegate: CheckBox {
+                                required property var modelData
+                                objectName: "combineOption_" + modelData.id
+                                text: modelData.name
+                                palette.windowText: window.textPrimary
+                                enabled: suiteBackend.canControlRobot
+                                checked: modelData.checked
+                                onToggled: suiteBackend.extras.toggleCombine(modelData.id, checked)
+                            }
+                        }
+                    }
+                    Text { visible: suiteBackend.extras.combinedModeEnabled && suiteBackend.extras.combineOptions.length === 0; text: suiteBackend.uiText("COMBINE_NO_OTHERS"); color: window.muted; font.pixelSize: 10 }
+                }
+            }
+            Card {
+                Layout.fillWidth: true
                 Layout.preferredHeight: 150
                 ColumnLayout {
                     anchors.fill: parent
@@ -997,7 +1043,7 @@ ApplicationWindow {
                     Text { text: suiteBackend.uiText("GROUP_PLAYBACK"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
                     RowLayout {
                         spacing: 8
-                        Button { objectName: "playButton"; text: suiteBackend.uiText("BTN_PLAYBACK_PLAY"); enabled: suiteBackend.selectedRobotTransport.canPlay; onClicked: suiteBackend.playSelectedRobot() }
+                        Button { objectName: "playButton"; text: suiteBackend.uiText("BTN_PLAYBACK_PLAY"); enabled: suiteBackend.selectedRobotTransport.canPlay; onClicked: suiteBackend.extras.requestPlay() }
                         Button { objectName: "pauseButton"; text: suiteBackend.selectedRobotTransport.paused ? suiteBackend.uiText("BTN_PLAYBACK_CONTINUE") : suiteBackend.uiText("BTN_PLAYBACK_PAUSE"); enabled: suiteBackend.selectedRobotTransport.canPause; onClicked: suiteBackend.pauseSelectedRobot() }
                         Button { objectName: "stopButton"; text: suiteBackend.uiText("BTN_PLAYBACK_STOP"); enabled: suiteBackend.selectedRobotTransport.canStop; onClicked: suiteBackend.stopSelectedRobot() }
                     }
@@ -1164,6 +1210,42 @@ ApplicationWindow {
                     onClicked: { suiteBackend.refreshWorkFiles(); importWorkDialog.open() }
                 }
             }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Button {
+                    objectName: "pointUpButton"
+                    text: suiteBackend.uiText("TRJ_UP")
+                    enabled: trajectoryRoot.selectedRow > 0
+                    onClicked: { suiteBackend.extras.moveTrajectoryPoint(trajectoryRoot.selectedRow, -1); trajectoryRoot.selectedRow -= 1 }
+                }
+                Button {
+                    objectName: "pointDownButton"
+                    text: suiteBackend.uiText("TRJ_DOWN")
+                    enabled: trajectoryRoot.selectedRow >= 0 && trajectoryRoot.selectedRow < suiteBackend.trajectoryPoints.length - 1
+                    onClicked: { suiteBackend.extras.moveTrajectoryPoint(trajectoryRoot.selectedRow, 1); trajectoryRoot.selectedRow += 1 }
+                }
+                Button {
+                    objectName: "pointDuplicateButton"
+                    text: suiteBackend.uiText("TRJ_DUPLICATE")
+                    enabled: trajectoryRoot.selectedRow >= 0
+                    onClicked: suiteBackend.extras.duplicateTrajectoryPoint(trajectoryRoot.selectedRow)
+                }
+                Button {
+                    objectName: "sendTrajectoryButton"
+                    text: suiteBackend.uiText("TRJ_SEND")
+                    enabled: suiteBackend.canControlRobot && suiteBackend.trajectoryPoints.length > 0
+                    onClicked: suiteBackend.extras.requestSend()
+                }
+                CheckBox {
+                    objectName: "previewSwitch"
+                    text: suiteBackend.uiText("TRJ_PREVIEW_SWITCH")
+                    palette.windowText: window.textPrimary
+                    checked: suiteBackend.extras.previewEnabled
+                    onToggled: suiteBackend.extras.setPreviewEnabled(checked)
+                }
+            }
+            PathViewer { Layout.fillWidth: true; view: suiteBackend.extras.trajectoryView }
             Dialog {
                 id: exportWorkDialog
                 anchors.centerIn: Overlay.overlay
@@ -3125,6 +3207,251 @@ ApplicationWindow {
                         Text { text: modelData.speedAccel; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 130 }
                     }
                 }
+            }
+        }
+    }
+
+    // The path of a trajectory on one plane (the points are already fitted to the size of the view by the bridge).
+    component PathCanvas: Canvas {
+        id: pathCanvas
+        property var pts: []
+        onPtsChanged: requestPaint()
+        onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
+        onPaint: {
+            var ctx = getContext("2d")
+            ctx.reset()
+            ctx.fillStyle = "#0d1117"
+            ctx.fillRect(0, 0, width, height)
+            if (!pts || pts.length === 0) return
+            ctx.strokeStyle = "#38bdf8"
+            ctx.lineWidth = 2
+            ctx.beginPath()
+            ctx.moveTo(pts[0].x, pts[0].y)
+            for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
+            ctx.stroke()
+            ctx.fillStyle = "#34d399"
+            ctx.beginPath(); ctx.arc(pts[0].x, pts[0].y, 4, 0, Math.PI * 2); ctx.fill()
+            if (pts.length > 1) {
+                ctx.fillStyle = "#fb7185"
+                ctx.beginPath(); ctx.arc(pts[pts.length - 1].x, pts[pts.length - 1].y, 4, 0, Math.PI * 2); ctx.fill()
+            }
+        }
+    }
+
+    // The three views of a path, its summary and what is wrong with it.
+    component PathViewer: ColumnLayout {
+        id: viewer
+        property var view: ({})
+        spacing: 6
+        Flow {
+            Layout.fillWidth: true
+            spacing: 10
+            Repeater {
+                model: viewer.view.paths || []
+                delegate: ColumnLayout {
+                    required property var modelData
+                    spacing: 2
+                    PathCanvas {
+                        objectName: "pathCanvas_" + modelData.plane
+                        width: suiteBackend.extras.trajectoryViewWidth
+                        height: suiteBackend.extras.trajectoryViewHeight
+                        pts: modelData.points
+                    }
+                    Text { text: modelData.label; color: window.muted; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                }
+            }
+        }
+        Text { objectName: "pathSummary"; text: viewer.view.summary || ""; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+        Text { visible: viewer.view.clean === true; text: suiteBackend.uiText("TRJ_CLEAN"); color: window.green; font.bold: true; font.pixelSize: 11 }
+        Repeater {
+            model: viewer.view.issues || []
+            delegate: Text { required property var modelData; text: modelData; color: window.amber; font.family: "Cascadia Mono"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+        }
+    }
+
+    // Asked before Play or Send when the check of the trajectory is switched on.
+    Dialog {
+        id: previewDialog
+        objectName: "previewDialog"
+        anchors.centerIn: Overlay.overlay
+        modal: true
+        width: 760
+        title: suiteBackend.uiText("TRJ_PREVIEW_TITLE")
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+        contentItem: ColumnLayout {
+            spacing: 8
+            Text {
+                text: suiteBackend.extras.pendingPreview.clean === true ? suiteBackend.uiText("TRJ_ASK_CLEAN") : suiteBackend.uiText("TRJ_ASK_ISSUES").replace("{count}", suiteBackend.extras.pendingPreview.count)
+                color: window.textPrimary
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            PathViewer { Layout.fillWidth: true; view: suiteBackend.extras.pendingPreview }
+        }
+        footer: DialogButtonBox {
+            background: Rectangle { color: "transparent" }
+            Button {
+                objectName: "previewConfirm"
+                text: suiteBackend.extras.pendingKind === "send" ? suiteBackend.uiText("TRJ_SEND") : (suiteBackend.extras.pendingPreview.clean === true ? suiteBackend.uiText("TRJ_PLAY") : suiteBackend.uiText("TRJ_PLAY_ANYWAY"))
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+            }
+            Button {
+                objectName: "previewCancel"
+                text: suiteBackend.uiText("TRJ_CANCEL")
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+        }
+        onAccepted: suiteBackend.extras.confirmPreview()
+        onRejected: suiteBackend.extras.cancelPreview()
+    }
+    Connections {
+        target: suiteBackend.extras
+        function onPreviewRequested() { previewDialog.open() }
+    }
+
+    Component {
+        id: swarmComponent
+        ColumnLayout {
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 10
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_SWARM"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                CheckBox {
+                    objectName: "swarmSwitch"
+                    text: suiteBackend.uiText("SWARM_SWITCH")
+                    palette.windowText: window.textPrimary
+                    checked: suiteBackend.extras.swarmEnabled
+                    onToggled: suiteBackend.extras.setSwarmEnabled(checked)
+                }
+            }
+            Text { visible: !suiteBackend.extras.swarmEnabled; text: suiteBackend.uiText("SWARM_SWITCH_HINT"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            ColumnLayout {
+                visible: suiteBackend.extras.swarmEnabled
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 8
+                Text { objectName: "swarmSummary"; text: suiteBackend.extras.swarmSummary; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    ComboBox {
+                        id: swarmFilterCombo
+                        objectName: "swarmFilter"
+                        Layout.preferredWidth: 200
+                        model: suiteBackend.extras.swarmFilters
+                        textRole: "label"
+                        valueRole: "value"
+                        currentIndex: Math.max(0, indexOfValue(suiteBackend.extras.swarmFilter))
+                        onActivated: suiteBackend.extras.setSwarmFilter(currentValue)
+                    }
+                    TextField {
+                        objectName: "swarmSearch"
+                        Layout.preferredWidth: 220
+                        placeholderText: suiteBackend.uiText("SWARM_SEARCH")
+                        color: window.textPrimary
+                        text: suiteBackend.extras.swarmText
+                        onTextEdited: suiteBackend.extras.setSwarmText(text)
+                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    }
+                    Item { Layout.fillWidth: true }
+                    Button { objectName: "swarmStopAll"; text: suiteBackend.uiText("SWARM_STOP_ALL"); onClicked: suiteBackend.extras.swarmStopAll() }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { text: suiteBackend.uiText("SWARM_COL_SERVER"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_ROBOT"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_MODEL"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_SOURCE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_PLAYBACK"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_HOLDER"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_COMBINED"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+                }
+                ListView {
+                    objectName: "swarmList"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    spacing: 2
+                    model: suiteBackend.extras.swarmRows
+                    delegate: Rectangle {
+                        required property var modelData
+                        required property int index
+                        width: ListView.view.width
+                        height: 30
+                        radius: 6
+                        color: modelData.attention ? "#2a1d12" : (index % 2 === 0 ? "transparent" : window.panelAlt)
+                        border.width: modelData.active ? 1 : 0
+                        border.color: window.cyan
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 4
+                            spacing: 0
+                            Text { text: modelData.server; color: window.textPrimary; font.pixelSize: 10; Layout.preferredWidth: 150; elide: Text.ElideRight }
+                            Text { text: modelData.down ? "" : modelData.robot; color: window.cyan; font.pixelSize: 10; Layout.preferredWidth: 130; elide: Text.ElideRight }
+                            Text { text: modelData.model; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150; elide: Text.ElideRight }
+                            Text { text: modelData.sourceText; color: modelData.source === "live" ? window.green : (modelData.source === "simulated" ? window.amber : window.muted); font.pixelSize: 10; Layout.preferredWidth: 110; elide: Text.ElideRight }
+                            Text { text: modelData.playbackText; color: window.textPrimary; font.pixelSize: 10; Layout.preferredWidth: 90 }
+                            Text { text: modelData.holder; color: window.amber; font.pixelSize: 10; Layout.preferredWidth: 110; elide: Text.ElideRight }
+                            Text { text: modelData.combinedText; color: window.muted; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Button { visible: !modelData.down; text: suiteBackend.uiText("SWARM_OPEN"); onClicked: suiteBackend.extras.swarmOpen(modelData.connId, modelData.robotId) }
+                            Button { text: suiteBackend.uiText("SWARM_STOP_SERVER"); onClicked: suiteBackend.extras.swarmStopServer(modelData.connId) }
+                        }
+                    }
+                }
+                Text { visible: suiteBackend.extras.swarmRows.length === 0; text: suiteBackend.uiText("SWARM_NO_ROWS"); color: window.muted; font.pixelSize: 11 }
+            }
+        }
+    }
+
+    Component {
+        id: updatesComponent
+        ColumnLayout {
+            width: contentLoader.width
+            spacing: 10
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: suiteBackend.uiText("HEADING_UPDATES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                CheckBox {
+                    objectName: "updatesSwitch"
+                    text: suiteBackend.uiText("UPD_SWITCH")
+                    palette.windowText: window.textPrimary
+                    checked: suiteBackend.extras.updatesEnabled
+                    onToggled: suiteBackend.extras.setUpdatesEnabled(checked)
+                }
+            }
+            Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Button {
+                objectName: "updatesCheck"
+                visible: suiteBackend.extras.updatesEnabled
+                enabled: !suiteBackend.extras.updateBusy
+                text: suiteBackend.extras.updateBusy ? suiteBackend.uiText("UPD_CHECKING") : suiteBackend.uiText("UPD_CHECK")
+                onClicked: suiteBackend.extras.checkUpdates()
+            }
+            Repeater {
+                model: suiteBackend.extras.updateResult.rows || []
+                delegate: Card {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 74
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 3
+                        Text { text: modelData.title; color: modelData.bad ? window.amber : window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("UPD_INSTALLED") + ": " + modelData.installed + "    " + suiteBackend.uiText("UPD_LATEST") + ": " + modelData.latest + "    " + modelData.state; color: window.textPrimary; font.pixelSize: 11 }
+                        Text { visible: modelData.api !== ""; text: modelData.api; color: modelData.bad ? window.amber : window.muted; font.pixelSize: 10 }
+                    }
+                }
+            }
+            Repeater {
+                model: suiteBackend.extras.updateResult.errors || []
+                delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
             }
         }
     }

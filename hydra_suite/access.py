@@ -779,7 +779,10 @@ def table_as_jogs(params: dict) -> list[dict]:
 # chain is checked. The server can check the whole record (?verify=1); this program can also check what it was
 # given: every hash is computed again here and every line that follows its predecessor directly must name it.
 
-AUDIT_TYPES = ("claim", "force-claim", "release", "force-release", "jog-arm", "safety-limits", "stop-all")
+AUDIT_TYPES = (
+    "claim", "force-claim", "release", "force-release", "jog-arm", "safety-limits", "stop-all", "stop-all-release", "robot-enable",
+    "robot-disable", "bridge-command", "job-dispatcher-options", "job-dispatcher-reload", "push-device-registered", "push-device-removed", "remote-policy",
+)
 
 
 @dataclass

@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-53%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-54%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 53 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 35 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；`combinedWith`（联合机器人模式）虽然存在于 STUDIO 自己的数据模型中，但尚未在本应用的界面中暴露出来。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 54 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 37 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；集群视图、联动模式（`combinedWith`）、路径查看器和版本检查只用模拟服务器和本地测试页面试过，从未在真实控制器、真实机器人或在线仓库上试过。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.7.8` |
 | 成熟度 | 可用 |
-| 测试 | 53 (`python tools/run_offline_verifiers.py`) |
+| 测试 | 54 (`python tools/run_offline_verifiers.py`) |
 | 技术栈 | Python 3.12 / PySide6 |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -56,7 +56,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 53 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 54 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 接口与协议 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 集成 | 🟠 | 其消息和路由已对照 SDK 的共享契约检查；尚未与真实设备一起运行 |
@@ -118,6 +118,10 @@ HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立�
 - **🩺 生态系统健康：** 在 Ecosystem 下有一个视图，每个服务一张卡片（状态、原因、上报版本与期望版本、距上次响应的时间），可按状态和版本偏差筛选，并在服务器的 TLS 证书即将过期或某个服务上报的版本与其清单不同时给出提示。它读取服务器的 `GET /api/ecosystem/health`，该接口由管理员在 Server Admin 中开启；未开启时视图会如实说明，而且一个无响应的服务不会遮住其他服务。
 - **🧊 真实 3D 视口** —— OpenGL 3.3，真实的 STL 网格，针对全部 24 个真实机器人型号的真实正向运动学（与 HYDRA-UMC STUDIO 自身的 TypeScript 实现经数值验证，结果逐位一致），外加一个基于基本几何体构建的“通用”后备型号——两者都不是风格化的占位符。
 - **📍 轨迹点** —— 记录所选机器人的实时姿态，按需点动回到任意已记录的点位。
+- **🐝 集群视图**（开关，默认关闭）—— 导航中的*集群*：在一张表中同时显示所有已连接服务器的全部机器人（位置、实机/模拟/离线、是否在播放、谁持有预约、与哪些机器人联动），带筛选和搜索，整个集群一个 STOP，每台服务器各一个；上限在 `assets/swarm_view.json` 中。
+- **🔗 联动模式**（开关，默认关闭）—— 在机器人控制中，选择与所选机器人一起运动的机器人（`combinedWith`）：播放、暂停和停止随后也作用于它们，与 STUDIO 一致；列表从不重复 ID，从不包含机器人自身，并在文件规定的上限处停止。
+- **🧭 路径查看器和播放前检查** —— 轨迹面板从上方、侧面和正面绘制路径，可移动和复制点，并把它们作为轨迹发送给机器人；打开开关*播放和发送前检查路径*（默认关闭）后，播放和发送会先显示该路径、超出限位的关节以及使关节摆动过大的步骤，并征求确认（`assets/trajectory_view.json`）。
+- **🔄 版本检查**（开关，默认关闭）—— *生态系统 > 更新* 把本程序和每台已连接的服务器与其仓库清单中的最新版本（HYDRA-UMC-UPDATER 读取的同一来源）比较，并检查各服务器使用的 API 版本；只在你按下按钮时才读取 GitHub，不安装任何东西（`assets/update_check.json`）。
 - **🧭 一个侧边栏，一个内容区** - 通过左侧导航（根菜单加上 Industrial、URTC 和 HYDRA-UMC 子菜单）逐个进入各面板，分组方式与 HYDRA-UMC-STUDIO 的侧边栏相同。窗口以带原生标题栏的最大化状态启动，**F11** 可切换真正的全屏。
 - **💾 记住的服务器和支持包** - 添加服务器时 *记住* 默认已勾选（取消勾选则不保存任何内容）：地址、昵称和用户名保存在配置文件中，密码通过 `keyring` 保存到操作系统的安全存储（Windows 凭据管理器、macOS 钥匙串、Linux 桌面的 Secret Service），绝不写入文件；没有安全存储时会再次询问密码。应用菜单可导出供支持使用的 zip，包含版本、服务器列表和客户端日志，不含密码、用户名或令牌。
 - **🌐 8 种语言** —— 英语、西班牙语、意大利语、法语、德语、简体中文、日语、葡萄牙语（与 URTC-FLASHER/URTC-TESTER 相同的 `language/*.lng` 惯例），从“语言”菜单切换（重启后生效）。
@@ -201,6 +205,10 @@ JuanenPnP、JuanenCNC 和 JuanenLaser 使用独立的 STL 副本，LumenPnP 保�
 | `voice.minConfidence` | `0.6` | 语音识别器接受启动运动请求所需的最低置信度（0 到 1）；0 表示关闭检查，停止命令从不被拦下，变量中的无效数字会被忽略 |
 | `mavlink.signingKeyFile` | 空（不签名） | UAV 桥的 MAVLink 2 签名：包含 32 字节密钥的文件路径（32 个原始字节或 64 个十六进制字符）；只保存路径，绝不保存密钥，桥在启动时读取 |
 | `mavlink.signingAllowUnsigned` | 关闭 | 仍接受未签名的消息（尚不签名的载具）；开启期间画面会给出警告 |
+| `swarm_view` | `false` | 显示集群视图（所有已连接服务器的全部机器人放在一张表中）；`true` 表示打开 |
+| `combined_mode` | `false` | 让机器人控制可以选择与所选机器人一起运动的机器人（`combinedWith`）；`true` 表示打开 |
+| `trajectory_preview` | `false` | 让播放和发送先显示轨迹的路径和问题并征求确认；`true` 表示打开 |
+| `update_check` | `false` | 允许“生态系统 > 更新”的版本检查在按下按钮时读取 GitHub；`true` 表示允许 |
 
 ## 🚀 快速开始
 
@@ -217,7 +225,7 @@ python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 
 ## 🧪 测试
 
-运行 `python tools/run_offline_verifiers.py` 会执行 53 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
+运行 `python tools/run_offline_verifiers.py` 会执行 54 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 
@@ -369,7 +377,7 @@ HYDRA-UMC-SUITE/
 **目前已知的限制**
 
 * CAN-OTA 的 URTC Tool Head 和 Advanced Expansion 层级没有通向硬件的真实中继隧道；该链运行在内置模拟上。
-* 组合机器人模式（`combinedWith`）存在于 STUDIO 的数据模型中，但本应用没有提供。
+* 路径查看器和播放前检查根据每个点自身的 x、y、z 或其型号的前三个关节来定位；手腕关节只检查是否在范围内，不绘制。
 * 此 README 还没有截图。
 * 本应用从未对真实控制器或机器人运行过，Qt Quick 是它唯一的界面：经典窗口已被移除。
 

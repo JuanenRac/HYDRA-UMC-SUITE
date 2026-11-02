@@ -218,6 +218,23 @@ for the payload size is a smaller wire format server-side.
   RobotDetail.tsx does: `settings.worksPaths[robot.id]` if configured
   from Config, else `WORKS/<robot name, whitespace stripped>`.
 
+- **Swarm view, combined mode, path viewer and check of versions** - each
+  behind a switch that is off until the operator turns it on (kept in
+  `hydra_suite_config.json`; the limits are in `assets/swarm_view.json`,
+  `assets/trajectory_view.json` and `assets/update_check.json`). The swarm
+  view lists every robot of every connected server at once, with a STOP for
+  the whole swarm and one for each server. The combined mode edits
+  `combinedWith` through the `combine` command. The path viewer draws a
+  trajectory from three sides and, with its switch on, Play and Send show the
+  joints outside their ranges and the steps that swing a joint too far first;
+  a point is placed from its own x, y, z or from the first three joints of
+  its model, and the wrist is checked but not drawn. The check of versions
+  compares this program and each server with the manifest of its repository
+  and checks the API version, reading GitHub only on a button press. Verified
+  against simulated servers and a local test page by
+  `tests/verify_swarm_and_trajectory.py`; none of it has met a real
+  controller, a real robot or the live repository.
+
 ## 🚧 Deliberately out of scope this pass
 
 - **VPN-tunnel-specific UI** - deliberately NOT built as a separate
@@ -231,7 +248,3 @@ for the payload size is a smaller wire format server-side.
 - **Real BLE/Bluetooth transport** - not applicable to SUITE (a desktop
   app reaching a HYDRA-UMC over the network) - see the 2 mobile control
   apps' own `docs/ARCHITECTURE.md` for that transport's own status.
-- **`combinedWith` (combined-robot mode)** - not exposed in this app's UI
-  yet, despite being a real, shipping part of HYDRA-UMC-STUDIO's own
-  data model and README. `RobotView` in `models.py` doesn't read/write
-  this field yet.

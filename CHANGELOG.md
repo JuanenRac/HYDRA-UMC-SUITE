@@ -4,6 +4,16 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A swarm view:** *Swarm* in the navigation (a switch, off by default) lists every robot of every connected server at once: server, robot, model, live, simulated or offline, playing or paused, who holds its reservation and with which robots it is combined, with filters (answering, playing, needs attention), a search, a STOP for the whole swarm and one for each server, and a button that makes a server active and selects the robot. Whatever does not answer keeps a row of its own. The limits are in `assets/swarm_view.json`.
+
+- **The combined mode:** in Robot Control, a switch (off by default) lets the operator choose the robots that move together with the selected one (`combinedWith`, sent as the `combine` command under the reservation and If-Match rules); a line always says what the selected robot is combined with or led by. The list never repeats an id, never holds the robot itself and stops at the limit of the file.
+
+- **A path viewer and a check before Play:** the Trajectory panel draws the path from above, from the side and from the front, moves and duplicates points and sends them to the robot as its trajectory. With the switch *Check the path before Play and Send* on (off by default) Play and Send first show that path with the joints outside their ranges and the steps that swing a joint too far, and ask. The numbers are in `assets/trajectory_view.json`; the same rules as the check of HYDRA-UMC-STUDIO.
+
+- **A check of versions:** *Ecosystem > Updates* compares this program and each connected server with the newest version in the manifest of its repository (the source HYDRA-UMC-UPDATER reads) and checks the API version each server speaks. It reads GitHub only when the button is pressed, after a switch (off by default) is turned on, and installs nothing. The addresses and the lowest API version are in `assets/update_check.json`.
+
+- **The audit record knows every kind of entry:** the filter and the names of the types now include the global stop released, robot enabled or disabled, bridge commands, job dispatcher options and reload, notification devices and the remote access policy, in the eight languages.
+
 - **Trusted networks in Server Admin:** the security card gets the `trustedNetworks.enabled` option (off by default, locked when the environment fixes it) with where its value comes from, the same as in STUDIO, in the eight languages.
 
 - **A refused HOME / RESET says so:** the sentence for a home the server refused (the pose is not the home pose of its model, or a joint would leave its range) says the robot did not move, in the eight languages.

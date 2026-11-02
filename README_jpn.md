@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-53%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-54%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の53件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており。インターフェースは Qt Quick のみです(`qt_suite.py`)。ナビゲーションの全 35 パネルは実際に動作するコードで、3D ビューポートは専用の `OffscreenRobotRenderer` 経由で描画されます。従来のウィンドウは削除されました。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして `combinedWith`(結合ロボットモード)は、STUDIO自身のデータモデルに存在するにもかかわらず、このアプリのUIには公開されていません。軌道パネル は現在、HYDRA-UMC STUDIO自身の本物の `WORKS/*.json` 形式(`POST /api/upload-work`、`GET /<フォルダ>/index.json`)を通じてエクスポート/インポートします - ここで記録したポイントは、どちらのアプリからも再生できる本物のWorkです。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
+**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の54件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており。インターフェースは Qt Quick のみです(`qt_suite.py`)。ナビゲーションの全 37 パネルは実際に動作するコードで、3D ビューポートは専用の `OffscreenRobotRenderer` 経由で描画されます。従来のウィンドウは削除されました。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして群れ表示、連動モード(`combinedWith`)、経路ビューア、バージョン確認は、シミュレートしたサーバーとローカルのテストページでしか試されておらず、本物のコントローラー、本物のロボット、公開リポジトリでは試されていません。軌道パネル は現在、HYDRA-UMC STUDIO自身の本物の `WORKS/*.json` 形式(`POST /api/upload-work`、`GET /<フォルダ>/index.json`)を通じてエクスポート/インポートします - ここで記録したポイントは、どちらのアプリからも再生できる本物のWorkです。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.7.8` |
 | 成熟度 | 機能する |
-| テスト | 53 (`python tools/run_offline_verifiers.py`) |
+| テスト | 54 (`python tools/run_offline_verifiers.py`) |
 | 技術 | Python 3.12 / PySide6 |
 | 対象 | 利用者の PC |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
@@ -56,7 +56,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | 主な目的では動作します。足りない点は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 53 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 54 件。変更のたびに実行されます |
 | 実機 | 🔴 | まだです：このバージョンについて実機での動作記録はありません |
 | インターフェースとプロトコル | 🟡 | 提供するルートやメッセージは文書化され、クライアントで試験済みです。すべてのクライアントがまだ使ったわけではありません |
 | 連携 | 🟠 | メッセージとルートは SDK の共通契約に照らして検証されていますが、実機と一緒に動かしたことはありません |
@@ -118,6 +118,10 @@ HYDRA-UMC SUITE のインターフェースは Qt Quick(QML)で書かれた 1 �
 - **🩺 エコシステムの健全性：** Ecosystem の下に、サービスごとに 1 枚のカード（状態、理由、報告バージョンと期待バージョン、最後に応答してからの時間）、状態とバージョンのずれによるフィルター、サーバーの TLS 証明書がまもなく期限切れになる場合やサービスがマニフェストと異なるバージョンを報告する場合の通知を備えたビューがあります。サーバーの `GET /api/ecosystem/health` を読み取り、これは管理者が Server Admin でオンにします。オフの場合はビューがその旨を表示し、応答しない 1 つのサービスが他を隠すことはありません。
 - **🧊 実際の 3D ビューポート** —— OpenGL 3.3、実際の STL メッシュ、24 個の実在するロボットモデルすべてに対する実際の正運動学（HYDRA-UMC STUDIO 自身の TypeScript 実装に対して数値検証済みで、結果はビット単位で同一）に加え、プリミティブで構築された「汎用」フォールバック——いずれも様式化されたプレースホルダーではありません。
 - **📍 軌道ポイント** —— 選択したロボットの実時間の姿勢を記録し、必要に応じて記録済みのポイントへジョグして戻ります。
+- **🐝 群れ表示**（スイッチ、既定ではオフ）—— ナビゲーションの *群れ*：接続中のすべてのサーバーのすべてのロボットを一度に1つの表で表示します（場所、ライブ・シミュレーション・オフライン、再生中、予約者、連動しているロボット）。フィルターと検索、群れ全体の STOP とサーバーごとの STOP があり、上限は `assets/swarm_view.json` にあります。
+- **🔗 連動モード**（スイッチ、既定ではオフ）—— ロボット制御で、選択したロボットと一緒に動かすロボットを選びます（`combinedWith`）。再生・一時停止・停止は STUDIO と同じくそれらにも作用します。リストは ID を重複させず、そのロボット自身を含まず、ファイルの上限で止まります。
+- **🧭 経路ビューアと再生前の確認** —— 軌道パネルは経路を上・横・正面から描き、点の移動と複製ができ、ロボットの軌道として送信できます。スイッチ *再生と送信の前に経路を確認する*（既定ではオフ）をオンにすると、再生と送信の前にその経路、範囲外の関節、関節を動かしすぎるステップを表示して確認します（`assets/trajectory_view.json`）。
+- **🔄 バージョン確認**（スイッチ、既定ではオフ）—— *エコシステム > アップデート* は、このプログラムと接続中の各サーバーをリポジトリのマニフェストにある最新バージョン（HYDRA-UMC-UPDATER が読むのと同じ情報源）と比較し、各サーバーの API バージョンも確認します。ボタンを押したときだけ GitHub を読み、何もインストールしません（`assets/update_check.json`）。
 - **🧭 サイドバー 1 つ、コンテンツ領域 1 つ** - パネルは左のナビゲーション(ルートメニューと Industrial、URTC、HYDRA-UMC のサブメニュー)から 1 つずつ開き、HYDRA-UMC-STUDIO のサイドバーと同じ区分になっています。ウィンドウはネイティブのタイトルバー付きで最大化して起動し、**F11** で本当の全画面を切り替えます。
 - **💾 記憶したサーバーとサポート用バンドル** - サーバーを追加するとき *記憶する* は既定でオンです (何も保存したくない場合はオフにします)。アドレス、ニックネーム、ユーザー名は設定ファイルに、パスワードは `keyring` を通じてオペレーティングシステムの安全な保管領域(Windows の資格情報マネージャー、macOS のキーチェーン、Linux デスクトップの Secret Service)に保存され、ファイルには書かれません。安全な保管領域がない場合、パスワードは再度入力します。アプリケーションメニューは、バージョン、サーバー一覧、クライアントのログをパスワード、ユーザー名、トークンなしで zip にまとめて書き出します。
 - **🌐 8 言語** —— 英語、スペイン語、イタリア語、フランス語、ドイツ語、簡体中国語、日本語、ポルトガル語（URTC-FLASHER/URTC-TESTER と同じ `language/*.lng` 方式）、Language メニューから切り替え（再起動後に反映）。
@@ -201,6 +205,10 @@ JuanenPnP、JuanenCNC、JuanenLaser は独立した STL コピーを使用し、
 | `voice.minConfidence` | `0.6` | 動作を始める要求を受け付ける音声認識の最小信頼度（0〜1）。0 で確認をオフにし、停止は決して保留されません。変数の不正な数値は無視されます |
 | `mavlink.signingKeyFile` | 空（署名なし） | UAV ブリッジの MAVLink 2 署名：32 バイトの鍵（生の 32 バイトまたは 16 進 64 文字）を入れたファイルのパス。保存するのはパスだけで鍵は保存せず、ブリッジは起動時に読みます |
 | `mavlink.signingAllowUnsigned` | オフ | 署名のないメッセージも受け付ける（まだ署名しない機体向け）。オンの間は画面が警告します |
+| `swarm_view` | `false` | 群れ表示（接続中のすべてのサーバーのロボットを1つの表に）を表示します。`true` でオンになります |
+| `combined_mode` | `false` | ロボット制御で、選択したロボットと一緒に動かすロボットを選べるようにします（`combinedWith`）。`true` でオンになります |
+| `trajectory_preview` | `false` | 再生と送信の前に、軌道の経路と問題を表示して確認します。`true` でオンになります |
+| `update_check` | `false` | エコシステム > アップデートのバージョン確認が、ボタンを押したときに GitHub を読むことを許可します。`true` で許可されます |
 
 ## 🚀 クイックスタート
 
@@ -217,7 +225,7 @@ python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 
 ## 🧪 テスト
 
-`python tools/run_offline_verifiers.py` で自動テスト 53 件を実行します。 各テストは 1 つの検証スクリプトで、多数のチェックを含みます（単一のアサーションではありません）。PySide6 などの依存関係が必要で、画面なしの Qt プラットフォームで動き、実際のサーバーやロボットへの接続は開きません。
+`python tools/run_offline_verifiers.py` で自動テスト 54 件を実行します。 各テストは 1 つの検証スクリプトで、多数のチェックを含みます（単一のアサーションではありません）。PySide6 などの依存関係が必要で、画面なしの Qt プラットフォームで動き、実際のサーバーやロボットへの接続は開きません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 
@@ -369,7 +377,7 @@ HYDRA-UMC-SUITE/
 **現時点の既知の制限**
 
 * CAN-OTA の URTC Tool Head と Advanced Expansion 階層には、ハードウェアへの実際の中継トンネルがなく、チェーンは内蔵シミュレーション上で動きます。
-* ロボット結合モード（`combinedWith`）は STUDIO のデータモデルにはありますが、このアプリでは公開されていません。
+* 経路ビューアと再生前の確認は、各点を点自身の x, y, z、またはモデルの最初の3関節から配置します。手首の関節は範囲の確認だけで、描画はされません。
 * この README にはまだスクリーンショットがありません。
 * このアプリは実際のコントローラーやロボットに対して動かしたことがなく、Qt Quick が唯一の画面です。従来のウィンドウは削除されました。
 

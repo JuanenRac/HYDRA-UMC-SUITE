@@ -1,0 +1,7 @@
+{
+  "previewBeforePlayByDefault": false,
+  "maxJointStepDeg": 90,
+  "jointLimitToleranceDeg": 0.5,
+  "listedIssues": 12,
+  "view": { "width": 220, "height": 170, "padding": 12 }
+}

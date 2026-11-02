@@ -1,0 +1,7 @@
+{
+  "enabledByDefault": false,
+  "combinedModeByDefault": false,
+  "maxRows": 500,
+  "maxCombined": 8,
+  "filters": ["all", "online", "playing", "attention"]
+}

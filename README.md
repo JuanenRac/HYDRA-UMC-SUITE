@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-53%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-54%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.7.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 53 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing. The interface is Qt Quick only (`qt_suite.py`): all 35 panels of the navigation are real, working code, including the 3D viewport through a dedicated `OffscreenRobotRenderer`; the classic window was removed. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and `combinedWith` (combined-robot mode) isn't exposed in this app's UI despite existing in STUDIO's own data model. The Trajectory panel now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
+**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 54 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing. The interface is Qt Quick only (`qt_suite.py`): all 37 panels of the navigation are real, working code, including the 3D viewport through a dedicated `OffscreenRobotRenderer`; the classic window was removed. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and the swarm view, the combined mode (`combinedWith`), the path viewer and the check of versions have only been tried against simulated servers and a local test page, never against a real controller, a real robot or the live repository. The Trajectory panel now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.7.8` |
 | Maturity | Functional |
-| Tests | 53 (`python tools/run_offline_verifiers.py`) |
+| Tests | 54 (`python tools/run_offline_verifiers.py`) |
 | Stack | Python 3.12 / PySide6 |
 | Target | The PC of the person using it |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | Works for its main purpose; the honesty check above lists what is still missing |
-| Tests | 🟢 | 53 automated tests, run on every change |
+| Tests | 🟢 | 54 automated tests, run on every change |
 | Real hardware | 🔴 | Not yet: no run on real hardware is recorded for this version |
 | Interface and protocols | 🟡 | The routes or messages it offers are documented and tested with a client; not every client has used them yet |
 | Integration | 🟠 | Its messages and routes are checked against the shared contracts of the SDK; it has not run together with the real equipment |
@@ -153,6 +153,10 @@ HYDRA-UMC SUITE has a single interface, written in Qt Quick (QML): a standalone 
   placeholder for any of them.
 - **📍 Trajectory points** - record the selected robot's live pose, jog
   back to any recorded point on demand.
+- **🐝 Swarm view** (a switch, off by default) - *Swarm* in the navigation: one table with every robot of every connected server at once (where it is, live, simulated or offline, playing, who holds its reservation and with which robots it is combined), with filters and a search, a STOP for the whole swarm and one for each server; the limits are in `assets/swarm_view.json`.
+- **🔗 Combined mode** (a switch, off by default) - in Robot Control, choose the robots that move together with the selected one (`combinedWith`): Play, Pause and Stop then act on them too, as in STUDIO; the list never repeats an id, never holds the robot itself and stops at the limit of the file.
+- **🧭 Path viewer and check before Play** - the Trajectory panel draws the path from above, from the side and from the front, moves and duplicates points and sends them to the robot as its trajectory; with the switch *Check the path before Play and Send* on (off by default) Play and Send first show that path, the joints outside their limits and the steps that swing a joint too far, and ask (`assets/trajectory_view.json`).
+- **🔄 Check of versions** (a switch, off by default) - *Ecosystem > Updates* compares this program and each connected server with the newest version in the manifest of its repository (the source HYDRA-UMC-UPDATER reads) and checks the API version each server speaks; it reads GitHub only when you press the button and installs nothing (`assets/update_check.json`).
 - **🧭 One sidebar, one content area** - the panels are reached from the left navigation (root menu plus the Industrial, URTC and HYDRA-UMC submenus), one at a time, grouped like HYDRA-UMC-STUDIO's sidebar. The window starts maximized with its native title bar, and **F11** toggles real full screen.
 - **💾 Remembered servers and support bundle** - *Remember* is ticked by default when you add a server (untick it to keep nothing): its address, nickname and user name go to the configuration file and its password to the secure store of the operating system (Windows Credential Manager, macOS Keychain, the Secret Service of the Linux desktop) through `keyring`, never to the file; without a secure store the password is asked again. The application menu exports a zip for support with the versions, the server list and the client log, without passwords, user names or tokens.
 - **🌐 8 languages** - English, Español, Italiano, Français, Deutsch, 简体中文,
@@ -259,6 +263,10 @@ The program keeps a small `hydra_suite_config.json`: next to the program while t
 | `voice.minConfidence` | `0.6` | the least confidence of the speech recognizer, from 0 to 1, to accept a request that starts a movement; 0 switches the check off, a stop is never held back, and a bad number in the variable is ignored |
 | `mavlink.signingKeyFile` | empty (no signing) | MAVLink 2 signing of the UAV bridge: the path of a file with the 32-byte key (32 raw bytes or 64 hexadecimal characters); only the path is saved, never the key, and the bridge reads it when it starts |
 | `mavlink.signingAllowUnsigned` | off | still accept messages that are not signed (a vehicle that does not sign yet); the screen warns while it is on |
+| `swarm_view` | `false` | shows the swarm view (every robot of every connected server in one table); `true` turns it on |
+| `combined_mode` | `false` | lets Robot Control choose the robots that move together with the selected one (`combinedWith`); `true` turns it on |
+| `trajectory_preview` | `false` | makes Play and Send show the path and the problems of the trajectory first and ask; `true` turns it on |
+| `update_check` | `false` | allows the check of versions of Ecosystem > Updates to read GitHub when its button is pressed; `true` allows it |
 
 ## 🚀 Quick start
 
@@ -275,7 +283,7 @@ The version is shown in **Help > About**. Building with `build_exe.bat` / `build
 
 ## 🧪 Testing
 
-53 automated tests run with `python tools/run_offline_verifiers.py`. Each one is a verifier script holding many checks, not a single assertion; they need PySide6 and the other requirements, run under a headless Qt platform and never open a connection to a real server or robot.
+54 automated tests run with `python tools/run_offline_verifiers.py`. Each one is a verifier script holding many checks, not a single assertion; they need PySide6 and the other requirements, run under a headless Qt platform and never open a connection to a real server or robot.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 
@@ -450,7 +458,7 @@ HYDRA-UMC-SUITE/
 **Known limits today**
 
 * The URTC Tool Head and Advanced Expansion tiers of CAN-OTA have no real relay tunnel to hardware; the chain runs on the built-in simulation.
-* Combined-robot mode (`combinedWith`) exists in the data model of STUDIO but is not exposed in this app.
+* The path viewer and the check before Play place each point from its own x, y, z or from the first three joints of its model; the wrist joints are checked against their ranges but are not drawn.
 * There are no screenshots in this README yet.
 * This app was never run against a real controller or robot, and Qt Quick is its only interface: the classic window was removed.
 

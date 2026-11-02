@@ -1,0 +1,11 @@
+{
+  "enabledByDefault": false,
+  "owner": "JuanenRac",
+  "branch": "main",
+  "manifestFile": "hydra-umc.project.json",
+  "rawBase": "https://raw.githubusercontent.com",
+  "suiteRepository": "HYDRA-UMC-SUITE",
+  "serverRepository": "HYDRA-UMC-SERVER",
+  "timeoutSeconds": 8,
+  "minRemoteApiVersion": 2
+}

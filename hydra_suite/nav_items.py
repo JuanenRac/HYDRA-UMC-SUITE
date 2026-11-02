@@ -13,6 +13,7 @@ from __future__ import annotations
 ROOT_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_SERVERS", "servers"),
     ("DOCK_OVERVIEW", "overview"),
+    ("DOCK_SWARM", "swarm"),
     ("DOCK_VIEWPORT", "viewport"),
     ("DOCK_ROBOT_CONTROL", "robot"),
     ("DOCK_TRAJECTORY", "trajectory"),
@@ -52,6 +53,7 @@ HYDRAUMC_ECOSYSTEM_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_ECOSYSTEM_SERVICES", "ecosystem_services"),
     ("DOCK_ECOSYSTEM_TELEMETRY", "ecosystem_telemetry"),
     ("DOCK_ECOSYSTEM_HEALTH", "ecosystem_health"),
+    ("DOCK_UPDATES", "updates"),
     ("DOCK_ECOSYSTEM_PLANNING", "ecosystem_planning"),
     ("DOCK_AI_FAMILY", "ai_family"),
     ("DOCK_ADMIN_CLIENTS", "admin_clients"),
