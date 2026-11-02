@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.7.9] - A swarm view of every robot of every server, a combined mode, a path viewer with a check before Play, a check of versions against the published manifest and the trusted networks switch
+
 - **A swarm view:** *Swarm* in the navigation (a switch, off by default) lists every robot of every connected server at once: server, robot, model, live, simulated or offline, playing or paused, who holds its reservation and with which robots it is combined, with filters (answering, playing, needs attention), a search, a STOP for the whole swarm and one for each server, and a button that makes a server active and selects the robot. Whatever does not answer keeps a row of its own. The limits are in `assets/swarm_view.json`.
 
 - **The combined mode:** in Robot Control, a switch (off by default) lets the operator choose the robots that move together with the selected one (`combinedWith`, sent as the `combine` command under the reservation and If-Match rules); a line always says what the selected robot is combined with or led by. The list never repeats an id, never holds the robot itself and stops at the limit of the file.
