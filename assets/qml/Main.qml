@@ -2753,6 +2753,131 @@ ApplicationWindow {
                     }
                 }
             }
+
+            ColumnLayout {
+                id: planRoot
+                Layout.fillWidth: true
+                visible: suiteBackend.planVisible
+                spacing: 8
+                property var cells: ["kind", "field", "raw", "bucket", "fineBucket", "rollupRetention", "fineRetention"]
+                property var captions: ["PLAN_COL_KIND", "PLAN_COL_FIELD", "PLAN_COL_RAW", "PLAN_COL_BUCKET", "PLAN_COL_FINE", "PLAN_COL_KEEP", "PLAN_COL_FINE_KEEP"]
+                Component.onCompleted: if (suiteBackend.planVisible) suiteBackend.loadDownsamplePlan()
+
+                Text { text: suiteBackend.uiText("PLAN_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("PLAN_DESC"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text {
+                    visible: suiteBackend.planFailureText !== ""
+                    text: suiteBackend.planFailureText
+                    color: "#fbbf24"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                }
+                Text {
+                    visible: suiteBackend.planNoticeText !== ""
+                    text: suiteBackend.planNoticeText
+                    color: "#34d399"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                }
+
+                ColumnLayout {
+                    visible: suiteBackend.planLoaded
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    RowLayout {
+                        spacing: 10
+                        Text { text: suiteBackend.planModeText; color: suiteBackend.planAllowDelete && suiteBackend.planModeText === suiteBackend.uiText("PLAN_MODE_DELETE") ? "#f87171" : window.muted; font.bold: true; font.pixelSize: 11 }
+                        Button { text: suiteBackend.uiText("PLAN_RELOAD"); enabled: !suiteBackend.planBusy; onClicked: suiteBackend.loadDownsamplePlan() }
+                    }
+                    Text { text: suiteBackend.uiText("PLAN_STRICT_NOTE"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Repeater { model: planRoot.captions; Text { text: suiteBackend.uiText(modelData); color: window.muted; font.pixelSize: 9; font.bold: true; Layout.fillWidth: true; Layout.preferredWidth: 90; elide: Text.ElideRight } }
+                        Item { Layout.preferredWidth: 32; Layout.preferredHeight: 1 }
+                    }
+                    Repeater {
+                        model: suiteBackend.planStructure
+                        delegate: RowLayout {
+                            id: planRow
+                            property int rowIndex: modelData
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Repeater {
+                                model: planRoot.cells
+                                delegate: TextField {
+                                    property string cellKey: modelData
+                                    Layout.fillWidth: true
+                                    Layout.preferredWidth: 90
+                                    enabled: suiteBackend.planFineEnabled || (cellKey !== "fineBucket" && cellKey !== "fineRetention")
+                                    color: window.textPrimary
+                                    Component.onCompleted: text = suiteBackend.planCell(planRow.rowIndex, cellKey)
+                                    onTextEdited: suiteBackend.setPlanCell(planRow.rowIndex, cellKey, text)
+                                    background: Rectangle {
+                                        radius: 8
+                                        color: window.panelAlt
+                                        border.width: 1
+                                        border.color: (suiteBackend.planIssueLines, suiteBackend.planCellBad(planRow.rowIndex, cellKey)) ? "#f43f5e" : window.panelBorder
+                                    }
+                                }
+                            }
+                            Button { text: "x"; Layout.preferredWidth: 32; ToolTip.visible: hovered; ToolTip.text: suiteBackend.uiText("PLAN_REMOVE_TIER"); onClicked: suiteBackend.removePlanTier(planRow.rowIndex) }
+                        }
+                    }
+                    Button { text: suiteBackend.uiText("PLAN_ADD_TIER"); onClicked: suiteBackend.addPlanTier() }
+                    Text { text: suiteBackend.uiText("PLAN_DURATION_HINT"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: suiteBackend.planKnownKindsText !== ""; text: suiteBackend.planKnownKindsText; color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+
+                    Text {
+                        text: suiteBackend.planIssueSummary
+                        color: suiteBackend.planValid ? "#34d399" : "#fb7185"
+                        font.bold: true; font.pixelSize: 11
+                    }
+                    Repeater {
+                        model: suiteBackend.planIssueLines
+                        Text { text: "- " + modelData; color: "#fda4af"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+
+                    CheckBox {
+                        text: suiteBackend.uiText("PLAN_DELETE_LABEL")
+                        enabled: suiteBackend.planAllowDelete
+                        checked: suiteBackend.planDeleteOn
+                        onToggled: suiteBackend.setPlanDelete(checked)
+                    }
+                    Text { visible: !suiteBackend.planAllowDelete; text: suiteBackend.uiText("PLAN_DELETE_DISABLED"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: suiteBackend.planAllowDelete && suiteBackend.planDeleteOn; text: suiteBackend.uiText("PLAN_DELETE_WARNING"); color: "#f87171"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+
+                    Text { visible: suiteBackend.planEffectsText !== ""; text: suiteBackend.planEffectsText; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+
+                    RowLayout {
+                        spacing: 8
+                        Button { text: suiteBackend.uiText("PLAN_PREVIEW"); enabled: suiteBackend.planValid && !suiteBackend.planBusy; onClicked: suiteBackend.previewDownsamplePlan() }
+                        Button { text: suiteBackend.uiText("PLAN_SAVE"); enabled: suiteBackend.planCanSave; onClicked: suiteBackend.requestSaveDownsamplePlan() }
+                    }
+                    Card {
+                        visible: suiteBackend.planConfirming
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: confirmColumn.implicitHeight + 24
+                        ColumnLayout {
+                            id: confirmColumn
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("PLAN_CONFIRM_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 13 }
+                            Text { text: suiteBackend.planConfirmText; color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            RowLayout {
+                                spacing: 8
+                                Button { text: suiteBackend.uiText("PLAN_CONFIRM_CANCEL"); onClicked: suiteBackend.cancelSaveDownsamplePlan() }
+                                Button { text: suiteBackend.uiText("PLAN_CONFIRM_SAVE"); onClicked: suiteBackend.confirmSaveDownsamplePlan() }
+                            }
+                        }
+                    }
+
+                    Text { text: suiteBackend.uiText("PLAN_AUDIT_TITLE"); color: window.muted; font.bold: true; font.pixelSize: 10 }
+                    Repeater {
+                        model: suiteBackend.planAuditLines
+                        Text { text: modelData; color: window.muted; font.pixelSize: 10; font.family: "Consolas" }
+                    }
+                }
+            }
         }
     }
 

@@ -110,6 +110,16 @@ from hydra_suite.panel_logic.cameras import (
 )
 from hydra_suite.panel_logic.ecosystem_services import _HEALTH_COLOR, _STACK_COLOR, _badge_label, _health
 from hydra_suite.panel_logic.ecosystem_telemetry import _AGGREGATES, _RANGE_PRESETS
+from hydra_suite.panel_logic.downsample_plan import (
+    CELLS as DOWNSAMPLE_CELLS,
+    draft_to_plan as draft_to_downsample_plan,
+    empty_tier as empty_downsample_tier,
+    failure_details as downsample_failure_details,
+    failure_for as downsample_failure,
+    read_effects as read_downsample_effects,
+    read_plan as read_downsample_plan,
+    validate_plan as validate_downsample_plan,
+)
 from hydra_suite.panel_logic.flasher import HYDRA_BRAIN_TIERS, URTC_TIERS, _TIER_LABEL_KEYS
 from hydra_suite.panel_logic.heated_bed import DEFAULT_AMBIENT_TEMP_C as _HB_DEFAULT_AMBIENT_TEMP_C, DEFAULT_TARGET_TEMP_C as _HB_DEFAULT_TARGET_TEMP_C
 from hydra_suite.panel_logic.kinematic_brain_stage import AXIS_KEYS as _KBS_AXIS_KEYS, ENDSTOP_ENTRIES, JOG_STEPS_MM as _KBS_JOG_STEPS_MM, _clamp, complete_stage
@@ -508,6 +518,16 @@ class SuiteQtBridge(QObject):
         self._tel_line_points: list[dict[str, float]] = []
         self._tel_bars: list[dict[str, object]] = []
         self._tel_stats: dict[str, str] = {}
+
+        # -- Tier plan of the data lake (administrators) --
+        self._plan_state: dict | None = None
+        self._plan_rows: list[dict[str, str]] = []
+        self._plan_delete = False
+        self._plan_failure = ""
+        self._plan_notice = ""
+        self._plan_effects_text = ""
+        self._plan_busy = False
+        self._plan_confirming = False
 
         # -- XY Table (ported from the former XYTablePanel -
         # _default_xy_table/_DISPLAY_DEFAULT_SIZE_MM/JOG_STEPS_MM
@@ -3607,6 +3627,264 @@ class SuiteQtBridge(QObject):
             self.changed.emit()
             return
         await self._refresh_ecosystem_services()
+
+    # -- Tier plan of the data lake (Ecosystem Telemetry, administrators) ----
+    # The editor of HYDRA-UMC-DATALAKE's tier plan, through the server. The checks are those of panel_logic/downsample_plan.py
+    # (the same as the data lake's, strict, no way to relax them). Saving first asks the data lake what it would do (a preview),
+    # shows the effects and asks for a confirmation; the control that turns real deletion on is disabled unless the operator started
+    # the data lake with that option. The rows are read by cell (planCell) so that typing does not rebuild the fields.
+
+    planStructureChanged = Signal()
+
+    @Property(bool, notify=changed)
+    def planVisible(self) -> bool:
+        conn = self._controller.active_connection
+        return conn is not None and conn.role == "admin"
+
+    @Property("QVariantList", notify=planStructureChanged)
+    def planStructure(self) -> list[int]:
+        return list(range(len(self._plan_rows)))
+
+    @Property(bool, notify=changed)
+    def planLoaded(self) -> bool:
+        return self._plan_state is not None
+
+    @Property(str, notify=changed)
+    def planFailureText(self) -> str:
+        return self._plan_failure
+
+    @Property(str, notify=changed)
+    def planNoticeText(self) -> str:
+        return self._plan_notice
+
+    @Property(str, notify=changed)
+    def planEffectsText(self) -> str:
+        return self._plan_effects_text
+
+    @Property(bool, notify=changed)
+    def planBusy(self) -> bool:
+        return self._plan_busy
+
+    @Property(bool, notify=changed)
+    def planConfirming(self) -> bool:
+        return self._plan_confirming
+
+    @Property(str, notify=changed)
+    def planConfirmText(self) -> str:
+        return _("PLAN_CONFIRM_DELETE_MESSAGE") if self._plan_turning_delete_on() else _("PLAN_CONFIRM_MESSAGE")
+
+    @Property(bool, notify=changed)
+    def planDeleteOn(self) -> bool:
+        return self._plan_delete
+
+    @Property(bool, notify=changed)
+    def planAllowDelete(self) -> bool:
+        return bool(self._plan_state and self._plan_state["allowDelete"])
+
+    @Property(bool, notify=changed)
+    def planFineEnabled(self) -> bool:
+        return not self._plan_state or self._plan_state["fineRollups"]
+
+    @Property(str, notify=changed)
+    def planModeText(self) -> str:
+        if not self._plan_state:
+            return ""
+        return _("PLAN_MODE_DELETE") if self._plan_state["mode"] == "delete" else _("PLAN_MODE_DRYRUN")
+
+    @Property(str, notify=changed)
+    def planKnownKindsText(self) -> str:
+        kinds = self._plan_state["knownKinds"] if self._plan_state else []
+        return _("PLAN_KNOWN_KINDS", kinds=", ".join(kinds)) if kinds else ""
+
+    @Property("QStringList", notify=changed)
+    def planIssueLines(self) -> list[str]:
+        return [self._plan_issue_line(i) for i in self._plan_issues()]
+
+    @Property(str, notify=changed)
+    def planIssueSummary(self) -> str:
+        count = len(self._plan_issues())
+        return _("PLAN_INVALID_COUNT", count=count) if count else _("PLAN_VALID")
+
+    @Property(bool, notify=changed)
+    def planValid(self) -> bool:
+        return self._plan_state is not None and not self._plan_issues()
+
+    @Property(bool, notify=changed)
+    def planCanSave(self) -> bool:
+        return self.planValid and self._plan_changed() and not self._plan_busy
+
+    @Property("QStringList", notify=changed)
+    def planAuditLines(self) -> list[str]:
+        if not self._plan_state:
+            return []
+        lines = [
+            QDateTime.fromMSecsSinceEpoch(int(a["atMs"])).toString("yyyy-MM-dd HH:mm:ss")
+            + " - "
+            + _("PLAN_AUDIT_ENTRY", event=a["event"], client=a["client"], tiers=a["tiers"])
+            for a in self._plan_state["audit"]
+        ]
+        return lines or [_("PLAN_AUDIT_NONE")]
+
+    @Slot(int, str, result=str)
+    def planCell(self, row: int, key: str) -> str:
+        if 0 <= row < len(self._plan_rows):
+            return str(self._plan_rows[row].get(key, ""))
+        return ""
+
+    @Slot(int, str, result=bool)
+    def planCellBad(self, row: int, key: str) -> bool:
+        return any(i["tier"] == row and i["key"] == key for i in self._plan_issues())
+
+    def _plan_issues(self) -> list[dict]:
+        if self._plan_state is None:
+            return []
+        return validate_downsample_plan(self._plan_rows, self._plan_state["knownKinds"])
+
+    def _plan_issue_line(self, issue: dict) -> str:
+        text = _("PLAN_ISSUE_" + issue["code"].upper(), **issue["params"])
+        if issue["tier"] is None:
+            return text
+        return _("PLAN_ROW", row=issue["tier"] + 1) + ": " + text
+
+    def _plan_changed(self) -> bool:
+        state = self._plan_state
+        return bool(state) and (self._plan_rows != state["rows"] or self._plan_delete != state["delete"])
+
+    def _plan_turning_delete_on(self) -> bool:
+        return bool(self._plan_state) and self._plan_delete and not self._plan_state["delete"]
+
+    def _plan_failure_text(self, kind: str, status: int | None = None, details: list[str] | None = None) -> str:
+        if kind == "http":
+            text = _("PLAN_HTTP", status=status or 0)
+        else:
+            known = {
+                "off": "PLAN_OFF", "forbidden": "PLAN_FORBIDDEN", "unreachable": "PLAN_UNREACHABLE",
+                "network": "PLAN_NETWORK", "malformed": "PLAN_MALFORMED",
+            }
+            text = _(known.get(kind, "PLAN_ERROR_" + kind.upper()))
+        return text + ("\n" + "\n".join(details) if details else "")
+
+    def _plan_touch(self) -> None:
+        self._plan_notice = ""
+        self._plan_effects_text = ""
+        self.changed.emit()
+
+    @Slot()
+    def loadDownsamplePlan(self) -> None:
+        asyncio.ensure_future(self._load_downsample_plan())
+
+    async def _load_downsample_plan(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None or conn.role != "admin":
+            return
+        self._plan_busy = True
+        self.changed.emit()
+        try:
+            result = await conn.fetch_downsample_plan()
+        finally:
+            self._plan_busy = False
+        self._plan_effects_text = ""
+        if result is None:
+            self._plan_state, self._plan_failure = None, self._plan_failure_text("network")
+        else:
+            status, body = result
+            state = read_downsample_plan(body) if status == 200 else None
+            if state is not None:
+                self._plan_state, self._plan_failure = state, ""
+                self._plan_rows = [dict(r) for r in state["rows"]]
+                self._plan_delete = state["delete"]
+            else:
+                self._plan_state = None
+                kind = downsample_failure(status, body) if status != 200 else "malformed"
+                self._plan_failure = self._plan_failure_text(kind, status, downsample_failure_details(body))
+        self.planStructureChanged.emit()
+        self.changed.emit()
+
+    @Slot(int, str, str)
+    def setPlanCell(self, row: int, key: str, value: str) -> None:
+        if 0 <= row < len(self._plan_rows) and key in DOWNSAMPLE_CELLS:
+            self._plan_rows[row][key] = value
+            self._plan_touch()
+
+    @Slot()
+    def addPlanTier(self) -> None:
+        if self._plan_state is not None:
+            self._plan_rows.append(empty_downsample_tier())
+            self.planStructureChanged.emit()
+            self._plan_touch()
+
+    @Slot(int)
+    def removePlanTier(self, row: int) -> None:
+        if 0 <= row < len(self._plan_rows):
+            del self._plan_rows[row]
+            self.planStructureChanged.emit()
+            self._plan_touch()
+
+    @Slot(bool)
+    def setPlanDelete(self, on: bool) -> None:
+        if self._plan_state and self._plan_state["allowDelete"]:
+            self._plan_delete = on
+            self._plan_touch()
+
+    @Slot()
+    def previewDownsamplePlan(self) -> None:
+        asyncio.ensure_future(self._put_downsample_plan(preview=True, then_confirm=False))
+
+    @Slot()
+    def requestSaveDownsamplePlan(self) -> None:
+        asyncio.ensure_future(self._put_downsample_plan(preview=True, then_confirm=True))
+
+    @Slot()
+    def cancelSaveDownsamplePlan(self) -> None:
+        self._plan_confirming = False
+        self.changed.emit()
+
+    @Slot()
+    def confirmSaveDownsamplePlan(self) -> None:
+        self._plan_confirming = False
+        asyncio.ensure_future(self._put_downsample_plan(preview=False, then_confirm=False))
+
+    async def _put_downsample_plan(self, *, preview: bool, then_confirm: bool) -> None:
+        conn = self._controller.active_connection
+        state = self._plan_state
+        if conn is None or state is None or self._plan_issues():
+            return
+        self._plan_busy = True
+        self._plan_notice = ""
+        self.changed.emit()
+        body = {
+            "plan": draft_to_downsample_plan(self._plan_rows, self._plan_delete),
+            "expectedHash": state["hash"],
+            "confirmDelete": self._plan_turning_delete_on(),
+        }
+        try:
+            result = await conn.put_downsample_plan(body, preview=preview)
+        finally:
+            self._plan_busy = False
+        if result is None:
+            self._plan_failure = self._plan_failure_text("network")
+            self.changed.emit()
+            return
+        status, answer = result
+        effects = read_downsample_effects(answer) if status == 200 else None
+        if effects is None:
+            kind = downsample_failure(status, answer) if status != 200 else "malformed"
+            self._plan_failure = self._plan_failure_text(kind, status, downsample_failure_details(answer))
+            self._plan_effects_text = ""
+            self.changed.emit()
+            return
+        self._plan_failure = ""
+        if preview:
+            lines = [_("PLAN_PREVIEWED"), _("PLAN_CHANGES", count=effects["changes"])]
+            if effects["hasTotals"]:
+                lines.append(_("PLAN_EFFECTS", raw=effects["raw"], rollups=effects["rollups"], fine=effects["fine"]))
+            self._plan_effects_text = "\n".join(lines)
+            self._plan_confirming = then_confirm
+            self.changed.emit()
+            return
+        await self._load_downsample_plan()
+        self._plan_notice = _("PLAN_SAVED") if effects["saved"] else _("PLAN_UNCHANGED")
+        self.changed.emit()
 
     # -- Ecosystem Telemetry -------------------------------------------------
 

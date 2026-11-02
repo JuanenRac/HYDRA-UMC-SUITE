@@ -652,6 +652,18 @@ class HydraConnection(QObject):
         /api/telemetry/aggregate."""
         return await self._request_json("GET", "/api/telemetry/aggregate", auth=True, params=params)
 
+    async def fetch_downsample_plan(self) -> tuple[int, object] | None:
+        """GET /api/telemetry/downsample-plan (administrators only): the tier plan HYDRA-UMC-DATALAKE is using, relayed by the
+        server. A 404 means the data lake was not started with the plan administration."""
+        return await self._request_json("GET", "/api/telemetry/downsample-plan", auth=True)
+
+    async def put_downsample_plan(self, body: dict, *, preview: bool) -> tuple[int, object] | None:
+        """PUT /api/telemetry/downsample-plan: with `preview` the data lake validates and answers what a save would do and writes
+        nothing. The body is {"plan", "expectedHash", "confirmDelete"}."""
+        return await self._request_json(
+            "PUT", "/api/telemetry/downsample-plan", auth=True, params={"preview": "1"} if preview else None, json_body=body
+        )
+
     async def fetch_admin_clients(self) -> tuple[int, object] | None:
         """GET /api/admin/clients (admin-only server-side - a non-admin
         session gets a real 403 here, not a partial/empty list)."""
