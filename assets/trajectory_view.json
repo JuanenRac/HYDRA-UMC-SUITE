@@ -3,5 +3,6 @@
   "maxJointStepDeg": 90,
   "jointLimitToleranceDeg": 0.5,
   "listedIssues": 12,
-  "view": { "width": 220, "height": 170, "padding": 12 }
+  "view": { "width": 220, "height": 170, "padding": 12 },
+  "orbit": { "yawDeg": 35, "pitchDeg": 25, "stepDeg": 15 }
 }

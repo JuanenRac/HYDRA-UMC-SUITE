@@ -103,6 +103,34 @@ for plane in trajectory_view.PLANES:
     drawn = trajectory_view.project([(0, 0, 0), (100, 50, 200)], plane, 220, 170, 12)
     check(f"the {plane} view stays in its box", all(12 - 1e-9 <= x <= 208 + 1e-9 and 12 - 1e-9 <= y <= 158 + 1e-9 for x, y in drawn), True)
 check("an empty path draws nothing", trajectory_view.project([], "top"), [])
+
+# the orbit view: a path turns around and stays in its box; the turn is bounded
+cube = [(0, 0, 0), (100, 0, 0), (100, 100, 0), (0, 100, 0), (0, 0, 100), (100, 100, 100)]
+for yaw, pitch in ((0, 0), (35, 25), (-170, 85), (90, -40)):
+    drawn = trajectory_view.project_orbit(cube, yaw, pitch, 220, 170, 12)
+    check(f"the orbit view at {yaw}, {pitch} stays in its box", all(12 - 1e-9 <= x <= 208 + 1e-9 and 12 - 1e-9 <= y <= 158 + 1e-9 for x, y in drawn), True)
+side = trajectory_view.project_orbit([(0, 0, 0), (0, 0, 100)], 0, 0, 220, 170, 12)
+check("looking from the side, a vertical line is vertical and goes up", (round(side[0][0]), side[0][1] > side[1][1]), (round(side[1][0]), True))
+top = trajectory_view.project_orbit([(0, 0, 0), (100, 0, 0)], 0, 90, 220, 170, 12)
+check("looking from straight above, x goes right", top[1][0] > top[0][0], True)
+check("an empty path draws nothing in the orbit view", trajectory_view.project_orbit([], 10, 10), [])
+check("the turn wraps the yaw", trajectory_view.turn_orbit(170, 0, 1, 0, 15), (-175.0, 0.0))
+check("the turn stops the pitch at 85 degrees", trajectory_view.turn_orbit(0, 80, 0, 1, 15), (0.0, 85.0))
+check("a number typed with a decimal comma is read", (trajectory_view.parse_millimetres("12,5"), trajectory_view.parse_millimetres(" -3 "), trajectory_view.parse_millimetres("abc"), trajectory_view.parse_millimetres("nan"), trajectory_view.parse_millimetres(None)), (12.5, -3.0, None, None, None))
+
+# moving a point to a typed position
+parol = "Parol6 (6-DOF)"
+here = trajectory_view.position_of(parol, {"j1": 20, "j2": 10, "j3": 5})
+start = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 1.0, "j5": 2.0, "j6": 3.0, "_time": "10:00:00"}
+moved, code, miss = trajectory_view.move_point(parol, start, here, 5.0)
+check("a reachable position is taken", (code, moved is not None, miss < 1.0), ("ok", True, True))
+check("the other joints and fields stay", (moved["j4"], moved["j5"], moved["j6"], moved["_time"]), (1.0, 2.0, 3.0, "10:00:00"))
+check("the point now stands where it was asked", max(abs(a - b) for a, b in zip((moved["x"], moved["y"], moved["z"]), here)) < 1.0, True)
+check("the point that was given is not changed", start["j1"], 0.0)
+far = trajectory_view.move_point(parol, start, (9000.0, 9000.0, 9000.0), 5.0)
+check("a position out of reach is refused and says how far it stays", (far[0], far[1], far[2] > 5.0), (None, "unreachable", True))
+check("a model with no kinematics here is refused", trajectory_view.move_point("Generic (6-DOF)", start, (1.0, 2.0, 3.0), 5.0)[1], "no_kinematics")
+check("a position that is not a number is refused", trajectory_view.move_point(parol, start, (float("nan"), 0.0, 0.0), 5.0)[1], "invalid")
 check("the preview before Play is off by default", trajectory_view.SETTINGS["previewBeforePlayByDefault"], False)
 
 # ---- update_check.py ----------------------------------------------------------------------------------------
@@ -265,7 +293,21 @@ def bridge_checks() -> None:
     bridge._trajectory_points = [{"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0, "_time": "10:00:00"}, {"j1": 10.0, "j2": 5.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0, "_time": "10:00:01"}]
     bridge._trajectoryChanged.emit()
     view = extras.trajectoryView
-    check("the viewer draws three planes", [p["plane"] for p in view["paths"]], ["top", "side", "front"])
+    check("the viewer draws three planes and the orbit view", [p["plane"] for p in view["paths"]], ["top", "side", "front", "orbit"])
+    extras.rotateTrajectoryOrbit(1, 0)
+    check("the orbit view turns one step and says its angles", "50" in extras.trajectoryView["paths"][3]["label"], True)
+    reachable = trajectory_view.position_of("Parol6 (6-DOF)", {"j1": 20, "j2": 10, "j3": 5})
+    shown = extras.trajectoryPointPosition(0)
+    check("the position of a point is offered for the fields", set(shown), {"x", "y", "z"})
+    extras.setTrajectoryPointPosition(0, f"{reachable[0]:.2f}".replace(".", ","), f"{reachable[1]:.2f}", f"{reachable[2]:.2f}")
+    check("a point is moved to a typed position", abs(bridge._trajectory_points[0]["j1"] - 20) < 2.0, True)
+    check("and the notice says so", "moved to" in bridge._notice_text or "mm" in bridge._notice_text, True)
+    before = dict(bridge._trajectory_points[0])
+    extras.setTrajectoryPointPosition(0, "9000", "9000", "9000")
+    check("a position out of reach leaves the point as it was and says why", (bridge._trajectory_points[0] == before, bridge._notice_severity), (True, "warn"))
+    extras.setTrajectoryPointPosition(0, "x", "1", "2")
+    check("text that is not a number changes nothing", bridge._trajectory_points[0] == before, True)
+    bridge._trajectory_points[0] = {"j1": 0.0, "j2": 0.0, "j3": 0.0, "j4": 0.0, "j5": 0.0, "j6": 0.0, "_time": "10:00:00"}
     extras.moveTrajectoryPoint(0, 1)
     check("a point moves down", [p["j1"] for p in bridge._trajectory_points], [10.0, 0.0])
     extras.duplicateTrajectoryPoint(0)

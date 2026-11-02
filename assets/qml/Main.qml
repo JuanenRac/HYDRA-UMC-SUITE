@@ -1245,6 +1245,59 @@ ApplicationWindow {
                     onToggled: suiteBackend.extras.setPreviewEnabled(checked)
                 }
             }
+            // Move the selected point to a typed position (millimetres): the joints are solved by the inverse kinematics of the model
+            // and a position out of its reach is refused with the reason.
+            RowLayout {
+                id: pointPositionRow
+                objectName: "pointPositionRow"
+                Layout.fillWidth: true
+                spacing: 6
+                enabled: trajectoryRoot.selectedRow >= 0
+                function refill() {
+                    var position = trajectoryRoot.selectedRow >= 0 ? suiteBackend.extras.trajectoryPointPosition(trajectoryRoot.selectedRow) : ({})
+                    pointXField.text = position.x !== undefined ? position.x : ""
+                    pointYField.text = position.y !== undefined ? position.y : ""
+                    pointZField.text = position.z !== undefined ? position.z : ""
+                }
+                Connections { target: trajectoryRoot; function onSelectedRowChanged() { pointPositionRow.refill() } }
+                Text { text: suiteBackend.uiText("TRJ_EDIT_X"); color: window.muted; font.pixelSize: 10 }
+                TextField {
+                    id: pointXField
+                    objectName: "pointXField"
+                    Layout.preferredWidth: 70
+                    color: window.textPrimary
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                Text { text: suiteBackend.uiText("TRJ_EDIT_Y"); color: window.muted; font.pixelSize: 10 }
+                TextField {
+                    id: pointYField
+                    objectName: "pointYField"
+                    Layout.preferredWidth: 70
+                    color: window.textPrimary
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                Text { text: suiteBackend.uiText("TRJ_EDIT_Z"); color: window.muted; font.pixelSize: 10 }
+                TextField {
+                    id: pointZField
+                    objectName: "pointZField"
+                    Layout.preferredWidth: 70
+                    color: window.textPrimary
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+                Button {
+                    objectName: "pointMoveButton"
+                    text: suiteBackend.uiText("TRJ_EDIT_APPLY")
+                    onClicked: { suiteBackend.extras.setTrajectoryPointPosition(trajectoryRoot.selectedRow, pointXField.text, pointYField.text, pointZField.text); pointPositionRow.refill() }
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Button { objectName: "orbitLeftButton"; text: "\u25C0"; ToolTip.visible: hovered; ToolTip.text: suiteBackend.uiText("TRJ_ORBIT_LEFT"); onClicked: suiteBackend.extras.rotateTrajectoryOrbit(-1, 0) }
+                Button { objectName: "orbitRightButton"; text: "\u25B6"; ToolTip.visible: hovered; ToolTip.text: suiteBackend.uiText("TRJ_ORBIT_RIGHT"); onClicked: suiteBackend.extras.rotateTrajectoryOrbit(1, 0) }
+                Button { objectName: "orbitUpButton"; text: "\u25B2"; ToolTip.visible: hovered; ToolTip.text: suiteBackend.uiText("TRJ_ORBIT_UP"); onClicked: suiteBackend.extras.rotateTrajectoryOrbit(0, 1) }
+                Button { objectName: "orbitDownButton"; text: "\u25BC"; ToolTip.visible: hovered; ToolTip.text: suiteBackend.uiText("TRJ_ORBIT_DOWN"); onClicked: suiteBackend.extras.rotateTrajectoryOrbit(0, -1) }
+            }
             PathViewer { Layout.fillWidth: true; view: suiteBackend.extras.trajectoryView }
             Dialog {
                 id: exportWorkDialog

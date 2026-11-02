@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
 
-from hydra_suite import __version__, swarm, trajectory_view, update_check
+from hydra_suite import __version__, reach, swarm, trajectory_view, update_check
 from hydra_suite.app import StopAllSummary, describe_stop_all
 from hydra_suite.i18n import _, load_config, save_config
 
@@ -65,6 +65,8 @@ class SuiteExtras(QObject):
         self._update_busy = False
         self._pending_kind = ""
         self._pending_report: dict[str, Any] | None = None
+        self._orbit_yaw = trajectory_view.ORBIT_SETTINGS["yawDeg"]
+        self._orbit_pitch = trajectory_view.ORBIT_SETTINGS["pitchDeg"]
         self._timer = QTimer(self)
         self._timer.setInterval(REFRESH_MS)
         self._timer.timeout.connect(self._tick)
@@ -339,6 +341,11 @@ class SuiteExtras(QObject):
             {"plane": plane, "label": _(f"TRJ_VIEW_{plane.upper()}"), "points": [{"x": x, "y": y} for x, y in trajectory_view.project(report["path"], plane)]}
             for plane in trajectory_view.PLANES
         ]
+        paths.append({
+            "plane": trajectory_view.ORBIT,
+            "label": _("TRJ_VIEW_ORBIT", yaw=f"{self._orbit_yaw:.0f}", pitch=f"{self._orbit_pitch:.0f}"),
+            "points": [{"x": x, "y": y} for x, y in trajectory_view.project_orbit(report["path"], self._orbit_yaw, self._orbit_pitch)],
+        })
         summary = _("TRJ_SUMMARY", count=report["points"], length=f"{report['lengthMm']:.0f}", step=f"{report['maxStepDeg']:.0f}")
         return {"summary": summary, "clean": report["clean"], "issues": lines, "paths": paths, "points": report["points"], "count": len(report["issues"])}
 
@@ -356,6 +363,44 @@ class SuiteExtras(QObject):
     @Property(int, constant=True)
     def trajectoryViewHeight(self) -> int:
         return int(trajectory_view.VIEW["height"])
+
+    @Slot(int, int)
+    def rotateTrajectoryOrbit(self, d_yaw: int, d_pitch: int) -> None:
+        """One step of the turn of the fourth view (left/right, up/down); the step is `orbit.stepDeg` of assets/trajectory_view.json."""
+        self._orbit_yaw, self._orbit_pitch = trajectory_view.turn_orbit(self._orbit_yaw, self._orbit_pitch, int(d_yaw), int(d_pitch))
+        self.changed.emit()
+
+    @Slot(int, result="QVariantMap")
+    def trajectoryPointPosition(self, index: int) -> dict[str, Any]:
+        """x, y, z (millimetres, as text for the fields) of a point of the list being edited; empty when it has none."""
+        points = self._bridge._trajectory_points
+        robot = self._bridge._selected_robot()
+        if not 0 <= index < len(points):
+            return {}
+        position = trajectory_view.position_of(robot.model if robot is not None else None, points[index])
+        return {} if position is None else {"x": f"{position[0]:.1f}", "y": f"{position[1]:.1f}", "z": f"{position[2]:.1f}"}
+
+    @Slot(int, str, str, str)
+    def setTrajectoryPointPosition(self, index: int, x: str, y: str, z: str) -> None:
+        """Move a point to a typed position: the joints that come closest are found with the inverse kinematics, and a position the
+        model cannot reach (farther than the tolerance of the Work import) leaves the point as it was."""
+        points = self._bridge._trajectory_points
+        robot = self._bridge._selected_robot()
+        if not 0 <= index < len(points):
+            return
+        values = [trajectory_view.parse_millimetres(v) for v in (x, y, z)]
+        if any(v is None for v in values):
+            self._bridge._set_notice(_("TRJ_EDIT_INVALID"), "warn")
+            return
+        tolerance = reach.tolerance_from_config(load_config())
+        moved, code, miss = trajectory_view.move_point(robot.model if robot is not None else None, points[index], (values[0], values[1], values[2]), tolerance)  # type: ignore[arg-type]
+        if moved is None:
+            key = {"no_kinematics": "TRJ_EDIT_NO_MODEL", "unreachable": "TRJ_EDIT_UNREACHABLE"}.get(code, "TRJ_EDIT_INVALID")
+            self._bridge._set_notice(_(key, miss=f"{miss:.1f}", tolerance=f"{tolerance:g}"), "warn")
+            return
+        points[index] = moved
+        self._bridge._set_notice(_("TRJ_EDIT_DONE", point=index + 1, x=f"{moved['x']:.1f}", y=f"{moved['y']:.1f}", z=f"{moved['z']:.1f}", miss=f"{miss:.1f}"), "info")
+        self._bridge._trajectoryChanged.emit()
 
     @Slot(int, int)
     def moveTrajectoryPoint(self, index: int, offset: int) -> None:
