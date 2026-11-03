@@ -110,6 +110,52 @@
           }
         },
         {
+          "name": "firmware_signature.py",
+          "desc": {
+            "en": "Firmware signature check",
+            "es": "Comprobación de firma",
+            "de": "Firmware-Signaturprüfung",
+            "fr": "Vérification de signature",
+            "it": "Verifica firma firmware",
+            "ja": "ファームウェア署名の確認",
+            "zh": "固件签名检查",
+            "pt": "Verificação de assinatura"
+          },
+          "tree_desc": {
+            "en": "Checks the Ed25519 signature of a firmware image on this computer before it is sent to the flashing service (key file named in the configuration)",
+            "es": "Comprueba en este ordenador la firma Ed25519 de una imagen de firmware antes de enviarla al servicio de flasheo (fichero de clave indicado en la configuración)",
+            "de": "Prüft auf diesem Computer die Ed25519-Signatur eines Firmware-Images, bevor es an den Flash-Dienst geht (Schlüsseldatei in der Konfiguration)",
+            "fr": "Vérifie sur cet ordinateur la signature Ed25519 d'une image de firmware avant son envoi au service de flashage (fichier de clé indiqué dans la configuration)",
+            "it": "Verifica su questo computer la firma Ed25519 di un'immagine firmware prima dell'invio al servizio di flashing (file della chiave indicato nella configurazione)",
+            "ja": "ファームウェアイメージをフラッシュサービスに送る前に、このコンピューターで Ed25519 署名を確認（鍵ファイルは設定で指定）",
+            "zh": "在将固件镜像发送到刷写服务之前，于本机检查其 Ed25519 签名（密钥文件在配置中指定）",
+            "pt": "Verifica neste computador a assinatura Ed25519 de uma imagem de firmware antes de a enviar ao serviço de flasheamento (ficheiro da chave indicado na configuração)"
+          }
+        },
+        {
+          "name": "ed25519_verify.py",
+          "desc": {
+            "en": "Ed25519 verifier",
+            "es": "Verificador Ed25519",
+            "de": "Ed25519-Prüfer",
+            "fr": "Vérificateur Ed25519",
+            "it": "Verificatore Ed25519",
+            "ja": "Ed25519 検証",
+            "zh": "Ed25519 验证",
+            "pt": "Verificador Ed25519"
+          },
+          "tree_desc": {
+            "en": "Ed25519 (RFC 8032) signature verification in pure Python, no dependency",
+            "es": "Verificación de firmas Ed25519 (RFC 8032) en Python puro, sin dependencias",
+            "de": "Ed25519-Signaturprüfung (RFC 8032) in reinem Python, ohne Abhängigkeiten",
+            "fr": "Vérification de signatures Ed25519 (RFC 8032) en Python pur, sans dépendance",
+            "it": "Verifica di firme Ed25519 (RFC 8032) in Python puro, senza dipendenze",
+            "ja": "純粋な Python による Ed25519（RFC 8032）署名の検証、依存なし",
+            "zh": "纯 Python 实现的 Ed25519（RFC 8032）签名验证，无依赖",
+            "pt": "Verificação de assinaturas Ed25519 (RFC 8032) em Python puro, sem dependências"
+          }
+        },
+        {
           "name": "logging_handler.py",
           "desc": {
             "en": "Routes Python logging into the Logs panel",

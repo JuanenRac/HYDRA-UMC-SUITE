@@ -208,6 +208,7 @@ JuanenPnP、JuanenCNC 和 JuanenLaser 使用独立的 STL 副本，LumenPnP 保�
 | `GET /api/hydra-info`, `_hydra._tcp.local.` | 发现：端口 3000 的子网扫描（每台主机 1.5 秒，同时 64 台）和 mDNS（4 秒），或手动输入的地址（也可通过 VPN） |
 | `HYDRA_UMC_DATALAKE_URL` | 遥测面板使用的 HYDRA-UMC-DATALAKE 可选地址 |
 | `hydra_suite/can_ota.py` | 通过服务器的 Flasher 与 Tester CAN-OTA 层级（URTC 和 HYDRA-UMC），在真实板卡出现前使用内置模拟 |
+| `firmwareSignature` (hydra_suite_config.json) | 公钥文件的路径，以及在将固件镜像发送到刷写服务之前于本机进行 Ed25519 检查的开关（默认开启）；没有签名或签名错误的镜像会被拒绝并说明原因，设置页显示密钥指纹，并在检查关闭时给出警告 |
 | F11, F12 | F11 切换全屏；F12 发送全局 STOP |
 
 ## ⚙️ 配置
@@ -356,6 +357,8 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                                                                                              SuiteController —— 管理连接集群与"当前激活"选择；每个面板都与它通信
 │   ├── i18n.py                                                                                             8 语言 KEY=Value 加载器（language/*.lng）
 │   ├── can_ota.py                                                                                          共享的 CAN-OTA/SPI-OTA 传输层（STUDIO 自身 canOta.ts 的真实移植）—— 供 Flasher 和 Tester 使用
+│   ├── firmware_signature.py                                                                               在将固件镜像发送到刷写服务之前，于本机检查其 Ed25519 签名（密钥文件在配置中指定）
+│   ├── ed25519_verify.py                                                                                   纯 Python 实现的 Ed25519（RFC 8032）签名验证，无依赖
 │   ├── logging_handler.py                                                                                  将 Python 日志路由到日志面板
 │   ├── diagnostics.py                                                                                      支持包（含版本、服务器和日志的 zip，不含凭据）
 │   ├── net/                                                                                                REST、WebSocket 客户端和发现

@@ -2350,6 +2350,55 @@ ApplicationWindow {
                 }
             }
             Card {
+                objectName: "firmwareSigningCard"
+                Layout.fillWidth: true
+                Layout.preferredHeight: firmwareSigningColumn.implicitHeight + 24
+                ColumnLayout {
+                    id: firmwareSigningColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 12
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("HEADING_FW_SIG"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Text { objectName: "firmwareSigningWarning"; visible: suiteBackend.firmwareSigningView.warning !== ""; text: suiteBackend.firmwareSigningView.warning; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    CheckBox {
+                        objectName: "firmwareSigningVerifyBox"
+                        text: suiteBackend.uiText("LBL_FW_SIG_VERIFY")
+                        palette.windowText: window.textPrimary
+                        checked: suiteBackend.firmwareSigningView.verify === true
+                        onClicked: {
+                            var wanted = checked
+                            checked = Qt.binding(function() { return suiteBackend.firmwareSigningView.verify === true })
+                            if (suiteBackend.firmwareSigningNeedsConfirmation(wanted))
+                                window.requestConfirm(suiteBackend.uiText("TITLE_FW_SIG_OFF"), suiteBackend.uiText("MSG_FW_SIG_OFF_CONFIRM"), function() { suiteBackend.setFirmwareSigningVerify(false) })
+                            else
+                                suiteBackend.setFirmwareSigningVerify(wanted)
+                        }
+                    }
+                    Text { text: suiteBackend.uiText("LBL_FW_SIG_KEY_FILE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        TextField {
+                            id: firmwareKeyFileField
+                            objectName: "firmwareSigningKeyFile"
+                            Layout.fillWidth: true
+                            placeholderText: suiteBackend.uiText("PH_FW_SIG_KEY_FILE")
+                            text: suiteBackend.firmwareSigningView.keyFile
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Button { objectName: "firmwareSigningKeyFileSave"; text: suiteBackend.uiText("BTN_SAVE"); onClicked: suiteBackend.setFirmwareSigningKeyFile(firmwareKeyFileField.text) }
+                    }
+                    Text { objectName: "firmwareSigningKeyStatus"; text: suiteBackend.firmwareSigningView.keyStatus; color: suiteBackend.firmwareSigningView.keyOk === true ? window.green : window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    Text { visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.uiText("LBL_FW_SIG_FINGERPRINT"); color: window.textPrimary; font.pixelSize: 10 }
+                    Text { objectName: "firmwareSigningFingerprint"; visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.firmwareSigningView.fingerprint; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.firmwareSigningView.configFile; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("LBL_FW_SIG_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                }
+            }
+            Card {
                 visible: suiteBackend.totpStep !== "none"
                 objectName: "totpCard"
                 Layout.fillWidth: true

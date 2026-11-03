@@ -270,6 +270,7 @@ I modelli 3D non sono più nell'albero del repository (221 MiB, condivisi con HY
 | `GET /api/hydra-info`, `_hydra._tcp.local.` | scoperta: una scansione della sottorete sulla porta 3000 (1,5 s per host, 64 alla volta) e mDNS (4 s), o un indirizzo digitato, anche tramite VPN |
 | `HYDRA_UMC_DATALAKE_URL` | indirizzo facoltativo di HYDRA-UMC-DATALAKE per il pannello di telemetria |
 | `hydra_suite/can_ota.py` | i livelli CAN-OTA di Flasher e Tester tramite il server (URTC e HYDRA-UMC), su una simulazione integrata finché non esistono schede reali |
+| `firmwareSignature` (hydra_suite_config.json) | percorso del file della chiave pubblica e interruttore (attivo per impostazione predefinita) della verifica Ed25519 di un'immagine firmware su questo computer prima dell'invio al servizio di flashing; un'immagine senza firma o con firma errata viene rifiutata indicando il motivo, e la pagina mostra l'impronta della chiave e un avviso quando la verifica è disattivata |
 | F11, F12 | F11 attiva o disattiva lo schermo intero; F12 invia lo STOP globale |
 
 ## ⚙️ Configurazione
@@ -446,6 +447,8 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                                                                                              SuiteController - gestisce lo sciame di connessioni, la selezione "attiva"; ogni pannello parla con questo
 │   ├── i18n.py                                                                                             Caricatore KEY=Value a 8 lingue (language/*.lng)
 │   ├── can_ota.py                                                                                          Trasporto condiviso CAN-OTA/SPI-OTA (porting reale del canOta.ts proprio di STUDIO) - usato da Flasher e Tester
+│   ├── firmware_signature.py                                                                               Verifica su questo computer la firma Ed25519 di un'immagine firmware prima dell'invio al servizio di flashing (file della chiave indicato nella configurazione)
+│   ├── ed25519_verify.py                                                                                   Verifica di firme Ed25519 (RFC 8032) in Python puro, senza dipendenze
 │   ├── logging_handler.py                                                                                  Instrada il logging Python verso il pannello Logs
 │   ├── diagnostics.py                                                                                      Pacchetto per l'assistenza (zip con versioni, server e registro, senza credenziali)
 │   ├── net/                                                                                                client REST, WebSocket e individuazione

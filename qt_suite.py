@@ -64,7 +64,8 @@ from hydra_suite.can_ota import (
 from hydra_suite.credentials import CredentialStore, keyring_backend
 from hydra_suite.diagnostics import build_bundle
 from hydra_suite.i18n import AVAILABLE_LANGUAGES, CONFIG_FILE_PATH, _, current_language, load_config, save_config
-from hydra_suite import reach
+from hydra_suite import firmware_signature, reach
+from hydra_suite import i18n as i18n_module
 from hydra_suite.joint_limits import joint_range_deg
 from hydra_suite.models import (
     CAMERA_TYPES,
@@ -3183,6 +3184,51 @@ class SuiteQtBridge(QObject):
     @Property(str, notify=changed)
     def securityWarning(self) -> str:
         return self._security_warning
+
+    # --- signature check of firmware on this computer (configuration file, not the server) ---
+
+    def _firmware_signing_settings(self) -> firmware_signature.SigningSettings:
+        return firmware_signature.read_settings(i18n_module.load_config(), i18n_module.CONFIG_FILE_PATH)
+
+    @Property("QVariantMap", notify=changed)
+    def firmwareSigningView(self) -> dict:
+        settings = self._firmware_signing_settings()
+        key, problem = firmware_signature.load_public_key(settings.key_file)
+        return {
+            "verify": settings.verify,
+            "keyFile": str(settings.key_file),
+            "keyOk": key is not None,
+            "keyStatus": _("FW_SIG_KEY_LOADED") if key is not None else _(problem),
+            "fingerprint": firmware_signature.key_fingerprint(key) if key is not None else "",
+            "configFile": str(i18n_module.CONFIG_FILE_PATH),
+            "warning": "" if settings.verify else _("FW_SIG_WARNING_OFF"),
+        }
+
+    @Slot(bool, result=bool)
+    def firmwareSigningNeedsConfirmation(self, verify: bool) -> bool:
+        """Turning the check off lowers a protection, so the page asks first."""
+        return not verify and self._firmware_signing_settings().verify
+
+    @Slot(bool)
+    def setFirmwareSigningVerify(self, verify: bool) -> None:
+        self._save_firmware_signing(verify=verify)
+
+    @Slot(str)
+    def setFirmwareSigningKeyFile(self, path: str) -> None:
+        self._save_firmware_signing(key_file=path.strip())
+
+    def _save_firmware_signing(self, verify: bool | None = None, key_file: str | None = None) -> None:
+        section = i18n_module.load_config().get(firmware_signature.CONFIG_KEY)
+        section = dict(section) if isinstance(section, dict) else {}
+        if verify is not None:
+            section["verify"] = bool(verify)
+        if key_file is not None:
+            section["publicKeyFile"] = key_file
+        if i18n_module.save_config({firmware_signature.CONFIG_KEY: section}):
+            self._set_notice(_("FW_SIG_SAVED"), "info")
+        else:
+            self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=i18n_module.CONFIG_FILE_PATH), "warn")
+        self.changed.emit()
 
     @Slot(bool, result=bool)
     def infoAuthNeedsConfirmation(self, new_value: bool) -> bool:
@@ -6553,6 +6599,18 @@ class SuiteQtBridge(QObject):
                 self.changed.emit()
                 version_major, version_minor = parse_version_tag(file.get("version_tag"))
                 hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
+                # the signature is checked here, on this computer, before a single byte goes to the flashing service
+                verdict = firmware_signature.evaluate(
+                    self._firmware_signing_settings(), file["bytes"], hardware_id_number or None, file.get("version_tag"), file.get("signature"),
+                )
+                if not verdict.ok:
+                    self._flasher_push_log(key, f"{_('FW_SIG_REFUSED')}: {_(verdict.reason)}", "error")
+                    self._flasher_progress[key] = {"label": "", "percent": 0}
+                    return
+                if verdict.skipped:
+                    self._flasher_push_log(key, _("FW_SIG_OFF_LOG"), "error")
+                else:
+                    self._flasher_push_log(key, _("FW_SIG_OK"), "ok")
                 conn = self._controller.active_connection
                 if conn is None:
                     self._flasher_push_log(key, _("LBL_NO_RESPONSE"), "error")

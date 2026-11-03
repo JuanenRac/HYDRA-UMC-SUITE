@@ -266,6 +266,7 @@ The 3D models are no longer in the repository tree (they weigh 221 MiB and are s
 | `GET /api/hydra-info`, `_hydra._tcp.local.` | discovery: a subnet scan on port 3000 (1.5 s per host, 64 at a time) and mDNS (4 s), or an address you type, also through a VPN |
 | `HYDRA_UMC_DATALAKE_URL` | optional address of HYDRA-UMC-DATALAKE for the telemetry panel |
 | `hydra_suite/can_ota.py` | the CAN-OTA tiers of Flasher and Tester through the server (URTC and HYDRA-UMC), on a built-in simulation until real boards exist |
+| `firmwareSignature` (hydra_suite_config.json) | path of the public key file and the switch (on by default) of the Ed25519 check of a firmware image on this computer before it is sent to the flashing service; an unsigned image or a bad signature is refused with the reason, and the page shows the fingerprint of the key and a warning when the check is off |
 | F11, F12 | F11 toggles full screen; F12 sends the global STOP |
 
 ## ⚙️ Configuration
@@ -437,6 +438,8 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                                                                                              SuiteController - owns the swarm of connections, "active" selection, every panel talks to this
 │   ├── i18n.py                                                                                             8-language KEY=Value loader (language/*.lng)
 │   ├── can_ota.py                                                                                          Shared CAN-OTA/SPI-OTA transport (real port of STUDIO's own canOta.ts) - used by Flasher and Tester
+│   ├── firmware_signature.py                                                                               Checks the Ed25519 signature of a firmware image on this computer before it is sent to the flashing service (key file named in the configuration)
+│   ├── ed25519_verify.py                                                                                   Ed25519 (RFC 8032) signature verification in pure Python, no dependency
 │   ├── logging_handler.py                                                                                  Routes Python logging into the Logs panel
 │   ├── diagnostics.py                                                                                      Support bundle (zip with versions, servers and the log, credentials left out)
 │   ├── net/                                                                                                REST, WebSocket client and discovery

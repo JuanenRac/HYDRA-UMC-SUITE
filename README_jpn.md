@@ -208,6 +208,7 @@ JuanenPnP、JuanenCNC、JuanenLaser は独立した STL コピーを使用し、
 | `GET /api/hydra-info`, `_hydra._tcp.local.` | 探索：ポート 3000 のサブネットスキャン（1 ホット 1.5 秒、同時 64）と mDNS（4 秒）、または入力したアドレス（VPN 経由も可） |
 | `HYDRA_UMC_DATALAKE_URL` | テレメトリパネル用の HYDRA-UMC-DATALAKE の任意のアドレス |
 | `hydra_suite/can_ota.py` | サーバー経由の Flasher と Tester の CAN-OTA 階層（URTC と HYDRA-UMC）。実機ができるまでは内蔵シミュレーション |
+| `firmwareSignature` (hydra_suite_config.json) | 公開鍵ファイルのパスと、ファームウェアイメージをフラッシュサービスに送る前にこのコンピューターで行う Ed25519 確認のスイッチ（初期値はオン）。署名のないイメージや不正な署名は理由とともに拒否され、設定ページには鍵のフィンガープリントと、確認がオフのときの警告が表示される |
 | F11, F12 | F11 で全画面を切り替え、F12 で全体 STOP を送る |
 
 ## ⚙️ 設定
@@ -356,6 +357,8 @@ HYDRA-UMC-SUITE/
 │   ├── app.py                                                                                              SuiteController - 接続群と「アクティブ」選択を管理する。各パネルはこれと通信する
 │   ├── i18n.py                                                                                             8言語対応のKEY=Valueローダー（language/*.lng）
 │   ├── can_ota.py                                                                                          共有のCAN-OTA/SPI-OTAトランスポート（STUDIO自身のcanOta.tsの実際の移植）- FlasherとTesterで使用
+│   ├── firmware_signature.py                                                                               ファームウェアイメージをフラッシュサービスに送る前に、このコンピューターで Ed25519 署名を確認（鍵ファイルは設定で指定）
+│   ├── ed25519_verify.py                                                                                   純粋な Python による Ed25519（RFC 8032）署名の検証、依存なし
 │   ├── logging_handler.py                                                                                  PythonのロギングをLogsパネルへルーティング
 │   ├── diagnostics.py                                                                                      サポート用バンドル（バージョン、サーバー、ログを含む zip。認証情報は除外）
 │   ├── net/                                                                                                REST・WebSocket クライアントと探索
