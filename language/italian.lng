@@ -529,6 +529,7 @@ MSG_NET_REJ_RESERVED={what}: rifiutato, il robot è riservato da un altro accoun
 MSG_NET_REJ_BAD={what}: rifiutato, {detail}
 MSG_NET_FAILED_HTTP={what}: errore HTTP {status}
 MSG_NET_WRITE_FAILED=Scrittura non riuscita: {error}
+MSG_NET_SETTINGS_CONFLICT=Impostazioni non salvate: sono cambiate sul server da quando questo programma le ha lette l'ultima volta. È stata caricata la versione del server; applica di nuovo la modifica.
 MSG_NET_CMD_NOT_APPLIED=Comando non applicato: {warnings}
 MSG_NET_CMD_FAILED=Comando non riuscito: {error}
 MSG_NET_STOP_FAILED=STOP non riuscito: {reason}

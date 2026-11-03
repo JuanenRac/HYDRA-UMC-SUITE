@@ -528,6 +528,7 @@ MSG_NET_REJ_RESERVED={what} が拒否されました: ロボットは別のア�
 MSG_NET_REJ_BAD={what} が拒否されました: {detail}
 MSG_NET_FAILED_HTTP={what} に失敗しました: HTTP {status}
 MSG_NET_WRITE_FAILED=書き込みに失敗しました: {error}
+MSG_NET_SETTINGS_CONFLICT=設定は保存されませんでした:このプログラムが最後に読み取って以降、サーバー上で設定が変更されました。サーバーの内容を読み込みました。変更をもう一度適用してください。
 MSG_NET_CMD_NOT_APPLIED=コマンドは適用されませんでした: {warnings}
 MSG_NET_CMD_FAILED=コマンドに失敗しました: {error}
 MSG_NET_STOP_FAILED=STOP に失敗しました: {reason}

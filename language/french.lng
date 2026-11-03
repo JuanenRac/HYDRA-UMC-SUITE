@@ -529,6 +529,7 @@ MSG_NET_REJ_RESERVED={what} : refusé, le robot est réservé par un autre compt
 MSG_NET_REJ_BAD={what} : refusé, {detail}
 MSG_NET_FAILED_HTTP={what} : échec HTTP {status}
 MSG_NET_WRITE_FAILED=Échec de l'écriture : {error}
+MSG_NET_SETTINGS_CONFLICT=Réglages non enregistrés : ils ont changé sur le serveur depuis la dernière lecture de ce programme. La version du serveur a été chargée ; appliquez de nouveau votre modification.
 MSG_NET_CMD_NOT_APPLIED=Commande non appliquée : {warnings}
 MSG_NET_CMD_FAILED=Échec de la commande : {error}
 MSG_NET_STOP_FAILED=Échec du STOP : {reason}

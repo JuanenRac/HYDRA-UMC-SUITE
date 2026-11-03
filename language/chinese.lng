@@ -528,6 +528,7 @@ MSG_NET_REJ_RESERVED={what} 被拒绝：机器人已被其他账户占用（{det
 MSG_NET_REJ_BAD={what} 被拒绝：{detail}
 MSG_NET_FAILED_HTTP={what} 失败：HTTP {status}
 MSG_NET_WRITE_FAILED=写入失败：{error}
+MSG_NET_SETTINGS_CONFLICT=设置未保存:自此程序上次读取以来,服务器上的设置已更改。已加载服务器的版本;请再次应用您的更改。
 MSG_NET_CMD_NOT_APPLIED=命令未执行：{warnings}
 MSG_NET_CMD_FAILED=命令失败：{error}
 MSG_NET_STOP_FAILED=STOP 失败：{reason}

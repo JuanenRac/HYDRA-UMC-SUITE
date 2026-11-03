@@ -62,6 +62,7 @@ class Handler(BaseHTTPRequestHandler):
         payload = json.dumps(body).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("ETag", '"r2"')
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
@@ -199,12 +200,14 @@ async def run(port):
 
     # --- a bed target lowered by the server ---
     conn.role = "admin"  # only an administrator saves the tree
-    reset(**{"POST /api/settings": (200, {"success": True, "warnings": [{"robotId": 1, "field": "heatedBed.targetTemp", "requested": 300, "applied": 110, "code": "temperature-limit"}]})})
+    reset(**{"PUT /api/settings": (200, {"success": True, "warnings": [{"robotId": 1, "field": "heatedBed.targetTemp", "requested": 300, "applied": 110, "code": "temperature-limit"}]})})
     conn._ws = None
+    conn._settings_etag = '"r1"'
     conn.state.raw["settings"] = {"x": 1}
     messages.clear()
     await conn.push_state()
     check("settings: a lowered bed target is reported", messages, [_("MSG_NET_TEMP_LOWERED", requested="300", applied="110")])
+    check("settings: the tree goes out with PUT and the ETag read as If-Match", [(m, p) for m, p, b in Server.requests], [("PUT", "/api/settings")])
 
     # --- an operator's edit of the settings tree is not sent ---
     operator = make_conn(port)
@@ -223,8 +226,47 @@ async def run(port):
     operator.role = "admin"
     operator.state.raw["settings"] = {"y": 4}
     reset()
+    operator._settings_etag = '"r1"'
     await operator.push_state()
-    check("admin: the same edit is sent", [m for m, p, b in Server.requests if p == "/api/settings"], ["POST"])
+    check("admin: the same edit is sent", [m for m, p, b in Server.requests if p == "/api/settings"], ["PUT"])
+
+    # --- the settings changed on the server since they were read: 412 ---
+    stale = make_conn(port)
+    stale.role = "admin"
+    stale._ws = None
+    server_tree = {"settings": {"z": 9}, "controllers": [], "activeControllerId": ""}
+    stale.state = HydraState({"settings": {"z": 1}, "controllers": [], "activeControllerId": ""})
+    stale._last_payload_json = json.dumps(stale.state.raw, sort_keys=True)
+    stale._settings_etag = '"r1"'
+    stale.state.raw["settings"] = {"z": 2}
+    told = []
+    stale.error.connect(told.append)
+    reset(**{"PUT /api/settings": (412, {"error": "changed", "code": "settings_changed"}), "GET /api/settings": (200, server_tree)})
+    await stale.push_state()
+    check("412 with another tree: the server's version replaces ours and the person is told", (told, stale.state.raw["settings"]), ([_("MSG_NET_SETTINGS_CONFLICT")], {"z": 9}))
+    check("412 with another tree: nothing more is sent", [m for m, p, b in Server.requests], ["PUT", "GET"])
+
+    same = make_conn(port)
+    same.role = "admin"
+    same._ws = None
+    same.state = HydraState({"settings": {"z": 1}, "controllers": [], "activeControllerId": ""})
+    same._last_payload_json = json.dumps(same.state.raw, sort_keys=True)
+    same._settings_etag = '"r1"'
+    same.state.raw["settings"] = {"z": 2}
+    told = []
+    same.error.connect(told.append)
+    reset(**{"PUT /api/settings": (412, {"error": "changed"}), "GET /api/settings": (200, {"settings": {"z": 1}, "controllers": [], "activeControllerId": ""})})
+    await same.push_state()
+    check("412 with the tree last received: it is read again and the save is sent once more", [m for m, p, b in Server.requests], ["PUT", "GET", "PUT"])
+
+    legacy = make_conn(port)
+    legacy.role = "admin"
+    legacy._ws = None
+    legacy._settings_etag = '"r1"'
+    legacy.state.raw["settings"] = {"q": 1}
+    reset(**{"PUT /api/settings": (404, {"error": "no route"})})
+    await legacy.push_state()
+    check("a server without PUT is saved with POST", [m for m, p, b in Server.requests], ["PUT", "POST"])
 
     # --- the submitted models ---
     reset(**{"GET /api/models": (200, {"models": [{"slug": "ar3", "name": "AR3", "category": "robots"}]})})

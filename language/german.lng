@@ -529,6 +529,7 @@ MSG_NET_REJ_RESERVED={what} abgelehnt: Der Roboter ist von einem anderen Konto r
 MSG_NET_REJ_BAD={what} abgelehnt: {detail}
 MSG_NET_FAILED_HTTP={what} fehlgeschlagen: HTTP {status}
 MSG_NET_WRITE_FAILED=Schreiben fehlgeschlagen: {error}
+MSG_NET_SETTINGS_CONFLICT=Einstellungen nicht gespeichert: Sie haben sich auf dem Server geändert, seit dieses Programm sie zuletzt gelesen hat. Die Version des Servers wurde geladen; wende deine Änderung erneut an.
 MSG_NET_CMD_NOT_APPLIED=Befehl nicht ausgeführt: {warnings}
 MSG_NET_CMD_FAILED=Befehl fehlgeschlagen: {error}
 MSG_NET_STOP_FAILED=STOPP fehlgeschlagen: {reason}

@@ -528,6 +528,7 @@ MSG_NET_REJ_RESERVED={what} rejected: the robot is reserved by another account (
 MSG_NET_REJ_BAD={what} rejected: {detail}
 MSG_NET_FAILED_HTTP={what} failed: HTTP {status}
 MSG_NET_WRITE_FAILED=Write failed: {error}
+MSG_NET_SETTINGS_CONFLICT=Settings not saved: they changed on the server since this program last read them. The server's version was loaded; apply your change again.
 MSG_NET_CMD_NOT_APPLIED=Command not applied: {warnings}
 MSG_NET_CMD_FAILED=Command failed: {error}
 MSG_NET_STOP_FAILED=STOP failed: {reason}

@@ -293,6 +293,9 @@ class HydraConnection(QObject):
         # write back to the sender too, so without this a local edit
         # would re-trigger itself as if it were a fresh external change.
         self._last_payload_json: str | None = None
+        # The revision (ETag) of the settings tree as the last GET /api/settings or the last save answered it: the save
+        # (PUT /api/settings) sends it back as If-Match, and the server refuses with 412 when the tree changed in between.
+        self._settings_etag: str | None = None
         # server.ts's `authenticate` middleware unconditionally requires a
         # bearer token on POST /api/settings and the /ws upgrade (no
         # "security enabled" toggle despite what REMOTE_API.md's older wording
@@ -938,8 +941,44 @@ class HydraConnection(QObject):
             raise ValueError("the server's settings are not a settings tree")
         self.state = HydraState(data)
         self._last_payload_json = json.dumps(data, sort_keys=True)
+        self._settings_etag = resp.headers.get("ETag")
         self.state_changed.emit(self.state)
         return self.state
+
+    async def _save_settings_tree(self, payload: dict) -> "httpx.Response | None":
+        """Saves the whole tree with PUT /api/settings and the ETag read last (optimistic concurrency). A 412 or 428 reads the tree
+        again: when the server still holds the tree this program last received (a robot that moved changes the revision, and its
+        push reaches us without one) the save is sent once more with the fresh ETag; when it differs, the server's version replaces
+        ours, the person is told to apply the change again and None is returned. A server without PUT (404/405) is saved with POST
+        as before."""
+        resp = None
+        for _attempt in range(2):
+            etag = self._settings_etag
+            if not etag:
+                latest = await self._http("GET", "/api/settings")
+                latest.raise_for_status()
+                data = latest.json()
+                if json.dumps(data, sort_keys=True) != self._last_payload_json:
+                    if is_settings_tree(data):
+                        self.state = HydraState(data)
+                        self._last_payload_json = json.dumps(data, sort_keys=True)
+                        self._settings_etag = latest.headers.get("ETag")
+                        self.state_changed.emit(self.state)
+                    self.error.emit(_("MSG_NET_SETTINGS_CONFLICT"))
+                    return None
+                etag = latest.headers.get("ETag")
+                if not etag:
+                    return await self._http("POST", "/api/settings", json=payload)  # a server that sends no ETag
+                self._settings_etag = etag
+            resp = await self._http("PUT", "/api/settings", json=payload, headers={"If-Match": etag})
+            if resp.status_code in (404, 405):
+                return await self._http("POST", "/api/settings", json=payload)
+            if resp.status_code not in (412, 428):
+                if resp.status_code < 400:
+                    self._settings_etag = resp.headers.get("ETag")
+                return resp
+            self._settings_etag = None  # read it again before the next try
+        return resp
 
     async def push_state(self) -> None:
         """Writes the current local HydraState back - read-modify-write,
@@ -974,21 +1013,21 @@ class HydraConnection(QObject):
                 self.error.emit(_("MSG_NET_OPERATOR_LOCAL_ONLY"))
             return
         try:
-            if self._ws is not None:
-                await self._ws.send(json.dumps({"type": "settings", "payload": payload}))
-            else:
-                resp = await self._http("POST", "/api/settings", json=payload)
-                if resp.status_code >= 400:
-                    self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_WRITE")))
-                    return
-                # The server lowers a bed target above the ceiling of its model and says so.
-                try:
-                    answer = resp.json()
-                except ValueError:
-                    answer = None
-                for warning in access.parse_warnings(answer):
-                    if warning.is_temperature:
-                        self.error.emit(_("MSG_NET_TEMP_LOWERED", requested=f"{warning.requested:g}" if warning.requested is not None else "?", applied=f"{warning.applied:g}" if warning.applied is not None else "?"))
+            # Over REST, not the WebSocket: only the REST save carries the If-Match of the revision this program read.
+            resp = await self._save_settings_tree(payload)
+            if resp is None:
+                return  # the server's version replaced ours and the person was told
+            if resp.status_code >= 400:
+                self.error.emit(describe_rejection(resp, _("MSG_NET_WHAT_WRITE")))
+                return
+            # The server lowers a bed target above the ceiling of its model and says so.
+            try:
+                answer = resp.json()
+            except ValueError:
+                answer = None
+            for warning in access.parse_warnings(answer):
+                if warning.is_temperature:
+                    self.error.emit(_("MSG_NET_TEMP_LOWERED", requested=f"{warning.requested:g}" if warning.requested is not None else "?", applied=f"{warning.applied:g}" if warning.applied is not None else "?"))
         except (httpx.HTTPError, websockets.WebSocketException, OSError) as e:
             self.error.emit(_("MSG_NET_WRITE_FAILED", error=e))
             return

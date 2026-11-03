@@ -303,6 +303,7 @@ async def network(port):
     conn = make_conn(port, role="admin")  # only an administrator saves the tree
     conn.revisions.learn(1, "r1")
     conn._ws = None
+    conn._settings_etag = '"s1"'
     conn.state.raw["settings"] = {"x": 2}
     reset()
     await conn.push_state()
