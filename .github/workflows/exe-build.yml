@@ -175,9 +175,13 @@ jobs:
           if windows:
               command += ["--windowed", "--icon", str(repo / "images" / "HYDRA_UMC_ICON.ico")]
           command += ["--add-data", f"{repo / 'assets'}{sep}assets", "--add-data", f"{repo / 'images'}{sep}images"]
+          # the same plugin folders as build_exe.bat / build_exe.sh; a folder the wheel of this platform does not have (the Linux wheel has no "styles") is skipped, "platforms" is required
           for folder in ("platforms", "styles", "imageformats", "iconengines"):
               if not (plugins / folder).is_dir():
-                  raise SystemExit("missing Qt plugin folder " + folder)
+                  if folder == "platforms":
+                      raise SystemExit("missing Qt plugin folder platforms")
+                  print("note: this PySide6 has no plugin folder", folder)
+                  continue
               command += ["--add-data", f"{plugins / folder}{sep}PySide6/{rel}/{folder}"]
           hidden = ["qasync", "websockets", "zeroconf", "zeroconf.asyncio", "zeroconf._utils.ipaddress", "ifaddr", "keyring", "keyring.backends", "keyring.backends.Windows",
                     "keyring.backends.macOS", "keyring.backends.SecretService", "keyring.backends.kwallet", "keyring.backends.fail", "keyring.backends.null",
