@@ -210,6 +210,8 @@ class SafetyLimits:
     # model key -> bedMaxC
     bed_models: dict[str, float] = field(default_factory=dict)
     require_controller_id: bool = False
+    # How often a stream of jog commands is written to the audit record, in seconds (0 leaves the stream out).
+    audit_motion_interval_s: int = 10
 
 
 @dataclass
@@ -219,6 +221,8 @@ class HardLimits:
     arm_ttl_min_ms: float = 1000
     arm_ttl_max_ms: float = 600_000
     bed_max_c: float = 300
+    audit_motion_min_s: int = 0
+    audit_motion_max_s: int = 3600
 
 
 @dataclass
@@ -240,12 +244,20 @@ def _positive(value: object) -> float | None:
     return number if number == number and number not in (float("inf"), float("-inf")) and number > 0 else None
 
 
+def _whole_in_range(value: object, low: int, high: int) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value if low <= value <= high else None
+
+
 def _read_limits(raw: object, fallback: SafetyLimits) -> SafetyLimits:
     if not isinstance(raw, dict):
         return fallback
     jog = raw.get("jog") if isinstance(raw.get("jog"), dict) else {}
     temperature = raw.get("temperature") if isinstance(raw.get("temperature"), dict) else {}
     claims = raw.get("claims") if isinstance(raw.get("claims"), dict) else {}
+    audit = raw.get("audit") if isinstance(raw.get("audit"), dict) else {}
+    audit_interval = _whole_in_range(audit.get("motionIntervalSeconds"), 0, 3600)
     jog_default = jog.get("default") if isinstance(jog.get("default"), dict) else {}
     temp_default = temperature.get("default") if isinstance(temperature.get("default"), dict) else {}
     jog_models: dict[str, dict[str, float]] = {}
@@ -276,6 +288,7 @@ def _read_limits(raw: object, fallback: SafetyLimits) -> SafetyLimits:
         bed_default_c=_positive(temp_default.get("bedMaxC")) or fallback.bed_default_c,
         bed_models=bed_models,
         require_controller_id=claims["requireControllerId"] if isinstance(claims.get("requireControllerId"), bool) else fallback.require_controller_id,
+        audit_motion_interval_s=fallback.audit_motion_interval_s if audit_interval is None else audit_interval,
     )
 
 
@@ -287,7 +300,10 @@ def parse_safety_limits(body: object) -> SafetyState:
     base = SafetyLimits()
     hard_raw = body.get("hardLimits") if isinstance(body.get("hardLimits"), dict) else {}
     ttl = hard_raw.get("armTtlMs") if isinstance(hard_raw.get("armTtlMs"), dict) else {}
+    audit_range = hard_raw.get("auditMotionIntervalSeconds") if isinstance(hard_raw.get("auditMotionIntervalSeconds"), dict) else {}
     defaults = HardLimits()
+    audit_min = _whole_in_range(audit_range.get("min"), 0, 3600)
+    audit_max = _whole_in_range(audit_range.get("max"), 0, 3600)
     return SafetyState(
         limits=_read_limits(body.get("limits"), base),
         defaults=_read_limits(body.get("defaults"), base),
@@ -297,6 +313,8 @@ def parse_safety_limits(body: object) -> SafetyState:
             arm_ttl_min_ms=_positive(ttl.get("min")) or defaults.arm_ttl_min_ms,
             arm_ttl_max_ms=_positive(ttl.get("max")) or defaults.arm_ttl_max_ms,
             bed_max_c=_positive(hard_raw.get("bedMaxC")) or defaults.bed_max_c,
+            audit_motion_min_s=defaults.audit_motion_min_s if audit_min is None else audit_min,
+            audit_motion_max_s=defaults.audit_motion_max_s if audit_max is None else audit_max,
         ),
     )
 
@@ -375,7 +393,7 @@ def build_patch(form: dict, hard: HardLimits) -> dict:
     "range" | "model" | "duplicate", "field": name}.
 
     The form: armRequired, armTtlSeconds, requireControllerId, defaultMaxAmount, defaultMaxAbsolute,
-    defaultBedMaxC (typed text or numbers) and rows: [{model, maxAmount, maxAbsolute, bedMaxC}] (empty text means
+    auditMotionSeconds (a whole number from 0 up), defaultBedMaxC (typed text or numbers) and rows: [{model, maxAmount, maxAbsolute, bedMaxC}] (empty text means
     "use the default")."""
 
     def fail(problem: str, field_name: str) -> dict:
@@ -388,6 +406,15 @@ def build_patch(form: dict, hard: HardLimits) -> dict:
         return fail("number", "armTtl")
     if ttl_ms < hard.arm_ttl_min_ms or ttl_ms > hard.arm_ttl_max_ms:
         return fail("range", "armTtl")
+    audit_text = str(form.get("auditMotionSeconds", "")).strip()
+    try:
+        audit_seconds = float(audit_text)
+    except ValueError:
+        return fail("number", "auditMotionSeconds")
+    if audit_seconds != audit_seconds or not audit_seconds.is_integer():
+        return fail("number", "auditMotionSeconds")
+    if audit_seconds < hard.audit_motion_min_s or audit_seconds > hard.audit_motion_max_s:
+        return fail("range_from_zero", "auditMotionSeconds")
     amount, problem = _number(form.get("defaultMaxAmount", ""), hard.jog_max_amount)
     if problem:
         return fail(problem, "defaultMaxAmount")
@@ -433,6 +460,7 @@ def build_patch(form: dict, hard: HardLimits) -> dict:
             },
             "temperature": {"default": {"bedMaxC": bed}, "models": temp_models},
             "claims": {"requireControllerId": bool(form.get("requireControllerId", False))},
+            "audit": {"motionIntervalSeconds": int(audit_seconds)},
         },
     }
 
@@ -450,6 +478,7 @@ def form_from_limits(limits: SafetyLimits) -> dict:
         "armRequired": limits.arm_required,
         "armTtlSeconds": show(round(limits.arm_ttl_ms / 1000)),
         "requireControllerId": limits.require_controller_id,
+        "auditMotionSeconds": str(limits.audit_motion_interval_s),
         "defaultMaxAmount": show(limits.jog_default_amount),
         "defaultMaxAbsolute": show(limits.jog_default_absolute),
         "defaultBedMaxC": show(limits.bed_default_c),
@@ -781,7 +810,7 @@ def table_as_jogs(params: dict) -> list[dict]:
 
 AUDIT_TYPES = (
     "claim", "force-claim", "release", "force-release", "jog-arm", "safety-limits", "stop-all", "stop-all-release", "robot-enable",
-    "robot-disable", "bridge-command", "job-dispatcher-options", "job-dispatcher-reload", "push-device-registered", "push-device-removed", "remote-policy",
+    "robot-motion", "model-submit", "robot-disable", "bridge-command", "job-dispatcher-options", "job-dispatcher-reload", "push-device-registered", "push-device-removed", "remote-policy",
 )
 
 
@@ -891,13 +920,13 @@ def check_chain(entries: list[AuditEntry]) -> ChainCheck:
     return ChainCheck(True, len(entries), links, gaps)
 
 
-def detail_line(detail: dict | None, maximum: int = 140) -> str:
+def detail_line(detail: dict | None, maximum: int = 140, label=None) -> str:
     """A short line of the detail of an entry for the table: key=value pairs, bounded."""
     if not detail:
         return ""
     import json
 
-    parts = [f"{k}={json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v}" for k, v in detail.items()]
+    parts = [f"{label(k) if label else k}={json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else v}" for k, v in detail.items()]
     joined = " ".join(parts)
     return joined if len(joined) <= maximum else joined[: maximum - 3] + "..."
 

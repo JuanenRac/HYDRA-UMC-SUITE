@@ -6350,6 +6350,20 @@ ApplicationWindow {
                                 palette.windowText: window.textPrimary
                             }
                             Text { text: suiteBackend.uiText("HINT_SAFETY_REQUIRE_CONTROLLER"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            RowLayout {
+                                spacing: 8
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_AUDIT_MOTION"); color: window.muted; Layout.preferredWidth: 260; wrapMode: Text.WordWrap }
+                                TextField {
+                                    objectName: "auditMotionField"
+                                    text: safetyBody.form.auditMotionSeconds !== undefined ? safetyBody.form.auditMotionSeconds : ""
+                                    onTextEdited: safetyBody.edit({ auditMotionSeconds: text })
+                                    Layout.preferredWidth: 90
+                                    color: window.textPrimary
+                                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                                }
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_BETWEEN") + " " + safetyBody.hard.auditMotionMinS + " - " + safetyBody.hard.auditMotionMaxS; color: "#556070"; font.pixelSize: 10 }
+                            }
+                            Text { text: suiteBackend.uiText("HINT_SAFETY_AUDIT_MOTION"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         }
                     }
                     Card {

@@ -210,6 +210,17 @@ def pure():
     check("audit: the detail is shortened", (access.detail_line(None), access.detail_line({"ttlMs": 60000, "reason": "bench"}), len(access.detail_line({"big": "x" * 300}, 20))), ("", "ttlMs=60000 reason=bench", 20))
     rows = audit_record.rows(access.parse_audit({"entries": chain(2)}).entries, {1: "Arm"})
     check("audit: the newest line first, with the robot's name", (rows[0]["seq"], rows[1]["seq"], rows[0]["robot"], rows[0]["type"]), (2, 1, "Arm", _("AUDIT_TYPE_CLAIM")))
+    motion = access.parse_audit({"entries": [
+        {"seq": 1, "ts": "2000-01-01T00:00:00.000Z", "type": "robot-motion", "outcome": "ok", "username": "ana", "controllerId": "w1", "ip": "10.0.0.5", "robotId": 1, "detail": {"command": "trajectory", "points": 12}, "prev": "0", "hash": "a"},
+        {"seq": 2, "ts": "2000-01-01T00:00:01.000Z", "type": "model-submit", "outcome": "ok", "username": "ana", "ip": "10.0.0.5", "detail": {"name": "Arm", "category": "robots", "replaces": False, "meshFiles": 3}, "prev": "a", "hash": "b"},
+    ]}).entries
+    motion_rows = audit_record.rows(motion, {1: "Arm"})
+    check("audit: the two new types are known to the filter", ("robot-motion" in access.AUDIT_TYPES, "model-submit" in access.AUDIT_TYPES), (True, True))
+    check("audit: the two new types have a name, not the raw type", (motion_rows[1]["type"], motion_rows[0]["type"]), (_("AUDIT_TYPE_ROBOT_MOTION"), _("AUDIT_TYPE_MODEL_SUBMIT")))
+    check("audit: the names are not the keys", (_("AUDIT_TYPE_ROBOT_MOTION") != "AUDIT_TYPE_ROBOT_MOTION", _("AUDIT_TYPE_MODEL_SUBMIT") != "AUDIT_TYPE_MODEL_SUBMIT"), (True, True))
+    check("audit: the detail of a motion keeps the fields the server sends, with translated keys", motion_rows[1]["detail"], f"{_('AUDIT_DETAIL_COMMAND')}=trajectory {_('AUDIT_DETAIL_POINTS')}=12")
+    check("audit: the detail of a submission", motion_rows[0]["detail"], " ".join(f"{_('AUDIT_DETAIL_' + k.upper())}={v}" for k, v in (("name", "Arm"), ("category", "robots"), ("replaces", False), ("meshFiles", 3))))
+    check("audit: another type keeps its keys", audit_record.detail_label("claim", "points"), "points")
 
     # --- the pushed reservations carry the arming ---
     claims = access.parse_claims({"claims": [{"robotId": 1, "ownerUsername": "ana", "controllerId": "suite-test", "jogArmedUntil": 5000}, {"robotId": 2, "ownerUsername": "bob"}]})

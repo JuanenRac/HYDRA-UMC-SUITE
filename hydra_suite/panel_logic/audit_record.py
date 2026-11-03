@@ -23,6 +23,19 @@ def type_label(kind: str) -> str:
     return kind if text == key else text
 
 
+#: The keys of the detail of the motion and model-submission entries that have a translated name.
+DETAIL_KEYS = ("command", "points", "x", "y", "name", "category", "replaces", "meshFiles", "reason")
+
+
+def detail_label(kind: str, key: str) -> str:
+    """The name of a key of the detail in the user's language (the key itself for other entries or other keys)."""
+    if kind not in ("robot-motion", "model-submit") or key not in DETAIL_KEYS:
+        return key
+    name = "AUDIT_DETAIL_" + key.upper()
+    text = _(name)
+    return key if text == name else text
+
+
 def outcome_label(outcome: str) -> str:
     key = "AUDIT_OUTCOME_" + outcome.upper()
     text = _(key)
@@ -48,7 +61,7 @@ def rows(entries: list[access.AuditEntry], robot_names: dict[int, str]) -> list[
                 "controller": entry.controller_id or "-",
                 "address": entry.ip or "-",
                 "robot": "-" if entry.robot_id is None else robot_names.get(entry.robot_id, f"#{entry.robot_id}"),
-                "detail": access.detail_line(entry.detail),
+                "detail": access.detail_line(entry.detail, label=lambda key, kind=entry.type: detail_label(kind, key)),
             }
         )
     return out

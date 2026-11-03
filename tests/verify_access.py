@@ -126,7 +126,19 @@ def form():
         "jog": {"armRequired": False, "armTtlMs": 60000, "default": {"maxAmount": 100.0, "maxAbsolute": 1000.0}, "models": {"ar4": {"maxAbsolute": 500.0}, "parol6": {"maxAmount": 20.0}}},
         "temperature": {"default": {"bedMaxC": 110.0}, "models": {"parol6": {"bedMaxC": 80.0}}},
         "claims": {"requireControllerId": False},
+        "audit": {"motionIntervalSeconds": 10},
     })
+    check("audit interval: 10 seconds by default and in the form", (access.SafetyLimits().audit_motion_interval_s, values["auditMotionSeconds"]), (10, "10"))
+    check("audit interval: the patch carries it", built["patch"]["audit"], {"motionIntervalSeconds": 10})
+    check("audit interval: 0 is allowed (the jog stream is left out)", access.build_patch(dict(values, auditMotionSeconds="0"), state.hard)["patch"]["audit"], {"motionIntervalSeconds": 0})
+    check("audit interval: 3600 is the ceiling", access.build_patch(dict(values, auditMotionSeconds="3600"), state.hard)["patch"]["audit"], {"motionIntervalSeconds": 3600})
+    for text, expected in (("3601", "range_from_zero"), ("-1", "range_from_zero"), ("2.5", "number"), ("", "number"), ("abc", "number")):
+        got = access.build_patch(dict(values, auditMotionSeconds=text), state.hard)
+        check(f"audit interval: {text!r} is refused", (got["ok"], got["problem"], got["field"]), (False, expected, "auditMotionSeconds"))
+    read = access.parse_safety_limits({"limits": {"audit": {"motionIntervalSeconds": 30}}, "hardLimits": {"auditMotionIntervalSeconds": {"min": 0, "max": 600}}})
+    check("audit interval: read from the server with its range", (read.limits.audit_motion_interval_s, read.hard.audit_motion_min_s, read.hard.audit_motion_max_s), (30, 0, 600))
+    bad = access.parse_safety_limits({"limits": {"audit": {"motionIntervalSeconds": 4000}}})
+    check("audit interval: a damaged value keeps the default", (bad.limits.audit_motion_interval_s, bad.hard.audit_motion_max_s), (10, 3600))
     switched = dict(values, armRequired=True, requireControllerId=True, armTtlSeconds="30")
     patch = access.build_patch(switched, state.hard)["patch"]
     check("form: the switches and the seconds", (patch["jog"]["armRequired"], patch["jog"]["armTtlMs"], patch["claims"]["requireControllerId"]), (True, 30000, True))

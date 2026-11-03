@@ -1524,6 +1524,8 @@ class SuiteQtBridge(QObject):
             "armTtlMinS": hard.arm_ttl_min_ms / 1000,
             "armTtlMaxS": hard.arm_ttl_max_ms / 1000,
             "bedMaxC": hard.bed_max_c,
+            "auditMotionMinS": hard.audit_motion_min_s,
+            "auditMotionMaxS": hard.audit_motion_max_s,
         }
 
     @Property(int, notify=changed)
