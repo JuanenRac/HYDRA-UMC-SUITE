@@ -2007,6 +2007,58 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.authAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_AUTH"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        ComboBox {
+                            id: authAlgorithmCombo
+                            objectName: "securityAuthAlgorithmCombo"
+                            Layout.fillWidth: true
+                            model: [
+                                { "label": suiteBackend.uiText("LBL_SECURITY_AUTH_HS256"), "value": "HS256" },
+                                { "label": suiteBackend.uiText("LBL_SECURITY_AUTH_EDDSA"), "value": "EdDSA" }
+                            ]
+                            textRole: "label"
+                            valueRole: "value"
+                            enabled: !suiteBackend.securityView.authAlgorithmLocked
+                            currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.authAlgorithm))
+                        }
+                        Text { text: suiteBackend.securityView.authAlgorithmSource; color: "#556070"; font.pixelSize: 9 }
+                        CheckBox {
+                            id: authAcceptBox
+                            objectName: "securityAuthAcceptBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_AUTH_ACCEPT_HS256")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.authAcceptHs256Locked
+                            checked: suiteBackend.securityView.authAcceptHs256 === true
+                        }
+                        Text { text: suiteBackend.securityView.authAcceptHs256Source; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_AUTH_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            spacing: 6
+                            Button {
+                                objectName: "securityAuthSave"
+                                text: suiteBackend.uiText("BTN_SAVE")
+                                enabled: !(suiteBackend.securityView.authAlgorithmLocked && suiteBackend.securityView.authAcceptHs256Locked)
+                                onClicked: {
+                                    var algorithm = authAlgorithmCombo.currentValue
+                                    var accept = authAcceptBox.checked
+                                    if (suiteBackend.authNeedsConfirmation(accept))
+                                        window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_AUTH"), suiteBackend.uiText("MSG_SECURITY_AUTH_CONFIRM"), function() { suiteBackend.saveAuthOptions(algorithm, accept) })
+                                    else
+                                        suiteBackend.saveAuthOptions(algorithm, accept)
+                                }
+                            }
+                            Button {
+                                objectName: "securityAuthRotate"
+                                visible: suiteBackend.securityView.authAlgorithm === "EdDSA"
+                                text: suiteBackend.uiText("BTN_SECURITY_AUTH_ROTATE")
+                                onClicked: window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_AUTH"), suiteBackend.uiText("MSG_SECURITY_AUTH_ROTATE_CONFIRM"), function() { suiteBackend.rotateAuthKey() })
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.healthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

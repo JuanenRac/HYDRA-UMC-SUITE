@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin > Sign-in tokens:** choose how the server signs the login tokens (HS256 with the shared secret, the default, or EdDSA with public keys published at `/.well-known/jwks.json`), keep or refuse HS256 tokens during the switch (asks first, since the sessions that hold one must sign in again) and rotate the signing key (the previous one stays valid for the overlap). An option fixed by the environment of the server is locked; the sentences are in the eight languages.
+
 - **The settings tree is saved with `PUT /api/settings` and `If-Match`:** the program keeps the ETag of the last read and sends it back (always over REST, so the condition travels with the save); when the server answers 412 or 428 it reads the tree again, sends the save once more if the server still holds the tree it last received, and otherwise loads the server's version and tells the operator, in the eight languages, to apply the change again. A server without `PUT` is saved with `POST` as before.
 
 - **The audit record knows the motion and model-submission entries:** `robot-motion` (play, pause, stop, trajectory, table, speed, tool, valve, pump and the jog stream) and `model-submit` have a name in the eight languages, appear in the type filter, and the keys of their detail (command, points, table X and Y, model, category, replaces, meshes, reason) are shown with a translated name.

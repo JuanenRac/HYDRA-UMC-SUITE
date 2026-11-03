@@ -16,6 +16,7 @@ from hydra_suite.i18n import _
 
 SOURCES = ("env", "config", "default")
 BLE_MODES = ("off", "state", "commands")
+JWT_ALGORITHMS = ("HS256", "EdDSA")
 MQTT_MODES = ("off", "state", "commands")
 
 
@@ -152,6 +153,7 @@ def parse_state(body: object) -> dict | None:
         "mqtt": None,
         "voice": None,
         "robots": None,
+        "auth": None,
         "health": None,
         "ecosystemHealth": None,
         "trustedNetworks": None,
@@ -204,6 +206,12 @@ def parse_state(body: object) -> dict | None:
         allow = _option(robots.get("allowEnable"), bool)
         if allow is not None:
             state["robots"] = {"allowEnable": allow}
+    auth = body.get("auth")
+    if isinstance(auth, dict):
+        algorithm = _option(auth.get("jwtAlgorithm"), str, JWT_ALGORITHMS)
+        accept = _option(auth.get("acceptHs256"), bool)
+        if algorithm is not None and accept is not None:
+            state["auth"] = {"jwtAlgorithm": algorithm, "acceptHs256": accept}
     health = body.get("health")
     if isinstance(health, dict):
         opened = _option(health.get("open"), bool)
@@ -312,6 +320,24 @@ def voice_needs_confirmation(current_heard: bool, current_confidence: float, pat
 def robots_patch(allow_enable: bool) -> dict:
     """The request body for the option that lets a client bring a robot in safe mode back (off by default)."""
     return {"robots": {"allowEnable": bool(allow_enable)}}
+
+
+def auth_patch(algorithm: str | None = None, accept_hs256: bool | None = None) -> dict | None:
+    """The request body for how the sign-in tokens are signed (HS256 by default) and whether HS256 tokens are still accepted while
+    EdDSA is in use (yes by default). Only what is given is sent; None when the algorithm is not one the server offers."""
+    if algorithm is not None and algorithm not in JWT_ALGORITHMS:
+        return None
+    auth: dict = {}
+    if algorithm is not None:
+        auth["jwtAlgorithm"] = algorithm
+    if accept_hs256 is not None:
+        auth["acceptHs256"] = bool(accept_hs256)
+    return {"auth": auth}
+
+
+def auth_needs_confirmation(current_accept: bool, new_accept: bool) -> bool:
+    """Refusing HS256 tokens signs out every session that still holds one: ask first. Accepting them again never asks."""
+    return bool(current_accept) and not new_accept
 
 
 def health_patch(open_: bool) -> dict:
@@ -502,6 +528,10 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_ROBOTS_WARNING")
     if "health_open" in warnings:
         sentence = _("SECURITY_HEALTH_WARNING")
+    if "jwt_eddsa_on" in warnings:
+        sentence = _("SECURITY_AUTH_EDDSA_WARNING")
+    if "jwt_hs256_refused" in warnings:
+        sentence = _("SECURITY_AUTH_HS256_REFUSED_WARNING")
     if "trusted_networks_on" in warnings:
         sentence = _("SECURITY_TRUSTED_WARNING")
     if "connection_address_recorded" in warnings:
@@ -544,6 +574,8 @@ EMPTY_VIEW: dict = {
     "voiceAvailable": False, "voiceHeard": False, "voiceHeardLocked": False, "voiceHeardSource": "",
     "voiceConfidence": "0.6", "voiceConfidenceLocked": False, "voiceConfidenceSource": "",
     "robotsAvailable": False, "robotsAllowEnable": False, "robotsAllowEnableLocked": False, "robotsAllowEnableSource": "",
+    "authAvailable": False, "authAlgorithm": "HS256", "authAlgorithmLocked": False, "authAlgorithmSource": "",
+    "authAcceptHs256": True, "authAcceptHs256Locked": False, "authAcceptHs256Source": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
     "trustedNetworksAvailable": False, "trustedNetworksEnabled": False, "trustedNetworksEnabledLocked": False, "trustedNetworksEnabledSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
@@ -646,6 +678,19 @@ def view(state: dict | None) -> dict:
                 "robotsAllowEnable": robots["allowEnable"]["value"],
                 "robotsAllowEnableLocked": is_locked(robots["allowEnable"]["source"]),
                 "robotsAllowEnableSource": source_text(robots["allowEnable"]["source"]),
+            }
+        )
+    auth = state.get("auth")
+    if auth is not None:
+        out.update(
+            {
+                "authAvailable": True,
+                "authAlgorithm": auth["jwtAlgorithm"]["value"],
+                "authAlgorithmLocked": is_locked(auth["jwtAlgorithm"]["source"]),
+                "authAlgorithmSource": source_text(auth["jwtAlgorithm"]["source"]),
+                "authAcceptHs256": auth["acceptHs256"]["value"],
+                "authAcceptHs256Locked": is_locked(auth["acceptHs256"]["source"]),
+                "authAcceptHs256Source": source_text(auth["acceptHs256"]["source"]),
             }
         )
     health = state.get("health")

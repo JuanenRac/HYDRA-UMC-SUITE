@@ -221,5 +221,18 @@ check("asks first when the delivery is switched on or a job may go without a con
 check("knows the two warnings", (sec.known_warning(["job_stop_relay_on"]) == _("SECURITY_JD_WARNING_RELAY"), sec.known_warning(["replan_unconfirmed_allowed"]) == _("SECURITY_JD_WARNING_REPLAN")), (True, True))
 check("every sentence exists", all(_(k) != k for k in ("TITLE_SECURITY_JD", "LBL_SECURITY_JD_RELAY", "LBL_SECURITY_JD_MAP", "MSG_SECURITY_JD_MAP_INVALID", "MSG_SECURITY_JD_TIMEOUT_INVALID", "MSG_SECURITY_JD_CONFIRM")), True)
 
+AUTH = {**raw, "auth": {"jwtAlgorithm": {"value": "HS256", "source": "default"}, "acceptHs256": {"value": True, "source": "default"}}}
+au = sec.parse_state(AUTH)
+check("reads how the sign-in tokens are signed", au["auth"], {"jwtAlgorithm": {"value": "HS256", "source": "default"}, "acceptHs256": {"value": True, "source": "default"}})
+check("a server without the option shows no section", (plain["auth"], sec.view(plain)["authAvailable"], sec.view(au)["authAvailable"]), (None, False, True))
+check("a damaged option is dropped, not the rest", (sec.parse_state({**AUTH, "auth": {"jwtAlgorithm": {"value": "none", "source": "default"}, "acceptHs256": {"value": True, "source": "default"}}})["auth"], sec.parse_state({**AUTH, "auth": {"jwtAlgorithm": {"value": "EdDSA", "source": "default"}, "acceptHs256": {"value": "yes", "source": "default"}}})["auth"], sec.parse_state({**AUTH, "auth": 3})["tls"]["enabled"]), (None, None, False))
+eddsa_env = sec.view(sec.parse_state({**AUTH, "auth": {"jwtAlgorithm": {"value": "EdDSA", "source": "env"}, "acceptHs256": {"value": False, "source": "config"}}}))
+check("the view and the lock", (sec.view(au)["authAlgorithm"], sec.view(au)["authAcceptHs256"], eddsa_env["authAlgorithm"], eddsa_env["authAlgorithmLocked"], eddsa_env["authAcceptHs256"], eddsa_env["authAcceptHs256Locked"]), ("HS256", True, "EdDSA", True, False, False))
+check("the requests send only what is given", (sec.auth_patch("EdDSA"), sec.auth_patch(None, False), sec.auth_patch("EdDSA", True), sec.auth_patch("RS256"), sec.auth_patch("none", True)), ({"auth": {"jwtAlgorithm": "EdDSA"}}, {"auth": {"acceptHs256": False}}, {"auth": {"jwtAlgorithm": "EdDSA", "acceptHs256": True}}, None, None))
+check("only refusing HS256 tokens asks", [sec.auth_needs_confirmation(a, b) for a, b in ((True, False), (False, True), (True, True), (False, False))], [True, False, False, False])
+check("the warnings of the change", (sec.known_warning(["jwt_eddsa_on"]), sec.known_warning(["jwt_hs256_refused"])), (_("SECURITY_AUTH_EDDSA_WARNING"), _("SECURITY_AUTH_HS256_REFUSED_WARNING")))
+check("every key of the view exists without a server (sign-in tokens included)", set(sec.view(None)) == set(sec.view(au)), True)
+check("every sentence exists", all(_(k) != k for k in ("LBL_SECURITY_AUTH", "TITLE_SECURITY_AUTH", "LBL_SECURITY_AUTH_HS256", "LBL_SECURITY_AUTH_EDDSA", "LBL_SECURITY_AUTH_ACCEPT_HS256", "LBL_SECURITY_AUTH_HELP", "MSG_SECURITY_AUTH_CONFIRM", "BTN_SECURITY_AUTH_ROTATE", "MSG_SECURITY_AUTH_ROTATE_CONFIRM", "SECURITY_AUTH_EDDSA_WARNING", "SECURITY_AUTH_HS256_REFUSED_WARNING", "SECURITY_AUTH_ROTATED", "SECURITY_AUTH_ROTATE_ERROR")), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

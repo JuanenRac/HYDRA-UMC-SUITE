@@ -732,6 +732,10 @@ class HydraConnection(QObject):
         ble). The answer carries the options as the server now has them and the warnings it wants to show."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=patch)
 
+    async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
+        """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
+        return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)
+
     async def fetch_hydra_info(self) -> tuple[int, object] | None:
         """GET /api/hydra-info - no auth required (same discovery/identity
         route ServerInfo.from_hydra_info() already parses at scan time,

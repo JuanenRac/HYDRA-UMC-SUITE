@@ -3289,6 +3289,45 @@ class SuiteQtBridge(QObject):
         asyncio.ensure_future(self._save_security(server_security.robots_patch(allow_enable)))
 
     @Slot(bool, result=bool)
+    def authNeedsConfirmation(self, accept_hs256: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("auth"):
+            return False
+        return server_security.auth_needs_confirmation(state["auth"]["acceptHs256"]["value"], accept_hs256)
+
+    @Slot(str, bool)
+    def saveAuthOptions(self, algorithm: str, accept_hs256: bool) -> None:
+        """Sends only what differs from what the server reports (an option fixed by the environment is never sent)."""
+        state = self._security_state
+        if state is None or not state.get("auth"):
+            return
+        auth = state["auth"]
+        wanted_algorithm = algorithm if algorithm != auth["jwtAlgorithm"]["value"] and auth["jwtAlgorithm"]["source"] != "env" else None
+        wanted_accept = accept_hs256 if accept_hs256 != auth["acceptHs256"]["value"] and auth["acceptHs256"]["source"] != "env" else None
+        patch = server_security.auth_patch(wanted_algorithm, wanted_accept)
+        if patch is None or not patch["auth"]:
+            return
+        asyncio.ensure_future(self._save_security(patch))
+
+    @Slot()
+    def rotateAuthKey(self) -> None:
+        asyncio.ensure_future(self._rotate_auth_key())
+
+    async def _rotate_auth_key(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._security_message = ""
+        self._security_error = ""
+        self._security_warning = ""
+        result = await conn.rotate_admin_jwt_key()
+        if result is not None and result[0] == 200:
+            self._security_message = _("SECURITY_AUTH_ROTATED")
+        else:
+            self._security_error = _("SECURITY_AUTH_ROTATE_ERROR")
+        self.changed.emit()
+
+    @Slot(bool, result=bool)
     def healthNeedsConfirmation(self, open_: bool) -> bool:
         state = self._security_state
         if state is None or not state.get("health"):
