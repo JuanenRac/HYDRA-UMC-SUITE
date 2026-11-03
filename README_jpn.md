@@ -196,7 +196,7 @@ JuanenPnP、JuanenCNC、JuanenLaser は独立した STL コピーを使用し、
 | ネットワーク上での通信の盗み見やサーバーのなりすまし | クライアントは TLS 証明書を検証する `httpx` を使い、これを無効にするスイッチはありません。TLS 自体はサーバー側で任意で既定はオフ（Server Admin）なので、平文 HTTP の LAN では通信は隠されません | `hydra_suite/net/client.py` |
 | 待たされる、または失われる停止 | STOP は常にヘッダーにあり（F12 でも可）、確認なしで、接続中のすべてのサーバーに `POST /api/stop-all` を 2 秒の制限と 1 回の再試行で送ります。止まらなかったロボットがある、状態を保存できなかった、停止が確認されなかった場合は、赤いメッセージが次の STOP まで残ります | `hydra_suite/net/client.py`, `qt_suite.py`, `tests/verify_stop_all.py` |
 | アクセスオプションを誤って弱める（音声、MAVLink、Bluetooth、TLS など） | Server Admin パネルは各値の出どころを示し、サーバーの環境変数が決めたものをロックし、保護を弱める前に確認し、警告を画面に残します。対象は、話した内容を繰り返す音声返答、認識信頼度 0、署名のない MAVLink メッセージ、MAVLink 署名オフです | `hydra_suite/panel_logic/server_security.py`, `tests/verify_server_security.py` |
-| ロボットが届かないインポートされた Work、または改ざんされた監査記録 | Work はロボットが許容差内（既定 5 mm、`work_reach_tolerance_mm` で 0.5〜50 mm）で届く必要があり、届かなければ拒否されます。監査記録はハッシュチェーンとして、サーバー（`?verify=1`）と、このプログラムが受け取った内容に対して確認できます | `hydra_suite/reach.py`, `hydra_suite/access.py` |
+| ロボットが届かないインポートされた Work、または改ざんされた監査記録 | Work はロボットが許容差内（既定 5 mm、`work_reach_tolerance_mm` で 0.5〜50 mm）で届く必要があり、届かなければ拒否されます。監査記録はハッシュチェーンとして、サーバー（`?verify=1`）と、このプログラムが受け取った内容に対して確認できます。種類フィルターと `robot-motion`・`model-submit` エントリの詳細には 8 言語の名前があります | `hydra_suite/reach.py`, `hydra_suite/access.py` |
 
 **絶対にしないこと：** 安全の判断、およびハードウェアの非常停止経路になること。制限、ロール、予約はすべてサーバーのものです。このアプリは実際のコントローラーやロボットに対して動かしたことがありません。
 

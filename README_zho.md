@@ -196,7 +196,7 @@ JuanenPnP、JuanenCNC 和 JuanenLaser 使用独立的 STL 副本，LumenPnP 保�
 | 网络上的流量被读取或服务器被冒充 | 客户端使用会验证 TLS 证书的 `httpx`，程序没有关闭验证的开关；TLS 本身在服务器上是可选的，默认关闭（Server Admin），因此在明文 HTTP 的局域网中没有任何东西隐藏流量 | `hydra_suite/net/client.py` |
 | 等待或丢失的停止 | STOP 始终位于顶栏（也可按 F12），不做任何询问，并以 2 秒限制和一次重试向每个已连接服务器调用 `POST /api/stop-all`；如果有机器人没停下、状态无法保存或没有任何确认，红色消息会保留到下一次 STOP | `hydra_suite/net/client.py`, `qt_suite.py`, `tests/verify_stop_all.py` |
 | 误降低了某个访问选项（语音、MAVLink、蓝牙、TLS 等） | Server Admin 面板显示每个值的来源，锁定由服务器环境设置的内容，降低保护前先询问，并在屏幕上保留警告：复述所说内容的语音回复、识别置信度为 0、未签名的 MAVLink 消息，或关闭 MAVLink 签名 | `hydra_suite/panel_logic/server_security.py`, `tests/verify_server_security.py` |
-| 导入了机器人够不到的 Work，或审计记录被篡改 | Work 必须在容差内适合机器人（默认 5 毫米，`work_reach_tolerance_mm` 中可设 0.5 到 50 毫米），否则被拒绝；审计记录可作为哈希链检查，由服务器（`?verify=1`）以及本程序对其收到的内容进行 | `hydra_suite/reach.py`, `hydra_suite/access.py` |
+| 导入了机器人够不到的 Work，或审计记录被篡改 | Work 必须在容差内适合机器人（默认 5 毫米，`work_reach_tolerance_mm` 中可设 0.5 到 50 毫米），否则被拒绝；审计记录可作为哈希链检查，由服务器（`?verify=1`）以及本程序对其收到的内容进行；类型筛选器以及 `robot-motion` 和 `model-submit` 条目的详情有八种语言的名称 | `hydra_suite/reach.py`, `hydra_suite/access.py` |
 
 **它绝不做的事：** 决定安全或充当硬件紧急停止路径。每项限制、角色和预约都属于服务器；本应用从未对真实控制器或机器人运行过。
 
