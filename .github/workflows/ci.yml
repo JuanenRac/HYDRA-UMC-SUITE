@@ -19,14 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Run the baseline steps of the family
         uses: ./.github/actions/hydra-baseline
       - name: Cache the 3D mesh package
         # The meshes are not in the repository tree: they come from one package with a pinned SHA-256
         # (meshes.pack.json). The package is kept between runs; a new revision changes the key.
         if: ${{ hashFiles('meshes.pack.json') != '' }}
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/hydra-umc/meshes
           key: hydra-meshes-${{ hashFiles('meshes.pack.json') }}
