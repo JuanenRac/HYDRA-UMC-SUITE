@@ -29,6 +29,13 @@ import qt_suite as qs
 from qt_suite import SuiteQtBridge
 
 
+def _new_temp(suffix: str) -> str:
+    """A fresh, empty file made safely (mode 0600, no name race); only its path is returned."""
+    descriptor, path = tempfile.mkstemp(suffix=suffix)
+    os.close(descriptor)
+    return path
+
+
 def _run() -> None:
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
     # Real qasync loop - SuiteController.add_server()/remove_server()
@@ -730,7 +737,7 @@ def _run() -> None:
     # (not just in-memory state) round-trips correctly.
     bridge.enableAtc()
     bridge.setAtcTool(0, "Vacuum / Pneumatic Gripper")
-    atc_tmp_path = tempfile.mktemp(suffix=".json")
+    atc_tmp_path = _new_temp(".json")
     bridge.saveAtcConfig(atc_tmp_path)
     bridge.setAtcType("revolver")
     assert bridge.atcType == "revolver"
@@ -741,7 +748,7 @@ def _run() -> None:
     os.remove(atc_tmp_path)
 
     # Real, honest validation - matches _on_load_config()'s own QMessageBox.warning()
-    bad_path = tempfile.mktemp(suffix=".json")
+    bad_path = _new_temp(".json")
     with open(bad_path, "w", encoding="utf-8") as f:
         f.write('{"no_type_field": true}')
     bridge.loadAtcConfig(bad_path)
@@ -890,7 +897,7 @@ def _run() -> None:
     assert "0.1.2" in bridge.flasherVersionLabel
     assert any("0.1.2" in e["text"] for e in bridge.flasherLog)
 
-    fw_path = tempfile.mktemp(suffix=".bin")
+    fw_path = _new_temp(".bin")
     with open(fw_path, "wb") as f:
         f.write(b"\x00" * 4096)
     bridge.browseFlasherFile(fw_path)
