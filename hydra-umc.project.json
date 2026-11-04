@@ -19,5 +19,8 @@
   "native_version": {
     "file": "hydra_suite/__init__.py",
     "pattern": "__version__\\s*=\\s*\"(\\d+)\\.(\\d+)\\.(\\d+)\""
-  }
+  },
+  "depends_on": [
+    "HYDRA-UMC-SERVER"
+  ]
 }
