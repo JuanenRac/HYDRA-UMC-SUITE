@@ -19,6 +19,25 @@ BLE_MODES = ("off", "state", "commands")
 JWT_ALGORITHMS = ("HS256", "EdDSA")
 MQTT_MODES = ("off", "state", "commands")
 
+#: The language-file key of the label of each switch of the machine bridges (`bridge.option`), and of the words of a choice.
+BRIDGE_OPTION_TEXT = {
+    "droids.globalStop": "LBL_SECURITY_BRIDGES_OPT_DROIDS_GLOBAL_STOP",
+    "droids.cutOnGlobalStop": "LBL_SECURITY_BRIDGES_OPT_DROIDS_CUT",
+    "uav.missionUploadEnabled": "LBL_SECURITY_BRIDGES_OPT_UAV_MISSION",
+    "amr.publishState": "LBL_SECURITY_BRIDGES_OPT_AMR_STATE",
+    "amr.publishOpcua": "LBL_SECURITY_BRIDGES_OPT_AMR_OPCUA",
+    "amr.zoneInterlock": "LBL_SECURITY_BRIDGES_OPT_AMR_INTERLOCK",
+    "amr.zoneUnknown": "LBL_SECURITY_BRIDGES_OPT_AMR_UNKNOWN",
+    "openpnp.boardCode": "LBL_SECURITY_BRIDGES_OPT_OPENPNP_BOARD",
+}
+BRIDGE_CHOICE_TEXT = {
+    "pause": "LBL_SECURITY_BRIDGES_CHOICE_PAUSE",
+    "ignore": "LBL_SECURITY_BRIDGES_CHOICE_IGNORE",
+    "off": "LBL_SECURITY_BRIDGES_CHOICE_OFF",
+    "advisory": "LBL_SECURITY_BRIDGES_CHOICE_ADVISORY",
+    "required": "LBL_SECURITY_BRIDGES_CHOICE_REQUIRED",
+}
+
 
 def _source(value: object) -> str | None:
     return value if isinstance(value, str) and value in SOURCES else None
@@ -33,6 +52,38 @@ def _option(raw: object, kind: type | tuple[type, ...], allowed: tuple[str, ...]
     if allowed is not None and value not in allowed:
         return None
     return {"value": value, "source": source}
+
+
+def _bridge_scalar(value: object) -> bool:
+    return isinstance(value, (bool, str))
+
+
+def _bridges(raw: object) -> dict | None:
+    """The switches of the machine bridges as the server reports them; None for a server that predates them or reports one damaged."""
+    if not isinstance(raw, dict) or raw.get("delivery") not in ("gateway_on", "gateway_off"):
+        return None
+    options = []
+    for bridge, body in raw.items():
+        if bridge == "delivery":
+            continue
+        if not isinstance(body, dict):
+            return None
+        for key, entry in body.items():
+            if not isinstance(entry, dict):
+                return None
+            risky, choices = entry.get("risky"), entry.get("choices")
+            if (
+                not _bridge_scalar(entry.get("value")) or not _bridge_scalar(entry.get("default"))
+                or entry.get("source") not in ("config", "default") or not isinstance(risky, list)
+                or not all(_bridge_scalar(item) for item in risky) or not isinstance(entry.get("localName"), str)
+            ):
+                return None
+            options.append({
+                "id": f"{bridge}.{key}", "bridge": bridge, "key": key, "value": entry["value"], "source": entry["source"],
+                "default": entry["default"], "risky": risky, "localName": entry["localName"],
+                "choices": choices if isinstance(choices, list) and all(isinstance(c, str) for c in choices) else None,
+            })
+    return {"delivery": raw["delivery"], "options": options} if options else None
 
 
 def _confidence_option(raw: object) -> dict | None:
@@ -164,6 +215,7 @@ def parse_state(body: object) -> dict | None:
         "exposure": None,
         "install": None,
         "mavlink": None,
+        "bridges": _bridges(body.get("bridges")),
     }
     ble = body.get("ble")
     if isinstance(ble, dict):
@@ -554,7 +606,53 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
         sentence = _("SECURITY_MAVLINK_OFF_WARNING")
+    if any(isinstance(item, str) and item.startswith("bridge_") for item in warnings):
+        sentence = _("SECURITY_BRIDGES_WARNING")
     return sentence
+
+
+def _bridge_word(value: object) -> str:
+    if isinstance(value, bool):
+        return _("SECURITY_BRIDGES_ON") if value else _("SECURITY_BRIDGES_OFF")
+    return _(BRIDGE_CHOICE_TEXT.get(str(value), "LBL_SECURITY_BRIDGES_CHOICE_OFF"))
+
+
+def _bridge_option_view(option: dict) -> dict:
+    """One row of the list: its label, the current value, the words to choose from, and the origin, default and local name in plain text."""
+    choices = [{"label": _bridge_word(c), "value": c} for c in option["choices"]] if option["choices"] else []
+    return {
+        "id": option["id"],
+        "bridge": "BRIDGE-" + option["bridge"].upper(),
+        "label": _(BRIDGE_OPTION_TEXT.get(option["id"], "LBL_SECURITY_BRIDGES")),
+        "isChoice": bool(choices),
+        "value": option["value"],
+        "choices": choices,
+        "note": f'{source_text(option["source"])} - {_("LBL_SECURITY_BRIDGES_DEFAULT")}: {_bridge_word(option["default"])} - {_("LBL_SECURITY_BRIDGES_LOCAL")}: {option["localName"]}',
+    }
+
+
+def bridges_patch(state: dict, values: object) -> dict | None:
+    """Only what differs from what the server reports; None when nothing does or the values are not the shape of the switches."""
+    if not isinstance(values, dict):
+        return None
+    body: dict = {}
+    for option in state["bridges"]["options"]:
+        new = values.get(option["id"])
+        if new is None or type(new) is not type(option["value"]) or new == option["value"]:
+            continue
+        if option["choices"] is not None and new not in option["choices"]:
+            return None
+        body.setdefault(option["bridge"], {})[option["key"]] = new
+    return {"bridges": body} if body else None
+
+
+def bridges_needs_confirmation(state: dict, patch: dict) -> bool:
+    """Turning on a function that moves hardware, or taking a protection away, is asked about first."""
+    for option in state["bridges"]["options"]:
+        new = patch.get("bridges", {}).get(option["bridge"], {}).get(option["key"])
+        if new is not None and any(type(new) is type(risky) and new == risky for risky in option["risky"]):
+            return True
+    return False
 
 
 def source_text(source: str) -> str:
@@ -594,6 +692,7 @@ EMPTY_VIEW: dict = {
     "installNewInstallTls": True, "installNewInstallTlsLocked": False, "installNewInstallTlsSource": "",
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
+    "bridgesAvailable": False, "bridgesDelivery": "", "bridgesOptions": [],
 }
 
 
@@ -711,6 +810,15 @@ def view(state: dict | None) -> dict:
                 "ecosystemHealthEnabled": ecosystem_health["enabled"]["value"],
                 "ecosystemHealthEnabledLocked": is_locked(ecosystem_health["enabled"]["source"]),
                 "ecosystemHealthEnabledSource": source_text(ecosystem_health["enabled"]["source"]),
+            }
+        )
+    bridges = state.get("bridges")
+    if bridges is not None:
+        out.update(
+            {
+                "bridgesAvailable": True,
+                "bridgesDelivery": _("SECURITY_BRIDGES_DELIVERY_ON") if bridges["delivery"] == "gateway_on" else _("SECURITY_BRIDGES_DELIVERY_OFF"),
+                "bridgesOptions": [_bridge_option_view(option) for option in bridges["options"]],
             }
         )
     trusted = state.get("trustedNetworks")

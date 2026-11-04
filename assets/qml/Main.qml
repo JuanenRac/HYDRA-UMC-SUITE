@@ -2173,6 +2173,64 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.bridgesAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { objectName: "securityBridgesDelivery"; text: suiteBackend.securityView.bridgesDelivery; color: "#8a96a6"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Repeater {
+                            id: bridgesRepeater
+                            objectName: "securityBridgesRepeater"
+                            model: suiteBackend.securityView.bridgesOptions
+                            delegate: ColumnLayout {
+                                property string optionId: modelData.id
+                                property var currentValue: modelData.isChoice ? bridgeChoice.currentValue : bridgeSwitch.checked
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text { text: modelData.bridge; color: "#556070"; font.pixelSize: 9; font.bold: true }
+                                CheckBox {
+                                    id: bridgeSwitch
+                                    objectName: "securityBridgeSwitch_" + modelData.id
+                                    visible: !modelData.isChoice
+                                    text: modelData.label
+                                    palette.windowText: window.textPrimary
+                                    checked: modelData.value === true
+                                }
+                                RowLayout {
+                                    visible: modelData.isChoice
+                                    spacing: 8
+                                    Text { text: modelData.label; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                    ComboBox {
+                                        id: bridgeChoice
+                                        objectName: "securityBridgeChoice_" + modelData.id
+                                        model: modelData.choices
+                                        textRole: "label"
+                                        valueRole: "value"
+                                        currentIndex: Math.max(0, indexOfValue(modelData.value))
+                                    }
+                                }
+                                Text { text: modelData.note; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            }
+                        }
+                        Button {
+                            objectName: "securityBridgesSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            onClicked: {
+                                var values = {}
+                                for (var i = 0; i < bridgesRepeater.count; i++) {
+                                    var row = bridgesRepeater.itemAt(i)
+                                    if (row) values[row.optionId] = row.currentValue
+                                }
+                                var json = JSON.stringify(values)
+                                if (suiteBackend.bridgesNeedsConfirmation(json))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_BRIDGES"), suiteBackend.uiText("MSG_SECURITY_BRIDGES_CONFIRM"), function() { suiteBackend.saveBridgesOptions(json) })
+                                else
+                                    suiteBackend.saveBridgesOptions(json)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.trustedNetworksAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

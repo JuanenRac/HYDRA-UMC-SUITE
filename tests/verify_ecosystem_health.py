@@ -229,6 +229,34 @@ def switch(loop):
     check("trusted networks: the warning has its own sentence", (sec.known_warning(["trusted_networks_on"]) != "", sec.known_warning(["trusted_networks_on"]) == _("SECURITY_TRUSTED_WARNING")), (True, True))
     check("trusted networks: every key of the view exists without a server", set(sec.view(None)) == set(sec.view(trusted_locked)), True)
 
+    def opt(value, default, risky, **extra):
+        return {"value": value, "source": "default" if value == default else "config", "default": default, "risky": risky, "localName": "LOCAL", **extra}
+
+    bridges_body = {
+        "delivery": "gateway_off",
+        "droids": {"globalStop": opt(False, False, []), "cutOnGlobalStop": opt(True, True, [False])},
+        "uav": {"missionUploadEnabled": opt(False, False, [True])},
+        "amr": {"publishState": opt(False, False, []), "zoneUnknown": opt("pause", "pause", ["ignore"], choices=["pause", "ignore"])},
+        "openpnp": {"boardCode": opt("off", "off", [], choices=["off", "advisory", "required"])},
+    }
+    bridges_plain = sec.parse_state(base)
+    check("bridges: a server without the switches shows no section", (bridges_plain["bridges"], sec.view(bridges_plain)["bridgesAvailable"]), (None, False))
+    bridges_state = sec.parse_state({**base, "bridges": bridges_body})
+    bridges_view = sec.view(bridges_state)
+    check("bridges: every switch is listed with its label and the gateway state", (bridges_view["bridgesAvailable"], [o["id"] for o in bridges_view["bridgesOptions"]], bridges_view["bridgesDelivery"]), (True, ["droids.globalStop", "droids.cutOnGlobalStop", "uav.missionUploadEnabled", "amr.publishState", "amr.zoneUnknown", "openpnp.boardCode"], _("SECURITY_BRIDGES_DELIVERY_OFF")))
+    zone = [o for o in bridges_view["bridgesOptions"] if o["id"] == "amr.zoneUnknown"][0]
+    check("bridges: a choice carries its words and the note names origin, default and local name", (zone["isChoice"], [c["value"] for c in zone["choices"]], "LOCAL" in zone["note"], _("SECURITY_SOURCE_DEFAULT") in zone["note"]), (True, ["pause", "ignore"], True, True))
+    check("bridges: a damaged switch hides the section", sec.parse_state({**base, "bridges": {**bridges_body, "uav": {"missionUploadEnabled": {"value": "x"}}}})["bridges"], None)
+    check("bridges: an unknown gateway state hides the section", sec.parse_state({**base, "bridges": {**bridges_body, "delivery": "maybe"}})["bridges"], None)
+    values = {o["id"]: o["value"] for o in bridges_state["bridges"]["options"]}
+    check("bridges: nothing changed sends nothing", sec.bridges_patch(bridges_state, values), None)
+    check("bridges: only what changed is sent", sec.bridges_patch(bridges_state, {**values, "amr.publishState": True, "openpnp.boardCode": "advisory"}), {"bridges": {"amr": {"publishState": True}, "openpnp": {"boardCode": "advisory"}}})
+    check("bridges: a word that is not a choice sends nothing", sec.bridges_patch(bridges_state, {**values, "amr.zoneUnknown": "maybe"}), None)
+    ask = lambda change: sec.bridges_needs_confirmation(bridges_state, sec.bridges_patch(bridges_state, {**values, **change}))
+    check("bridges: only a risky value asks first", (ask({"uav.missionUploadEnabled": True}), ask({"amr.zoneUnknown": "ignore"}), ask({"droids.cutOnGlobalStop": False}), ask({"amr.publishState": True}), ask({"openpnp.boardCode": "required"})), (True, True, True, False, False))
+    check("bridges: the warning has its own sentence", sec.known_warning(["bridge_uav_missionUploadEnabled"]) == _("SECURITY_BRIDGES_WARNING") != "", True)
+    check("bridges: every key of the view exists without a server", set(sec.view(None)) == set(bridges_view), True)
+
     rul_plain = sec.parse_state(base)
     check("rul: a server without the option shows no switch", (rul_plain["rul"], sec.view(rul_plain)["rulAvailable"]), (None, False))
     rul_off = sec.parse_state({**base, "rul": {"enabled": {"value": False, "source": "default"}}})

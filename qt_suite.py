@@ -3349,6 +3349,31 @@ class SuiteQtBridge(QObject):
     def saveConnectionsOptions(self, record_address: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.connections_patch(record_address)))
 
+    @Slot(str, result=bool)
+    def bridgesNeedsConfirmation(self, values_json: str) -> bool:
+        state = self._security_state
+        if state is None or not state.get("bridges"):
+            return False
+        patch = server_security.bridges_patch(state, self._bridge_values(values_json))
+        return patch is not None and server_security.bridges_needs_confirmation(state, patch)
+
+    @Slot(str)
+    def saveBridgesOptions(self, values_json: str) -> None:
+        """Sends only the switches of the machine bridges that differ from what the server reports."""
+        state = self._security_state
+        if state is None or not state.get("bridges"):
+            return
+        patch = server_security.bridges_patch(state, self._bridge_values(values_json))
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
+
+    @staticmethod
+    def _bridge_values(values_json: str) -> object:
+        try:
+            return json.loads(values_json)
+        except ValueError:
+            return None
+
     @Slot(bool)
     def saveTrustedNetworksOptions(self, enabled: bool) -> None:
         state = self._security_state
