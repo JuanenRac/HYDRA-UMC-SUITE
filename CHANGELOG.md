@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin shows the switch of the connector hub gate that answers a caller without identity:** it reads and changes `allowLoopbackNoIdentity` of the hub through the server (`GET` and `POST /api/connector-hub/gate/settings`), as STUDIO does. It is off by default, turning it on asks for a confirmation, it says whether the change is kept in the hub settings file or only until the hub restarts, and nothing is shown on a server that has no such gate. Eight languages.
+
 - **Wording corrections:** the Italian clear-log and module-reset buttons read `Pulisci` and `Reimposta` (clear and reset, not delete and restore) and the way back to the first menu reads as a way back to the start in Italian, German, French, Portuguese and Chinese instead of the root.
 
 - **The firmware downloader reads the release assets of HYDRA-UMC:** the images are no longer in the repository, so the manifest, each image and its signature file come from the latest release, and a downloaded image is refused when its SHA-256 (from the manifest or the one GitHub states for the asset) does not match; URTC keeps being read from its repository, with the same checks as in STUDIO.

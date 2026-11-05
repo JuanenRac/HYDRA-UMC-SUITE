@@ -732,6 +732,15 @@ class HydraConnection(QObject):
         ble). The answer carries the options as the server now has them and the warnings it wants to show."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=patch)
 
+    async def fetch_connector_hub_gate_settings(self) -> tuple[int, object] | None:
+        """GET /api/connector-hub/gate/settings (any signed-in account): the switch of the connector hub gate that answers a caller
+        without identity. 404 on a server that predates the route; 503 with available false while the gate is not configured."""
+        return await self._request_json("GET", "/api/connector-hub/gate/settings", auth=True)
+
+    async def put_connector_hub_gate_settings(self, body: dict) -> tuple[int, object] | None:
+        """POST /api/connector-hub/gate/settings (admin-only): {"allowLoopbackNoIdentity": bool, "confirm": true to turn it on}."""
+        return await self._request_json("POST", "/api/connector-hub/gate/settings", auth=True, json_body=body)
+
     async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
         """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
         return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)

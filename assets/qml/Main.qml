@@ -2253,6 +2253,44 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.hubGateView.visible === true
+                        objectName: "hubGatePanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("HUBGATE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("HUBGATE_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hubGateView.error !== ""; text: suiteBackend.hubGateView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: hubGateBox
+                            objectName: "hubGateBox"
+                            visible: suiteBackend.hubGateView.available === true
+                            text: suiteBackend.uiText("HUBGATE_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.hubGateView.allow === true
+                        }
+                        Text { visible: suiteBackend.hubGateView.available === true; objectName: "hubGateState"; text: suiteBackend.hubGateView.state; color: suiteBackend.hubGateView.allow === true ? "#e0a030" : "#4cc38a"; font.pixelSize: 10; font.bold: true }
+                        Text { visible: suiteBackend.hubGateView.available === true; text: suiteBackend.hubGateView.kept; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text {
+                            visible: suiteBackend.hubGateView.available === true && ((hubGateBox.checked && suiteBackend.hubGateView.canTurnOn !== true) || (!hubGateBox.checked && suiteBackend.hubGateView.canTurnOff !== true))
+                            text: hubGateBox.checked ? suiteBackend.hubGateView.blockedOn : suiteBackend.hubGateView.blockedOff
+                            color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        }
+                        Text { visible: suiteBackend.hubGateView.message !== ""; text: suiteBackend.hubGateView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Button {
+                            objectName: "hubGateSave"
+                            visible: suiteBackend.hubGateView.available === true
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: hubGateBox.checked !== (suiteBackend.hubGateView.allow === true) && (hubGateBox.checked ? suiteBackend.hubGateView.canTurnOn === true : suiteBackend.hubGateView.canTurnOff === true)
+                            onClicked: {
+                                var wanted = hubGateBox.checked
+                                if (suiteBackend.hubGateNeedsConfirmation(wanted))
+                                    window.requestConfirm(suiteBackend.uiText("HUBGATE_CONFIRM_TITLE"), suiteBackend.uiText("HUBGATE_CONFIRM_MESSAGE"), function() { suiteBackend.saveHubGate(wanted) })
+                                else
+                                    suiteBackend.saveHubGate(wanted)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

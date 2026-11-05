@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, ecosystem_health, planning, server_security
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, planning, server_security
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -485,6 +485,9 @@ class SuiteQtBridge(QObject):
         self._admin_server_pending_port_text = ""
         self._admin_server_info: dict[str, object] = {}
         self._security_state: dict | None = None
+        self._hub_gate: dict | None = None  # the switch of the connector hub gate that answers a caller without identity (None: no such gate)
+        self._hub_gate_message = ""
+        self._hub_gate_error = ""
         self._security_message = ""
         self._security_error = ""
         self._planning: dict[str, object] = {}
@@ -3149,12 +3152,61 @@ class SuiteQtBridge(QObject):
         pending = body.get("pendingPort")
         self._admin_server_pending_port_text = str(pending if pending is not None else self._admin_server_current_port or "")
         self._security_state = server_security.parse_state(body)
+        await self._refresh_hub_gate(conn)
 
         info_result = await conn.fetch_hydra_info()
         if info_result is not None:
             info_status, info_body = info_result
             if info_status == 200 and isinstance(info_body, dict):
                 self._admin_server_info = info_body
+        self.changed.emit()
+
+    # -- Switch of the connector hub gate (administrators) -----------------------------
+
+    async def _refresh_hub_gate(self, conn) -> None:
+        try:
+            result = await conn.fetch_connector_hub_gate_settings()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the connector hub gate settings failed: %s", error)
+            result = None
+        self._hub_gate_error = ""
+        if connector_hub_gate.hidden_for(result):
+            self._hub_gate = None
+            return
+        self._hub_gate_error = connector_hub_gate.status_for(result)
+        self._hub_gate = connector_hub_gate.parse_settings(result[1]) if result is not None and not self._hub_gate_error else None
+
+    @Property("QVariantMap", notify=changed)
+    def hubGateView(self) -> dict:
+        view = connector_hub_gate.view(self._hub_gate)
+        view["message"] = self._hub_gate_message
+        view["error"] = self._hub_gate_error
+        view["visible"] = self._hub_gate is not None or bool(self._hub_gate_error)
+        return view
+
+    @Slot(bool, result=bool)
+    def hubGateNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._hub_gate is not None and connector_hub_gate.needs_confirmation(self._hub_gate["allow"], wanted)
+
+    @Slot(bool)
+    def saveHubGate(self, wanted: bool) -> None:
+        if self._hub_gate is None or not connector_hub_gate.change_allowed(self._hub_gate, wanted):
+            return
+        asyncio.ensure_future(self._save_hub_gate(wanted))
+
+    async def _save_hub_gate(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._hub_gate_message = ""
+        result = await conn.put_connector_hub_gate_settings(connector_hub_gate.body_for(wanted))
+        problem = connector_hub_gate.status_for(result)
+        if problem:
+            self._hub_gate_error = problem
+        else:
+            self._hub_gate_error = ""
+            self._hub_gate = connector_hub_gate.parse_settings(result[1])  # type: ignore[index]
+            self._hub_gate_message = _("HUBGATE_SAVED")
         self.changed.emit()
 
     # -- Access options of the Server Admin screen -----------------------------------
