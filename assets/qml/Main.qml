@@ -2554,6 +2554,34 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.productionAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: productionRdpBox
+                            objectName: "securityProductionRdpBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION_RDP")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.productionRdpLocked
+                            checked: suiteBackend.securityView.productionRdp === true
+                        }
+                        Text { text: suiteBackend.securityView.productionRdpSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityProductionSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.productionRdpLocked
+                            onClicked: {
+                                var on = productionRdpBox.checked
+                                if (suiteBackend.productionNeedsConfirmation(on))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_PRODUCTION"), suiteBackend.uiText("MSG_SECURITY_PRODUCTION_CONFIRM"), function() { suiteBackend.saveProductionOptions(on) })
+                                else
+                                    suiteBackend.saveProductionOptions(on)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.connectionsAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

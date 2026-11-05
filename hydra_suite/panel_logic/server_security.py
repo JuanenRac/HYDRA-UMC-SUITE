@@ -256,6 +256,7 @@ def parse_state(body: object) -> dict | None:
         "rul": None,
         "safety": None,
         "jobDispatcher": None,
+        "production": None,
         "connections": None,
         "exposure": None,
         "install": None,
@@ -337,6 +338,11 @@ def parse_state(body: object) -> dict | None:
     job_dispatcher = _job_dispatcher(body.get("jobDispatcher"))
     if job_dispatcher is not None:
         state["jobDispatcher"] = job_dispatcher
+    production = body.get("production")
+    if isinstance(production, dict):
+        level = _option(production.get("rdpLevel"), int)
+        if level is not None and level["value"] in (0, 1):
+            state["production"] = {"rdpLevel": level}
     connections = body.get("connections")
     if isinstance(connections, dict):
         record = _option(connections.get("recordAddress"), bool)
@@ -526,6 +532,16 @@ def job_dispatcher_needs_confirmation(current: dict, patch: dict) -> bool:
 def safety_patch(publish_global_stop: bool) -> dict:
     """The request body for the option that announces a global stop on the MQTT bridge (off by default; announcing a stop never asks)."""
     return {"safety": {"publishGlobalStop": bool(publish_global_stop)}}
+
+
+def production_patch(on: bool) -> dict:
+    """The request body for the read-out protection level of a production flash: 1 turns it on, 0 off (the default; level 2 is permanent and never offered)."""
+    return {"production": {"rdpLevel": 1 if on else 0}}
+
+
+def production_needs_confirmation(current: bool, new: bool) -> bool:
+    """Turning the protection on is the change only a full erase of the chip undoes: ask first. Turning it off never asks."""
+    return (not current) and bool(new)
 
 
 def connections_patch(record_address: bool) -> dict:
@@ -787,6 +803,7 @@ EMPTY_VIEW: dict = {
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
     "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
     "jdReplanEditable": False, "jdReplanNote": "",
+    "productionAvailable": False, "productionRdp": False, "productionRdpLocked": False, "productionRdpSource": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
     "exposureAvailable": False,
     "exposureCameraOpen": False, "exposureCameraOpenLocked": False, "exposureCameraOpenSource": "",
@@ -994,6 +1011,16 @@ def view(state: dict | None) -> dict:
                 "jdReplanNote": _("LBL_SECURITY_JD_REPLAN_HELP") if job_dispatcher["editable"] else _("LBL_SECURITY_JD_NOT_EDITABLE"),
                 "jdReloadState": job_dispatcher["reload"],
                 "jdReloadText": "" if job_dispatcher["reload"] == "none" else _("LBL_JD_RELOAD") + ": " + _("LBL_JD_RELOAD_" + job_dispatcher["reload"].upper()),
+            }
+        )
+    production = state.get("production")
+    if production is not None:
+        out.update(
+            {
+                "productionAvailable": True,
+                "productionRdp": production["rdpLevel"]["value"] == 1,
+                "productionRdpLocked": is_locked(production["rdpLevel"]["source"]),
+                "productionRdpSource": source_text(production["rdpLevel"]["source"]),
             }
         )
     connections = state.get("connections")

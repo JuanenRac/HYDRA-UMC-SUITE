@@ -158,6 +158,10 @@ check("tightening never asks", sec.exposure_needs_confirmation({"cameraOpen": Tr
 check("the exposure warnings", [sec.known_warning([w]) for w in ("camera_open", "ws_query_token_allowed", "log_redaction_off")], [_("SECURITY_EXPOSURE_CAMERA_WARNING"), _("SECURITY_EXPOSURE_WS_WARNING"), _("SECURITY_EXPOSURE_LOG_WARNING")])
 check("the connections option is read, sent and asks only when turned on", (sec.view(es)["connectionsAvailable"], sec.view(plain)["connectionsAvailable"], sec.connections_patch(True), [sec.connections_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))], sec.known_warning(["connection_address_recorded"])), (True, False, {"connections": {"recordAddress": True}}, [True, False, False, False], _("SECURITY_CONNECTIONS_WARNING")))
 check("every key of the view exists without a server (exposure and connections included)", set(sec.view(None)) == set(sec.view(es)), True)
+PROD = {**EXPO, "production": {"rdpLevel": _opt(0)}}
+ps = sec.parse_state(PROD)
+check("the production flash option is read, off by default, sent as 0 or 1 and asks only when turned on", (ps["production"]["rdpLevel"]["value"], sec.view(ps)["productionAvailable"], sec.view(es)["productionAvailable"], sec.view(ps)["productionRdp"], sec.production_patch(True), sec.production_patch(False), [sec.production_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))]), (0, True, False, False, {"production": {"rdpLevel": 1}}, {"production": {"rdpLevel": 0}}, [True, False, False, False]))
+check("a level other than 0 or 1 is not shown", (sec.parse_state({**EXPO, "production": {"rdpLevel": _opt(2)}})["production"], sec.parse_state({**EXPO, "production": {"rdpLevel": _opt(True)}})["production"]), (None, None))
 
 # -- the installation options (password of an IP camera through the environment, TLS of a new installation) --
 INSTALL = {**EXPO, "camera": {"open": _opt(False), "credentialsViaEnv": _opt(True)}, "install": {"newInstallTls": _opt(True, "env")}}

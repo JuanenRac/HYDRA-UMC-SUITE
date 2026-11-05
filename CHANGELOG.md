@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin has a switch for the read-out protection level of a production flash, in eight languages:** the security card shows `production.rdpLevel` of the server (off by default; level 2 is never offered), says whether the environment locks it, and asks for a confirmation before turning it on, because only a full erase of the chip undoes level 1. It only records the choice; no flashing tool reads it yet. Same switch as in STUDIO.
+
 - **Server Admin > Request limits per address:** the same section as STUDIO (the switch for the limiters of the server, on by default, and their eight numbers, each with its range and its source). Only what changed is sent, a number outside its range or that is not a whole number is refused before sending, a value fixed by the environment of the server is locked, switching the limiters off asks first, and the two warnings of the server are shown. A server that does not report the limits does not show the section. Eight languages; 14 more checks in the Server Admin verifier.
 
 - **Submitted models show the credit they came with:** the list of Ecosystem > Submitted models has a column with the licence and credit the submitter gave (a dash when there is none), in the eight languages.

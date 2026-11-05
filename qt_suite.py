@@ -3619,6 +3619,17 @@ class SuiteQtBridge(QObject):
         asyncio.ensure_future(self._save_security(server_security.health_patch(open_)))
 
     @Slot(bool, result=bool)
+    def productionNeedsConfirmation(self, on: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("production"):
+            return False
+        return server_security.production_needs_confirmation(state["production"]["rdpLevel"]["value"] == 1, on)
+
+    @Slot(bool)
+    def saveProductionOptions(self, on: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.production_patch(on)))
+
+    @Slot(bool, result=bool)
     def connectionsNeedsConfirmation(self, record_address: bool) -> bool:
         state = self._security_state
         if state is None or not state.get("connections"):
