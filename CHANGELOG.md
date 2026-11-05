@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Wording corrections:** the Italian clear-log and module-reset buttons read `Pulisci` and `Reimposta` (clear and reset, not delete and restore) and the way back to the first menu reads as a way back to the start in Italian, German, French, Portuguese and Chinese instead of the root.
+
 - **The firmware downloader reads the release assets of HYDRA-UMC:** the images are no longer in the repository, so the manifest, each image and its signature file come from the latest release, and a downloaded image is refused when its SHA-256 (from the manifest or the one GitHub states for the asset) does not match; URTC keeps being read from its repository, with the same checks as in STUDIO.
 
 - **Server Admin > Machine bridges:** the switches of BRIDGE-DROIDS (`globalStop`, `cutOnGlobalStop`), BRIDGE-UAV (`missionUploadEnabled`), BRIDGE-AMR (`publishState`, `publishOpcua`, `zoneInterlock`, `zoneUnknown`) and BRIDGE-OPENPNP (`boardCode`), each with its value, its source, its default and the name the bridge reads on its own host, the same as in STUDIO. Only what changed is sent, turning on a risky function asks first, and the screen says whether the gateway that carries the values to the bridges is on. A server that does not report the switches shows no section. The texts are in the eight languages.
