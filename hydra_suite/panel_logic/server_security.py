@@ -58,7 +58,20 @@ def _bridge_scalar(value: object) -> bool:
     return isinstance(value, (bool, str))
 
 
-def _bridges(raw: object) -> dict | None:
+def _bridge_signing(raw: object) -> list:
+    """The state of the key that signs the settings of each bridge (never the key itself); empty for a server that predates it, and an entry that is damaged is left out."""
+    if not isinstance(raw, dict):
+        return []
+    out = []
+    for bridge, entry in raw.items():
+        if not isinstance(entry, dict) or not isinstance(entry.get("keyFile"), str) or entry.get("key") not in ("present", "missing", "unusable"):
+            continue
+        last = entry.get("lastSignedAt")
+        out.append({"bridge": bridge, "keyFile": entry["keyFile"], "key": entry["key"], "lastSignedAt": last if isinstance(last, str) else None})
+    return out
+
+
+def _bridges(raw: object, signing: object = None) -> dict | None:
     """The switches of the machine bridges as the server reports them; None for a server that predates them or reports one damaged."""
     if not isinstance(raw, dict) or raw.get("delivery") not in ("gateway_on", "gateway_off"):
         return None
@@ -83,7 +96,7 @@ def _bridges(raw: object) -> dict | None:
                 "default": entry["default"], "risky": risky, "localName": entry["localName"],
                 "choices": choices if isinstance(choices, list) and all(isinstance(c, str) for c in choices) else None,
             })
-    return {"delivery": raw["delivery"], "options": options} if options else None
+    return {"delivery": raw["delivery"], "options": options, "signing": _bridge_signing(signing)} if options else None
 
 
 def _confidence_option(raw: object) -> dict | None:
@@ -215,7 +228,7 @@ def parse_state(body: object) -> dict | None:
         "exposure": None,
         "install": None,
         "mavlink": None,
-        "bridges": _bridges(body.get("bridges")),
+        "bridges": _bridges(body.get("bridges"), body.get("bridgeSigning")),
     }
     ble = body.get("ble")
     if isinstance(ble, dict):
@@ -617,6 +630,17 @@ def _bridge_word(value: object) -> str:
     return _(BRIDGE_CHOICE_TEXT.get(str(value), "LBL_SECURITY_BRIDGES_CHOICE_OFF"))
 
 
+def _bridges_signing_text(signing: list) -> str:
+    """The state of the signing keys as plain lines: the title and the help, then one line per bridge. Empty when the server does not report it."""
+    if not signing:
+        return ""
+    lines = [_("LBL_SECURITY_BRIDGES_SIGNING"), _("SECURITY_BRIDGES_SIGNING_HELP")]
+    for item in signing:
+        key_word = _({"present": "SECURITY_BRIDGES_SIGNING_KEY_PRESENT", "missing": "SECURITY_BRIDGES_SIGNING_KEY_MISSING"}.get(item["key"], "SECURITY_BRIDGES_SIGNING_KEY_UNUSABLE"))
+        lines.append(f'BRIDGE-{item["bridge"].upper()}: {key_word} - {_("SECURITY_BRIDGES_SIGNING_LAST")}: {item["lastSignedAt"] or _("SECURITY_BRIDGES_SIGNING_NEVER")} - {_("SECURITY_BRIDGES_SIGNING_FILE")}: {item["keyFile"]}')
+    return "\n".join(lines)
+
+
 def _bridge_option_view(option: dict) -> dict:
     """One row of the list: its label, the current value, the words to choose from, and the origin, default and local name in plain text."""
     choices = [{"label": _bridge_word(c), "value": c} for c in option["choices"]] if option["choices"] else []
@@ -692,7 +716,7 @@ EMPTY_VIEW: dict = {
     "installNewInstallTls": True, "installNewInstallTlsLocked": False, "installNewInstallTlsSource": "",
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
-    "bridgesAvailable": False, "bridgesDelivery": "", "bridgesOptions": [],
+    "bridgesAvailable": False, "bridgesDelivery": "", "bridgesOptions": [], "bridgesSigning": "",
 }
 
 
@@ -819,6 +843,7 @@ def view(state: dict | None) -> dict:
                 "bridgesAvailable": True,
                 "bridgesDelivery": _("SECURITY_BRIDGES_DELIVERY_ON") if bridges["delivery"] == "gateway_on" else _("SECURITY_BRIDGES_DELIVERY_OFF"),
                 "bridgesOptions": [_bridge_option_view(option) for option in bridges["options"]],
+                "bridgesSigning": _bridges_signing_text(bridges["signing"]),
             }
         )
     trusted = state.get("trustedNetworks")

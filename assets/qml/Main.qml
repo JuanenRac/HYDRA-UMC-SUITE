@@ -2179,6 +2179,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
                         Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text { objectName: "securityBridgesDelivery"; text: suiteBackend.securityView.bridgesDelivery; color: "#8a96a6"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { objectName: "securityBridgesSigning"; visible: text !== ""; text: suiteBackend.securityView.bridgesSigning; color: "#8a96a6"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Repeater {
                             id: bridgesRepeater
                             objectName: "securityBridgesRepeater"

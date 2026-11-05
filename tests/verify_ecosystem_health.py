@@ -254,6 +254,16 @@ def switch(loop):
     check("bridges: a word that is not a choice sends nothing", sec.bridges_patch(bridges_state, {**values, "amr.zoneUnknown": "maybe"}), None)
     ask = lambda change: sec.bridges_needs_confirmation(bridges_state, sec.bridges_patch(bridges_state, {**values, **change}))
     check("bridges: only a risky value asks first", (ask({"uav.missionUploadEnabled": True}), ask({"amr.zoneUnknown": "ignore"}), ask({"droids.cutOnGlobalStop": False}), ask({"amr.publishState": True}), ask({"openpnp.boardCode": "required"})), (True, True, True, False, False))
+    signing_body = {
+        "droids": {"keyFile": "/keys/droids.key", "key": "present", "lastSignedAt": "1970-01-01T00:00:01.000Z", "seq": 7},
+        "amr": {"keyFile": "/keys/amr.key", "key": "missing", "lastSignedAt": None, "seq": 0},
+        "uav": {"keyFile": "/keys/uav.key", "key": "broken"},
+    }
+    signing_state = sec.parse_state({**base, "bridges": bridges_body, "bridgeSigning": signing_body})
+    check("bridges: the signing state lists each bridge with a usable entry and only the path of the key", ([item["bridge"] for item in signing_state["bridges"]["signing"]], set(signing_state["bridges"]["signing"][0])), (["droids", "amr"], {"bridge", "keyFile", "key", "lastSignedAt"}))
+    signing_text = sec.view(signing_state)["bridgesSigning"]
+    check("bridges: the signing text names each bridge, its key state, the last signature and the key file", ("BRIDGE-DROIDS" in signing_text, _("SECURITY_BRIDGES_SIGNING_KEY_PRESENT") in signing_text, _("SECURITY_BRIDGES_SIGNING_KEY_MISSING") in signing_text, _("SECURITY_BRIDGES_SIGNING_NEVER") in signing_text, "/keys/droids.key" in signing_text), (True, True, True, True, True))
+    check("bridges: a server that predates the signed settings shows no signing text", (bridges_state["bridges"]["signing"], bridges_view["bridgesSigning"]), ([], ""))
     check("bridges: the warning has its own sentence", sec.known_warning(["bridge_uav_missionUploadEnabled"]) == _("SECURITY_BRIDGES_WARNING") != "", True)
     check("bridges: every key of the view exists without a server", set(sec.view(None)) == set(bridges_view), True)
 

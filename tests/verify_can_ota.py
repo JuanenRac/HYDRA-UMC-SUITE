@@ -6,6 +6,7 @@ known real value, and resolve_hardware_target's own real tier-mapping
 boundary (Tier 3 stays unreachable on purpose)."""
 import asyncio
 import sys
+from urllib.parse import urlparse
 
 sys.path.insert(0, ".")
 from hydra_suite.can_ota import (
@@ -178,7 +179,7 @@ def _run() -> None:
     listed = asyncio.run(_release_listing())
     assert [a.name for a in listed] == ["A.bin"], listed
     assert listed[0].sha256 == "cd" * 32 and listed[0].signature == sig.lower() and listed[0].crc32 == "0x2" and listed[0].release_tag == "0.1.9"
-    assert not any("raw.githubusercontent.com" in url for url, _ in asked)
+    assert not any(urlparse(url).hostname == "raw.githubusercontent.com" for url, _ in asked)
     assert all(accept == "application/octet-stream" for url, accept in asked if "/assets/" in url)
     print("firmware listed from the latest release assets: PASS")
 

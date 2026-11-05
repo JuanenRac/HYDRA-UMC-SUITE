@@ -6,6 +6,8 @@ All notable changes to this project are documented here.
 
 - **Server Admin shows and changes whether the approval of a plan needs the person who is signed in:** the same section as STUDIO (`GET` and `POST /api/semantic-planner/settings`): on by default, a confirmation before relaxing it, nothing shown when the server has no planner set up, eight languages, and `tests/verify_planner_identity.py` for the logic.
 
+- **Server Admin shows whether the settings sent to the machine bridges can be signed:** under the switches of the machine bridges it lists, for each bridge, the state of the key that signs its settings (ready, not made yet, or unusable), when a message was last signed and the path of the key file, never the key, as STUDIO does. In the eight languages (Portuguese from Portugal). 3 more checks.
+
 - **Server Admin shows the switch of the connector hub gate that answers a caller without identity:** it reads and changes `allowLoopbackNoIdentity` of the hub through the server (`GET` and `POST /api/connector-hub/gate/settings`), as STUDIO does. It is off by default, turning it on asks for a confirmation, it says whether the change is kept in the hub settings file or only until the hub restarts, and nothing is shown on a server that has no such gate. Eight languages.
 
 - **Wording corrections:** the Italian clear-log and module-reset buttons read `Pulisci` and `Reimposta` (clear and reset, not delete and restore) and the way back to the first menu reads as a way back to the start in Italian, German, French, Portuguese and Chinese instead of the root.
