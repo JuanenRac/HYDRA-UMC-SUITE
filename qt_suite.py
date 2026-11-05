@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, ops_proposals, planner_identity, planning, server_security, service_identity
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -491,6 +491,9 @@ class SuiteQtBridge(QObject):
         self._planner_identity: dict | None = None  # the switch of the semantic planner that requires a signed-in person to approve (None: no such planner)
         self._planner_identity_message = ""
         self._planner_identity_error = ""
+        self._hil_bridge: dict | None = None  # the switch of the HIL bridge that requires a pass verdict of the twin (None: no such bridge)
+        self._hil_bridge_message = ""
+        self._hil_bridge_error = ""
         self._ops_proposals: dict | None = None  # the proposals of the node watchdog that wait for a person (None: no channel to the watchdog)
         self._ops_proposals_message = ""
         self._ops_proposals_error = ""
@@ -3164,6 +3167,7 @@ class SuiteQtBridge(QObject):
         await self._refresh_hub_gate(conn)
         await self._refresh_planner_identity(conn)
         await self._refresh_ops_proposals(conn)
+        await self._refresh_hil_bridge(conn)
         await self._refresh_service_identity(conn)
 
         info_result = await conn.fetch_hydra_info()
@@ -3315,6 +3319,63 @@ class SuiteQtBridge(QObject):
             self._service_identity_error = ""
             await self._refresh_service_identity(conn)
             self._service_identity_message = _("SERVICEID_SAVED") + ((" " + _("SERVICEID_OFF_WARNING")) if not wanted else "")
+        self.changed.emit()
+
+    # -- Switch of the pass verdict of the twin on the HIL bridge (administrators) ---------------
+
+    async def _refresh_hil_bridge(self, conn) -> None:
+        try:
+            result = await conn.fetch_hil_bridge_settings()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the HIL bridge settings failed: %s", error)
+            result = None
+        self._hil_bridge_error = ""
+        if hil_bridge.hidden_for(result):
+            self._hil_bridge = None
+            return
+        self._hil_bridge_error = hil_bridge.status_for(result)
+        self._hil_bridge = hil_bridge.parse_settings(result[1]) if result is not None and not self._hil_bridge_error else None
+
+    @Property("QVariantMap", notify=changed)
+    def hilBridgeView(self) -> dict:
+        view = hil_bridge.view(self._hil_bridge)
+        view["message"] = self._hil_bridge_message
+        view["error"] = self._hil_bridge_error
+        view["visible"] = self._hil_bridge is not None or bool(self._hil_bridge_error)
+        view["blocked"] = ""
+        return view
+
+    @Slot(bool, result=str)
+    def hilBridgeBlockedText(self, wanted: bool) -> str:
+        """The sentence for what the bridge would refuse for this wish, empty when it would accept it."""
+        if self._hil_bridge is None:
+            return ""
+        reason = hil_bridge.blocked_reason(self._hil_bridge, wanted)
+        return _("HILBRIDGE_" + reason.upper()) if reason else ""
+
+    @Slot(bool, result=bool)
+    def hilBridgeNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._hil_bridge is not None and hil_bridge.needs_confirmation(self._hil_bridge["require"], wanted)
+
+    @Slot(bool)
+    def saveHilBridge(self, wanted: bool) -> None:
+        if self._hil_bridge is None or hil_bridge.blocked_reason(self._hil_bridge, wanted):
+            return
+        asyncio.ensure_future(self._save_hil_bridge(wanted))
+
+    async def _save_hil_bridge(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._hil_bridge_message = ""
+        result = await conn.put_hil_bridge_settings(hil_bridge.body_for(wanted))
+        problem = hil_bridge.status_for(result)
+        if problem:
+            self._hil_bridge_error = problem
+        else:
+            self._hil_bridge_error = ""
+            self._hil_bridge = hil_bridge.parse_settings(result[1])  # type: ignore[index]
+            self._hil_bridge_message = _("HILBRIDGE_SAVED")
         self.changed.emit()
 
     # -- Proposals of the node watchdog that wait for a person (administrators) ---------------

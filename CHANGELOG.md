@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin shows and changes whether a real command needs a pass verdict of the twin:** the same section as STUDIO (`GET` and `POST /api/hil-bridge/settings`, the switch `require_twin_pass` of the HIL bridge): off by default, a confirmation before any change, what the bridge would refuse (locked on, no twin key or robot, no identity key) said before saving, nothing shown when the server has no such bridge, eight languages, and `tests/verify_hil_bridge.py` for the logic.
+
 - **One folder for the 3D model library, shared with STUDIO and the STL editor:** with `HYDRA_UMC_LIBRARY_DIR` set to an existing folder (the layout of `assets/meshes`: category / model / files) the meshes, the heated beds, the racks and the vacuum tables are read from it, and the mesh package (`python -m hydra_suite.mesh_pack ensure | prepare`) never installs over it (`status` and `check` still compare). Unset (the default), or naming something that is not a folder, nothing changes. The sentence the command line prints is in the eight languages; `tests/verify_library_dir.py` checks it.
 
 - **Server Admin lists the proposals of the node watchdog and lets an administrator decide them:** the same section as STUDIO (`GET /api/ops-agent/proposals`, `POST /api/ops-agent/proposals/decide`): approving asks for a confirmation and sends `confirm: true`, rejecting needs none, the decision is made in the name of the signed-in account, the last decisions are listed, nothing is shown when the server has no channel to the watchdog, eight languages, and `tests/verify_ops_proposals.py` for the logic.

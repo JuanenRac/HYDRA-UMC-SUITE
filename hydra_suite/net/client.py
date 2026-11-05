@@ -768,6 +768,15 @@ class HydraConnection(QObject):
         """POST /api/ops-agent/proposals/decide (admin-only): {"incidentId": str, "decision": "approved"|"rejected", "confirm": true to approve}."""
         return await self._request_json("POST", "/api/ops-agent/proposals/decide", auth=True, json_body=body)
 
+    async def fetch_hil_bridge_settings(self) -> tuple[int, object] | None:
+        """GET /api/hil-bridge/settings (any signed-in account): the switch of the HIL bridge that makes a real command need a pass verdict of the twin.
+        404 on a server that predates the route; 503 with available false while the bridge is not configured."""
+        return await self._request_json("GET", "/api/hil-bridge/settings", auth=True)
+
+    async def put_hil_bridge_settings(self, body: dict) -> tuple[int, object] | None:
+        """POST /api/hil-bridge/settings (admin-only): {"requireTwinPass": bool, "confirm": true}."""
+        return await self._request_json("POST", "/api/hil-bridge/settings", auth=True, json_body=body)
+
     async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
         """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
         return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)

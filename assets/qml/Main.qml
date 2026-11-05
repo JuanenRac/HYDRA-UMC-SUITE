@@ -2373,6 +2373,47 @@ ApplicationWindow {
                         Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order3; color: "#e0a030"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.hilBridgeView.visible === true
+                        objectName: "hilBridgePanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("HILBRIDGE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("HILBRIDGE_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hilBridgeView.error !== ""; text: suiteBackend.hilBridgeView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: hilBridgeBox
+                            objectName: "hilBridgeBox"
+                            visible: suiteBackend.hilBridgeView.available === true
+                            text: suiteBackend.uiText("HILBRIDGE_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.hilBridgeView.require === true
+                        }
+                        Text { visible: suiteBackend.hilBridgeView.available === true; objectName: "hilBridgeState"; text: suiteBackend.hilBridgeView.state; color: suiteBackend.hilBridgeView.require === true ? "#4cc38a" : "#8a95a5"; font.pixelSize: 10; font.bold: true }
+                        Text { visible: suiteBackend.hilBridgeView.available === true; text: suiteBackend.hilBridgeView.kept; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hilBridgeView.locked !== ""; text: suiteBackend.hilBridgeView.locked; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text {
+                            id: hilBridgeBlocked
+                            property string reason: suiteBackend.hilBridgeView.available === true ? suiteBackend.hilBridgeBlockedText(hilBridgeBox.checked) : ""
+                            visible: reason !== ""
+                            text: reason
+                            color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        }
+                        Text { visible: suiteBackend.hilBridgeView.message !== ""; text: suiteBackend.hilBridgeView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Button {
+                            objectName: "hilBridgeSave"
+                            visible: suiteBackend.hilBridgeView.available === true
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: hilBridgeBox.checked !== (suiteBackend.hilBridgeView.require === true) && hilBridgeBlocked.reason === ""
+                            onClicked: {
+                                var wanted = hilBridgeBox.checked
+                                window.requestConfirm(
+                                    suiteBackend.uiText(wanted ? "HILBRIDGE_CONFIRM_ON_TITLE" : "HILBRIDGE_CONFIRM_OFF_TITLE"),
+                                    suiteBackend.uiText(wanted ? "HILBRIDGE_CONFIRM_ON_MESSAGE" : "HILBRIDGE_CONFIRM_OFF_MESSAGE"),
+                                    function() { suiteBackend.saveHilBridge(wanted) })
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.opsProposalsView.visible === true
                         objectName: "opsProposalsPanel"
                         Layout.fillWidth: true
