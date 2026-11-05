@@ -759,6 +759,15 @@ class HydraConnection(QObject):
         """PUT /api/admin/server-config (admin-only) with {"auth": {"serviceIdentity": {"enabled": bool, "confirm": true to turn it on}}}."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
 
+    async def fetch_ops_agent_proposals(self) -> tuple[int, object] | None:
+        """GET /api/ops-agent/proposals (admin-only): the proposals of the node watchdog that wait for a person and the last decisions.
+        404 on a server that predates the route; 503 with available false while the channel to the watchdog is not set up."""
+        return await self._request_json("GET", "/api/ops-agent/proposals", auth=True)
+
+    async def decide_ops_agent_proposal(self, body: dict) -> tuple[int, object] | None:
+        """POST /api/ops-agent/proposals/decide (admin-only): {"incidentId": str, "decision": "approved"|"rejected", "confirm": true to approve}."""
+        return await self._request_json("POST", "/api/ops-agent/proposals/decide", auth=True, json_body=body)
+
     async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
         """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
         return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)

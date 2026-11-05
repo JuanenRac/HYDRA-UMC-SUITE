@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin lists the proposals of the node watchdog and lets an administrator decide them:** the same section as STUDIO (`GET /api/ops-agent/proposals`, `POST /api/ops-agent/proposals/decide`): approving asks for a confirmation and sends `confirm: true`, rejecting needs none, the decision is made in the name of the signed-in account, the last decisions are listed, nothing is shown when the server has no channel to the watchdog, eight languages, and `tests/verify_ops_proposals.py` for the logic.
+
 - **Server Admin shows the identity of the server in its calls to the services:** the same section as STUDIO (`GET /api/admin/service-identity` and the switch `auth.serviceIdentity.enabled`): whether the server presents its signed token to the services, whether its key can sign, which services take the identity, which keep a verifier of their own and which do not yet, and the safe order of the steps. Off by default, a confirmation before turning it on, a warning when turning it off, nothing shown when the server has no such route, eight languages, and `tests/verify_service_identity.py` for the logic.
 
 - **Server Admin shows and changes whether the approval of a plan needs the person who is signed in:** the same section as STUDIO (`GET` and `POST /api/semantic-planner/settings`): on by default, a confirmation before relaxing it, nothing shown when the server has no planner set up, eight languages, and `tests/verify_planner_identity.py` for the logic.

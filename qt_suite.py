@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, planner_identity, planning, server_security, service_identity
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, ops_proposals, planner_identity, planning, server_security, service_identity
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -491,6 +491,9 @@ class SuiteQtBridge(QObject):
         self._planner_identity: dict | None = None  # the switch of the semantic planner that requires a signed-in person to approve (None: no such planner)
         self._planner_identity_message = ""
         self._planner_identity_error = ""
+        self._ops_proposals: dict | None = None  # the proposals of the node watchdog that wait for a person (None: no channel to the watchdog)
+        self._ops_proposals_message = ""
+        self._ops_proposals_error = ""
         self._service_identity: dict | None = None  # the identity the server presents to the services (None: a server without the route)
         self._service_identity_message = ""
         self._service_identity_error = ""
@@ -3160,6 +3163,7 @@ class SuiteQtBridge(QObject):
         self._security_state = server_security.parse_state(body)
         await self._refresh_hub_gate(conn)
         await self._refresh_planner_identity(conn)
+        await self._refresh_ops_proposals(conn)
         await self._refresh_service_identity(conn)
 
         info_result = await conn.fetch_hydra_info()
@@ -3311,6 +3315,65 @@ class SuiteQtBridge(QObject):
             self._service_identity_error = ""
             await self._refresh_service_identity(conn)
             self._service_identity_message = _("SERVICEID_SAVED") + ((" " + _("SERVICEID_OFF_WARNING")) if not wanted else "")
+        self.changed.emit()
+
+    # -- Proposals of the node watchdog that wait for a person (administrators) ---------------
+
+    async def _refresh_ops_proposals(self, conn) -> None:
+        try:
+            result = await conn.fetch_ops_agent_proposals()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the proposals of the node watchdog failed: %s", error)
+            result = None
+        self._ops_proposals_error = ""
+        if ops_proposals.hidden_for(result):
+            self._ops_proposals = None
+            return
+        self._ops_proposals_error = ops_proposals.status_for(result)
+        self._ops_proposals = ops_proposals.parse_lists(result[1]) if result is not None and not self._ops_proposals_error else None
+
+    @Property("QVariantMap", notify=changed)
+    def opsProposalsView(self) -> dict:
+        view = ops_proposals.view(self._ops_proposals)
+        view["message"] = self._ops_proposals_message
+        view["error"] = self._ops_proposals_error
+        view["visible"] = self._ops_proposals is not None or bool(self._ops_proposals_error)
+        return view
+
+    @Slot(str, result=str)
+    def opsProposalConfirmMessage(self, incident_id: str) -> str:
+        return _("OPSPROP_CONFIRM_MESSAGE", id=incident_id)
+
+    @Slot()
+    def refreshOpsProposals(self) -> None:
+        asyncio.ensure_future(self._reload_ops_proposals())
+
+    async def _reload_ops_proposals(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._ops_proposals_message = ""
+        await self._refresh_ops_proposals(conn)
+        self.changed.emit()
+
+    @Slot(str, str)
+    def decideOpsProposal(self, incident_id: str, decision: str) -> None:
+        if self._ops_proposals is None or decision not in ops_proposals.DECISIONS or not incident_id:
+            return
+        asyncio.ensure_future(self._decide_ops_proposal(incident_id, decision))
+
+    async def _decide_ops_proposal(self, incident_id: str, decision: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._ops_proposals_message = ""
+        result = await conn.decide_ops_agent_proposal(ops_proposals.body_for(incident_id, decision))
+        problem = "" if ops_proposals.decision_ok(result, decision) else ops_proposals.status_for(result) or _("OPSPROP_LOAD_ERROR")
+        await self._refresh_ops_proposals(conn)
+        if problem:
+            self._ops_proposals_error = problem
+        else:
+            self._ops_proposals_message = _("OPSPROP_APPROVED" if decision == "approved" else "OPSPROP_REJECTED", id=incident_id)
         self.changed.emit()
 
     # -- Access options of the Server Admin screen -----------------------------------

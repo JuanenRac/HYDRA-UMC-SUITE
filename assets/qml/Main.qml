@@ -2373,6 +2373,48 @@ ApplicationWindow {
                         Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order3; color: "#e0a030"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.opsProposalsView.visible === true
+                        objectName: "opsProposalsPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("OPSPROP_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                            Button { objectName: "opsProposalsRefresh"; text: suiteBackend.uiText("OPSPROP_REFRESH"); onClicked: suiteBackend.refreshOpsProposals() }
+                        }
+                        Text { text: suiteBackend.uiText("OPSPROP_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.opsProposalsView.error !== ""; text: suiteBackend.opsProposalsView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.opsProposalsView.message !== ""; text: suiteBackend.opsProposalsView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.opsProposalsView.available === true && suiteBackend.opsProposalsView.none === true; objectName: "opsProposalsNone"; text: suiteBackend.uiText("OPSPROP_NONE"); color: "#556070"; font.pixelSize: 10 }
+                        Repeater {
+                            model: suiteBackend.opsProposalsView.pending
+                            delegate: ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 3
+                                property string incidentId: modelData.incidentId
+                                Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.symptom; color: "#8a95a5"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.meta; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                RowLayout {
+                                    spacing: 8
+                                    Button {
+                                        objectName: "opsProposalApprove"
+                                        text: suiteBackend.uiText("OPSPROP_APPROVE")
+                                        onClicked: {
+                                            var id = incidentId
+                                            window.requestConfirm(suiteBackend.uiText("OPSPROP_CONFIRM_TITLE"), suiteBackend.opsProposalConfirmMessage(id), function() { suiteBackend.decideOpsProposal(id, "approved") })
+                                        }
+                                    }
+                                    Button { objectName: "opsProposalReject"; text: suiteBackend.uiText("OPSPROP_REJECT"); onClicked: suiteBackend.decideOpsProposal(incidentId, "rejected") }
+                                }
+                            }
+                        }
+                        Repeater {
+                            model: suiteBackend.opsProposalsView.decided
+                            delegate: Text { text: modelData; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
