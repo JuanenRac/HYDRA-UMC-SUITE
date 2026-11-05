@@ -65,7 +65,8 @@ def status_for(result: tuple[int, object] | None) -> str:
 def view(settings: dict | None) -> dict:
     """What the screen shows."""
     if settings is None:
-        return {"available": False}
+        # every key is present even without the planner, so the screen never binds to an undefined text
+        return {"available": False, "require": True, "state": "", "kept": "", "canChange": False, "blocked": ""}
     return {
         "available": True,
         "require": settings["require"],
