@@ -51,7 +51,8 @@ check("the services are listed by how they take the identity", (view["accepts"].
 check("a level with no service says none", si.view(si.parse_status(dict(OFF, services=[])))["accepts"].endswith(_("SERVICEID_NONE")), True)
 check("the three states have their own sentence", len({si.view(si.parse_status(dict(OFF, state=s, enabled=s != "off")))["state"] for s in si.STATES}), 3)
 check("a locked switch says why", si.view(dict(status, locked=True))["lockedText"], _("SERVICEID_LOCKED"))
-check("no view without the route", si.view(None), {"available": False})
+empty = si.view(None)
+check("no view without the route, but every key is there for the screen to bind to", (empty["available"], sorted(empty) == sorted(view)), (False, True))
 
 KEYS = [
     "TITLE", "DESC", "LABEL", "STATE_PRESENTING", "STATE_OFF", "STATE_IDLE_NO_KEY", "LOCKED", "SERVICES_TITLE", "ACCEPTS", "OWN_VERIFIER", "NOT_YET", "NONE",

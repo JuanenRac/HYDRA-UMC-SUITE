@@ -77,7 +77,11 @@ def _line(status: dict, support: str, key: str) -> str:
 def view(status: dict | None) -> dict:
     """What the screen shows."""
     if status is None:
-        return {"available": False}
+        # every key the screen binds to, empty: a missing key would bind to an undefined text even while the section is hidden
+        return {
+            "available": False, "enabled": False, "locked": False, "state": "", "lockedText": "", "accepts": "", "ownVerifier": "", "notYet": "",
+            "servicesTitle": "", "orderTitle": "", "order1": "", "order2": "", "order3": "", "offWarning": "",
+        }
     return {
         "available": True,
         "enabled": status["enabled"],

@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-58%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-59%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.8.0.0-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の58件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており。インターフェースは Qt Quick のみです(`qt_suite.py`)。ナビゲーションの全 37 パネルは実際に動作するコードで、3D ビューポートは専用の `OffscreenRobotRenderer` 経由で描画されます。従来のウィンドウは削除されました。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして群れ表示、連動モード(`combinedWith`)、経路ビューア、バージョン確認は、シミュレートしたサーバーとローカルのテストページでしか試されておらず、本物のコントローラー、本物のロボット、公開リポジトリでは試されていません。軌道パネル は現在、HYDRA-UMC STUDIO自身の本物の `WORKS/*.json` 形式(`POST /api/upload-work`、`GET /<フォルダ>/index.json`)を通じてエクスポート/インポートします - ここで記録したポイントは、どちらのアプリからも再生できる本物のWorkです。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
+**正直な現状確認 - 実際に今動くもの:** ネットワーク検出(並行サブネットスキャン + 本物のmDNS/Bonjour、`hydra_suite/net/discovery.py`)、ライブのREST+WebSocket接続とスウォームサポート(`hydra_suite/net/client.py`、`hydra_suite/app.py`)、24種類すべての実在するロボットモデルに対する3Dビューポートの本物の順運動学に加えプリミティブによる「Generic」フォールバック(`hydra_suite/render/`、HYDRA-UMC STUDIO自身のTypeScript実装のFKとビット単位で数値検証済み)、11分の11のツール装着設定パネルすべて、CAN-OTA/SPI-OTAフラッシング、そして本物のMJPEGカメラ映像レンダリングは本物であり、テスト済みです - `tests/` 配下の59件のオフライン検証/スモークテストスクリプト(`python tools/run_offline_verifiers.py`、`QT_QPA_PLATFORM=offscreen` によるヘッドレスQt)がすべて成功しており。インターフェースは Qt Quick のみです(`qt_suite.py`)。ナビゲーションの全 37 パネルは実際に動作するコードで、3D ビューポートは専用の `OffscreenRobotRenderer` 経由で描画されます。従来のウィンドウは削除されました。このリポジトリ自身の正直さの慣習に従い、明示的にまだ行われていないもの: CAN-OTAのURTC Tool Head/Advanced Expansion階層にはまだ本物のハードウェアリレートンネルがありません。そして群れ表示、連動モード(`combinedWith`)、経路ビューア、バージョン確認は、シミュレートしたサーバーとローカルのテストページでしか試されておらず、本物のコントローラー、本物のロボット、公開リポジトリでは試されていません。軌道パネル は現在、HYDRA-UMC STUDIO自身の本物の `WORKS/*.json` 形式(`POST /api/upload-work`、`GET /<フォルダ>/index.json`)を通じてエクスポート/インポートします - ここで記録したポイントは、どちらのアプリからも再生できる本物のWorkです。この段落が要約している、本物か先送りかの完全な項目別内訳は [`docs/ROADMAP.md`](docs/ROADMAP.md) を、これまでに実際に出荷されたものの詳細は `CHANGELOG.md` を参照してください。
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.8.0.0` |
 | 成熟度 | 機能する |
-| テスト | 58 (`python tools/run_offline_verifiers.py`) |
+| テスト | 59 (`python tools/run_offline_verifiers.py`) |
 | 技術 | Python 3.12 / PySide6 |
 | 対象 | 利用者の PC |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
@@ -56,7 +56,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | 主な目的では動作します。足りない点は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 58 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 59 件。変更のたびに実行されます |
 | 実機 | 🔴 | まだです：このバージョンについて実機での動作記録はありません |
 | インターフェースとプロトコル | 🟡 | 提供するルートやメッセージは文書化され、クライアントで試験済みです。すべてのクライアントがまだ使ったわけではありません |
 | 連携 | 🟠 | メッセージとルートは SDK の共通契約に照らして検証されていますが、実機と一緒に動かしたことはありません |
@@ -250,7 +250,7 @@ python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 
 ## 🧪 テスト
 
-`python tools/run_offline_verifiers.py` で自動テスト 58 件を実行します。 各テストは 1 つの検証スクリプトで、多数のチェックを含みます（単一のアサーションではありません）。PySide6 などの依存関係が必要で、画面なしの Qt プラットフォームで動き、実際のサーバーやロボットへの接続は開きません。
+`python tools/run_offline_verifiers.py` で自動テスト 59 件を実行します。 各テストは 1 つの検証スクリプトで、多数のチェックを含みます（単一のアサーションではありません）。PySide6 などの依存関係が必要で、画面なしの Qt プラットフォームで動き、実際のサーバーやロボットへの接続は開きません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 
