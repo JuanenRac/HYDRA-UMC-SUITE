@@ -38,7 +38,7 @@ check("a refusal of the hub shows its reason", gate.status_for((409, {"error": "
 view = gate.view(settings)
 check("off by default in the view", (view["available"], view["allow"], view["state"], view["kept"]), (True, False, _("HUBGATE_STATE_OFF"), _("HUBGATE_KEPT_FILE")))
 check("memory-only is said", gate.view(dict(settings, persisted=False))["kept"], _("HUBGATE_KEPT_MEMORY"))
-check("no view without the gate", gate.view(None), {"available": False})
+check("no view without the gate, and no missing key", (gate.view(None)["available"], gate.view(None)["blockedOn"], gate.view(None)["state"]), (False, "", ""))
 for key in ("HUBGATE_TITLE", "HUBGATE_DESC", "HUBGATE_LABEL", "HUBGATE_CONFIRM_TITLE", "HUBGATE_CONFIRM_MESSAGE", "HUBGATE_SAVED", "HUBGATE_LOOPBACK_ONLY", "HUBGATE_NEEDS_KEY"):
     check(f"sentence {key} exists", _(key) != key, True)
 

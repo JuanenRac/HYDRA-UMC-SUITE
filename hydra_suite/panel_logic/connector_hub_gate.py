@@ -68,7 +68,8 @@ def status_for(result: tuple[int, object] | None) -> str:
 def view(settings: dict | None) -> dict:
     """What the screen shows."""
     if settings is None:
-        return {"available": False}
+        # every key is present even without the gate, so the screen never binds to an undefined text
+        return {"available": False, "allow": False, "state": "", "kept": "", "canTurnOn": False, "canTurnOff": False, "blockedOn": "", "blockedOff": ""}
     return {
         "available": True,
         "allow": settings["allow"],
