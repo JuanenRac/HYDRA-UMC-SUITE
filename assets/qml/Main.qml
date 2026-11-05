@@ -2330,6 +2330,49 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.serviceIdentityView.visible === true
+                        objectName: "serviceIdentityPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("SERVICEID_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("SERVICEID_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.error !== ""; text: suiteBackend.serviceIdentityView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: serviceIdentityBox
+                            objectName: "serviceIdentityBox"
+                            visible: suiteBackend.serviceIdentityView.available === true
+                            enabled: suiteBackend.serviceIdentityView.locked !== true
+                            text: suiteBackend.uiText("SERVICEID_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.serviceIdentityView.enabled === true
+                        }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; objectName: "serviceIdentityState"; text: suiteBackend.serviceIdentityView.state; color: suiteBackend.serviceIdentityView.enabled === true ? "#4cc38a" : "#8a97a8"; font.pixelSize: 10; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true && suiteBackend.serviceIdentityView.locked === true; text: suiteBackend.serviceIdentityView.lockedText; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true && !serviceIdentityBox.checked && suiteBackend.serviceIdentityView.enabled === true; text: suiteBackend.serviceIdentityView.offWarning; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.message !== ""; text: suiteBackend.serviceIdentityView.message; color: "#4cc38a"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "serviceIdentitySave"
+                            visible: suiteBackend.serviceIdentityView.available === true
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: serviceIdentityBox.checked !== (suiteBackend.serviceIdentityView.enabled === true) && suiteBackend.serviceIdentityView.locked !== true
+                            onClicked: {
+                                var wanted = serviceIdentityBox.checked
+                                if (suiteBackend.serviceIdentityNeedsConfirmation(wanted))
+                                    window.requestConfirm(suiteBackend.uiText("SERVICEID_CONFIRM_TITLE"), suiteBackend.uiText("SERVICEID_CONFIRM_MESSAGE"), function() { suiteBackend.saveServiceIdentity(wanted) })
+                                else
+                                    suiteBackend.saveServiceIdentity(wanted)
+                            }
+                        }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.servicesTitle; color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; objectName: "serviceIdentityAccepts"; text: suiteBackend.serviceIdentityView.accepts; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.ownVerifier; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.notYet; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.orderTitle; color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order1; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order2; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order3; color: "#e0a030"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

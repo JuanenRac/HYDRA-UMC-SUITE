@@ -750,6 +750,15 @@ class HydraConnection(QObject):
         """POST /api/semantic-planner/settings (admin-only): {"requireIdentity": bool, "confirm": true to relax it}."""
         return await self._request_json("POST", "/api/semantic-planner/settings", auth=True, json_body=body)
 
+    async def fetch_service_identity(self) -> tuple[int, object] | None:
+        """GET /api/admin/service-identity (admin-only): the identity the server presents to the services it calls (the switch, whether its key
+        can sign, and which services take it). 404 on a server that predates the route."""
+        return await self._request_json("GET", "/api/admin/service-identity", auth=True)
+
+    async def put_service_identity(self, body: dict) -> tuple[int, object] | None:
+        """PUT /api/admin/server-config (admin-only) with {"auth": {"serviceIdentity": {"enabled": bool, "confirm": true to turn it on}}}."""
+        return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
+
     async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
         """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
         return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)

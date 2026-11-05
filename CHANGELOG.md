@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin shows the identity of the server in its calls to the services:** the same section as STUDIO (`GET /api/admin/service-identity` and the switch `auth.serviceIdentity.enabled`): whether the server presents its signed token to the services, whether its key can sign, which services take the identity, which keep a verifier of their own and which do not yet, and the safe order of the steps. Off by default, a confirmation before turning it on, a warning when turning it off, nothing shown when the server has no such route, eight languages, and `tests/verify_service_identity.py` for the logic.
+
 - **Server Admin shows and changes whether the approval of a plan needs the person who is signed in:** the same section as STUDIO (`GET` and `POST /api/semantic-planner/settings`): on by default, a confirmation before relaxing it, nothing shown when the server has no planner set up, eight languages, and `tests/verify_planner_identity.py` for the logic.
 
 - **Server Admin shows whether the settings sent to the machine bridges can be signed:** under the switches of the machine bridges it lists, for each bridge, the state of the key that signs its settings (ready, not made yet, or unusable), when a message was last signed and the path of the key file, never the key, as STUDIO does. In the eight languages (Portuguese from Portugal). 3 more checks.

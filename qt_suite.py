@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, planner_identity, planning, server_security
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, planner_identity, planning, server_security, service_identity
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -491,6 +491,9 @@ class SuiteQtBridge(QObject):
         self._planner_identity: dict | None = None  # the switch of the semantic planner that requires a signed-in person to approve (None: no such planner)
         self._planner_identity_message = ""
         self._planner_identity_error = ""
+        self._service_identity: dict | None = None  # the identity the server presents to the services (None: a server without the route)
+        self._service_identity_message = ""
+        self._service_identity_error = ""
         self._security_message = ""
         self._security_error = ""
         self._planning: dict[str, object] = {}
@@ -3157,6 +3160,7 @@ class SuiteQtBridge(QObject):
         self._security_state = server_security.parse_state(body)
         await self._refresh_hub_gate(conn)
         await self._refresh_planner_identity(conn)
+        await self._refresh_service_identity(conn)
 
         info_result = await conn.fetch_hydra_info()
         if info_result is not None:
@@ -3259,6 +3263,54 @@ class SuiteQtBridge(QObject):
             self._planner_identity_error = ""
             self._planner_identity = planner_identity.parse_settings(result[1])  # type: ignore[index]
             self._planner_identity_message = _("PLANNERID_SAVED")
+        self.changed.emit()
+
+    # -- Identity of the server in its calls to the services (administrators) ----------------
+
+    async def _refresh_service_identity(self, conn) -> None:
+        try:
+            result = await conn.fetch_service_identity()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the identity of the services failed: %s", error)
+            result = None
+        self._service_identity_error = ""
+        if service_identity.hidden_for(result):
+            self._service_identity = None
+            return
+        self._service_identity_error = service_identity.status_for(result)
+        self._service_identity = service_identity.parse_status(result[1]) if result is not None and not self._service_identity_error else None
+
+    @Property("QVariantMap", notify=changed)
+    def serviceIdentityView(self) -> dict:
+        view = service_identity.view(self._service_identity)
+        view["message"] = self._service_identity_message
+        view["error"] = self._service_identity_error
+        view["visible"] = self._service_identity is not None or bool(self._service_identity_error)
+        return view
+
+    @Slot(bool, result=bool)
+    def serviceIdentityNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._service_identity is not None and service_identity.needs_confirmation(self._service_identity["enabled"], wanted)
+
+    @Slot(bool)
+    def saveServiceIdentity(self, wanted: bool) -> None:
+        if self._service_identity is None or not service_identity.change_allowed(self._service_identity, wanted):
+            return
+        asyncio.ensure_future(self._save_service_identity(wanted))
+
+    async def _save_service_identity(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._service_identity_message = ""
+        result = await conn.put_service_identity(service_identity.body_for(wanted))
+        problem = service_identity.status_for(result)
+        if problem:
+            self._service_identity_error = problem
+        else:
+            self._service_identity_error = ""
+            await self._refresh_service_identity(conn)
+            self._service_identity_message = _("SERVICEID_SAVED") + ((" " + _("SERVICEID_OFF_WARNING")) if not wanted else "")
         self.changed.emit()
 
     # -- Access options of the Server Admin screen -----------------------------------
