@@ -34,7 +34,7 @@ def parse_models(body: object) -> list[dict[str, str]]:
         slug, category = _text(item.get("slug")), _text(item.get("category"))
         if slug is None or category is None:
             continue
-        out.append({"slug": slug, "category": category, "name": _text(item.get("name")) or slug, "submittedAt": _text(item.get("submittedAt")) or ""})
+        out.append({"slug": slug, "category": category, "name": _text(item.get("name")) or slug, "submittedAt": _text(item.get("submittedAt")) or "", "attribution": _text(item.get("attribution")) or ""})
     out.sort(key=lambda m: m["name"].lower())
     out.sort(key=lambda m: m["submittedAt"], reverse=True)
     return out
@@ -46,6 +46,7 @@ def rows(models: list[dict[str, str]]) -> list[dict[str, str]]:
             "name": m["name"],
             "category": m["category"],
             "slug": m["slug"],
+            "attribution": m.get("attribution", "") or "-",
             "submitted": m["submittedAt"].replace("T", " ").rsplit(".", 1)[0].rstrip("Z") if m["submittedAt"] else "-",
         }
         for m in models

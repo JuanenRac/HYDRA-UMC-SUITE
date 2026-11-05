@@ -2173,6 +2173,60 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.rlAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RL"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        CheckBox {
+                            id: rlEnabledBox
+                            objectName: "securityRlEnabledBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_RL_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.rlEnabledLocked
+                            checked: suiteBackend.securityView.rlEnabled === true
+                        }
+                        Text { text: suiteBackend.securityView.rlEnabledSource; color: "#556070"; font.pixelSize: 9 }
+                        Repeater {
+                            id: rlRepeater
+                            objectName: "securityRlRepeater"
+                            model: suiteBackend.securityView.rlRows
+                            delegate: ColumnLayout {
+                                property string limitKey: modelData.key
+                                property string typed: rlField.text
+                                Layout.fillWidth: true
+                                spacing: 2
+                                Text { text: modelData.label; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                TextField {
+                                    id: rlField
+                                    objectName: "securityRlField_" + modelData.key
+                                    text: modelData.value
+                                    enabled: !modelData.locked
+                                    inputMethodHints: Qt.ImhDigitsOnly
+                                    Layout.preferredWidth: 140
+                                }
+                                Text { text: modelData.note; color: "#556070"; font.pixelSize: 9 }
+                            }
+                        }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityRlSave"
+                            text: suiteBackend.uiText("BTN_SECURITY_RL_SAVE")
+                            onClicked: {
+                                var values = {}
+                                for (var i = 0; i < rlRepeater.count; i++) {
+                                    var row = rlRepeater.itemAt(i)
+                                    if (row) values[row.limitKey] = row.typed
+                                }
+                                var json = JSON.stringify(values)
+                                var enabled = rlEnabledBox.checked
+                                if (suiteBackend.rateLimitsValid(json) && suiteBackend.rateLimitsNeedsConfirmation(enabled))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_RL"), suiteBackend.uiText("MSG_SECURITY_RL_CONFIRM"), function() { suiteBackend.saveRateLimitsOptions(enabled, json) })
+                                else
+                                    suiteBackend.saveRateLimitsOptions(enabled, json)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.bridgesAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
@@ -7143,7 +7197,8 @@ ApplicationWindow {
                     spacing: 8
                     Text { text: suiteBackend.uiText("MODELS_COL_NAME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 200 }
                     Text { text: suiteBackend.uiText("MODELS_COL_CATEGORY"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 140 }
-                    Text { text: suiteBackend.uiText("MODELS_COL_DATE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("MODELS_COL_DATE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 150 }
+                    Text { text: suiteBackend.uiText("MODELS_COL_ATTRIBUTION"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
                     Button { objectName: "modelsRefreshButton"; text: suiteBackend.uiText("MODELS_REFRESH"); enabled: !suiteBackend.modelsBusy; onClicked: suiteBackend.refreshModels() }
                 }
                 ListView {
@@ -7158,7 +7213,8 @@ ApplicationWindow {
                         spacing: 8
                         Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 200; elide: Text.ElideRight }
                         Text { text: modelData.category; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 140; elide: Text.ElideRight }
-                        Text { text: modelData.submitted; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { text: modelData.submitted; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 150; elide: Text.ElideRight }
+                        Text { objectName: "modelsAttribution"; text: modelData.attribution; color: window.muted; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
                         Button {
                             objectName: "modelsSaveButton"
                             text: suiteBackend.uiText("MODELS_SAVE")

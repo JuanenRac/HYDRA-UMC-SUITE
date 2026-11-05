@@ -39,6 +39,19 @@ BRIDGE_CHOICE_TEXT = {
 }
 
 
+#: The eight numbers of the request limiters per address, in the order of the screen, with the key of the label of each.
+RATE_LIMIT_KEYS = {
+    "loginMax": "LBL_SECURITY_RL_LOGIN_MAX",
+    "loginWindowSeconds": "LBL_SECURITY_RL_LOGIN_WINDOW",
+    "refreshMax": "LBL_SECURITY_RL_REFRESH_MAX",
+    "apiMax": "LBL_SECURITY_RL_API_MAX",
+    "sensitiveMax": "LBL_SECURITY_RL_SENSITIVE_MAX",
+    "apiWindowSeconds": "LBL_SECURITY_RL_API_WINDOW",
+    "stopAllMax": "LBL_SECURITY_RL_STOPALL_MAX",
+    "stopAllWindowSeconds": "LBL_SECURITY_RL_STOPALL_WINDOW",
+}
+
+
 def _source(value: object) -> str | None:
     return value if isinstance(value, str) and value in SOURCES else None
 
@@ -97,6 +110,25 @@ def _bridges(raw: object, signing: object = None) -> dict | None:
                 "choices": choices if isinstance(choices, list) and all(isinstance(c, str) for c in choices) else None,
             })
     return {"delivery": raw["delivery"], "options": options, "signing": _bridge_signing(signing)} if options else None
+
+
+def _rate_limits(raw: object) -> dict | None:
+    """The switch and the eight numbers of the request limiters, each with where it comes from and its range; None when damaged."""
+    if not isinstance(raw, dict):
+        return None
+    enabled = _option(raw.get("enabled"), bool)
+    if enabled is None:
+        return None
+    numbers: dict = {}
+    for key in RATE_LIMIT_KEYS:
+        entry = raw.get(key)
+        if not isinstance(entry, dict):
+            return None
+        value, low, high, source = entry.get("value"), entry.get("min"), entry.get("max"), _source(entry.get("source"))
+        if source is None or any(isinstance(n, bool) or not isinstance(n, int) for n in (value, low, high)):
+            return None
+        numbers[key] = {"value": value, "min": low, "max": high, "source": source}
+    return {"enabled": enabled, "numbers": numbers}
 
 
 def _confidence_option(raw: object) -> dict | None:
@@ -310,6 +342,9 @@ def parse_state(body: object) -> dict | None:
         record = _option(connections.get("recordAddress"), bool)
         if record is not None:
             state["connections"] = {"recordAddress": record}
+    rate_limits = _rate_limits(body.get("rateLimits"))
+    if rate_limits is not None:
+        state["rateLimits"] = rate_limits
     exposure = _exposure(body)
     if exposure is not None:
         state["exposure"] = exposure
@@ -619,6 +654,10 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
         sentence = _("SECURITY_MAVLINK_OFF_WARNING")
+    if "rate_limits_loose" in warnings:
+        sentence = _("SECURITY_RL_LOOSE_WARNING")
+    if "rate_limits_off" in warnings:
+        sentence = _("SECURITY_RL_OFF_WARNING")
     if any(isinstance(item, str) and item.startswith("bridge_") for item in warnings):
         sentence = _("SECURITY_BRIDGES_WARNING")
     return sentence
@@ -679,6 +718,49 @@ def bridges_needs_confirmation(state: dict, patch: dict) -> bool:
     return False
 
 
+def parse_rate_limit_text(text: str, entry: dict) -> int | None:
+    """The number typed in a box, or None when it is not a whole number inside the range of its limiter."""
+    trimmed = str(text).strip()
+    if not re.fullmatch(r"[0-9]{1,9}", trimmed):
+        return None
+    number = int(trimmed)
+    return number if entry["min"] <= number <= entry["max"] else None
+
+
+def rate_limit_texts_valid(state: dict, texts: object) -> bool:
+    """Whether every number that is not fixed by the environment of the server is a whole number inside its range."""
+    if not isinstance(texts, dict):
+        return False
+    return all(
+        is_locked(entry["source"]) or parse_rate_limit_text(texts.get(key, ""), entry) is not None
+        for key, entry in state["rateLimits"]["numbers"].items()
+    )
+
+
+def rate_limits_patch(state: dict, enabled: bool, texts: object) -> dict | None:
+    """Only what changed and is not fixed by the environment of the server; None when a typed number is not valid or nothing changed."""
+    if not isinstance(texts, dict):
+        return None
+    current = state["rateLimits"]
+    body: dict = {}
+    if not is_locked(current["enabled"]["source"]) and bool(enabled) != current["enabled"]["value"]:
+        body["enabled"] = bool(enabled)
+    for key, entry in current["numbers"].items():
+        if is_locked(entry["source"]):
+            continue
+        number = parse_rate_limit_text(texts.get(key, ""), entry)
+        if number is None:
+            return None
+        if number != entry["value"]:
+            body[key] = number
+    return {"rateLimits": body} if body else None
+
+
+def rate_limits_need_confirmation(state: dict, enabled: bool) -> bool:
+    """Switching the limiters off lowers the protection: ask first. Switching them on never asks."""
+    return state["rateLimits"]["enabled"]["value"] and not enabled
+
+
 def source_text(source: str) -> str:
     return _("SECURITY_SOURCE_" + source.upper())
 
@@ -717,6 +799,7 @@ EMPTY_VIEW: dict = {
     "mavlinkAvailable": False, "mavlinkKey": "", "mavlinkKeyLocked": False, "mavlinkKeySource": "",
     "mavlinkUnsigned": False, "mavlinkUnsignedLocked": False, "mavlinkUnsignedSource": "", "mavlinkStatus": "",
     "bridgesAvailable": False, "bridgesDelivery": "", "bridgesOptions": [], "bridgesSigning": "",
+    "rlAvailable": False, "rlEnabled": False, "rlEnabledLocked": False, "rlEnabledSource": "", "rlRows": [],
 }
 
 
@@ -834,6 +917,26 @@ def view(state: dict | None) -> dict:
                 "ecosystemHealthEnabled": ecosystem_health["enabled"]["value"],
                 "ecosystemHealthEnabledLocked": is_locked(ecosystem_health["enabled"]["source"]),
                 "ecosystemHealthEnabledSource": source_text(ecosystem_health["enabled"]["source"]),
+            }
+        )
+    rate_limits = state.get("rateLimits")
+    if rate_limits is not None:
+        out.update(
+            {
+                "rlAvailable": True,
+                "rlEnabled": rate_limits["enabled"]["value"],
+                "rlEnabledLocked": is_locked(rate_limits["enabled"]["source"]),
+                "rlEnabledSource": source_text(rate_limits["enabled"]["source"]),
+                "rlRows": [
+                    {
+                        "key": key,
+                        "label": _(RATE_LIMIT_KEYS[key]),
+                        "value": str(entry["value"]),
+                        "locked": is_locked(entry["source"]),
+                        "note": f"{entry['min']} - {entry['max']} · {source_text(entry['source'])}",
+                    }
+                    for key, entry in rate_limits["numbers"].items()
+                ],
             }
         )
     bridges = state.get("bridges")

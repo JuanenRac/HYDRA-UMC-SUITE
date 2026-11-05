@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **Server Admin > Request limits per address:** the same section as STUDIO (the switch for the limiters of the server, on by default, and their eight numbers, each with its range and its source). Only what changed is sent, a number outside its range or that is not a whole number is refused before sending, a value fixed by the environment of the server is locked, switching the limiters off asks first, and the two warnings of the server are shown. A server that does not report the limits does not show the section. Eight languages; 14 more checks in the Server Admin verifier.
+
+- **Submitted models show the credit they came with:** the list of Ecosystem > Submitted models has a column with the licence and credit the submitter gave (a dash when there is none), in the eight languages.
+
+- **Wording corrections:** the Portuguese role column reads `Função` and the German board label reads `Platine`.
+
 - **Server Admin shows and changes whether a real command needs a pass verdict of the twin:** the same section as STUDIO (`GET` and `POST /api/hil-bridge/settings`, the switch `require_twin_pass` of the HIL bridge): off by default, a confirmation before any change, what the bridge would refuse (locked on, no twin key or robot, no identity key) said before saving, nothing shown when the server has no such bridge, eight languages, and `tests/verify_hil_bridge.py` for the logic.
 
 - **One folder for the 3D model library, shared with STUDIO and the STL editor:** with `HYDRA_UMC_LIBRARY_DIR` set to an existing folder (the layout of `assets/meshes`: category / model / files) the meshes, the heated beds, the racks and the vacuum tables are read from it, and the mesh package (`python -m hydra_suite.mesh_pack ensure | prepare`) never installs over it (`status` and `check` still compare). Unset (the default), or naming something that is not a folder, nothing changes. The sentence the command line prints is in the eight languages; `tests/verify_library_dir.py` checks it.

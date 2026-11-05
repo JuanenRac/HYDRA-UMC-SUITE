@@ -362,7 +362,7 @@ def main():
     import tempfile
 
     async def fetch_submitted_models():
-        return 200, {"models": [{"slug": "ar3", "name": "AR3", "category": "robots", "submittedAt": "2030-01-02T10:00:00.000Z"}, "junk"]}
+        return 200, {"models": [{"slug": "ar3", "name": "AR3", "category": "robots", "submittedAt": "2030-01-02T10:00:00.000Z", "attribution": "CC-BY 4.0 Source Robotics"}, "junk"]}
 
     downloads = []
 
@@ -378,6 +378,7 @@ def main():
     bridge.navigatePanel("submitted_models")
     settle(loop, 6)
     check("models: opening the panel reads the list", [row["slug"] for row in bridge.modelsRows], ["ar3"])
+    check("models: the credit of each model is listed (a dash when none)", [row["attribution"] for row in bridge.modelsRows], ["CC-BY 4.0 Source Robotics"])
     check("models: the panel has its list and its button", (find(root, "modelsList") is not None, find(root, "modelsRefreshButton").property("visible")), (True, True))
     folder = tempfile.mkdtemp()
     target = os.path.join(folder, "saved")

@@ -3647,6 +3647,36 @@ class SuiteQtBridge(QObject):
         if patch is not None:
             asyncio.ensure_future(self._save_security(patch))
 
+    @Slot(bool, result=bool)
+    def rateLimitsNeedsConfirmation(self, enabled: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("rateLimits"):
+            return False
+        return server_security.rate_limits_need_confirmation(state, enabled)
+
+    @Slot(str, result=bool)
+    def rateLimitsValid(self, values_json: str) -> bool:
+        state = self._security_state
+        if state is None or not state.get("rateLimits"):
+            return False
+        return server_security.rate_limit_texts_valid(state, self._bridge_values(values_json))
+
+    @Slot(bool, str)
+    def saveRateLimitsOptions(self, enabled: bool, values_json: str) -> None:
+        """Sends only the limiter numbers that changed; a number that is not a whole number inside its range sends nothing."""
+        state = self._security_state
+        if state is None or not state.get("rateLimits"):
+            return
+        patch = server_security.rate_limits_patch(state, enabled, self._bridge_values(values_json))
+        if patch is None:
+            if not server_security.rate_limit_texts_valid(state, self._bridge_values(values_json)):
+                self._security_message = ""
+                self._security_warning = ""
+                self._security_error = _("SECURITY_RL_INVALID")
+                self.changed.emit()
+            return
+        asyncio.ensure_future(self._save_security(patch))
+
     @staticmethod
     def _bridge_values(values_json: str) -> object:
         try:

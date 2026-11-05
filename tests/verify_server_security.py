@@ -234,5 +234,36 @@ check("the warnings of the change", (sec.known_warning(["jwt_eddsa_on"]), sec.kn
 check("every key of the view exists without a server (sign-in tokens included)", set(sec.view(None)) == set(sec.view(au)), True)
 check("every sentence exists", all(_(k) != k for k in ("LBL_SECURITY_AUTH", "TITLE_SECURITY_AUTH", "LBL_SECURITY_AUTH_HS256", "LBL_SECURITY_AUTH_EDDSA", "LBL_SECURITY_AUTH_ACCEPT_HS256", "LBL_SECURITY_AUTH_HELP", "MSG_SECURITY_AUTH_CONFIRM", "BTN_SECURITY_AUTH_ROTATE", "MSG_SECURITY_AUTH_ROTATE_CONFIRM", "SECURITY_AUTH_EDDSA_WARNING", "SECURITY_AUTH_HS256_REFUSED_WARNING", "SECURITY_AUTH_ROTATED", "SECURITY_AUTH_ROTATE_ERROR")), True)
 
+# --- the request limits per address ---
+def rl_entry(value, low=1, high=100000, source="default"):
+    return {"value": value, "min": low, "max": high, "source": source}
+
+
+RL_RAW = {
+    "enabled": {"value": True, "source": "default"},
+    "loginMax": rl_entry(10), "loginWindowSeconds": rl_entry(900, 1, 86400), "refreshMax": rl_entry(30), "apiMax": rl_entry(600),
+    "sensitiveMax": rl_entry(60), "apiWindowSeconds": rl_entry(60, 1, 3600), "stopAllMax": rl_entry(120), "stopAllWindowSeconds": rl_entry(60, 1, 3600),
+}
+rl_limits = sec._rate_limits(RL_RAW)
+check("reads the switch and the eight numbers", (rl_limits["enabled"]["value"], len(rl_limits["numbers"]), rl_limits["numbers"]["loginMax"]), (True, 8, {"value": 10, "min": 1, "max": 100000, "source": "default"}))
+check("a damaged answer shows no section", (sec._rate_limits(None), sec._rate_limits({**RL_RAW, "loginMax": {"value": "x", "min": 1, "max": 2, "source": "env"}}), sec._rate_limits({**RL_RAW, "enabled": {"value": 1, "source": "env"}}), sec._rate_limits({**RL_RAW, "apiMax": rl_entry(True)}), sec._rate_limits({k: v for k, v in RL_RAW.items() if k != "apiMax"})), (None, None, None, None, None))
+state = {"rateLimits": rl_limits}
+texts = {k: str(v["value"]) for k, v in rl_limits["numbers"].items()}
+check("nothing changed sends nothing", sec.rate_limits_patch(state, True, texts), None)
+check("only what changed is sent", sec.rate_limits_patch(state, False, {**texts, "apiMax": "900"}), {"rateLimits": {"enabled": False, "apiMax": 900}})
+check("a number outside its range, not whole or empty is refused", [sec.rate_limits_patch(state, True, {**texts, "loginMax": bad}) for bad in ("0", "100001", "1.5", "", "-3", "ten")], [None] * 6)
+check("a number fixed by the environment is never sent nor required", sec.rate_limits_patch(
+    {"rateLimits": sec._rate_limits({**RL_RAW, "apiMax": rl_entry(600, source="env")})}, True, {**texts, "apiMax": "oops"}), None)
+locked = {"rateLimits": sec._rate_limits({**RL_RAW, "enabled": {"value": True, "source": "env"}})}
+check("a switch fixed by the environment is not sent", sec.rate_limits_patch(locked, False, texts), None)
+check("the typed numbers are checked before sending", (sec.rate_limit_texts_valid(state, texts), sec.rate_limit_texts_valid(state, {**texts, "loginMax": "0"}), sec.rate_limit_texts_valid(state, "x")), (True, False, False))
+check("only switching the limiters off asks", (sec.rate_limits_need_confirmation(state, False), sec.rate_limits_need_confirmation(state, True), sec.rate_limits_need_confirmation({"rateLimits": sec._rate_limits({**RL_RAW, "enabled": {"value": False, "source": "default"}})}, True)), (True, False, False))
+view = sec.view({**sec.parse_state({"aiAccess": {"value": "open", "source": "default"}, "infoAuth": {"value": True, "source": "default"}, "tls": {"enabled": False, "source": "default"}}), "rateLimits": rl_limits})
+check("the view has the eight rows with range and source", (view["rlAvailable"], view["rlEnabled"], [r["key"] for r in view["rlRows"]][:2], view["rlRows"][0]["value"], view["rlRows"][0]["note"].startswith("1 - 100000")), (True, True, ["loginMax", "loginWindowSeconds"], "10", True))
+check("the keys of the view exist before any server answered", set(sec.view(None)) == set(view), True)
+check("the warnings of the server", (sec.known_warning(["rate_limits_off"]), sec.known_warning(["rate_limits_loose"])), (_("SECURITY_RL_OFF_WARNING"), _("SECURITY_RL_LOOSE_WARNING")))
+for key in list(sec.RATE_LIMIT_KEYS.values()) + ["LBL_SECURITY_RL", "LBL_SECURITY_RL_ENABLED", "LBL_SECURITY_RL_HELP", "BTN_SECURITY_RL_SAVE", "TITLE_SECURITY_RL", "MSG_SECURITY_RL_CONFIRM", "SECURITY_RL_OFF_WARNING", "SECURITY_RL_LOOSE_WARNING", "SECURITY_RL_INVALID"]:
+    check(f"sentence {key} exists", _(key) != key, True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)
