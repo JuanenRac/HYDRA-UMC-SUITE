@@ -185,7 +185,7 @@ JuanenPnP、JuanenCNC 和 JuanenLaser 使用独立的 STL 副本，LumenPnP 保�
 
 ### 网格来自单一软件包
 
-3D 模型不再放在仓库目录树中（221 MiB，与 HYDRA-UMC-STUDIO 共用）。`meshes.pack.json` 固定了一个软件包（45 MB，发布在 HYDRA-UMC-MESHES）及每个网格的 SHA-256，`python -m hydra_suite.mesh_pack`（`status`、`check`、`ensure`、`prepare`）会使 `assets/meshes/` 达到该状态。`python main.py`、`run.sh`、`run.bat` 和 `build_exe` 会在首次运行时获取该软件包：只需联网一次，之后软件包保存在 `~/.cache/hydra-umc/meshes`（或 `HYDRA_UMC_MESH_CACHE`）并被重复使用。没有网络时，把软件包复制到该处，或在 `HYDRA_UMC_MESH_PACKAGE` 中给出其路径。来源可以是 `auto`（默认）、`local`（从不下载）或 `download`（逐个按哈希检查网格），在 `mesh_pack.config.json` 中或用 `HYDRA_UMC_MESH_SOURCE` 选择。不匹配的软件包不会安装任何内容，且只接受 `https` 地址；构建好的程序内含这些模型。提示信息支持八种语言。参见 [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md)。
+3D 模型不再放在仓库目录树中（221 MiB，与 HYDRA-UMC-STUDIO 共用）。`meshes.pack.json` 固定了一个软件包（45 MB，发布在 HYDRA-UMC-MESHES）及每个网格的 SHA-256，`python -m hydra_suite.mesh_pack`（`status`、`check`、`ensure`、`prepare`）会使 `assets/meshes/` 达到该状态。`python main.py`、`run.sh`、`run.bat` 和 `build_exe` 会在首次运行时获取该软件包：只需联网一次，之后软件包保存在 `~/.cache/hydra-umc/meshes`（或 `HYDRA_UMC_MESH_CACHE`）并被重复使用。没有网络时，把软件包复制到该处，或在 `HYDRA_UMC_MESH_PACKAGE` 中给出其路径。来源可以是 `auto`（默认）、`local`（从不下载）或 `download`（逐个按哈希检查网格），在 `mesh_pack.config.json` 中或用 `HYDRA_UMC_MESH_SOURCE` 选择。不匹配的软件包不会安装任何内容，且只接受 `https` 地址；构建好的程序内含这些模型。提示信息支持八种语言。参见 [`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md)。 若要让 STUDIO、桌面应用和 STL 编辑器共用一个库，请将 `HYDRA_UMC_LIBRARY_DIR` 指向一个结构相同的文件夹（类别 / 模型 / 文件）：三者都会读取它，软件包绝不会安装到其上；未设置（默认）时，各自使用自己的文件夹。
 
 ## 🔒 安全与防护
 

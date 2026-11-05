@@ -8,7 +8,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "vacuum-tables" / "default"
+from hydra_suite.library_dir import mesh_root
+
+CATALOG_DIR = mesh_root(Path(__file__).resolve().parent.parent / "assets" / "meshes") / "vacuum-tables" / "default"
 _FALLBACK_MODEL = {"id": "160x120x15", "label": "160 x 120 x 15 mm", "width": 160, "length": 120, "totalHeight": 15, "file": ""}
 
 

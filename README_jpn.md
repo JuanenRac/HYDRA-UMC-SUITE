@@ -185,7 +185,7 @@ JuanenPnP、JuanenCNC、JuanenLaser は独立した STL コピーを使用し、
 
 ### メッシュを 1 つのパッケージから
 
-3D モデルはリポジトリのツリーに含まれなくなりました（221 MiB、HYDRA-UMC-STUDIO と共有）。`meshes.pack.json` は 1 つのパッケージ（45 MB、HYDRA-UMC-MESHES で公開）と各メッシュの SHA-256 を固定し、`python -m hydra_suite.mesh_pack`（`status`、`check`、`ensure`、`prepare`）が `assets/meshes/` をその状態にします。`python main.py`、`run.sh`、`run.bat`、`build_exe` は初回実行時にパッケージを取得します。インターネット接続が必要なのは一度だけで、その後パッケージは `~/.cache/hydra-umc/meshes`（または `HYDRA_UMC_MESH_CACHE`）に保存されて再利用されます。ネットワークがない場合は、パッケージをそこにコピーするか、`HYDRA_UMC_MESH_PACKAGE` にそのパスを指定してください。取得元は `auto`（既定）、`local`（ダウンロードしない）、`download`（各メッシュをハッシュで検証）で、`mesh_pack.config.json` または `HYDRA_UMC_MESH_SOURCE` で選びます。一致しないパッケージは何もインストールせず、`https` アドレスのみ受け付けます。ビルド済みのプログラムにはモデルが含まれます。メッセージは 8 言語に対応しています。[`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md) を参照してください。
+3D モデルはリポジトリのツリーに含まれなくなりました（221 MiB、HYDRA-UMC-STUDIO と共有）。`meshes.pack.json` は 1 つのパッケージ（45 MB、HYDRA-UMC-MESHES で公開）と各メッシュの SHA-256 を固定し、`python -m hydra_suite.mesh_pack`（`status`、`check`、`ensure`、`prepare`）が `assets/meshes/` をその状態にします。`python main.py`、`run.sh`、`run.bat`、`build_exe` は初回実行時にパッケージを取得します。インターネット接続が必要なのは一度だけで、その後パッケージは `~/.cache/hydra-umc/meshes`（または `HYDRA_UMC_MESH_CACHE`）に保存されて再利用されます。ネットワークがない場合は、パッケージをそこにコピーするか、`HYDRA_UMC_MESH_PACKAGE` にそのパスを指定してください。取得元は `auto`（既定）、`local`（ダウンロードしない）、`download`（各メッシュをハッシュで検証）で、`mesh_pack.config.json` または `HYDRA_UMC_MESH_SOURCE` で選びます。一致しないパッケージは何もインストールせず、`https` アドレスのみ受け付けます。ビルド済みのプログラムにはモデルが含まれます。メッセージは 8 言語に対応しています。[`docs/MESH_PACKAGE.md`](docs/MESH_PACKAGE.md) を参照してください。 STUDIO、デスクトップアプリ、STLエディターで1つのライブラリを使うには、`HYDRA_UMC_LIBRARY_DIR` を同じ構成（カテゴリ / モデル / ファイル）のフォルダーに向けます。3つとも同じフォルダーを読み込み、パッケージがその上にインストールされることはありません。未設定（既定）の場合は、それぞれが自分のフォルダーを使います。
 
 ## 🔒 セキュリティと安全
 

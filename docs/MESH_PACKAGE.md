@@ -31,6 +31,12 @@ is kept in a cache folder and reused.
 The environment overrides the file: `HYDRA_UMC_MESH_SOURCE`, `HYDRA_UMC_MESH_URL`, `HYDRA_UMC_MESH_CACHE` and
 `HYDRA_UMC_MESH_PACKAGE`. A damaged config file falls back to the defaults.
 
+## One library folder for both apps
+
+`HYDRA_UMC_LIBRARY_DIR` names one existing folder with the layout of `assets/meshes` (category / model / files). When it is set, this app reads the
+models from it, and so do STUDIO and the STL editor, so a model is edited in one place. `ensure` and `prepare` never install the package over it
+(`status` and `check` still compare it with the manifest). Unset, or naming something that is not a folder, nothing changes.
+
 ## Commands
 
 ```

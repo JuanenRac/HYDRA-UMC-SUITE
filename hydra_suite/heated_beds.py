@@ -6,7 +6,9 @@
 import json
 from pathlib import Path
 
-CATALOG_DIR = Path(__file__).resolve().parent.parent / "assets" / "meshes" / "heatedbeds" / "default"
+from hydra_suite.library_dir import mesh_root
+
+CATALOG_DIR = mesh_root(Path(__file__).resolve().parent.parent / "assets" / "meshes") / "heatedbeds" / "default"
 _FALLBACK_MODEL = {"id": "200x200x5", "label": "200 x 200 x 5 mm", "width": 200, "length": 200, "totalHeight": 5, "file": ""}
 
 

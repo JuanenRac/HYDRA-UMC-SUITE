@@ -35,6 +35,7 @@ from PySide6.QtGui import QImage, QOffscreenSurface, QOpenGLContext, QSurfaceFor
 from PySide6.QtOpenGL import QOpenGLFramebufferObject, QOpenGLFramebufferObjectFormat
 
 from hydra_suite.render.generic_rig import SEGMENTS, generic_frame_transforms, segment_world_transform
+from hydra_suite.library_dir import mesh_root
 from hydra_suite.render.kinematics import ROBOT_REGISTRY, quat_family_mesh_world_transforms, ur_mesh_world_transforms
 from hydra_suite.render.mesh import Mesh, load_link_set, make_box_mesh, make_cylinder_mesh
 from hydra_suite.render.module_rig import module_segments, module_segment_mesh, rack_segments
@@ -51,7 +52,7 @@ from hydra_suite.render.pnp_rig import (
     pnp_world_link_transforms,
 )
 
-ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets" / "meshes"
+ASSETS_DIR = mesh_root(Path(__file__).resolve().parent.parent.parent / "assets" / "meshes")
 
 DEFAULT_MODEL = "UR5e (6-DOF)"
 
