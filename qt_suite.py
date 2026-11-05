@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, planning, server_security
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, planner_identity, planning, server_security
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -488,6 +488,9 @@ class SuiteQtBridge(QObject):
         self._hub_gate: dict | None = None  # the switch of the connector hub gate that answers a caller without identity (None: no such gate)
         self._hub_gate_message = ""
         self._hub_gate_error = ""
+        self._planner_identity: dict | None = None  # the switch of the semantic planner that requires a signed-in person to approve (None: no such planner)
+        self._planner_identity_message = ""
+        self._planner_identity_error = ""
         self._security_message = ""
         self._security_error = ""
         self._planning: dict[str, object] = {}
@@ -3153,6 +3156,7 @@ class SuiteQtBridge(QObject):
         self._admin_server_pending_port_text = str(pending if pending is not None else self._admin_server_current_port or "")
         self._security_state = server_security.parse_state(body)
         await self._refresh_hub_gate(conn)
+        await self._refresh_planner_identity(conn)
 
         info_result = await conn.fetch_hydra_info()
         if info_result is not None:
@@ -3207,6 +3211,54 @@ class SuiteQtBridge(QObject):
             self._hub_gate_error = ""
             self._hub_gate = connector_hub_gate.parse_settings(result[1])  # type: ignore[index]
             self._hub_gate_message = _("HUBGATE_SAVED")
+        self.changed.emit()
+
+    # -- Switch of the identity of the approval of a plan (administrators) ---------------
+
+    async def _refresh_planner_identity(self, conn) -> None:
+        try:
+            result = await conn.fetch_semantic_planner_settings()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the semantic planner settings failed: %s", error)
+            result = None
+        self._planner_identity_error = ""
+        if planner_identity.hidden_for(result):
+            self._planner_identity = None
+            return
+        self._planner_identity_error = planner_identity.status_for(result)
+        self._planner_identity = planner_identity.parse_settings(result[1]) if result is not None and not self._planner_identity_error else None
+
+    @Property("QVariantMap", notify=changed)
+    def plannerIdentityView(self) -> dict:
+        view = planner_identity.view(self._planner_identity)
+        view["message"] = self._planner_identity_message
+        view["error"] = self._planner_identity_error
+        view["visible"] = self._planner_identity is not None or bool(self._planner_identity_error)
+        return view
+
+    @Slot(bool, result=bool)
+    def plannerIdentityNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._planner_identity is not None and planner_identity.needs_confirmation(self._planner_identity["require"], wanted)
+
+    @Slot(bool)
+    def savePlannerIdentity(self, wanted: bool) -> None:
+        if self._planner_identity is None or not planner_identity.change_allowed(self._planner_identity, wanted):
+            return
+        asyncio.ensure_future(self._save_planner_identity(wanted))
+
+    async def _save_planner_identity(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._planner_identity_message = ""
+        result = await conn.put_semantic_planner_settings(planner_identity.body_for(wanted))
+        problem = planner_identity.status_for(result)
+        if problem:
+            self._planner_identity_error = problem
+        else:
+            self._planner_identity_error = ""
+            self._planner_identity = planner_identity.parse_settings(result[1])  # type: ignore[index]
+            self._planner_identity_message = _("PLANNERID_SAVED")
         self.changed.emit()
 
     # -- Access options of the Server Admin screen -----------------------------------

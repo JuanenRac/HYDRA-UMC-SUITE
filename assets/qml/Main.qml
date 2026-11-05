@@ -2291,6 +2291,44 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.plannerIdentityView.visible === true
+                        objectName: "plannerIdentityPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("PLANNERID_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("PLANNERID_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.plannerIdentityView.error !== ""; text: suiteBackend.plannerIdentityView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: plannerIdentityBox
+                            objectName: "plannerIdentityBox"
+                            visible: suiteBackend.plannerIdentityView.available === true
+                            text: suiteBackend.uiText("PLANNERID_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.plannerIdentityView.require === true
+                        }
+                        Text { visible: suiteBackend.plannerIdentityView.available === true; objectName: "plannerIdentityState"; text: suiteBackend.plannerIdentityView.state; color: suiteBackend.plannerIdentityView.require === true ? "#4cc38a" : "#e0a030"; font.pixelSize: 10; font.bold: true }
+                        Text { visible: suiteBackend.plannerIdentityView.available === true; text: suiteBackend.plannerIdentityView.kept; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text {
+                            visible: suiteBackend.plannerIdentityView.available === true && plannerIdentityBox.checked !== (suiteBackend.plannerIdentityView.require === true) && suiteBackend.plannerIdentityView.canChange !== true
+                            text: suiteBackend.plannerIdentityView.blocked
+                            color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        }
+                        Text { visible: suiteBackend.plannerIdentityView.message !== ""; text: suiteBackend.plannerIdentityView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Button {
+                            objectName: "plannerIdentitySave"
+                            visible: suiteBackend.plannerIdentityView.available === true
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: plannerIdentityBox.checked !== (suiteBackend.plannerIdentityView.require === true) && suiteBackend.plannerIdentityView.canChange === true
+                            onClicked: {
+                                var wanted = plannerIdentityBox.checked
+                                if (suiteBackend.plannerIdentityNeedsConfirmation(wanted))
+                                    window.requestConfirm(suiteBackend.uiText("PLANNERID_CONFIRM_TITLE"), suiteBackend.uiText("PLANNERID_CONFIRM_MESSAGE"), function() { suiteBackend.savePlannerIdentity(wanted) })
+                                else
+                                    suiteBackend.savePlannerIdentity(wanted)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

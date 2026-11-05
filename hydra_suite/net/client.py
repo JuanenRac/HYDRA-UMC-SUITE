@@ -741,6 +741,15 @@ class HydraConnection(QObject):
         """POST /api/connector-hub/gate/settings (admin-only): {"allowLoopbackNoIdentity": bool, "confirm": true to turn it on}."""
         return await self._request_json("POST", "/api/connector-hub/gate/settings", auth=True, json_body=body)
 
+    async def fetch_semantic_planner_settings(self) -> tuple[int, object] | None:
+        """GET /api/semantic-planner/settings (any signed-in account): the switch of the semantic planner that makes the approval of a plan
+        the act of a signed-in person. 404 on a server that predates the route; 503 with available false while the planner is not configured."""
+        return await self._request_json("GET", "/api/semantic-planner/settings", auth=True)
+
+    async def put_semantic_planner_settings(self, body: dict) -> tuple[int, object] | None:
+        """POST /api/semantic-planner/settings (admin-only): {"requireIdentity": bool, "confirm": true to relax it}."""
+        return await self._request_json("POST", "/api/semantic-planner/settings", auth=True, json_body=body)
+
     async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
         """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
         return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)
