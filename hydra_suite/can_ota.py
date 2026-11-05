@@ -32,6 +32,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import random
 import time
 import zlib
@@ -279,7 +280,8 @@ async def mock_bus_monitor(target: CanOtaTarget) -> AsyncGenerator[CanFrame, Non
 # GitHub firmware download - lets the Flasher pick a firmware asset
 # straight from a project's own repo instead of browsing for a local .bin.
 # Reads `{MANIFEST_DIR}/firmware_manifest.json` from a repo's own default
-# branch (raw.githubusercontent.com - no auth needed for a public repo) -
+# branch (raw.githubusercontent.com - no auth needed for a public repo), or,
+# for HYDRA-UMC (images kept out of git), from its latest release -
 # see canOta.ts's own header comment for the real history behind why this
 # reads a manifest, not the GitHub Releases API.
 # ---------------------------------------------------------------------------
@@ -316,9 +318,85 @@ class GithubFirmwareAsset:
     chip: str | None = None
     hardware_id: str | None = None  # real hardware_id (e.g. "0x48374334") the bootloader validates START_UPDATE against
     signature: str | None = None  # Ed25519 signature of the image (128 hexadecimal digits) when the manifest states one
+    sha256: str | None = None  # SHA-256 of the image (lowercase hex) when the manifest or the release states one
+
+
+# Repos whose firmware images are NOT kept in git: they are built in GitHub Actions and published only as assets
+# of a release (the manifest travels with them), so the latest release is the source.
+RELEASE_ASSET_REPOS = frozenset({"JuanenRac/HYDRA-UMC"})
+_OCTET_STREAM = {"Accept": "application/octet-stream"}
+
+
+def sha256_from_digest(digest: str | None) -> str | None:
+    """The lowercase hex of a "sha256:<hex>" digest as GitHub states it for an uploaded asset, or None."""
+    match = re.fullmatch(r"sha256:([0-9a-fA-F]{64})", (digest or "").strip())
+    return match.group(1).lower() if match else None
+
+
+def _headers_for(url: str) -> dict[str, str] | None:
+    return _OCTET_STREAM if url.startswith("https://api.github.com/") else None
+
+
+async def fetch_release_asset_firmware(repo: str, tier: CanOtaTier, client: "httpx.AsyncClient | None" = None) -> list[GithubFirmwareAsset]:
+    """Manifest, images and their .sig files of the latest release of a repo that keeps no images in git."""
+    own = client is None
+    http = client or httpx.AsyncClient(follow_redirects=True)
+    try:
+        release_url = f"https://api.github.com/repos/{repo}/releases/latest"
+        resp = await http.get(release_url, headers={"Accept": "application/vnd.github+json"}, timeout=10.0)
+        if resp.status_code == 404:
+            return []  # no release published yet
+        if resp.status_code != 200:
+            raise RuntimeError(f"GitHub releases {resp.status_code} fetching {release_url}")
+        release = resp.json()
+        by_name = {a["name"]: a for a in release.get("assets", [])}
+        manifest_asset = by_name.get("firmware_manifest.json")
+        if not manifest_asset:
+            return []
+        manifest_resp = await http.get(manifest_asset["url"], headers=_OCTET_STREAM, timeout=10.0)
+        if manifest_resp.status_code != 200:
+            raise RuntimeError(f"GitHub release asset {manifest_resp.status_code} fetching firmware_manifest.json")
+        components = manifest_resp.json().get("components", {})
+        assets: list[GithubFirmwareAsset] = []
+        for key in TIER_COMPONENTS.get(tier, []):
+            comp = components.get(key)
+            if not comp:
+                continue
+            bin_info = comp["files"]["bin"]
+            image = by_name.get(bin_info["filename"])
+            if not image:
+                continue  # listed by the manifest but not carried by the release: offer nothing rather than a broken link
+            signature = normalize_signature(bin_info.get("signature"))
+            sig_asset = by_name.get(re.sub(r"\.bin$", ".sig", bin_info["filename"], flags=re.IGNORECASE))
+            if not signature and sig_asset:
+                sig_resp = await http.get(sig_asset["url"], headers=_OCTET_STREAM, timeout=10.0)
+                if sig_resp.status_code == 200:
+                    signature = normalize_signature(sig_resp.text)
+            manifest_sha = bin_info.get("sha256")
+            assets.append(
+                GithubFirmwareAsset(
+                    name=bin_info["filename"],
+                    url=image["url"],
+                    size=bin_info["size_bytes"],
+                    release_tag=comp["version_string"],
+                    published_at=release.get("published_at") or image.get("updated_at") or "",
+                    crc32=bin_info.get("crc32"),
+                    display_name=comp.get("display_name"),
+                    chip=comp.get("chip"),
+                    hardware_id=comp.get("hardware_id"),
+                    signature=signature,
+                    sha256=manifest_sha.lower() if isinstance(manifest_sha, str) else sha256_from_digest(image.get("digest")),
+                )
+            )
+        return assets
+    finally:
+        if own:
+            await http.aclose()
 
 
 async def fetch_github_firmware_releases(repo: str, tier: CanOtaTier, branch: str = "main") -> list[GithubFirmwareAsset]:
+    if repo in RELEASE_ASSET_REPOS:
+        return await fetch_release_asset_firmware(repo, tier)
     directory = MANIFEST_DIR.get(repo)
     if not directory:
         raise ValueError(f"No known firmware_manifest.json location for {repo}")
@@ -359,10 +437,12 @@ async def fetch_github_firmware_releases(repo: str, tier: CanOtaTier, branch: st
 
 async def download_github_firmware(asset: GithubFirmwareAsset) -> bytes:
     async with httpx.AsyncClient() as client:
-        resp = await client.get(asset.url, timeout=30.0)
+        resp = await client.get(asset.url, headers=_headers_for(asset.url), timeout=30.0, follow_redirects=True)
     if resp.status_code != 200:
         raise RuntimeError(f"Download failed: {resp.status_code}")
     data = resp.content
+    if asset.sha256 and hashlib.sha256(data).hexdigest() != asset.sha256.lower():
+        raise RuntimeError(f"SHA-256 mismatch after download: expected {asset.sha256}, got {hashlib.sha256(data).hexdigest()} - this is not the file the project published, not flashing it.")
     if asset.crc32:
         actual = f"0x{crc32(data):08X}"
         if actual != asset.crc32:

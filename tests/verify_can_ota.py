@@ -144,6 +144,65 @@ def _run() -> None:
     assert SLOT_FRAMES["relay_response"] != SLOT_FRAMES["relay_request"] and SLOT_FRAMES["relay_response_extra"] != SLOT_FRAMES["relay_request_extra"]
     print("slot frames: one identifier each, inside the window: PASS")
 
+    from hydra_suite.can_ota import GithubFirmwareAsset, download_github_firmware, fetch_release_asset_firmware, sha256_from_digest
+    import hashlib
+    import httpx
+
+    assert sha256_from_digest("sha256:" + "AB" * 32) == "ab" * 32 and sha256_from_digest("sha1:abc") is None and sha256_from_digest(None) is None
+    manifest = {"components": {
+        "g474_bootloader": {"display_name": "Boot", "chip": "G4", "version_string": "0.1.8", "hardware_id": "0x1", "files": {"bin": {"filename": "B.bin", "size_bytes": 1, "crc32": "0x1"}}},
+        "g474_application": {"display_name": "App", "chip": "G4", "version_string": "0.1.9", "hardware_id": "0x2", "files": {"bin": {"filename": "A.bin", "size_bytes": 2, "crc32": "0x2"}}},
+    }}
+    api = "https://api.github.com/repos/JuanenRac/HYDRA-UMC/releases/"
+    release = {"published_at": "x", "assets": [
+        {"name": "firmware_manifest.json", "url": api + "assets/1"},
+        {"name": "A.bin", "url": api + "assets/2", "digest": "sha256:" + "CD" * 32},
+        {"name": "A.sig", "url": api + "assets/3"},
+    ]}
+    asked: list[tuple[str, str | None]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        asked.append((str(request.url), request.headers.get("accept")))
+        if str(request.url).endswith("/releases/latest"):
+            return httpx.Response(200, json=release)
+        if str(request.url).endswith("assets/1"):
+            return httpx.Response(200, json=manifest)
+        if str(request.url).endswith("assets/3"):
+            return httpx.Response(200, text=sig + chr(10))
+        return httpx.Response(500)
+
+    async def _release_listing():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await fetch_release_asset_firmware("JuanenRac/HYDRA-UMC", "controllerBoard", client)
+
+    listed = asyncio.run(_release_listing())
+    assert [a.name for a in listed] == ["A.bin"], listed
+    assert listed[0].sha256 == "cd" * 32 and listed[0].signature == sig.lower() and listed[0].crc32 == "0x2" and listed[0].release_tag == "0.1.9"
+    assert not any("raw.githubusercontent.com" in url for url, _ in asked)
+    assert all(accept == "application/octet-stream" for url, accept in asked if "/assets/" in url)
+    print("firmware listed from the latest release assets: PASS")
+
+    good = b"image-bytes"
+    real_client = httpx.AsyncClient
+
+    class _Client(real_client):
+        def __init__(self, *a, **k):
+            super().__init__(transport=httpx.MockTransport(lambda r: httpx.Response(200, content=good)))
+
+    httpx.AsyncClient = _Client
+    try:
+        ok = GithubFirmwareAsset("A.bin", api + "assets/2", len(good), "1", "", sha256=hashlib.sha256(good).hexdigest())
+        assert asyncio.run(download_github_firmware(ok)) == good
+        bad = GithubFirmwareAsset("A.bin", api + "assets/2", len(good), "1", "", sha256="0" * 64)
+        try:
+            asyncio.run(download_github_firmware(bad))
+            raise AssertionError("a wrong SHA-256 must be refused")
+        except RuntimeError as exc:
+            assert "SHA-256 mismatch" in str(exc)
+    finally:
+        httpx.AsyncClient = real_client
+    print("download checks the SHA-256: PASS")
+
     print("ALL VERIFY_CAN_OTA CHECKS PASSED")
 
 
