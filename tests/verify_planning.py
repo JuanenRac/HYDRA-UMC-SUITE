@@ -51,6 +51,17 @@ check("the view of a rejected plan", (view["accepted"], view["verdictText"], vie
 check("the view of an accepted plan", (planning.simulation_view(planning.parse_simulation(ACCEPTED))["accepted"], planning.simulation_view(planning.parse_simulation(ACCEPTED))["makespan"]),
       (True, f"{_('PLANNING_SIM_MAKESPAN')}: 1 s"))
 
+# -- the kinematic check: `unchecked` is what it says when part of the plan is not shown, and it is never an acceptance
+UNCHECKED = {**ACCEPTED, "verdict": "unchecked", "timeline": [], "unchecked": [{"rule": "orientation_unchecked", "step_id": "a", "message": "not shown"}]}
+unchecked = planning.parse_simulation(UNCHECKED)
+check("reads an unchecked verdict with what was not shown", (unchecked["verdict"], unchecked["unchecked"]), ("unchecked", [{"rule": "orientation_unchecked", "stepId": "a", "message": "not shown", "suggestion": None}]))
+check("refuses an acceptance that lists something unchecked, and an unchecked that lists nothing or a broken limit",
+      [planning.parse_simulation(x) for x in ({**UNCHECKED, "verdict": "accepted"}, {**UNCHECKED, "unchecked": []}, {**UNCHECKED, "violations": [{"rule": "trajectory_limit", "message": "over"}]})], [None] * 3)
+view = planning.simulation_view(unchecked)
+check("the view of an unchecked plan is neither accepted nor rejected", (view["accepted"], view["unchecked"], view["verdictText"], view["notShown"], view["notShownTitle"]),
+      (False, True, _("PLANNING_SIM_UNCHECKED"), ["orientation_unchecked (a): not shown"], _("PLANNING_SIM_UNCHECKED_LIST")))
+check("the trajectory check is one of the few requests the screen may make", ("semantic-planner", "POST", "/plan/trajectory-check") in planning.ALLOWED_REQUESTS, True)
+
 # -- why it could not answer
 check("the sentences for an answer that is not a 200",
       [planning.failure_text(*x) for x in ((200,), (404,), (403,), (401,), (503,), (500,), (None,), (400, {"error": "steps must be a list"}), (400, None))],

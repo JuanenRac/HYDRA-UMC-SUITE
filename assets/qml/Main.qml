@@ -6370,12 +6370,19 @@ ApplicationWindow {
                     font.family: "monospace"
                     text: "{\n  \"steps\": [\n    {\"id\": \"a\", \"primitive\": \"MOVE_TO\", \"robot\": \"r1\", \"params\": {\"location\": \"bin\"}},\n    {\"id\": \"b\", \"primitive\": \"GRIP\", \"robot\": \"r1\", \"params\": {\"target\": \"pcb\"}, \"duration_s\": 0.5, \"depends_on\": [\"a\"]}\n  ],\n  \"constraints\": {\"workspace\": {\"min\": [0, 0, 0], \"max\": [500, 500, 300]}, \"locations\": {\"bin\": [200, 0, 100]}, \"robots\": [\"r1\"]}\n}"
                 }
-                Button { objectName: "planningSimulate"; text: suiteBackend.uiText("PLANNING_SIM_RUN"); enabled: suiteBackend.planningView.busy !== "sim"; onClicked: suiteBackend.simulatePlan(planText.text) }
+                Button { objectName: "planningSimulate"; text: suiteBackend.uiText("PLANNING_SIM_RUN"); enabled: suiteBackend.planningView.busy !== "sim" && suiteBackend.planningView.busy !== "traj"; onClicked: suiteBackend.simulatePlan(planText.text) }
+                Button { objectName: "planningTrajectory"; text: suiteBackend.uiText("PLANNING_TRAJ_RUN"); enabled: suiteBackend.planningView.busy !== "sim" && suiteBackend.planningView.busy !== "traj"; onClicked: suiteBackend.checkPlanTrajectory(planText.text) }
+                Text { text: suiteBackend.uiText("PLANNING_TRAJ_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Text { objectName: "planningSimError"; visible: suiteBackend.planningView.simulationError !== ""; text: suiteBackend.planningView.simulationError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 ColumnLayout {
                     visible: suiteBackend.planningView.simulation !== null && suiteBackend.planningView.simulation !== undefined
                     Layout.fillWidth: true
-                    Text { objectName: "planningSimVerdict"; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.verdictText : ""; color: suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.accepted ? window.green : "#ee6b80"; font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { objectName: "planningSimVerdict"; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.verdictText : ""; color: suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.accepted ? window.green : (suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.unchecked ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { objectName: "planningSimNotShownTitle"; visible: !!suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.notShownTitle !== ""; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notShownTitle : ""; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                    Repeater {
+                        model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notShown : []
+                        delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
                     Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notExecuted : ""; color: "#556070"; font.pixelSize: 9 }
                     Repeater {
                         model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.violations : []

@@ -21,6 +21,7 @@ from hydra_suite.i18n import _
 ALLOWED_REQUESTS = frozenset(
     {
         ("semantic-planner", "POST", "/plan/simulate"),
+        ("semantic-planner", "POST", "/plan/trajectory-check"),
         ("job-dispatcher", "GET", "/dispatch/eta"),
         ("anomaly-detector", "POST", "/rul"),
         ("datalake", "GET", "/windows"),
@@ -89,19 +90,13 @@ def parse_plan_request(text: str) -> dict | None:
     return parsed
 
 
-def parse_simulation(raw: object) -> dict | None:
-    """The answer of a dry run; None when it is not one (including an answer that claims to have executed, or to be executable)."""
-    if not isinstance(raw, dict) or raw.get("executable") is not False or raw.get("executed") is not False:
-        return None
-    verdict = raw.get("verdict")
-    if verdict not in ("accepted", "rejected"):
-        return None
-    violations = []
-    for item in raw.get("violations") if isinstance(raw.get("violations"), list) else []:
+def _violations(raw: object) -> list[dict]:
+    found = []
+    for item in raw if isinstance(raw, list) else []:
         if not isinstance(item, dict) or not isinstance(item.get("rule"), str):
             continue
         suggestion = item.get("suggestion")
-        violations.append(
+        found.append(
             {
                 "rule": item["rule"],
                 "stepId": _text(item.get("step_id")),
@@ -109,8 +104,22 @@ def parse_simulation(raw: object) -> dict | None:
                 "suggestion": None if suggestion is None else suggestion if isinstance(suggestion, str) else json.dumps(suggestion, separators=(",", ":")),
             }
         )
-    if verdict == "accepted" and violations:
-        return None  # an accepted plan that lists a violation is not an accepted plan
+    return found
+
+
+def parse_simulation(raw: object) -> dict | None:
+    """The answer of a dry run; None when it is not one (including an answer that claims to have executed, or to be executable)."""
+    if not isinstance(raw, dict) or raw.get("executable") is not False or raw.get("executed") is not False:
+        return None
+    verdict = raw.get("verdict")
+    if verdict not in ("accepted", "rejected", "unchecked"):
+        return None
+    violations = _violations(raw.get("violations"))
+    unchecked = _violations(raw.get("unchecked"))
+    if verdict == "accepted" and (violations or unchecked):
+        return None  # an accepted plan that lists a violation, or something not shown, is not an accepted plan
+    if verdict == "unchecked" and (violations or not unchecked):
+        return None  # `unchecked` needs something that was not shown, and a broken limit makes it a rejection
     timeline = []
     for item in raw.get("timeline") if isinstance(raw.get("timeline"), list) else []:
         if not isinstance(item, dict):
@@ -119,7 +128,7 @@ def parse_simulation(raw: object) -> dict | None:
         if _text(item.get("step_id")) is None or start is None or end is None:
             continue
         timeline.append({"stepId": item["step_id"], "robot": _text(item.get("robot")) or "", "primitive": _text(item.get("primitive")) or "", "startMs": start, "endMs": end})
-    return {"verdict": verdict, "violations": violations, "timeline": timeline, "makespanMs": _number(raw.get("makespan_ms"))}
+    return {"verdict": verdict, "violations": violations, "unchecked": unchecked, "timeline": timeline, "makespanMs": _number(raw.get("makespan_ms"))}
 
 
 def simulation_view(sim: dict) -> dict:
@@ -129,14 +138,18 @@ def simulation_view(sim: dict) -> dict:
         where = f" ({violation['stepId']})" if violation["stepId"] else ""
         extra = f" - {violation['suggestion']}" if violation["suggestion"] else ""
         lines.append(f"{violation['rule']}{where}: {violation['message']}{extra}")
+    not_shown = [f"{item['rule']}{(' (' + item['stepId'] + ')') if item['stepId'] else ''}: {item['message']}" for item in sim.get("unchecked", [])]
     timeline = [
         f"{e['stepId']}  {e['robot']}  {e['primitive']}  {format_duration(e['startMs'])} - {format_duration(e['endMs'])}" for e in sim["timeline"]
     ]
     return {
         "accepted": sim["verdict"] == "accepted",
-        "verdictText": _("PLANNING_SIM_ACCEPTED") if sim["verdict"] == "accepted" else _("PLANNING_SIM_REJECTED"),
+        "unchecked": sim["verdict"] == "unchecked",
+        "verdictText": _({"accepted": "PLANNING_SIM_ACCEPTED", "unchecked": "PLANNING_SIM_UNCHECKED"}.get(sim["verdict"], "PLANNING_SIM_REJECTED")),
         "notExecuted": _("PLANNING_SIM_NOT_EXECUTED"),
         "violations": lines,
+        "notShown": not_shown,
+        "notShownTitle": _("PLANNING_SIM_UNCHECKED_LIST") if not_shown else "",
         "timeline": timeline,
         "makespan": f"{_('PLANNING_SIM_MAKESPAN')}: {format_duration(sim['makespanMs'])}" if sim["makespanMs"] is not None else "",
     }

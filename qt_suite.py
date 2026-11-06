@@ -2375,6 +2375,16 @@ class SuiteQtBridge(QObject):
         self._planning_set(simulation=None, simulationError="", busy="sim")
         asyncio.ensure_future(self._planning_call("sim", "semantic-planner", "POST", "/plan/simulate", request))
 
+    @Slot(str)
+    def checkPlanTrajectory(self, text: str) -> None:
+        """The kinematic check of the same plan: its verdict can be `unchecked`, which the screen never paints as an acceptance."""
+        request = planning.parse_plan_request(text)
+        if request is None:
+            self._planning_set(simulation=None, simulationError=_("PLANNING_SIM_INVALID_REQUEST"))
+            return
+        self._planning_set(simulation=None, simulationError="", busy="traj")
+        asyncio.ensure_future(self._planning_call("traj", "semantic-planner", "POST", "/plan/trajectory-check", request))
+
     @Slot()
     def loadPlanningEta(self) -> None:
         self._planning_set(eta=None, etaError="", busy="eta")
@@ -2427,7 +2437,7 @@ class SuiteQtBridge(QObject):
         status, answer = (result if result is not None else (None, None))
         problem = planning.failure_text(status, answer)
         values: dict[str, object] = {"busy": ""}
-        if which == "sim":
+        if which in ("sim", "traj"):
             parsed = planning.parse_simulation(answer) if not problem else None
             values.update(simulation=planning.simulation_view(parsed) if parsed else None, simulationError=problem or ("" if parsed else _("PLANNING_MALFORMED")))
         elif which == "eta":
