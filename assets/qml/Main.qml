@@ -2582,6 +2582,91 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        id: ingestSection
+                        objectName: "securityIngestSection"
+                        visible: suiteBackend.securityView.ingestAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        property var ingestWanted: ({})
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Repeater {
+                            model: suiteBackend.securityView.ingestRows
+                            delegate: ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
+                                CheckBox {
+                                    objectName: "securityIngest_" + modelData.key
+                                    text: modelData.label
+                                    palette.windowText: window.textPrimary
+                                    enabled: modelData.locked !== true
+                                    checked: modelData.checked === true
+                                    onToggled: {
+                                        var next = ingestSection.ingestWanted
+                                        next[modelData.key] = checked
+                                        ingestSection.ingestWanted = next
+                                    }
+                                }
+                                Text { text: modelData.hint; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true; leftPadding: 28 }
+                                Text { visible: modelData.locked === true; text: suiteBackend.uiText("LBL_SECURITY_INGEST_LOCKED"); color: window.amber; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true; leftPadding: 28 }
+                            }
+                        }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS"); color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
+                        TextField {
+                            id: ingestKeysField
+                            objectName: "securityIngestKeysFile"
+                            Layout.fillWidth: true
+                            maximumLength: 64
+                            enabled: suiteBackend.securityView.ingestKeysLocked !== true
+                            text: suiteBackend.securityView.ingestKeysFile
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS_HINT"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: !suiteBackend.ingestKeysFileAcceptable(ingestSection.ingestWanted, ingestKeysField.text); objectName: "securityIngestKeysInvalid"; text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS_INVALID"); color: "#ee6b80"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.securityView.ingestRestart !== ""; text: suiteBackend.securityView.ingestRestart; color: window.amber; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityIngestSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: suiteBackend.ingestKeysFileAcceptable(ingestSection.ingestWanted, ingestKeysField.text)
+                            onClicked: {
+                                var wanted = ingestSection.ingestWanted
+                                var keys = ingestKeysField.text
+                                ingestSection.ingestWanted = ({})
+                                if (suiteBackend.ingestNeedsConfirmation(wanted, keys))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_INGEST"), suiteBackend.uiText("MSG_SECURITY_INGEST_CONFIRM"), function() { suiteBackend.saveIngestOptions(wanted, keys) })
+                                else
+                                    suiteBackend.saveIngestOptions(wanted, keys)
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        objectName: "developerNodeStatusPanel"
+                        visible: suiteBackend.securityView.available === true
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Text { text: suiteBackend.uiText("DEVNODE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("DEVNODE_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.developerNodesView.problem !== ""; objectName: "developerNodeProblem"; text: suiteBackend.developerNodesView.problem; color: "#8a97a8"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.developerNodesView.none === true; text: suiteBackend.uiText("DEVNODE_NONE"); color: "#556070"; font.pixelSize: 10 }
+                        Repeater {
+                            model: suiteBackend.developerNodesView.rows
+                            delegate: ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 1
+                                Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
+                                Text { text: modelData.received; color: "#556070"; font.pixelSize: 9 }
+                                Text { text: modelData.fields; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true; textFormat: Text.PlainText }
+                            }
+                        }
+                        Text { visible: suiteBackend.developerNodesView.chain !== ""; objectName: "developerNodeChain"; text: suiteBackend.developerNodesView.chain; color: suiteBackend.developerNodesView.chainOk === true ? window.green : "#ee6b80"; font.pixelSize: 10; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            spacing: 8
+                            Button { objectName: "developerNodeRefresh"; text: suiteBackend.uiText("DEVNODE_REFRESH"); onClicked: suiteBackend.refreshDeveloperNodes(false) }
+                            Button { objectName: "developerNodeVerify"; text: suiteBackend.uiText("DEVNODE_VERIFY"); onClicked: suiteBackend.refreshDeveloperNodes(true) }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.connectionsAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

@@ -257,6 +257,7 @@ def parse_state(body: object) -> dict | None:
         "safety": None,
         "jobDispatcher": None,
         "production": None,
+        "ingest": None,
         "connections": None,
         "exposure": None,
         "install": None,
@@ -357,6 +358,9 @@ def parse_state(body: object) -> dict | None:
     install = _install(body)
     if install is not None:
         state["install"] = install
+    ingest = _ingest(body.get("ingest"))
+    if ingest is not None:
+        state["ingest"] = ingest
     mavlink = body.get("mavlink")
     if isinstance(mavlink, dict):
         key = _option(mavlink.get("signingKeyFile"), str)
@@ -369,6 +373,69 @@ def parse_state(body: object) -> dict | None:
 def is_locked(source: str) -> bool:
     """A value fixed by the environment of the server cannot be changed from the screen."""
     return source == "env"
+
+
+#: What the services hand to the server, one switch each (all off by default); the order is the order of the screen.
+INGEST_KEYS = ("faultFeed", "scenario", "developerNode", "anomalyFeed", "anomalyVoiceRelay", "voiceChain", "proposalVerify")
+_INGEST_FILE_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+
+
+def valid_keys_file_name(name: str) -> bool:
+    """The same rule as the server: empty, or a plain file name (letters, digits, dot, dash, underscore; at most 64; not starting with a dot or a dash)."""
+    if name == "":
+        return True
+    return 0 < len(name) <= 64 and name[0].isalnum() and name.isascii() and all(c in _INGEST_FILE_CHARS for c in name) and ".." not in name
+
+
+def _ingest(raw: object) -> dict | None:
+    """The ingest block of the answer; None when it does not have the shape (a server that predates it)."""
+    if not isinstance(raw, dict):
+        return None
+    switches = {}
+    for key in INGEST_KEYS:
+        option = _option(raw.get(key), bool)
+        if option is None:
+            return None
+        switches[key] = option
+    keys_file = _option(raw.get("proposalKeysFile"), str)
+    if keys_file is None:
+        return None
+    return {"switches": switches, "keysFile": keys_file, "appliesOnRestart": raw.get("appliesOnRestart") is True}
+
+
+def ingest_changes(state: dict, wanted: object, keys_file: object = None) -> dict:
+    """What differs from the saved state: {"switches": {key: bool}, "keysFile": str | absent}. A switch fixed by the environment is never listed."""
+    ingest = state["ingest"]
+    changes: dict = {"switches": {}}
+    if isinstance(wanted, dict):
+        for key in INGEST_KEYS:
+            value = wanted.get(key)
+            if isinstance(value, bool) and value != ingest["switches"][key]["value"] and not is_locked(ingest["switches"][key]["source"]):
+                changes["switches"][key] = value
+    if isinstance(keys_file, str) and keys_file != ingest["keysFile"]["value"] and not is_locked(ingest["keysFile"]["source"]):
+        changes["keysFile"] = keys_file
+    return changes
+
+
+def ingest_needs_confirmation(state: dict, wanted: object, keys_file: object = None) -> bool:
+    """Turning a switch on, or choosing another keys file, asks first. Turning one off, or removing the file, never asks."""
+    changes = ingest_changes(state, wanted, keys_file)
+    return any(changes["switches"].values()) or bool(changes.get("keysFile"))
+
+
+def ingest_patch(state: dict, wanted: object, keys_file: object = None) -> dict | None:
+    """The request body with only what changes (and confirm: true when it needs it); None when nothing changes or the file name is not acceptable."""
+    changes = ingest_changes(state, wanted, keys_file)
+    if "keysFile" in changes and not valid_keys_file_name(changes["keysFile"]):
+        return None
+    body: dict = dict(changes["switches"])
+    if "keysFile" in changes:
+        body["proposalKeysFile"] = changes["keysFile"]
+    if not body:
+        return None
+    if ingest_needs_confirmation(state, wanted, keys_file):
+        body["confirm"] = True
+    return {"ingest": body}
 
 
 def info_auth_needs_confirmation(current: bool, new: bool) -> bool:
@@ -804,6 +871,7 @@ EMPTY_VIEW: dict = {
     "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
     "jdReplanEditable": False, "jdReplanNote": "",
     "productionAvailable": False, "productionRdp": False, "productionRdpLocked": False, "productionRdpSource": "",
+    "ingestAvailable": False, "ingestRows": [], "ingestKeysFile": "", "ingestKeysLocked": False, "ingestKeysSource": "", "ingestRestart": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
     "exposureAvailable": False,
     "exposureCameraOpen": False, "exposureCameraOpenLocked": False, "exposureCameraOpenSource": "",
@@ -1021,6 +1089,28 @@ def view(state: dict | None) -> dict:
                 "productionRdp": production["rdpLevel"]["value"] == 1,
                 "productionRdpLocked": is_locked(production["rdpLevel"]["source"]),
                 "productionRdpSource": source_text(production["rdpLevel"]["source"]),
+            }
+        )
+    ingest = state.get("ingest")
+    if ingest is not None:
+        out.update(
+            {
+                "ingestAvailable": True,
+                "ingestRows": [
+                    {
+                        "key": key,
+                        "label": _("LBL_SECURITY_INGEST_" + key.upper()),
+                        "hint": _("LBL_SECURITY_INGEST_" + key.upper() + "_HINT"),
+                        "checked": ingest["switches"][key]["value"],
+                        "locked": is_locked(ingest["switches"][key]["source"]),
+                        "source": source_text(ingest["switches"][key]["source"]),
+                    }
+                    for key in INGEST_KEYS
+                ],
+                "ingestKeysFile": ingest["keysFile"]["value"],
+                "ingestKeysLocked": is_locked(ingest["keysFile"]["source"]),
+                "ingestKeysSource": source_text(ingest["keysFile"]["source"]),
+                "ingestRestart": _("LBL_SECURITY_INGEST_RESTART") if ingest["appliesOnRestart"] else "",
             }
         )
     connections = state.get("connections")

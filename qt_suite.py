@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, ecosystem_health, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -500,6 +500,8 @@ class SuiteQtBridge(QObject):
         self._service_identity: dict | None = None  # the identity the server presents to the services (None: a server without the route)
         self._service_identity_message = ""
         self._service_identity_error = ""
+        self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
+        self._developer_nodes_problem = ""
         self._security_message = ""
         self._security_error = ""
         self._planning: dict[str, object] = {}
@@ -3169,6 +3171,7 @@ class SuiteQtBridge(QObject):
         await self._refresh_ops_proposals(conn)
         await self._refresh_hil_bridge(conn)
         await self._refresh_service_identity(conn)
+        await self._refresh_developer_nodes(conn, False)
 
         info_result = await conn.fetch_hydra_info()
         if info_result is not None:
@@ -3617,6 +3620,52 @@ class SuiteQtBridge(QObject):
     @Slot(bool)
     def saveHealthOptions(self, open_: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.health_patch(open_)))
+
+    @Slot("QVariantMap", str, result=bool)
+    def ingestNeedsConfirmation(self, wanted: dict, keys_file: str) -> bool:
+        state = self._security_state
+        if state is None or not state.get("ingest"):
+            return False
+        return server_security.ingest_needs_confirmation(state, wanted, keys_file)
+
+    @Slot("QVariantMap", str, result=bool)
+    def ingestKeysFileAcceptable(self, wanted: dict, keys_file: str) -> bool:
+        return server_security.valid_keys_file_name(keys_file)
+
+    @Slot("QVariantMap", str)
+    def saveIngestOptions(self, wanted: dict, keys_file: str) -> None:
+        state = self._security_state
+        if state is None or not state.get("ingest"):
+            return
+        patch = server_security.ingest_patch(state, wanted, keys_file)
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
+
+    # -- Status of the developer node (read only; the route answers 404 while the switch is off) ----------------
+
+    async def _refresh_developer_nodes(self, conn, verify: bool) -> None:
+        try:
+            result = await conn.fetch_developer_node_status(verify)
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the status of the developer node failed: %s", error)
+            result = None
+        self._developer_nodes_problem = developer_node_status.status_for(result)
+        self._developer_nodes = developer_node_status.parse_status(result[1]) if result is not None and not self._developer_nodes_problem else None
+
+    @Property("QVariantMap", notify=changed)
+    def developerNodesView(self) -> dict:
+        return developer_node_status.view(self._developer_nodes, self._developer_nodes_problem)
+
+    @Slot(bool)
+    def refreshDeveloperNodes(self, verify: bool) -> None:
+        asyncio.ensure_future(self._reload_developer_nodes(verify))
+
+    async def _reload_developer_nodes(self, verify: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        await self._refresh_developer_nodes(conn, verify)
+        self.changed.emit()
 
     @Slot(bool, result=bool)
     def productionNeedsConfirmation(self, on: bool) -> bool:

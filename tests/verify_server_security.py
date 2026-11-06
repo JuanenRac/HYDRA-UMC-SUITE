@@ -269,5 +269,22 @@ check("the warnings of the server", (sec.known_warning(["rate_limits_off"]), sec
 for key in list(sec.RATE_LIMIT_KEYS.values()) + ["LBL_SECURITY_RL", "LBL_SECURITY_RL_ENABLED", "LBL_SECURITY_RL_HELP", "BTN_SECURITY_RL_SAVE", "TITLE_SECURITY_RL", "MSG_SECURITY_RL_CONFIRM", "SECURITY_RL_OFF_WARNING", "SECURITY_RL_LOOSE_WARNING", "SECURITY_RL_INVALID"]:
     check(f"sentence {key} exists", _(key) != key, True)
 
+# -- what the services hand to the server (the ingest switches) --
+ING = {**EXPO, "ingest": {**{k: _opt(False) for k in sec.INGEST_KEYS}, "proposalKeysFile": _opt(""), "appliesOnRestart": False}}
+ins = sec.parse_state(ING)
+check("the ingest block is read, every switch off by default", ([ins["ingest"]["switches"][k]["value"] for k in sec.INGEST_KEYS], ins["ingest"]["keysFile"]["value"], sec.view(ins)["ingestAvailable"], sec.view(es)["ingestAvailable"]), ([False] * 7, "", True, False))
+check("a damaged or missing ingest block shows no section", [sec.parse_state({**EXPO, "ingest": body})["ingest"] for body in ({}, {**ING["ingest"], "voiceChain": _opt("yes")}, {**ING["ingest"], "faultFeed": _opt(True, "nowhere")}, {**ING["ingest"], "proposalKeysFile": _opt(3)}, 5)], [None] * 5)
+check("the view has a row per switch with its label, hint and lock", ([r["key"] for r in sec.view(ins)["ingestRows"]], all(r["label"] and not r["label"].startswith("LBL_") and r["hint"] and not r["hint"].startswith("LBL_") for r in sec.view(ins)["ingestRows"])), (list(sec.INGEST_KEYS), True))
+locked = sec.parse_state({**EXPO, "ingest": {**ING["ingest"], "faultFeed": _opt(True, "env"), "proposalKeysFile": _opt("/etc/k.json", "env"), "appliesOnRestart": True}})
+check("a switch and a keys file fixed by the environment are locked, and a restart is told", (sec.view(locked)["ingestRows"][0]["locked"], sec.view(locked)["ingestRows"][1]["locked"], sec.view(locked)["ingestKeysLocked"], bool(sec.view(locked)["ingestRestart"])), (True, False, True, True))
+check("only a switch turned on, or another keys file, asks", [sec.ingest_needs_confirmation(ins, w, k) for w, k in (({"scenario": True}, None), ({"scenario": False}, None), ({}, "operators.json"), ({}, ""), ({}, None))], [True, False, True, False, False])
+check("the request has only what changes and confirm exactly when it asks", (sec.ingest_patch(ins, {"scenario": True, "voiceChain": False}, ""), sec.ingest_patch(ins, {}, "operators.json"), sec.ingest_patch(ins, {}, ""), sec.ingest_patch(ins, {"scenario": "yes"}, None)), ({"ingest": {"scenario": True, "confirm": True}}, {"ingest": {"proposalKeysFile": "operators.json", "confirm": True}}, None, None))
+on = sec.parse_state({**EXPO, "ingest": {**ING["ingest"], "voiceChain": _opt(True, "config")}})
+check("turning one off sends no confirmation", sec.ingest_patch(on, {"voiceChain": False}, None), {"ingest": {"voiceChain": False}})
+check("a locked switch is never sent", (sec.ingest_patch(locked, {"faultFeed": False}, "other.json"), sec.ingest_needs_confirmation(locked, {"faultFeed": True}, "other.json")), (None, False))
+check("the keys file name follows the rule of the server", ([sec.valid_keys_file_name(n) for n in ("", "operators.json", "a_b-c.2.json")], [sec.valid_keys_file_name(n) for n in ("../k.json", "a/b", ".hidden", "a..b", "x" * 65, "a b", "ñ.json")]), ([True] * 3, [False] * 7))
+check("an invalid keys file is not sent", sec.ingest_patch(ins, {}, "../k.json"), None)
+check("every key of the view exists without a server (ingest included)", set(sec.view(None)) == set(sec.view(ins)), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

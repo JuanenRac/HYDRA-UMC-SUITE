@@ -759,6 +759,11 @@ class HydraConnection(QObject):
         """PUT /api/admin/server-config (admin-only) with {"auth": {"serviceIdentity": {"enabled": bool, "confirm": true to turn it on}}}."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
 
+    async def fetch_developer_node_status(self, verify: bool = False) -> tuple[int, object] | None:
+        """GET /api/developer-node/status (any signed-in account): the latest status each developer node sent to the server; with verify the
+        answer also carries the result of checking the signed record. 404 while the switch of the server is off or on a server that predates it."""
+        return await self._request_json("GET", "/api/developer-node/status" + ("?verify=1" if verify else ""), auth=True)
+
     async def fetch_ops_agent_proposals(self) -> tuple[int, object] | None:
         """GET /api/ops-agent/proposals (admin-only): the proposals of the node watchdog that wait for a person and the last decisions.
         404 on a server that predates the route; 503 with available false while the channel to the watchdog is not set up."""
