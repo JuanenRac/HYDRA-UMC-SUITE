@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0, ".")
 
 from hydra_suite.i18n import _
+from hydra_suite.panel_logic import developer_node_status as dev
 from hydra_suite.panel_logic import server_security as sec
 
 failures = 0
@@ -285,6 +286,32 @@ check("a locked switch is never sent", (sec.ingest_patch(locked, {"faultFeed": F
 check("the keys file name follows the rule of the server", ([sec.valid_keys_file_name(n) for n in ("", "operators.json", "a_b-c.2.json")], [sec.valid_keys_file_name(n) for n in ("../k.json", "a/b", ".hidden", "a..b", "x" * 65, "a b", "ñ.json")]), ([True] * 3, [False] * 7))
 check("an invalid keys file is not sent", sec.ingest_patch(ins, {}, "../k.json"), None)
 check("every key of the view exists without a server (ingest included)", set(sec.view(None)) == set(sec.view(ins)), True)
+
+# -- the status of the developer node (read only) --
+DEV_BODY = {
+    "nodes": {
+        "dev-b": {"at": 1700000000000, "seq": 4, "status": {"version": "1.2.3", "ok": True, "count": 7, "nested": {"a": 1}, "list": [1]}},
+        "dev-a": {"at": 1700000001000, "seq": 9, "status": {}},
+    },
+    "chain": {"ok": True},
+}
+parsed = dev.parse_status(DEV_BODY)
+check("the nodes are sorted by id", [n["nodeId"] for n in parsed["nodes"]], ["dev-a", "dev-b"])
+check("only plain values are kept", parsed["nodes"][1]["fields"], [{"name": "version", "value": "1.2.3"}, {"name": "ok", "value": "true"}, {"name": "count", "value": "7"}])
+check("the chain result is read", parsed["chain"], {"ok": True})
+check("an answer without nodes is refused", (dev.parse_status({}), dev.parse_status({"nodes": []}), dev.parse_status(None)), (None, None, None))
+check("a node without a time or an entry number is dropped", dev.parse_status({"nodes": {"x": {"at": "now", "seq": 1}, "y": {"at": 1, "seq": True}, "z": 5}})["nodes"], [])
+check("a damaged chain result is ignored", dev.parse_status({"nodes": {}, "chain": {"ok": "yes"}})["chain"], None)
+check("the fields are limited", len(dev.parse_status({"nodes": {"x": {"at": 1, "seq": 1, "status": {f"k{i}": i for i in range(100)}}}})["nodes"][0]["fields"]), dev.MAX_FIELDS)
+check("a long text is cut", len(dev.parse_status({"nodes": {"x": {"at": 1, "seq": 1, "status": {"k": "a" * 1000}}}})["nodes"][0]["fields"][0]["value"]), dev.MAX_TEXT)
+
+check("a switch that is off, a refused account and a failure have their sentence", (dev.status_for((404, {})), dev.status_for((403, {})), dev.status_for(None), dev.status_for((200, {"x": 1})), dev.status_for((200, DEV_BODY))), (_("DEVNODE_OFF"), _("DEVNODE_FORBIDDEN"), _("DEVNODE_LOAD_ERROR"), _("DEVNODE_LOAD_ERROR"), ""))
+dev_view = dev.view(parsed)
+check("the view has a row per node with its time and fields", ([r["title"] for r in dev_view["rows"]], dev_view["rows"][1]["fields"].splitlines()[:2], _("DEVNODE_ENTRY") in dev_view["rows"][0]["received"]), (["dev-a", "dev-b"], ["version: 1.2.3", "ok: true"], True))
+check("the chain is said intact or broken", (dev_view["chain"], dev_view["chainOk"], dev.view({"nodes": [], "chain": {"ok": False}})["chain"]), (_("DEVNODE_CHAIN_OK"), True, _("DEVNODE_CHAIN_BROKEN")))
+check("no node yet is told, and no answer shows only the problem", (dev.view({"nodes": [], "chain": None})["none"], dev.view(None, "x")), (True, {"problem": "x", "rows": [], "none": False, "chain": "", "chainOk": False}))
+for key in ("DEVNODE_TITLE", "DEVNODE_DESC", "DEVNODE_REFRESH", "DEVNODE_VERIFY", "DEVNODE_CHAIN_OK", "DEVNODE_CHAIN_BROKEN", "DEVNODE_NONE", "DEVNODE_OFF", "DEVNODE_LOAD_ERROR", "DEVNODE_FORBIDDEN", "DEVNODE_RECEIVED", "DEVNODE_ENTRY"):
+    check(f"sentence {key} exists", _(key) != key, True)
 
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)
