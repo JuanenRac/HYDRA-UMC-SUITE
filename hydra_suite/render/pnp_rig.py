@@ -37,16 +37,9 @@
 #              as z_carriage_left)
 #              -> nozzle_right   (rotates about Z only - nozzle 2)
 #
-# Real bug fixed, ported from the same fix in LumenPnPRig.tsx:
-# this used to merge each Z-carriage housing and its nozzle into ONE rigid
-# transform (z_carriage_n1/n2) that translated AND rotated together - a
-# real, visible error, since the housing's own real footprint at that
-# joint is ~44x51mm (measured off the real per-part CAD bounding box), so
-# the whole rectangular slider block would visibly swing around the Z axis
-# every time a nozzle rotated, which the physical machine never does (only
-# the ~10x10mm nozzle barrel itself spins). Splitting them into the 7
-# links above - matching this project's own formal lumenpnp_juanenpnp.urdf
-# link-for-link - fixes it: only nozzle_left/nozzle_right rotate now.
+# As in LumenPnPRig.tsx, the Z-carriage housing and its nozzle are separate links (the 7 links above, matching this project's formal
+# lumenpnp_juanenpnp.urdf link-for-link): only the ~10x10mm nozzle barrel rotates, as on the machine, while the ~44x51mm housing (measured off the
+# per-part CAD bounding box) stays put.
 # =============================================================================
 from __future__ import annotations
 

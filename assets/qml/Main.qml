@@ -4835,11 +4835,8 @@ ApplicationWindow {
                     from: modelData.min; to: modelData.max
                     value: Math.round(modelData.value)
                     editable: true
-                    // Real, previously-confirmed bug (see Pick and Place's own
-                    // CHANGELOG entry): too narrow a SpinBox clips a real
-                    // multi-digit value down to its last digit(s) - table mm
-                    // fields need up to 5 digits/sign ("-2000"), so this one
-                    // gets extra room over the joint fields' own "-180".
+                    // Wide enough for the longest value: a SpinBox that is too narrow clips a multi-digit value down to its last digit(s), and the table mm fields
+                    // need up to 5 digits/sign ("-2000"), so this one gets extra room over the joint fields' own "-180".
                     Layout.preferredWidth: 150
                     onValueModified: suiteBackend.setAtcPosField(slotKey, modelData.field, value)
                 }

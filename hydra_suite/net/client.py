@@ -448,18 +448,9 @@ class HydraConnection(QObject):
                     timeout=5.0,
                 )
                 if resp.status_code == 429:
-                    # Real bug found live: server.ts's own loginRateLimiter
-                    # (default 5 attempts/15min/IP) tripped, and this
-                    # class's own _run() reconnect loop was retrying
-                    # login() every RECONNECT_DELAY_S with no backoff -
-                    # wrong credentials (or a server that was briefly down
-                    # mid reconnect burst) exhausted that budget in ~15s,
-                    # then looked "broken" for the full 15-minute lockout,
-                    # on every server this app connected to. The 429 body
-                    # already carries retryAfterMs specifically for a
-                    # well-behaved client to honor (see that handler's own
-                    # comment) - _run() now sleeps that long instead of
-                    # blindly retrying into the same lockout.
+                    # The login rate limiter of the server (default 5 attempts/15min/IP) answers 429 with `retryAfterMs`: wrong credentials, or a server briefly down
+                    # mid reconnect burst, would exhaust that budget in ~15s if _run() retried login() every RECONNECT_DELAY_S, and the app would look "broken" for
+                    # the full lockout. _run() sleeps for the time the server asks instead of retrying blindly into the same lockout.
                     try:
                         body = resp.json()
                     except ValueError:
@@ -1247,28 +1238,12 @@ class HydraConnection(QObject):
             await send_now()
             return
 
-        # Real bug found live: this used to be a genuine DEBOUNCE (cancel
-        # the pending timer and restart it on every call) rather than a
-        # THROTTLE - during a CONTINUOUS drag (RotaryKnob.mouseMoveEvent()/
-        # QSlider.valueChanged firing faster than debounce_ms apart, which
-        # a smooth mouse drag routinely does), every new tick cancelled the
-        # previous timer before it ever fired, so essentially nothing
-        # reached the network until the drag paused or ended. SUITE's own
-        # viewport still looked perfectly smooth (local_mutate applies
-        # instantly, no network round-trip needed for that), but every
-        # OTHER connected client (HYDRA-UMC STUDIO's browser UI, watching
-        # the same robot live) received almost nothing during the drag and
-        # then jumped straight to the final value - reported live as "en
-        # Studio va a trompicones" while SUITE's own view moved smoothly.
-        #
-        # Now a real throttle: the first call in a burst schedules exactly
-        # one send `debounce_ms` out; every later call during that same
-        # window only updates which `send_now` will run when it fires
-        # (always the latest one - the exact command this call would have
-        # sent), it does NOT reset the timer. A steady stream of drag
-        # events now reaches every other client at a steady ~debounce_ms
-        # cadence for as long as the drag continues, instead of only once
-        # it stops.
+        # A THROTTLE, not a debounce: during a CONTINUOUS drag (RotaryKnob.mouseMoveEvent()/QSlider.valueChanged firing faster than debounce_ms apart)
+        # a debounce would cancel the pending timer on every tick and almost nothing would reach the network until the drag ends, so every OTHER
+        # connected client (HYDRA-UMC STUDIO watching the same robot) would get nothing during the drag and then jump to the final value, while this
+        # window's own view (local_mutate applies instantly) looks smooth. The first call in a burst schedules exactly one send `debounce_ms` out; every
+        # later call during that window only updates which `send_now` will run when it fires (always the latest one) and does NOT reset the timer, so a
+        # steady stream of drag events reaches every other client at a steady ~debounce_ms cadence for as long as the drag continues.
         throttle_key = (robot_id, command)
         self._throttle_latest_send[throttle_key] = send_now
         pending = self._throttle_tasks.get(throttle_key)
