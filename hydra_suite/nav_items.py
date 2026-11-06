@@ -50,6 +50,7 @@ HYDRAUMC_ITEMS: tuple[tuple[str, str], ...] = (
 # family and the administration screens. The administration screens answer with a refusal to an account that is
 # not an administrator, and the safety limits screen says so instead of offering its controls.
 HYDRAUMC_ECOSYSTEM_ITEMS: tuple[tuple[str, str], ...] = (
+    ("DOCK_ECOSYSTEM_MAP", "ecosystem_map"),
     ("DOCK_ECOSYSTEM_SERVICES", "ecosystem_services"),
     ("DOCK_ECOSYSTEM_TELEMETRY", "ecosystem_telemetry"),
     ("DOCK_ECOSYSTEM_HEALTH", "ecosystem_health"),

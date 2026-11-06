@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -823,6 +823,12 @@ class SuiteQtBridge(QObject):
         self._eco_health_timer = self._scheduler.add("ecosystem_health", ecosystem_health.POLL_MS, lambda: asyncio.ensure_future(self._refresh_eco_health()))
         self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self.changed.emit)
         controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
+        # -- Map of the ecosystem: the projects of GET /api/ecosystem/status (shared with the services screen) plus the drift of the health; read only. --
+        self._map_filter = "all"
+        self._map_search = ""
+        self._map_evidence = load_config().get("mapShowEvidence") is True
+        self._map_timer = self._scheduler.add("ecosystem_map", ecosystem_map.POLL_MS, lambda: asyncio.ensure_future(self._refresh_map()))
+        controller.active_connection_changed.connect(self._on_map_connection_changed)
         self._apply_poller_gates()
         # The swarm view, the combined mode, the path viewer and the check of versions (hydra_suite/extras_bridge.py).
         self._extras = SuiteExtras(self)
@@ -848,6 +854,7 @@ class SuiteQtBridge(QObject):
             "safety_limits": [self._safety_timer],
             "system_supervisor": [self._supervisor_timer],
             "ecosystem_health": [self._eco_health_timer, self._eco_health_tick],
+            "ecosystem_map": [self._map_timer],
         }
 
     def _apply_poller_gates(self) -> None:
@@ -882,6 +889,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_supervisor())
             elif key == "ecosystem_health":
                 asyncio.ensure_future(self._refresh_eco_health())
+            elif key == "ecosystem_map":
+                asyncio.ensure_future(self._refresh_map())
             elif key == "ecosystem_planning":
                 asyncio.ensure_future(self._probe_planning_switches())
             elif key == "robots_catalog":
@@ -2347,6 +2356,66 @@ class SuiteQtBridge(QObject):
             problem = _("ECOHEALTH_LOAD_ERROR")
         self._eco_health_status = problem
         self.changed.emit()
+
+    # -- Map of the ecosystem ------------------------------------------------
+
+    @Property("QVariantMap", notify=changed)
+    def mapView(self) -> dict[str, object]:
+        """What the Map screen shows; every part already carries the sentences in the language of the interface."""
+        projects = ecosystem_map.parse_projects(self._es_projects)
+        drifting = ecosystem_map.drifting_names(self._eco_health)
+        families = ecosystem_map.family_rows(projects, self._map_filter, self._map_search, drifting, self._map_evidence, current_language())
+        if not projects:
+            empty = self._es_status_text
+        elif not families:
+            empty = _("ECOMAP_EMPTY")
+        else:
+            empty = ""
+        return {
+            "filters": ecosystem_map.filter_rows(projects, self._map_filter),
+            "families": families,
+            "empty": empty,
+            "showEvidence": self._map_evidence,
+            "search": self._map_search,
+            "scanned": self._es_status_text if projects else "",
+        }
+
+    @Slot(str)
+    def setMapFilter(self, key: str) -> None:
+        key = "all" if key == self._map_filter else key
+        if key in ecosystem_map.FILTERS and key != self._map_filter:
+            self._map_filter = key
+            self.changed.emit()
+
+    @Slot(str)
+    def setMapSearch(self, text: str) -> None:
+        self._map_search = text
+        self.changed.emit()
+
+    @Slot(bool)
+    def setMapEvidence(self, show: bool) -> None:
+        """The switch that adds to each tile what the project has been tried on; kept in the configuration file, off until turned on."""
+        self._map_evidence = bool(show)
+        save_config({"mapShowEvidence": self._map_evidence})
+        self.changed.emit()
+
+    @Slot()
+    def refreshMap(self) -> None:
+        asyncio.ensure_future(self._refresh_map())
+
+    def _on_map_connection_changed(self, _conn_id: str) -> None:
+        # another server: nothing of the old one stays on screen
+        self._es_projects, self._eco_health = [], None
+        self._es_status_text = _("LBL_ES_NOT_LOADED")
+        if self._active_key == "ecosystem_map":
+            asyncio.ensure_future(self._refresh_map())
+        else:
+            self.changed.emit()
+
+    async def _refresh_map(self) -> None:
+        await self._refresh_ecosystem_services()
+        # the drift comes from the health of the ecosystem; where that is off or not allowed the map just shows no drift
+        await self._refresh_eco_health()
 
     # -- Planning and operation (read only views and dry runs) ---------------
 

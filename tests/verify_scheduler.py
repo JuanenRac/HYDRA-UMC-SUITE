@@ -90,7 +90,7 @@ def shell() -> None:
     check(
         "shell: every poller of the interface is a job of it",
         names,
-        sorted(["admin_clients", "admin_clients_clock", "admin_logs", "camera_status", "access_robot", "access_clock", "safety_limits", "system_supervisor", "ecosystem_health", "ecosystem_health_clock"]),
+        sorted(["admin_clients", "admin_clients_clock", "admin_logs", "camera_status", "access_robot", "access_clock", "safety_limits", "system_supervisor", "ecosystem_health", "ecosystem_health_clock", "ecosystem_map"]),
     )
     check("shell: none of them runs on the first screen", bridge._scheduler.active_jobs(), [])
     for key, jobs in bridge._poller_gates().items():

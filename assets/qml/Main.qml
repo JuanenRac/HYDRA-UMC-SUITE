@@ -621,6 +621,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "submitted_models") return submittedModelsComponent
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
                     if (suiteBackend.activePanel === "ecosystem_health") return ecosystemHealthComponent
+                    if (suiteBackend.activePanel === "ecosystem_map") return ecosystemMapComponent
                     if (suiteBackend.activePanel === "ecosystem_planning") return planningComponent
                     return null
                 }
@@ -6440,6 +6441,108 @@ ApplicationWindow {
                 Text { text: suiteBackend.uiText("PLANNING_DL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Text { objectName: "planningWindows"; text: suiteBackend.planningView.windows; color: window.textPrimary; font.pixelSize: 11 }
                 Text { text: suiteBackend.uiText("PLANNING_DL_DOWNSAMPLING"); color: "#556070"; font.pixelSize: 9 }
+            }
+        }
+    }
+
+    Component {
+        id: ecosystemMapComponent
+        ColumnLayout {
+            id: mapRoot
+            width: contentLoader.width
+            height: contentLoader.height
+            spacing: 8
+            property var view: suiteBackend.mapView
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_MAP"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Item { Layout.fillWidth: true }
+                CheckBox {
+                    objectName: "ecoMapEvidenceToggle"
+                    text: suiteBackend.uiText("ECOMAP_EVIDENCE_SHOW")
+                    checked: mapRoot.view.showEvidence === true
+                    onToggled: suiteBackend.setMapEvidence(checked)
+                }
+                Button { objectName: "ecoMapRefresh"; text: suiteBackend.uiText("ECOMAP_REFRESH"); onClicked: suiteBackend.refreshMap() }
+            }
+            Text { text: suiteBackend.uiText("ECOMAP_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: mapRoot.view.showEvidence === true; text: suiteBackend.uiText("ECOMAP_EVIDENCE_HINT"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    Repeater {
+                        model: mapRoot.view.filters
+                        delegate: Button {
+                            required property var modelData
+                            objectName: "ecoMapFilter_" + modelData.key
+                            text: modelData.label
+                            checkable: true
+                            checked: modelData.selected
+                            onClicked: suiteBackend.setMapFilter(modelData.key)
+                        }
+                    }
+                }
+                TextField {
+                    objectName: "ecoMapSearch"
+                    Layout.preferredWidth: 180
+                    placeholderText: suiteBackend.uiText("ECOMAP_SEARCH")
+                    text: mapRoot.view.search
+                    color: window.textPrimary
+                    onTextEdited: suiteBackend.setMapSearch(text)
+                    background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                }
+            }
+            Text { objectName: "ecoMapEmpty"; visible: mapRoot.view.empty !== ""; text: mapRoot.view.empty; color: "#556070"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: mapRoot.view.scanned !== ""; text: mapRoot.view.scanned; color: "#556070"; font.pixelSize: 9 }
+            ListView {
+                objectName: "ecoMapFamilies"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 10
+                model: mapRoot.view.families
+                delegate: ColumnLayout {
+                    required property var modelData
+                    width: ListView.view.width
+                    spacing: 4
+                    Text { text: modelData.family + " - " + modelData.count; color: "#7f8ea1"; font.bold: true; font.pixelSize: 10 }
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Repeater {
+                            model: modelData.tiles
+                            delegate: Card {
+                                required property var modelData
+                                objectName: "ecoMapTile_" + modelData.name
+                                width: 190
+                                height: 78
+                                border.color: modelData.colour
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 1
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+                                        Rectangle { width: 9; height: 9; radius: 5; color: modelData.colour }
+                                        Text { text: modelData.short; color: window.textPrimary; font.bold: true; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                    }
+                                    Text { text: modelData.details; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        Text { text: modelData.stateLabel; color: modelData.colour; font.bold: true; font.pixelSize: 9 }
+                                        Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: 9 }
+                                    }
+                                    Text { visible: modelData.evidence !== ""; text: modelData.evidence; color: modelData.evidenceColour; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

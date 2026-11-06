@@ -1273,6 +1273,25 @@ def _run() -> None:
         loop.run_until_complete(asyncio.sleep(0))
     assert not warnings, f"Ecosystem health QML warnings: {warnings}"
     assert len(qml_bridge.ecoHealthCards) == 2 and qml_bridge.ecoHealthCards[0]["name"] == "alpha"
+    # The Map of the ecosystem with tiles, a drift mark and the evidence of the maturity ledger switched on.
+    qml_bridge.navigatePanel("ecosystem_map")
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    qml_bridge._es_projects = [
+        {"name": "HYDRA-UMC-SERVER", "family": "core", "version": "1.0.0", "servicePort": 3000, "activeState": "active", "stack": "node"},
+        {"name": "HYDRA-UMC-TWIN", "family": "core", "live": False},
+        {"name": "NO-FAMILY"},
+    ]
+    qml_bridge._map_evidence = True
+    qml_bridge.changed.emit()
+    for _tick in range(3):
+        loop.run_until_complete(asyncio.sleep(0))
+    assert not warnings, f"Ecosystem map QML warnings: {warnings}"
+    assert [family["family"] for family in qml_bridge.mapView["families"]][0] == "core" and qml_bridge.mapView["filters"][0]["label"].endswith("3")
+    qml_bridge.setMapFilter("down")
+    assert [t["name"] for f in qml_bridge.mapView["families"] for t in f["tiles"]] == ["HYDRA-UMC-TWIN"]
+    qml_bridge.setMapFilter("down")  # the same filter again goes back to all
+    assert qml_bridge.mapView["filters"][0]["selected"] is True
     # ... and its switch on the Server Admin screen, locked by the environment
     from hydra_suite.panel_logic import server_security
     qml_bridge._security_state = server_security.parse_state({

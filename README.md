@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-62%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-63%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.8.0.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 62 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing. The interface is Qt Quick only (`qt_suite.py`): all 37 panels of the navigation are real, working code, including the 3D viewport through a dedicated `OffscreenRobotRenderer`; the classic window was removed. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and the swarm view, the combined mode (`combinedWith`), the path viewer and the check of versions have only been tried against simulated servers and a local test page, never against a real controller, a real robot or the live repository. The Trajectory panel now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
+**Honesty check - what actually runs today:** network discovery (concurrent subnet scan + real mDNS/Bonjour, `hydra_suite/net/discovery.py`), the live REST+WebSocket connection and swarm support (`hydra_suite/net/client.py`, `hydra_suite/app.py`), the 3D viewport's real forward kinematics for all 24 real robot models plus a primitive "Generic" fallback (`hydra_suite/render/`, numerically verified bit-for-bit against HYDRA-UMC STUDIO's own TypeScript FK), all 11 of 11 tool-attachment config panels, CAN-OTA/SPI-OTA flashing, and real MJPEG camera rendering are real and tested - 63 offline verify/smoke scripts under `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), all passing. The interface is Qt Quick only (`qt_suite.py`): all 38 panels of the navigation are real, working code, including the 3D viewport through a dedicated `OffscreenRobotRenderer`; the classic window was removed. What is explicitly NOT done yet, per this repo's own honesty convention: the URTC Tool Head/Advanced Expansion CAN-OTA tiers have no real hardware relay tunnel; and the swarm view, the combined mode (`combinedWith`), the path viewer and the check of versions have only been tried against simulated servers and a local test page, never against a real controller, a real robot or the live repository. The Trajectory panel now exports/imports through HYDRA-UMC STUDIO's own real `WORKS/*.json` format (`POST /api/upload-work`, `GET /<folder>/index.json`) - a point recorded here is a real, playable Work from either app. See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete, itemized real-vs-deferred breakdown this paragraph summarizes, and `CHANGELOG.md` for exactly what has shipped so far.
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.8.0.2` |
 | Maturity | Functional |
-| Tests | 62 (`python tools/run_offline_verifiers.py`) |
+| Tests | 63 (`python tools/run_offline_verifiers.py`) |
 | Stack | Python 3.12 / PySide6 |
 | Target | The PC of the person using it |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
@@ -56,7 +56,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | Works for its main purpose; the honesty check above lists what is still missing |
-| Tests | 🟢 | 62 automated tests, run on every change |
+| Tests | 🟢 | 63 automated tests, run on every change |
 | Real hardware | 🔴 | Not yet: no run on real hardware is recorded for this version |
 | Interface and protocols | 🟡 | The routes or messages it offers are documented and tested with a client; not every client has used them yet |
 | Integration | 🟠 | Its messages and routes are checked against the shared contracts of the SDK; it has not run together with the real equipment |
@@ -170,6 +170,7 @@ HYDRA-UMC SUITE has a single interface, written in Qt Quick (QML): a standalone 
 - **🦾 Robot control** - a slider per joint inside the range of the model, speed/acceleration sliders, play / pause / stop of the recorded trajectory, the tool (with a confirmation), the valves and the pumps, all writing back live as atomic commands.
 - **🔐 Reservations, safety limits and Live / Sim** - the Robot Control panel has an access bar: reserve or release the selected robot for this program (renewed while kept), see who holds the others and, as an administrator, take one over. Every reservation, release, jog arming and command carries the controller id this program chose when it started, and a refusal (another account, the same account elsewhere, a missing controller id, a jog that is not armed) reaches the screen with its own sentence. The size of a jog and the hottest heated-bed target are read from the server (`GET /api/safety-limits`) and checked before anything is sent; an administrator edits them by model in the **Safety limits** panel, together with the optional arming of the jog (off by default) and the mandatory controller id. Each robot has a **Live / Sim** switch (Live by default): in Sim nothing that moves the robot or switches something on leaves this program, while STOP always does. The joint sliders follow the range of the model, a Work with points outside it is refused with their list, a Work whose points the arm cannot reach is refused with those points and can be loaded scaled about the base of the robot, and switching the bed heater on asks first. Writes are conditional: each one carries the revision of the robot this program last saw (`If-Match`), and when someone else changed the robot in between the server answers 412, nothing is applied, the robot is read again and a notice says so (Standard checks reservations, the table and the one-off commands; Strict checks everything but STOP; Off checks nothing; the choice is under the list of reservations; STOP is never checked). The XY table jog is one atomic `table` command, the server pushes the reservations over the WebSocket so the panel stops polling while they arrive, and administrators read the append-only audit record, with its SHA-256 chain verified twice (by the server and here), under **Ecosystem > Audit record**. Administrators also create, change and delete the accounts of the server (administrator or operator) under **Ecosystem > Users**. The **Ecosystem > Server Admin** screen also sets who may use the local AI relay, whether the host information asks for a sign-in, TLS (with the fingerprint of the certificate) and the Bluetooth LE service of the server, each with where its value comes from. **Ecosystem > Submitted models** lists the models the URDF and STL editors submitted to the server and saves the URDF of one.
 - **🩺 Ecosystem health:** under Ecosystem, a view with one card per service (state, reason, reported and expected version, time since it last answered), filters by state and by version drift, and notices when the TLS certificate of the server is about to expire or a service reports another version than its manifest. It reads `GET /api/ecosystem/health` of the server, which an administrator turns on in Server Admin; without it the view says so, and one service that does not answer never hides the others.
+- **🗺️ Map of the ecosystem:** under Ecosystem, one tile per project grouped by family and coloured by what the scan and the probe of `GET /api/ecosystem/status` say (up, in error, down, unknown), with the totals, a filter by state, a search and a mark where a project reports another version than its manifest (when the health of the ecosystem is on). A switch, off until turned on, adds to every tile what the project has been tried on (nothing recorded, a computer, a simulator, the bench, real hardware) and its open gaps. It only reads.
 - **🧊 Real 3D viewport** - OpenGL 3.3, real STL meshes, real forward
   kinematics for all 24 real robot models (numerically verified against
   HYDRA-UMC STUDIO's own TypeScript implementation, bit-for-bit identical
@@ -308,7 +309,7 @@ The version is shown in **Help > About**. Building with `build_exe.bat` / `build
 
 ## 🧪 Testing
 
-62 automated tests run with `python tools/run_offline_verifiers.py`. Each one is a verifier script holding many checks, not a single assertion; they need PySide6 and the other requirements, run under a headless Qt platform and never open a connection to a real server or robot.
+63 automated tests run with `python tools/run_offline_verifiers.py`. Each one is a verifier script holding many checks, not a single assertion; they need PySide6 and the other requirements, run under a headless Qt platform and never open a connection to a real server or robot.
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
 
