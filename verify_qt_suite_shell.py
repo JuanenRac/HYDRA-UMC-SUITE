@@ -1305,6 +1305,116 @@ def _run() -> None:
     assert not warnings, f"Server Admin QML warnings: {warnings}"
     assert qml_bridge.securityView["ecosystemHealthAvailable"] is True and qml_bridge.securityView["ecosystemHealthEnabledLocked"] is True
 
+    # The Setup screens against a stand-in server: every screen draws without a warning, what could not be read is not known, and the
+    # switches that change something are guarded (the key rotation by its switch, "close all" by the confirmation of the screen).
+    import types
+    from hydra_suite.panel_logic import setup_screens
+
+    from hydra_suite.net.client import HydraConnection
+    from hydra_suite.models import ServerInfo
+
+    class _SetupConn(HydraConnection):
+        """A connection that answers from memory: the account is an administrator who may change the settings."""
+        is_admin = True
+        login_ok = True
+        may_edit_settings = True
+        rotated = 0
+
+        async def fetch_hydra_info(self):
+            return 200, {"appVersion": "1.2.3", "hostname": "bench", "controllerCount": 1, "robotCount": 0, "uptimeSeconds": 700}
+
+        async def fetch_ecosystem_status(self):
+            return 200, {"available": True, "projects": [{"name": "HYDRA-UMC-SERVER", "family": "core", "version": "1.2.3"}, {"name": "HYDRA-UMC-TWIN"}]}
+
+        async def totp_call(self, method, path, body=None):
+            return 200, {"enabled": True, "recoveryLeft": 8}, None
+
+        async def fetch_admin_jwt_keys(self):
+            return 200, {"algorithm": "EdDSA", "keys": [{"kid": "k2", "createdAt": 300, "active": True}, {"kid": "k1", "createdAt": 100, "active": False, "acceptedUntil": 400}]}
+
+        async def fetch_admin_push(self):
+            return 200, {"enabled": True, "configured": True, "devices": 2, "events": {"globalStop": True}}
+
+        async def rotate_admin_jwt_key(self):
+            self.rotated += 1
+            return 200, {"kid": "k3"}
+
+        async def fetch_connection_clients(self):
+            return 200, {"clients": []}
+
+        async def fetch_connection_events(self, limit=30):
+            return 200, {"events": []}
+
+        async def fetch_audit(self, **_query):
+            return types.SimpleNamespace(status=404, code=""), None
+
+    def settle() -> None:
+        for _tick in range(8):
+            loop.run_until_complete(asyncio.sleep(0))
+
+    fake = _SetupConn(ServerInfo(host="10.0.0.2", port=3000, username="ana", password="pw"))
+    fake.state.raw["settings"] = {"remoteAccess": {"android": True}}
+    previous_active = qml_controller._active_id
+    pushed: list[bool] = []
+    qml_controller.connections["setup-fake"] = fake
+    qml_controller._active_id = "setup-fake"
+    qml_controller.push_active_state = lambda: pushed.append(True)
+    try:
+        for key in sorted(setup_screens.SCREEN_KEYS):
+            qml_bridge._active_key = ""
+            qml_bridge.navigatePanel(key)
+            settle()
+            assert not warnings, f"Setup screen {key} QML warnings: {warnings}"
+            assert qml_bridge.setupView["title"], key
+        qml_bridge.navigatePanel("setup_installation")
+        settle()
+        assert [c["state"] for c in qml_bridge.setupView["checks"]] == ["done", "done", "todo", "done"], qml_bridge.setupView["checks"]
+        qml_bridge.navigatePanel("setup_versions")
+        settle()
+        assert len(qml_bridge.setupView["rows"]) == 2 and qml_bridge.setupView["facts"][1]["value"] == "1.2.3"
+        qml_bridge.navigatePanel("setup_security")
+        settle()
+        assert len(qml_bridge.setupView["rows"]) == 2 and next(b for b in qml_bridge.setupView["buttons"] if b["id"] == "rotate")["enabled"] is False
+        qml_bridge.setupButton("rotate")  # refused: the switch is off
+        settle()
+        assert fake.rotated == 0
+        qml_bridge.setupToggle("allow_rotation", True)
+        assert next(b for b in qml_bridge.setupView["buttons"] if b["id"] == "rotate")["enabled"] is True
+        qml_bridge.setupButton("rotate")
+        settle()
+        assert fake.rotated == 1 and qml_bridge.setupView["noticeOk"] is True and "k3" in qml_bridge.setupView["notice"]
+        assert next(b for b in qml_bridge.setupView["buttons"] if b["id"] == "rotate")["enabled"] is False  # the switch goes off again
+        qml_bridge.navigatePanel("setup_remote")
+        settle()
+        assert not warnings, f"Setup remote QML warnings: {warnings}"
+        assert qml_bridge.setupView["qr"]["tooLong"] is False and qml_bridge.setupView["facts"][0]["value"] == str(fake.info.base_url).rstrip("/")
+        qml_bridge.setupToggle("client_watch", False)
+        assert fake.state.raw["settings"]["remoteAccess"] == {"android": True, "watch": False} and pushed
+        qml_bridge.setupButton("close_all")
+        assert setup_screens.allowed_clients(fake.state.raw["settings"]["remoteAccess"]) == []
+        fake.may_edit_settings = False  # an account that may not change the settings is refused by the bridge too
+        before = dict(fake.state.raw["settings"]["remoteAccess"])
+        qml_bridge.setupToggle("client_android", True)
+        assert fake.state.raw["settings"]["remoteAccess"] == before
+        fake.may_edit_settings = True
+        qml_bridge.navigatePanel("setup_notifications")
+        settle()
+        assert [c["id"] for c in qml_bridge.setupView["checks"]] == ["globalStop"]
+        qml_bridge.navigatePanel("setup_history")
+        settle()
+        qml_bridge.setupPart("audit")
+        settle()
+        assert [p["id"] for p in qml_bridge.setupView["parts"]] == ["connections", "audit"] and not warnings, warnings
+        fake.is_admin = False
+        qml_bridge.navigatePanel("setup_security")
+        settle()
+        assert qml_bridge.setupView["rows"] == [] and qml_bridge.setupView["buttons"] == []
+    finally:
+        del qml_controller.connections["setup-fake"]
+        qml_controller._active_id = previous_active
+        del qml_controller.push_active_state
+        qml_bridge._active_key = "overview"
+
     # Drain/cancel background tasks scheduled by earlier signals before exit.
     pending = list(asyncio.all_tasks(loop))
     for task in pending:

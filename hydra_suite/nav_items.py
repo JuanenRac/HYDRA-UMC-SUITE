@@ -46,6 +46,17 @@ HYDRAUMC_ITEMS: tuple[tuple[str, str], ...] = (
     ("HEADING_KINEMATIC_BRAIN_STAGE", "kinematic_brain_stage"),
 )
 
+# The Setup screens, at the end of the Ecosystem block: the installed versions, the first-run checklist, the sign-in security, the remote
+# access setup, the state of the push notifications and the history. Each mirrors a tab of the configuration window of HYDRA-UMC-STUDIO.
+SETUP_ITEMS: tuple[tuple[str, str], ...] = (
+    ("DOCK_SETUP_VERSIONS", "setup_versions"),
+    ("DOCK_SETUP_INSTALLATION", "setup_installation"),
+    ("DOCK_SETUP_SECURITY", "setup_security"),
+    ("DOCK_SETUP_REMOTE", "setup_remote"),
+    ("DOCK_SETUP_NOTIFICATIONS", "setup_notifications"),
+    ("DOCK_SETUP_HISTORY", "setup_history"),
+)
+
 # The second block of the HYDRA-UMC submenu, under its own "Ecosystem" header: services, telemetry, the AI
 # family and the administration screens. The administration screens answer with a refusal to an account that is
 # not an administrator, and the safety limits screen says so instead of offering its controls.
@@ -65,6 +76,7 @@ HYDRAUMC_ECOSYSTEM_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_USERS", "users"),
     ("DOCK_SUBMITTED_MODELS", "submitted_models"),
     ("DOCK_SYSTEM_SUPERVISOR", "system_supervisor"),
+    *SETUP_ITEMS,
 )
 
 # Every panel key the navigation can reach.

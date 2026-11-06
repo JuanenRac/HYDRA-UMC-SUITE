@@ -10,8 +10,7 @@
 # source file across the TypeScript/Python boundary for this ecosystem).
 # Used by the Robots catalog panel; render/kinematics.py's own
 # ROBOT_REGISTRY is the one source of truth for the model NAME strings
-# themselves (this module's own keys are asserted to match it exactly,
-# see tests/the former verify_robots_catalog panel).
+# themselves.
 # =============================================================================
 from __future__ import annotations
 

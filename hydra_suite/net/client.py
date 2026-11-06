@@ -773,6 +773,16 @@ class HydraConnection(QObject):
         """POST /api/hil-bridge/settings (admin-only): {"requireTwinPass": bool, "confirm": true}."""
         return await self._request_json("POST", "/api/hil-bridge/settings", auth=True, json_body=body)
 
+    async def fetch_admin_jwt_keys(self) -> tuple[int, object] | None:
+        """GET /api/admin/jwt-keys (admin-only): the public state of the token signing keys (name and dates; never the private part).
+        404 on a server that predates the route."""
+        return await self._request_json("GET", "/api/admin/jwt-keys", auth=True)
+
+    async def fetch_admin_push(self) -> tuple[int, object] | None:
+        """GET /api/admin/push (admin-only): whether the push notifications are on and usable, how many phones are registered and which
+        events are announced; never the credentials or the device tokens. 404 on a server that predates the route."""
+        return await self._request_json("GET", "/api/admin/push", auth=True)
+
     async def rotate_admin_jwt_key(self) -> tuple[int, object] | None:
         """POST /api/admin/jwt-keys/rotate (admin-only): a new signing key becomes the active one and the previous one stays valid for the overlap."""
         return await self._request_json("POST", "/api/admin/jwt-keys/rotate", auth=True)

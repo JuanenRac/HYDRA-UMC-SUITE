@@ -622,6 +622,7 @@ ApplicationWindow {
                     if (suiteBackend.activePanel === "system_supervisor") return supervisorComponent
                     if (suiteBackend.activePanel === "ecosystem_health") return ecosystemHealthComponent
                     if (suiteBackend.activePanel === "ecosystem_map") return ecosystemMapComponent
+                    if (suiteBackend.activePanel.indexOf("setup_") === 0) return setupComponent
                     if (suiteBackend.activePanel === "ecosystem_planning") return planningComponent
                     return null
                 }
@@ -6543,6 +6544,185 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    Component {
+        id: setupComponent
+        Flickable {
+            id: setupRoot
+            width: contentLoader.width
+            height: contentLoader.height
+            contentWidth: width
+            contentHeight: setupColumn.implicitHeight + 12
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            property var view: suiteBackend.setupView
+            property var qr: (view && view.qr) ? view.qr : ({ "tooLong": true, "modules": [], "size": 0 })
+            function stateColour(state) {
+                if (state === "done") return "#4fd08a"
+                if (state === "todo" || state === "warn") return window.amber
+                return "#556070"
+            }
+            ColumnLayout {
+                id: setupColumn
+                width: setupRoot.width - 14
+                spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    Text { objectName: "setupTitle"; text: setupRoot.view.title || ""; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    BusyIndicator { running: suiteBackend.setupBusy; visible: suiteBackend.setupBusy; implicitWidth: 22; implicitHeight: 22 }
+                }
+                Text { visible: (setupRoot.view.intro || "") !== ""; text: setupRoot.view.intro || ""; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "setupError"; visible: (setupRoot.view.error || "") !== ""; text: setupRoot.view.error || ""; color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "setupNotice"; visible: (setupRoot.view.notice || "") !== ""; text: setupRoot.view.notice || ""; color: setupRoot.view.noticeOk === true ? "#4fd08a" : window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    Repeater {
+                        model: setupRoot.view.parts || []
+                        delegate: Button {
+                            required property var modelData
+                            objectName: "setupPart_" + modelData.id
+                            text: modelData.label
+                            checkable: true
+                            checked: modelData.selected
+                            onClicked: suiteBackend.setupPart(modelData.id)
+                        }
+                    }
+                }
+                Repeater {
+                    model: setupRoot.view.facts || []
+                    delegate: RowLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text { text: modelData.label + ":"; color: window.muted; font.pixelSize: 11 }
+                        Text { objectName: "setupFact"; text: modelData.value; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 11; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    }
+                }
+                Text { visible: (setupRoot.view.section || "") !== ""; text: setupRoot.view.section || ""; color: window.textPrimary; font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: (setupRoot.view.summary || "") !== ""; text: setupRoot.view.summary || ""; color: "#7f8ea1"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Canvas {
+                    id: setupQrCanvas
+                    objectName: "setupQrCanvas"
+                    visible: setupRoot.qr.tooLong !== true
+                    Layout.preferredWidth: 176
+                    Layout.preferredHeight: 176
+                    property var modules: setupRoot.qr.modules
+                    onModulesChanged: requestPaint()
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.fillStyle = "#ffffff"
+                        ctx.fillRect(0, 0, width, height)
+                        var rows = modules
+                        if (!rows || rows.length === 0) return
+                        var side = setupRoot.qr.size
+                        var cell = width / side
+                        ctx.fillStyle = "#000000"
+                        for (var r = 0; r < rows.length; r++)
+                            for (var c = 0; c < rows[r].length; c++)
+                                if (rows[r].charAt(c) === "1")
+                                    ctx.fillRect((c + 4) * cell, (r + 4) * cell, Math.ceil(cell), Math.ceil(cell))
+                    }
+                }
+                Repeater {
+                    model: setupRoot.view.checks || []
+                    delegate: RowLayout {
+                        required property var modelData
+                        objectName: "setupCheck_" + modelData.id
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Rectangle { width: 10; height: 10; radius: 5; color: setupRoot.stateColour(modelData.state); Layout.alignment: Qt.AlignTop; Layout.topMargin: 3 }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+                            Text { text: modelData.label; color: window.textPrimary; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { visible: (modelData.hint || "") !== ""; text: modelData.hint || ""; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        }
+                    }
+                }
+                RowLayout {
+                    visible: (setupRoot.view.headers || []).length > 0
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Repeater {
+                        model: setupRoot.view.headers || []
+                        delegate: Text { required property var modelData; text: modelData; color: "#7f8ea1"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; elide: Text.ElideRight }
+                    }
+                }
+                Repeater {
+                    model: setupRoot.view.rows || []
+                    delegate: RowLayout {
+                        required property var modelData
+                        objectName: "setupRow"
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Repeater {
+                            model: modelData
+                            delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; wrapMode: Text.WrapAnywhere }
+                        }
+                    }
+                }
+                Text { visible: (setupRoot.view.extraTitle || "") !== ""; text: setupRoot.view.extraTitle || ""; color: window.textPrimary; font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true; Layout.topMargin: 6 }
+                RowLayout {
+                    visible: (setupRoot.view.extraHeaders || []).length > 0
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Repeater {
+                        model: setupRoot.view.extraHeaders || []
+                        delegate: Text { required property var modelData; text: modelData; color: "#7f8ea1"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; elide: Text.ElideRight }
+                    }
+                }
+                Repeater {
+                    model: setupRoot.view.extraRows || []
+                    delegate: RowLayout {
+                        required property var modelData
+                        objectName: "setupExtraRow"
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Repeater {
+                            model: modelData
+                            delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; wrapMode: Text.WordWrap }
+                        }
+                    }
+                }
+                Repeater {
+                    model: setupRoot.view.toggles || []
+                    delegate: CheckBox {
+                        required property var modelData
+                        objectName: "setupToggle_" + modelData.id
+                        text: modelData.label
+                        checked: modelData.checked === true
+                        enabled: modelData.enabled === true
+                        palette.windowText: window.textPrimary
+                        onToggled: suiteBackend.setupToggle(modelData.id, checked)
+                    }
+                }
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Repeater {
+                        model: setupRoot.view.buttons || []
+                        delegate: Button {
+                            required property var modelData
+                            objectName: "setupButton_" + modelData.id
+                            text: modelData.label
+                            enabled: modelData.enabled === true && !suiteBackend.setupBusy
+                            palette.buttonText: modelData.danger === true ? window.amber : window.textPrimary
+                            onClicked: {
+                                var id = modelData.id
+                                if ((modelData.confirm || "") !== "")
+                                    window.requestConfirm(modelData.label, modelData.confirm, function() { suiteBackend.setupButton(id) })
+                                else
+                                    suiteBackend.setupButton(id)
+                            }
+                        }
+                    }
+                }
+                Text { objectName: "setupNote"; visible: (setupRoot.view.note || "") !== ""; text: setupRoot.view.note || ""; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true; Layout.topMargin: 4 }
             }
         }
     }

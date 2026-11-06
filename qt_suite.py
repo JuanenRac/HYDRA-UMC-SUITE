@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -176,7 +176,7 @@ _MODULE_CONFIGS: dict[str, dict[str, object]] = {
 _RACK_POS_FIELDS = ("j1", "j2", "j3", "j4", "j5", "j6", "tx", "ty")
 _ADMIN_CLIENTS_POLL_MS = 5000
 # The screens whose controls change global settings (the settings tree, which the server takes from an administrator only).
-_SETTINGS_PANELS = frozenset({"xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "robots_catalog"})
+_SETTINGS_PANELS = frozenset({"xy_table", "rack", "pick_and_place", "kinematic_brain_stage", "cnc", "laser", "heated_bed", "vacuum_table", "atc", "cameras", "robots_catalog", "setup_remote"})
 # While the dispatcher has not answered the request to read its file again: seconds between two questions to the server, and how many times at most.
 _RELOAD_POLL_S = 2.0
 _RELOAD_POLL_TRIES = 8
@@ -211,8 +211,8 @@ class CameraFrameProvider(QQuickImageProvider):
     """Feeds the Cameras panel's own real MJPEG frames into QML - a
     `QImage` per camera id, refreshed by SuiteQtBridge's own real
     `_run_camera_stream()` task every time `iter_mjpeg_frames()` yields a
-    new real frame (the former cameras panel's function, imported directly,
-    never duplicated). QML re-fetches on every frame by requesting
+    new real frame (the function of panel_logic/camera_media.py, imported
+    directly, never duplicated). QML re-fetches on every frame by requesting
     `image://cameraFrames/<id>/<frameVersion>` - a changing suffix per
     frame, since QQuickImageProvider results are otherwise cached by
     their own request id and would never refresh a live feed."""
@@ -540,10 +540,8 @@ class SuiteQtBridge(QObject):
         self._pnp_machine_type: str = MACHINE_TYPES[0]
         controller.active_state_changed.connect(self._on_pnp_state_changed)
 
-        # -- Kinematic Brain Stage (ported from
-        # the former KinematicBrainStagePanel -
-        # AXIS_KEYS/JOG_STEPS_MM/ENDSTOP_ENTRIES/_clamp imported directly
-        # from there, never duplicated). UNLIKE every other panel ported
+        # -- Kinematic Brain Stage (AXIS_KEYS/JOG_STEPS_MM/ENDSTOP_ENTRIES/_clamp
+        # imported directly from panel_logic/kinematic_brain_stage.py, never duplicated). UNLIKE every other panel ported
         # so far, this is CONTROLLER-level state (one Kinematic Brain per
         # controller) - no robot selector at all, matching that file's
         # own header note. --
@@ -553,8 +551,8 @@ class SuiteQtBridge(QObject):
 
         # -- Module Config (CNC/Laser/HeatedBed/VacuumTable, generic over
         # _MODULE_CONFIGS above). Each of the 4 nav keys keeps its own
-        # real, independent robot selection (matching the former module_config panel's
-        # own separate QComboBox per panel instance) - one dict entry per
+        # real, independent robot selection (one selector per panel instance, as in
+        # Studio) - one dict entry per
         # key rather than 4 sets of named attributes. Properties/Slots
         # below always operate on whichever key is `self._active_key`
         # right now, since the QML Loader only ever shows one of the 4 at
@@ -748,6 +746,20 @@ class SuiteQtBridge(QObject):
         self._map_evidence = load_config().get("mapShowEvidence") is True
         self._map_timer = self._scheduler.add("ecosystem_map", ecosystem_map.POLL_MS, lambda: asyncio.ensure_future(self._refresh_map()))
         controller.active_connection_changed.connect(self._on_map_connection_changed)
+        # -- Setup screens (installed versions, first-run checklist, sign-in security, remote access, push notifications, history). --
+        self._setup_info: dict | None = None
+        self._setup_installed: list[dict] = []
+        self._setup_failure = ""
+        self._setup_busy = False
+        self._setup_second_factor: bool | None = None
+        self._setup_keys: dict | None = None
+        self._setup_push: dict | None = None
+        self._setup_allow_rotation = False
+        self._setup_notice = ""
+        self._setup_notice_ok = True
+        self._setup_history_part = "connections"
+        self._setup_qr: tuple[str, dict] | None = None
+        controller.active_connection_changed.connect(self._on_setup_connection_changed)
         self._apply_poller_gates()
         # The swarm view, the combined mode, the path viewer and the check of versions (hydra_suite/extras_bridge.py).
         self._extras = SuiteExtras(self)
@@ -810,6 +822,10 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_eco_health())
             elif key == "ecosystem_map":
                 asyncio.ensure_future(self._refresh_map())
+            elif key in setup_screens.SCREEN_KEYS:
+                self._setup_allow_rotation = False
+                self._setup_notice = ""
+                asyncio.ensure_future(self._refresh_setup(key))
             elif key == "ecosystem_planning":
                 asyncio.ensure_future(self._probe_planning_switches())
             elif key == "robots_catalog":
@@ -953,7 +969,7 @@ class SuiteQtBridge(QObject):
     @Property("QVariantList", notify=changed)
     def serverRows(self) -> list[dict[str, object]]:
         rows: list[dict[str, object]] = []
-        active_id = self._controller._active_id  # same real field the former server browser's _refresh_table reads directly
+        active_id = self._controller._active_id  # the same field panel_logic/server_browser.py reads
         for conn_id, conn in self._controller.connections.items():
             robot_count = len(conn.state.active_controller.robots) if conn.state.active_controller else conn.info.robot_count
             login = self._server_login.get(conn_id)
@@ -1009,7 +1025,7 @@ class SuiteQtBridge(QObject):
         # discover_servers() runs the brute-force subnet scan and real
         # mDNS/Bonjour discovery CONCURRENTLY (net/discovery.py's own
         # header comment) and dedupes between them - same real call
-        # the former server browser's _run_scan makes, unchanged.
+        # the scan of the servers screen makes, unchanged.
         found = 0
         try:
             async for info in discover_servers():
@@ -2336,6 +2352,164 @@ class SuiteQtBridge(QObject):
         # the drift comes from the health of the ecosystem; where that is off or not allowed the map just shows no drift
         await self._refresh_eco_health()
 
+    # -- Setup screens -----------------------------------------------------------
+
+    @Property("QVariantMap", notify=changed)
+    def setupView(self) -> dict[str, object]:
+        """What the active Setup screen shows; every part already carries the sentences in the language of the interface."""
+        conn = self._controller.active_connection
+        key = self._active_key
+        if key not in setup_screens.SCREEN_KEYS:
+            return {}
+        if conn is None:
+            return setup_screens.no_server_view(key, _("LBL_ES_NO_ACTIVE_SERVER"))
+        admin = conn.is_admin is True and conn.login_ok is True
+        if key == "setup_versions":
+            return setup_screens.versions_view(__version__, self._setup_info, self._setup_installed, self._setup_failure)
+        if key == "setup_installation":
+            return setup_screens.installation_view(self._setup_info, self._setup_second_factor, self._setup_failure)
+        if key == "setup_security":
+            view = setup_screens.security_view(self._setup_second_factor, self._setup_keys, admin, self._setup_failure, self._setup_allow_rotation, self._setup_notice, self._setup_notice_ok)
+            return view
+        if key == "setup_remote":
+            address = str(conn.info.base_url).rstrip("/")
+            if self._setup_qr is None or self._setup_qr[0] != address:
+                self._setup_qr = (address, totp_panel.qr_view(address))
+            state = self._controller.active_state
+            setting = ((state.raw.get("settings") or {}).get("remoteAccess") if state is not None else None)
+            view = setup_screens.remote_view(address, setting, self._setup_qr[1], self.canEditSettings)
+            view["notice"], view["noticeOk"] = self._setup_notice, self._setup_notice_ok
+            return view
+        if key == "setup_notifications":
+            return setup_screens.notifications_view(self._setup_push, admin, self._setup_failure)
+        return setup_screens.history_view(
+            self._setup_history_part, admin, connection_history.client_rows(self._connection_clients), connection_history.event_rows(self._connection_events),
+            self._audit_rows, self._connection_status_text or self._audit_error,
+        )
+
+    @Property(bool, notify=changed)
+    def setupBusy(self) -> bool:
+        return self._setup_busy
+
+    @Slot(str)
+    def setupButton(self, button_id: str) -> None:
+        """A button of the active Setup screen. The key rotation and "close all" are confirmed by the screen before they get here."""
+        if self._active_key not in setup_screens.SCREEN_KEYS:
+            return
+        if button_id == "refresh":
+            asyncio.ensure_future(self._refresh_setup(self._active_key))
+        elif button_id == "rotate" and self._active_key == "setup_security" and self._setup_allow_rotation:
+            asyncio.ensure_future(self._rotate_setup_key())
+        elif button_id == "close_all" and self._active_key == "setup_remote":
+            self._set_remote_access(setup_screens.close_all_setting)
+
+    @Slot(str, bool)
+    def setupToggle(self, toggle_id: str, checked: bool) -> None:
+        if self._active_key == "setup_security" and toggle_id == "allow_rotation":
+            self._setup_allow_rotation = bool(checked)
+            self.changed.emit()
+        elif self._active_key == "setup_remote" and toggle_id.startswith("client_") and toggle_id[len("client_"):] in setup_screens.REMOTE_CLIENTS:
+            client = toggle_id[len("client_"):]
+            self._set_remote_access(lambda setting: setup_screens.with_client(setting, client, checked))
+
+    @Slot(str)
+    def setupPart(self, part: str) -> None:
+        if self._active_key != "setup_history" or part not in ("connections", "audit"):
+            return
+        self._setup_history_part = part
+        if part == "audit":
+            asyncio.ensure_future(self._refresh_audit(False))
+        self.changed.emit()
+
+    def _set_remote_access(self, change) -> None:
+        """Changes settings.remoteAccess the way the settings screens do (the tree is sent back with the ETag read last). An account that may not
+        change the global settings is refused here as well as by the screen."""
+        state = self._controller.active_state
+        if state is None or not self.canEditSettings:
+            return
+        settings = state.raw.setdefault("settings", {})
+        settings["remoteAccess"] = change(settings.get("remoteAccess"))
+        self._controller.push_active_state()
+        self.changed.emit()
+
+    def _on_setup_connection_changed(self, _conn_id: str) -> None:
+        # another server: nothing of the old one stays on screen
+        self._setup_info, self._setup_installed, self._setup_failure = None, [], ""
+        self._setup_second_factor, self._setup_keys, self._setup_push = None, None, None
+        self._setup_allow_rotation, self._setup_notice = False, ""
+        if self._active_key in setup_screens.SCREEN_KEYS:
+            asyncio.ensure_future(self._refresh_setup(self._active_key))
+        else:
+            self.changed.emit()
+
+    async def _refresh_setup_second_factor(self, conn) -> None:
+        """Whether the signed-in account has its second step on; None when it cannot be read (never "off" by guess)."""
+        self._setup_second_factor = None
+        if conn.login_ok is not True:
+            return
+        status, body, _retry = await conn.totp_call("GET", "/api/totp/status")
+        parsed = totp_panel.parse_status(body) if status == 200 else None
+        self._setup_second_factor = parsed[0] if parsed is not None else None
+
+    async def _refresh_setup(self, key: str) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self.changed.emit()
+            return
+        self._setup_busy = True
+        self._setup_failure = ""
+        self.changed.emit()
+        try:
+            if key in ("setup_versions", "setup_installation"):
+                result = await conn.fetch_hydra_info()
+                self._setup_failure = setup_screens.failure_text(result)
+                self._setup_info = setup_screens.parse_server_info(result[1]) if not self._setup_failure and result is not None else None
+                if key == "setup_versions":
+                    eco = await conn.fetch_ecosystem_status()
+                    body = eco[1] if eco is not None and eco[0] == 200 and isinstance(eco[1], dict) else {}
+                    self._setup_installed = setup_screens.parse_installed(body.get("projects"))
+                else:
+                    await self._refresh_setup_second_factor(conn)
+            elif key == "setup_security":
+                await self._refresh_setup_second_factor(conn)
+                self._setup_keys = None
+                if conn.is_admin is True and conn.login_ok is True:
+                    result = await conn.fetch_admin_jwt_keys()
+                    self._setup_failure = setup_screens.failure_text(result)
+                    self._setup_keys = setup_screens.parse_keys(result[1]) if not self._setup_failure and result is not None else None
+            elif key == "setup_notifications":
+                self._setup_push = None
+                if conn.is_admin is True and conn.login_ok is True:
+                    result = await conn.fetch_admin_push()
+                    self._setup_failure = setup_screens.failure_text(result)
+                    self._setup_push = setup_screens.parse_push(result[1]) if not self._setup_failure and result is not None else None
+            elif key == "setup_history":
+                await self._refresh_connection_history()
+                if conn.is_admin is True and conn.login_ok is True:
+                    await self._refresh_audit(False)
+        except Exception as error:  # a damaged answer must not stop the screen
+            logger.warning("reading the setup screen %s failed: %s", key, error)
+            self._setup_failure = _("SETUP_ERROR_HTTP")
+        finally:
+            self._setup_busy = False
+            self.changed.emit()
+
+    async def _rotate_setup_key(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None or conn.is_admin is not True or not self._setup_allow_rotation:
+            return
+        self._setup_allow_rotation = False
+        result = await conn.rotate_admin_jwt_key()
+        if result is not None and result[0] == 200:
+            kid = result[1].get("kid") if isinstance(result[1], dict) else None
+            self._setup_notice, self._setup_notice_ok = _("SETUP_SECURITY_ROTATED", kid=kid if isinstance(kid, str) else ""), True
+            keys = await conn.fetch_admin_jwt_keys()
+            if keys is not None and keys[0] == 200:
+                self._setup_keys = setup_screens.parse_keys(keys[1])
+        else:
+            self._setup_notice, self._setup_notice_ok = setup_screens.rotate_failure_text(result), False
+        self.changed.emit()
+
     # -- Planning and operation (read only views and dry runs) ---------------
 
     @Property("QVariantMap", notify=changed)
@@ -2441,13 +2615,10 @@ class SuiteQtBridge(QObject):
     def _active_robots(self) -> list[RobotView]:
         # Cached from the last real active_state_changed delivery (see
         # _on_robot_state_changed below) rather than re-derived from
-        # self._controller.active_state on every call - matches
-        # the former robot control panel's real pattern (it caches
-        # self._current_robot from the state PARAMETER a signal handler
-        # receives, never re-queries the controller independently
-        # elsewhere), and avoids a real staleness risk: re-deriving here
-        # would only coincidentally agree with what the signal just
-        # carried.
+        # self._controller.active_state on every call: the cache holds the
+        # state PARAMETER a signal handler received, which avoids a real
+        # staleness risk (re-deriving here would only coincidentally agree
+        # with what the signal just carried).
         return self._active_robots_cache
 
     def _selected_robot(self) -> RobotView | None:
@@ -2509,18 +2680,13 @@ class SuiteQtBridge(QObject):
 
     def _select_robot(self, new_id: str | None) -> None:
         """The one real place _selected_robot_id ever changes - resets
-        the recorded trajectory points exactly like
-        the former trajectory panel's set_selected_robot does (only on an
-        actual robot-identity change, never on every swarm tick a
-        continuing selection would otherwise wipe recordings within
-        moments of making them). Also the one real place that needs to
-        force an immediate Viewport re-render on a selection change -
-        matches the former main window's real wiring exactly
-        (robot_control.robot_selected connects to BOTH
-        viewport_panel.set_selected_robot AND
-        trajectory_panel.set_selected_robot - a selection change reaches
-        the viewport right away, it doesn't wait for the next real state
-        tick's own set_joints_deg() call to happen to redraw it)."""
+        the recorded trajectory points (only on an actual robot-identity
+        change, never on every swarm tick: a continuing selection would
+        otherwise wipe recordings within moments of making them). Also the
+        one real place that forces an immediate Viewport re-render on a
+        selection change: the selection reaches both the viewport and the
+        trajectory right away, it does not wait for the next real state
+        tick's own set_joints_deg() call to happen to redraw it."""
         if new_id == self._selected_robot_id:
             return
         self._selected_robot_id = new_id
@@ -2542,10 +2708,8 @@ class SuiteQtBridge(QObject):
             for name, joint_value in joints.items():
                 r.set_joint(name, joint_value)
 
-        # Same real atomic 'jog' command + 50ms debounce as
-        # the former robot control panel's _on_joint_changed - see that method's
-        # own comment for why a full 6-joint override, debounced, is
-        # safe here.
+        # The atomic 'jog' command with a 50 ms debounce: a full 6-joint
+        # override, debounced, is safe here.
         self._controller.send_robot_command(
             robot.id, "jog",
             {"axis": "x", "amount": 0, "target": "robot", "joints": new_joints},
@@ -3026,7 +3190,7 @@ class SuiteQtBridge(QObject):
         except ValueError:
             # Anchor scrolled off the server's own LINES-line window - show
             # everything rather than hide real content, same real reason
-            # the former admin_logs panel's _displayed_lines does.
+            # (panel_logic/admin_logs.py does the same).
             return self._admin_logs_all_lines
         return self._admin_logs_all_lines[idx + 1:]
 
@@ -4634,8 +4798,7 @@ class SuiteQtBridge(QObject):
         if robot is None:
             return
         # Matches XYTableConfig.tsx's own handleAddTable() exactly: only
-        # the flag, no xyTable block yet - see the former xy_table panel's
-        # header for why.
+        # the flag, no xyTable block yet (panel_logic/xy_table.py says why).
         self._edit_robot(robot, {"hasXYTable": True}, lambda r: r.set_has_xy_table(True))
         self.changed.emit()
 
@@ -4831,9 +4994,8 @@ class SuiteQtBridge(QObject):
     def resetRackSystem(self) -> None:
         # Matches RackConfigView.tsx's own real handleReset() exactly:
         # BOTH racks reset, regardless of which rack's own Reset button
-        # was clicked - see the former rack_config panel's header for why
-        # this is a real, deliberately-preserved quirk, not a bug
-        # introduced here.
+        # was clicked: a deliberately preserved behaviour of the rack screen
+        # of Studio, not a bug of this one.
         robot = self._rack_selected_robot()
         if robot is None:
             return
@@ -4986,8 +5148,8 @@ class SuiteQtBridge(QObject):
     @Property("QVariantList", notify=changed)
     def pnpAxisData(self) -> list[dict[str, object]]:
         """One row per PNP_AXES entry, spec + current value fused - same
-        real fixed hardware bounds as the former pick_and_place panel's
-        PNP_AXES (never re-declared here)."""
+        real fixed hardware bounds as PNP_AXES of
+        panel_logic/pick_and_place.py (never re-declared here)."""
         robot = self._pnp_selected_robot()
         module = robot.module(self._pnp_machine_type) if robot is not None else {}
         return [
@@ -5019,7 +5181,7 @@ class SuiteQtBridge(QObject):
 
     @Slot()
     def resetPnp(self) -> None:
-        """Matches the former pick_and_place panel's _on_reset() exactly -
+        """Resets the pick-and-place data of the robot:
         always seeds the real PnP axis fields, since the Machine combo
         only ever offers juanenPnP/lumenPnP (see this class's own
         __init__ comment on the unported size-only branch)."""
@@ -5062,8 +5224,7 @@ class SuiteQtBridge(QObject):
         return complete_stage(self._kbs_controller.kinematic_brain_stage) if self._kbs_controller is not None else {}
 
     def _kbs_patch(self, updates: dict) -> None:
-        """Matches the former kinematic_brain_stage panel's _patch() exactly -
-        one real write path for every control in this panel."""
+        """The one real write path for every control in this panel."""
         if self._kbs_controller is None:
             return
         stage = self._kbs_stage()
@@ -5353,9 +5514,8 @@ class SuiteQtBridge(QObject):
         return self._module_size_field("length")
 
     def _module_extra_defaults(self, nav_key: str) -> dict:
-        """Matches the former heated_bed and vacuum_table panels'
-        _extra_default_fields() AND _extra_reset_fields() - both real
-        subclasses happen to return the exact same dict from both, so
+        """The extra fields of the heated bed and the vacuum table, for a
+        default and for a reset: both happen to be the same dict, so
         this one helper covers Enable's setdefault() and Reset's
         overwrite alike (see _MODULE_CONFIGS's own "extra" tag)."""
         extra = _MODULE_CONFIGS[nav_key]["extra"]
@@ -6354,8 +6514,7 @@ class SuiteQtBridge(QObject):
         self._camera_status = body
         self._camerasChanged.emit()
 
-    # --- real snapshot/recording capture (parity gap closed: this mode
-    # never had these at all, unlike the former cameras panel's CameraCard) ---
+    # --- real snapshot/recording capture ---
 
     @Property("QVariantList", notify=_camerasChanged)
     def cameraRecordingIds(self) -> list[int]:
@@ -6401,8 +6560,7 @@ class SuiteQtBridge(QObject):
         self._camerasChanged.emit()
 
     # --- real Camera Media panel: browse/play back/delete saved
-    # snapshots/recordings - QtQuick-mode counterpart to
-    # the former CameraMediaPanel (Widgets mode). ---
+    # snapshots/recordings. ---
 
     @Property("QVariantList", notify=_cameraMediaChanged)
     def cameraMediaItems(self) -> list[dict[str, object]]:

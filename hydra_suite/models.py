@@ -140,7 +140,7 @@ class RobotView:
         # own `int(value * SLIDER_SCALE)` does NOT - int() raises ValueError
         # on NaN and OverflowError on +/-Infinity, which crashes the whole
         # _refresh_controls() call (and, on the "Jog to point" path, would
-        # also make the former trajectory panel's _on_record() capture the
+        # also make the recording of a trajectory point capture the
         # invalid value and hand it right back to set_joint() below).
         # Substituting 0.0 here keeps the UI alive and stops a bad value
         # already in the tree from being echoed straight back to the server
@@ -159,8 +159,8 @@ class RobotView:
         if name not in JOINT_NAMES:
             raise ValueError(f"Unknown joint {name!r} - expected one of {JOINT_NAMES}")
         if not math.isfinite(value):
-            # Every real caller today (the former robot control panel's RotaryKnob/
-            # QSlider jog, the former trajectory panel's recorded-point replay)
+            # Every real caller today (the joint sliders and the replay of a recorded
+            # point)
             # is bounded and can never actually produce this - this is a
             # defense-in-depth guard against a future/third-party caller of
             # this public API, not a UI input path that's been observed to
@@ -230,8 +230,8 @@ class RobotView:
     def recorded_point_count(self) -> int:
         """Length of `recordedPoints` - HYDRA-UMC-STUDIO's own server-synced
         trajectory (RobotDetail.tsx's `robot.recordedPoints`), recorded from
-        ANY client in the swarm, not the same thing as this app's own
-        the former trajectory panel (a separate, local-only point list that never
+        ANY client in the swarm, not the same thing as the point list of this
+        app's own trajectory screen (a separate, local-only list that never
         reaches the server). Read-only here - this app doesn't record into
         it, only gates whether Play has anything real to replay."""
         points = self.raw.get("recordedPoints")
@@ -243,7 +243,7 @@ class RobotView:
         control panel, `selectedRobot.valves[0/1]`) - NOT the same field as
         a tool-attachment module's own `pumpActive`/`valveActive` (e.g.
         VacuumTable), which is a genuinely separate concept keyed by module
-        instead of by robot (see the former vacuum_table panel's header)."""
+        instead of by robot (see hydra_suite/vacuum_tables.py)."""
         raw_valves = self.raw.get("valves")
         result = list(raw_valves) if isinstance(raw_valves, list) else []
         while len(result) < 2:

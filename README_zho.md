@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-63%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-64%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.8.0.3-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 63 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 38 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；集群视图、联动模式（`combinedWith`）、路径查看器和版本检查只用模拟服务器和本地测试页面试过，从未在真实控制器、真实机器人或在线仓库上试过。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
+**诚实核查——今天真正能跑起来的部分：** 网络发现（并发子网扫描 + 真实的 mDNS/Bonjour，`hydra_suite/net/discovery.py`）、实时 REST+WebSocket 连接与集群支持（`hydra_suite/net/client.py`、`hydra_suite/app.py`）、3D 视口针对全部 24 个真实机器人型号外加一个"通用（Generic）"兜底方案的真实正向运动学（`hydra_suite/render/`，已针对 HYDRA-UMC STUDIO 自身的 TypeScript 正向运动学实现做过逐位数值验证）、全部 11/11 个工具挂载配置面板、CAN-OTA/SPI-OTA 刷写，以及真实的 MJPEG 摄像头画面渲染，都是真实且经过测试的——`tests/` 下有 64 个离线校验/冒烟测试脚本（`python tools/run_offline_verifiers.py`，通过 `QT_QPA_PLATFORM=offscreen` 以无头 Qt 方式运行）。界面只有 Qt Quick（`qt_suite.py`）：导航中的全部 44 个面板都是真实可用的代码，包括通过专用 `OffscreenRobotRenderer` 绘制的 3D 视口；经典窗口已被移除。根据本仓库自身的诚实惯例，明确尚未完成的部分：CAN-OTA 的 URTC Tool Head/Advanced Expansion 档位还没有真正的硬件中继通道；集群视图、联动模式（`combinedWith`）、路径查看器和版本检查只用模拟服务器和本地测试页面试过，从未在真实控制器、真实机器人或在线仓库上试过。轨迹面板 现在通过 HYDRA-UMC STUDIO 自身真实的 `WORKS/*.json` 格式（`POST /api/upload-work`、`GET /<文件夹>/index.json`）进行导出/导入——在这里记录的点位是一个真实的、可在两款应用中互相播放的 Work。本段总结的完整、逐项的"真实 vs. 推迟"对照见 [`docs/ROADMAP.md`](docs/ROADMAP.md)，已交付的具体内容见 `CHANGELOG.md`。
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.8.0.3` |
 | 成熟度 | 可用 |
-| 测试 | 63 (`python tools/run_offline_verifiers.py`) |
+| 测试 | 64 (`python tools/run_offline_verifiers.py`) |
 | 技术栈 | Python 3.12 / PySide6 |
 | 目标 | 使用者的电脑 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -56,7 +56,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 63 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 64 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 接口与协议 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 集成 | 🟠 | 其消息和路由已对照 SDK 的共享契约检查；尚未与真实设备一起运行 |
@@ -141,6 +141,7 @@ HYDRA-UMC SUITE 只有一个界面，用 Qt Quick（QML）编写：一个独立�
 - **🔐 预留、安全限制与 Live / Sim** - 机器人控制面板有一个访问栏：为本程序预留或释放所选机器人（保持期间会自动续期），查看其他机器人由谁持有，管理员还可以接管。每次预留、释放、点动启用和命令都带有本程序启动时选定的控制器 ID，拒绝情况（其他账户、同一账户在别处、缺少控制器 ID、点动未启用）都会以各自的提示出现在屏幕上。点动的大小和热床的最高目标温度从服务器读取（`GET /api/safety-limits`）并在发送前检查；管理员可在 **安全限制** 面板中按型号编辑它们，同时设置可选的点动启用（默认关闭）和必填的控制器 ID。每个机器人都有 **Live / Sim** 开关（默认 Live）：在 Sim 下，任何会移动机器人或接通设备的内容都不会离开本程序，而 STOP 始终会发出。关节滑块遵循型号的范围，含有范围外点的 Work 会被拒绝并列出这些点，机械臂够不到其点的 Work 会连同这些点被拒绝，也可以以机器人底座为基准缩放后加载，打开热床加热器前会先询问。 写入是有条件的:每次写入都带有此程序最后看到的机器人修订号(`If-Match`),如果期间有其他人修改了机器人,服务器返回 412,不会应用任何内容,机器人会被重新读取并弹出通知(标准模式检查预约、工作台和一次性命令;严格模式检查除 STOP 外的全部命令;关闭则不检查;该选项位于预约列表下方;STOP 永远不检查)。XY 工作台的点动是一条原子的 `table` 命令,服务器通过 WebSocket 推送预约,因此在推送到达期间面板不再轮询,管理员可在 **生态系统 > 审计记录** 中读取仅追加的审计记录,其 SHA-256 链会被(服务器和本程序)校验两次。 管理员还可在 **生态系统 > 用户** 中创建、更改和删除服务器的账户(管理员或操作员)。 **生态系统 > 服务器管理** 界面还可设置谁可以使用本地 AI 中继、主机信息是否要求登录、TLS(含证书指纹)以及服务器的蓝牙 LE 服务,并显示每个值的来源。 **生态系统 > 已提交的模型** 列出 URDF 和 STL 编辑器提交到服务器的模型,并保存其中一个的 URDF。
 - **🩺 生态系统健康：** 在 Ecosystem 下有一个视图，每个服务一张卡片（状态、原因、上报版本与期望版本、距上次响应的时间），可按状态和版本偏差筛选，并在服务器的 TLS 证书即将过期或某个服务上报的版本与其清单不同时给出提示。它读取服务器的 `GET /api/ecosystem/health`，该接口由管理员在 Server Admin 中开启；未开启时视图会如实说明，而且一个无响应的服务不会遮住其他服务。
 - **🗺️ 生态系统地图：** 在“生态系统”下，每个项目一块磁贴，按系列分组，并按 `GET /api/ecosystem/status` 的扫描与探测结果着色（运行中、出错、已停止、未知），带有汇总、按状态筛选、搜索，以及在项目报告的版本与其清单不同时的标记（需开启生态系统健康）。一个开关（开启前为关闭）会在每块磁贴上加入该项目已在什么环境下试用过（无记录、电脑、模拟器、试验台、真实硬件）及其未解决的缺口。仅读取。
+- **🧰 设置屏幕：** 在“生态系统”下，有六个对应 STUDIO 配置标签页的屏幕：已安装版本（本 Suite、服务器及其旁的程序）、首次运行检查清单（已完成的事项和下一步，从服务器读取）、登录安全（各项检查、账户的第二步验证，以及管理员可见的令牌签名密钥公开状态，其轮换需要每次打开屏幕时都处于关闭的开关和一次确认）、远程访问（带二维码的地址、哪些类型的应用可以找到服务器，以及带确认的“全部关闭”）、推送通知的状态，以及历史记录（连接，管理员还可看到审计记录）。读取不到的内容显示为“未知”，绝不显示为“待办”；服务器没有安装或更新任何东西的路由，因此除了访问开关和密钥轮换，这些屏幕不会更改任何内容。
 - **🧊 真实 3D 视口** —— OpenGL 3.3，真实的 STL 网格，针对全部 24 个真实机器人型号的真实正向运动学（与 HYDRA-UMC STUDIO 自身的 TypeScript 实现经数值验证，结果逐位一致），外加一个基于基本几何体构建的“通用”后备型号——两者都不是风格化的占位符。
 - **📍 轨迹点** —— 记录所选机器人的实时姿态，按需点动回到任意已记录的点位。
 - **🐝 集群视图**（开关，默认关闭）—— 导航中的*集群*：在一张表中同时显示所有已连接服务器的全部机器人（位置、实机/模拟/离线、是否在播放、谁持有预约、与哪些机器人联动），带筛选和搜索，整个集群一个 STOP，每台服务器各一个；上限在 `assets/swarm_view.json` 中。
@@ -251,7 +252,7 @@ python tools/run_offline_verifiers.py  # every verifier under tests/, headless
 
 ## 🧪 测试
 
-运行 `python tools/run_offline_verifiers.py` 会执行 63 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
+运行 `python tools/run_offline_verifiers.py` 会执行 64 个自动测试。 每个都是包含大量检查的验证脚本，而不是单个断言；它们需要 PySide6 和其他依赖，在无界面的 Qt 平台下运行，从不连接真实服务器或机器人。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 
