@@ -354,16 +354,9 @@ class SuiteQtBridge(QObject):
         self._active_key = "overview"
         self._connection_status = "disconnected"
 
-        # -- Logs (ported from the former LogsPanel - same real
-        # algorithmic shape: an unbounded _all_entries plus a
-        # currently-matching-filter _displayed_entries, both appended to
-        # in O(1) per new record; only a filter change re-derives
-        # _displayed_entries from _all_entries in one O(n) pass, exactly
-        # matching that file's own _refresh_display). The QML-facing
-        # Property caps to the most recent 500 for render performance
-        # (a ListView with the full unbounded history would be slow to
-        # lay out) - the one real, deliberate deviation from the
-        # classic view's QTextEdit, which had no such cap.
+        # -- Logs: an unbounded _all_entries plus a currently-matching-filter _displayed_entries, both appended to in O(1) per new
+        # record; only a filter change re-derives _displayed_entries from _all_entries in one O(n) pass. The QML-facing Property caps
+        # to the most recent 500 for render performance (a ListView with the full unbounded history would be slow to lay out). --
         self._log_level_filter: str | None = None
         self._log_search_filter = ""
         self._all_log_entries: list[_LogEntry] = []
@@ -371,7 +364,7 @@ class SuiteQtBridge(QObject):
         handler = logging_handler.install()
         handler.emitter.record_logged.connect(self._on_log_record)
 
-        # -- Overview (ported from the former overview's OverviewPanel) --
+        # -- Overview --
         self._overview_name = "-"
         self._overview_ip = "-"
         self._overview_robot_count = "-"
@@ -397,9 +390,8 @@ class SuiteQtBridge(QObject):
         self._stop_all_clean_timer.timeout.connect(self._clear_stop_all_text)
         controller.stop_all_changed.connect(self._on_stop_all_changed)
 
-        # -- Servers (ported from the former server browser's ServerBrowserPanel -
-        # STATUS_DISPLAY_KEYS is imported from there directly rather than
-        # copied, so both UIs always agree on the same real status wording). --
+        # -- Servers: STATUS_DISPLAY_KEYS is imported from panel_logic/server_browser.py rather than copied, so the status wording
+        # is written once. --
         self._server_statuses: dict[str, str] = {}
         self._server_login: dict[str, tuple[bool, str]] = {}
         self._scanning = False
@@ -409,26 +401,17 @@ class SuiteQtBridge(QObject):
         controller.connection_status_changed.connect(self._on_server_status)
         controller.connection_login_changed.connect(self._on_server_login)
 
-        # -- Robot Control (ported from the former robot control panel's
-        # RobotControlPanel - RotaryKnob's own custom-painted dial is not
-        # reproduced here, a Slider alone already sets the exact same
-        # real value the classic panel's knob+slider pair redundantly
-        # show, so nothing real is lost). --
+        # -- Robot Control: a Slider sets the exact value of the joint, so there is no custom-painted dial. --
         self._selected_robot_id: str | None = None
         self._active_robots_cache: list[RobotView] = []
-        # Trajectory (ported from the former TrajectoryPanel -
-        # a real local-only point recorder, NOT yet HYDRA-UMC-STUDIO's own
-        # WORKS/*.json format, same real scope note that file's own header
-        # gives). Reset only when the SELECTED ROBOT ITSELF changes (see
-        # _select_robot below), never on every swarm tick.
+        # Trajectory: a local point recorder that exports and imports STUDIO's WORKS/*.json format. Reset only when the SELECTED
+        # ROBOT ITSELF changes (see _select_robot below), never on every swarm tick.
         self._trajectory_points: list[dict[str, object]] = []
         self._work_files: list[str] = []
         self._pending_work_scale: dict[str, object] | None = None
         controller.active_state_changed.connect(self._on_robot_state_changed)
 
-        # -- AI Family Status (ported from the former ai_family_status panel's
-        # AiFamilyStatusPanel - AI_FAMILIES imported directly from there,
-        # never duplicated). --
+        # -- AI Family Status: AI_FAMILIES is imported from panel_logic/ai_family_status.py, never duplicated. --
         self._ai_family_projects: list[dict] = []
         self._ai_family_ai_hailo: dict[str, str] = {}
         self._ai_family_status_text = _("LBL_ES_NOT_LOADED")
@@ -437,12 +420,8 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_ai_family()))
         asyncio.ensure_future(self._refresh_ai_family())
 
-        # -- Admin Clients (ported from the former admin_clients panel's
-        # AdminClientsPanel - _relative_duration imported directly from
-        # there, never duplicated). Real 5s data poll + a separate 1s
-        # tick that only re-emits changed so the "Xm ago" durations
-        # advance smoothly between polls, matching that file's own real
-        # two-timer design exactly. --
+        # -- Admin Clients: _relative_duration is imported from panel_logic/admin_clients.py, never duplicated. A 5 s data poll and a
+        # separate 1 s tick that only re-emits changed, so the "Xm ago" durations advance smoothly between polls. --
         self._admin_clients: list[dict] = []
         self._connection_clients: list[dict] = []
         self._connection_events: list[dict] = []
@@ -461,10 +440,8 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
 
-        # -- Admin Logs (ported from the former admin_logs panel's
-        # AdminLogsPanel - _extract_tag imported directly from there,
-        # never duplicated). Same real "clear the screen, keep tailing"
-        # anchor trick, live/pause, and tag+search filtering. --
+        # -- Admin Logs: _extract_tag is imported from panel_logic/admin_logs.py, never duplicated. "Clear the screen, keep tailing"
+        # anchor, live/pause, and tag + search filtering. --
         self._admin_logs_live = True
         self._admin_logs_all_lines: list[str] = []
         self._admin_logs_tag_filter: str | None = None
@@ -477,9 +454,7 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_logs()))
         asyncio.ensure_future(self._refresh_admin_logs())
 
-        # -- Admin Server (ported from the former admin_server panel's
-        # AdminServerPanel - _format_uptime imported directly from
-        # there, never duplicated). --
+        # -- Admin Server: _format_uptime is imported from panel_logic/admin_server.py, never duplicated. --
         self._admin_server_status_text = _("MSG_ADMIN_ONLY")
         self._admin_server_current_port: int | None = None
         self._admin_server_pending_port_text = ""
@@ -510,9 +485,8 @@ class SuiteQtBridge(QObject):
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_server()))
         asyncio.ensure_future(self._refresh_admin_server())
 
-        # -- Ecosystem Services (ported from the former ecosystem_services panel's
-        # own EcosystemServicesPanel - _health/_badge_label/_HEALTH_COLOR/
-        # _STACK_COLOR imported directly from there, never duplicated). --
+        # -- Ecosystem Services: _health/_badge_label/_HEALTH_COLOR/_STACK_COLOR are imported from panel_logic/ecosystem_services.py,
+        # never duplicated. --
         self._es_projects: list[dict] = []
         self._es_family_filter: str | None = None
         self._es_search = ""
@@ -522,13 +496,9 @@ class SuiteQtBridge(QObject):
         self._es_refreshing = False
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: self.changed.emit())
 
-        # -- Ecosystem Telemetry (ported from the former ecosystem_telemetry panel's
-        # own EcosystemTelemetryPanel - _AGGREGATES/_RANGE_PRESETS imported
-        # directly from there, never duplicated). Real chart rendering
-        # uses a hand-drawn QML Canvas, NOT `import QtCharts` in QML -
-        # that module segfaults on load in this real environment (PySide6
-        # 6.11.1, confirmed both offscreen and on-screen) - see this
-        # session's own memory note. --
+        # -- Ecosystem Telemetry: _AGGREGATES/_RANGE_PRESETS are imported from panel_logic/ecosystem_telemetry.py, never duplicated.
+        # The chart is drawn by hand on a QML Canvas, not with `import QtCharts`: that module crashes on load with PySide6 6.11.1,
+        # both offscreen and on screen. --
         self._tel_status_text = ""
         self._tel_running = False
         self._tel_is_aggregate = False
@@ -547,10 +517,8 @@ class SuiteQtBridge(QObject):
         self._plan_busy = False
         self._plan_confirming = False
 
-        # -- XY Table (ported from the former XYTablePanel -
-        # _default_xy_table/_DISPLAY_DEFAULT_SIZE_MM/JOG_STEPS_MM
-        # imported directly from there, never duplicated. Own real,
-        # independent robot selection - NOT shared with Robot Control/
+        # -- XY Table: _default_xy_table/_DISPLAY_DEFAULT_SIZE_MM/JOG_STEPS_MM are imported from panel_logic/xy_table.py, never
+        # duplicated. Its own robot selection, not shared with Robot Control or Trajectory. --
         # Trajectory's own, matching the classic panel's own real
         # independent QComboBox). --
         self._xy_selected_robot_id: str | None = None
@@ -558,27 +526,15 @@ class SuiteQtBridge(QObject):
         self._xy_robots_cache: list[RobotView] = []
         controller.active_state_changed.connect(self._on_xy_state_changed)
 
-        # -- Rack Manager (ported from the former rack_config panel's
-        # RackConfigPanel - RACK_MAX_CAPACITY/default_rack_system
-        # imported directly from there, never duplicated). Own real,
-        # independent robot selection, matching that panel's own
-        # separate QComboBox. --
+        # -- Rack Manager: RACK_MAX_CAPACITY/default_rack_system are imported from hydra_suite/models.py, never duplicated. Its own robot
+        # selection. --
         self._rack_selected_robot_id: str | None = None
         self._rack_robots_cache: list[RobotView] = []
         controller.active_state_changed.connect(self._on_rack_state_changed)
 
-        # -- Pick and Place (ported from the former pick_and_place panel's
-        # PickAndPlacePanel - MACHINE_TYPES/MACHINE_LABELS/PNP_AXES
-        # imported directly from there, never duplicated. Own real,
-        # independent robot selection, matching that panel's own
-        # separate QComboBox. The "size-only" branch that panel's own
-        # header documents as real-in-STUDIO-but-unreachable-through-this-
-        # Machine-combo is intentionally NOT ported here - it never
-        # renders in the classic panel either, so there is nothing a
-        # real user could compare this port against; a future 3rd
-        # Machine option would need to add it to both sides. The
-        # right-hand "3D Live View" (RobotViewport in PnP-only mode) is
-        # not ported, same as every other panel in this family. --
+        # -- Pick and Place: MACHINE_TYPES/MACHINE_LABELS/PNP_AXES are imported from panel_logic/pick_and_place.py, never duplicated.
+        # Its own robot selection. The "size-only" branch of STUDIO is not reachable through the Machine combo, so it is not here; a
+        # third Machine option would need it on both sides. The 3D live view of the PnP-only mode is not drawn. --
         self._pnp_selected_robot_id: str | None = None
         self._pnp_robots_cache: list[RobotView] = []
         self._pnp_machine_type: str = MACHINE_TYPES[0]
@@ -607,34 +563,21 @@ class SuiteQtBridge(QObject):
         self._module_robots_cache: dict[str, list[RobotView]] = {k: [] for k in _MODULE_CONFIGS}
         controller.active_state_changed.connect(self._on_module_state_changed)
 
-        # -- ATC Tools (ported from the former AtcToolsPanel -
-        # URTC_TOOLS/PANEL_GRIDS/JOINT_FIELDS/TABLE_FIELDS/*_RANGE_*/
-        # _default_atc_config/_default_pos imported directly from there,
-        # never duplicated). NOT built on the generic Module Config shape
-        # above - `RobotView.atc` is a fundamentally different shape
-        # (None vs a full ATCConfig, no separate `enabled` flag, 3 layout
-        # types), matching that file's own header. Own real, independent
-        # robot selection. `_atc_editing_slot` mirrors the classic panel's
-        # own field exactly: None, an int slot index, or the literal
-        # string "revolver" for the base pickup position editor. --
+        # -- ATC Tools: URTC_TOOLS/PANEL_GRIDS/JOINT_FIELDS/TABLE_FIELDS/*_RANGE_*/_default_atc_config/_default_pos are imported from
+        # panel_logic/atc_tools.py, never duplicated. Not built on the generic Module Config shape above: `RobotView.atc` is None or a
+        # full ATCConfig (no separate `enabled` flag, 3 layout types). Its own robot selection. `_atc_editing_slot` is None, an int
+        # slot index, or the literal string "revolver" for the base pickup position editor. --
         self._atc_selected_robot_id: str | None = None
         self._atc_robots_cache: list[RobotView] = []
         self._atc_editing_slot: int | str | None = None
         self._atc_load_error: str = ""
         controller.active_state_changed.connect(self._on_atc_state_changed)
 
-        # -- Cameras (ported from the former CamerasPanel/
-        # CameraCard - CAMERA_TYPES/RTSP_DEFAULT_PORT/ip_stream_labels/
-        # iter_mjpeg_frames/_USB_TYPE_OPTIONS/_THERMAL_TYPE_OPTIONS/
-        # _STATUS_COLORS/GRID_COLUMNS imported directly from there, never
-        # duplicated). The real live MJPEG feed reaches QML via
-        # CameraFrameProvider above, injected here as `frame_provider` -
-        # None in this offline/test context, every frame-touching method
-        # below already no-ops safely on that. Uses its own dedicated
-        # `_camerasChanged` signal (not `changed`) for the fast-moving
-        # per-frame bits, so a live video feed never forces every OTHER
-        # panel's own Property bindings to re-evaluate several times a
-        # second - see that signal's own declaration for why. --
+        # -- Cameras: CAMERA_TYPES/RTSP_DEFAULT_PORT/ip_stream_labels/iter_mjpeg_frames/_USB_TYPE_OPTIONS/_THERMAL_TYPE_OPTIONS/
+        # _STATUS_COLORS/GRID_COLUMNS are imported from panel_logic/cameras.py, never duplicated. The live MJPEG feed reaches QML via
+        # CameraFrameProvider above, injected here as `frame_provider` (None in an offline or test context, where every frame-touching
+        # method below does nothing). The fast-moving per-frame bits use their own `_camerasChanged` signal (not `changed`), so a
+        # live video feed never makes every other panel re-evaluate its bindings several times a second. --
         self._camera_stream_tasks: dict[int, asyncio.Task] = {}
         self._camera_stream_urls: dict[int, str | None] = {}
         self._camera_discovery_tasks: dict[int, asyncio.Task] = {}
@@ -648,10 +591,7 @@ class SuiteQtBridge(QObject):
         self._camera_capture_error: str = ""
         controller.active_state_changed.connect(self._on_cameras_state_changed)
         self._camera_status_timer = self._scheduler.add("camera_status", 3000, lambda: asyncio.ensure_future(self._poll_camera_status()))
-        # -- real Camera Media parity gap closed - see the former camera_media panel's
-        # own header comment for the full "why this parses frames itself"
-        # reasoning; this reuses the exact same parse_mjpeg_frames() (never
-        # a second, independent copy of that real SOI/EOI marker-scan). --
+        # -- Camera Media: reuses parse_mjpeg_frames() of panel_logic/camera_media.py (one SOI/EOI marker scan, never a second copy). --
         self._camera_media_items: list[dict] = []
         self._camera_media_filter: int | str = "all"
         self._camera_media_selected: dict | None = None
@@ -664,16 +604,11 @@ class SuiteQtBridge(QObject):
         self._camera_media_timer = QTimer(self)
         self._camera_media_timer.timeout.connect(self._advance_camera_media_frame)
 
-        # -- Flasher (ported from the former FlasherPanel -
-        # can_ota.py's CanOtaTarget/FlashOptions/etc. imported directly,
-        # never duplicated). Two real, separate instances (`urtc_flasher`/
-        # `hydra_flasher`, keyed by _FLASHER_TIERS above), each with its
-        # own real tier/robot selection/file/log - one dict per bit of
-        # state, keyed by nav key, rather than 2 sets of named attributes
-        # (same generic-over-nav-key shape as _MODULE_CONFIGS above).
-        # `_flasher_is_hardware` is the one real exception - it's a
-        # single, GLOBAL deployment setting (HydraState.can_ota_transport),
-        # not per-instance. --
+        # -- Flasher: can_ota.py's CanOtaTarget/FlashOptions/etc. are imported, never duplicated. Two separate instances
+        # (`urtc_flasher`/`hydra_flasher`, keyed by _FLASHER_TIERS above), each with its own tier/robot selection/file/log: one dict per
+        # bit of state, keyed by nav key, rather than two sets of named attributes (the same generic-over-nav-key shape as
+        # _MODULE_CONFIGS above). `_flasher_is_hardware` is the one exception: a single, GLOBAL deployment setting
+        # (HydraState.can_ota_transport), not per instance. --
         self._flasher_is_hardware = False
         self._flasher_controller: dict[str, ControllerView | None] = {k: None for k in _FLASHER_TIERS}
         self._flasher_robot_id: dict[str, str | None] = {k: None for k in _FLASHER_TIERS}
@@ -689,20 +624,10 @@ class SuiteQtBridge(QObject):
         self._flasher_erase_fram: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
         controller.active_state_changed.connect(self._on_flasher_state_changed)
 
-        # -- Tester (ported from the former TesterPanel -
-        # can_ota.py's mock_self_test()/mock_bus_monitor()/CanFrame/
-        # SelfTestStep imported directly, never duplicated;
-        # _category_for() imported from the former tester panel itself, same
-        # reasoning). Deliberately duplicates the Flasher's own target-
-        # selection shape (own _tester_* state dicts, not shared with
-        # _flasher_*) - matches that file's own header on why this is a
-        # real, faithful duplication rather than a shortcut. Two real
-        # instances (`urtc_tester`/`hydra_tester`, _TESTER_TIERS above).
-        # Global LED/OLED/F-RAM state is real-but-local here too, same as
-        # the classic panel's own plain instance attributes - none of it
-        # round-trips through push_active_state() on either side, since
-        # no real APPLICATION-level command exists yet to send it
-        # anywhere (see that file's own header). --
+        # -- Tester: can_ota.py's mock_self_test()/mock_bus_monitor()/CanFrame/SelfTestStep and _category_for() of panel_logic/tester.py
+        # are imported, never duplicated. Its target selection has the shape of the Flasher's but its own _tester_* state dicts. Two
+        # instances (`urtc_tester`/`hydra_tester`, _TESTER_TIERS above). The global LED/OLED/F-RAM state is local here: none of it
+        # goes through push_active_state(), since no application-level command exists yet to send it anywhere. --
         self._tester_controller: dict[str, ControllerView | None] = {k: None for k in _TESTER_TIERS}
         self._tester_robot_id: dict[str, str | None] = {k: None for k in _TESTER_TIERS}
         self._tester_tier: dict[str, str] = {k: tiers[0] for k, tiers in _TESTER_TIERS.items()}
@@ -716,16 +641,10 @@ class SuiteQtBridge(QObject):
         self._tester_frames: dict[str, list] = {k: [] for k in _TESTER_TIERS}
         controller.active_state_changed.connect(self._on_tester_state_changed)
 
-        # -- Viewport (3D, ported from the former ViewportPanel)
-        # - reuses the SAME real robot selection Robot Control/Trajectory
-        # already share (_selected_robot_id/_active_robots_cache/
-        # _selected_robot() above) rather than a third independent one -
-        # _select_robot()'s own comment already anticipated this. Real
-        # rendering happens through render/viewport.py's own
-        # OffscreenRobotRenderer, constructed lazily (real GL setup - no
-        # reason to pay for it if this panel is never opened), fed to QML
-        # through ViewportFrameProvider the same way CameraFrameProvider
-        # already feeds live camera frames. --
+        # -- Viewport (3D): uses the same robot selection as Robot Control and Trajectory (_selected_robot_id/_active_robots_cache/
+        # _selected_robot() above). Rendering happens through render/viewport.py's OffscreenRobotRenderer, built lazily (the GL setup
+        # is not paid for when this panel is never opened) and fed to QML through ViewportFrameProvider, the way CameraFrameProvider
+        # feeds live camera frames. --
         self._viewport_renderer = None  # OffscreenRobotRenderer | None, lazy
         self._viewport_render_failed = False
         self._viewport_render_error = ""
