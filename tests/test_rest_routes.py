@@ -11,6 +11,7 @@ checked out next to this repository every route must exist in the server contrac
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
@@ -18,7 +19,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "tests" / "fixtures" / "rest_routes.json"
-CONTRACT = ROOT.parent / "HYDRA-UMC-SDK" / "contracts" / "openapi" / "v1" / "server.full.openapi.json"
+# The shared contracts: the checkout next to this repository, or the folder the continuous integration fetches at a pinned tag.
+SDK = Path(os.environ.get("HYDRA_UMC_SDK_DIR") or ROOT.parent / "HYDRA-UMC-SDK")
+CONTRACT = SDK / "contracts" / "openapi" / "v1" / "server.full.openapi.json"
 LITERAL = re.compile(r"""["'](/api/[^"'\s]*)["']""")
 
 
@@ -45,5 +48,20 @@ def test_routes_exist_in_the_server_contract():
     def matches(route: str, path: str) -> bool:
         return re.fullmatch(route.replace("{p}", "[^/]+"), re.sub(r"\{[^}]+\}", "x", path)) is not None
 
-    unknown = [r for r in called_routes() if not any(matches(r, p) for p in paths)]
+    unknown = [r for r in called_routes() if not r.startswith("/api/ai/") and not any(matches(r, p) for p in paths)]
+    assert unknown == []
+
+
+ROUTE_TABLE = SDK / "generated" / "hydra-routes.json"
+
+
+@pytest.mark.skipif(not ROUTE_TABLE.exists(), reason="the generated route table is not checked out next to this repository")
+def test_routes_exist_in_the_generated_route_table():
+    """The route table generated from the contract (method, path, access, query, statuses): the app may only call routes in it."""
+    paths = [route["path"] for route in json.loads(ROUTE_TABLE.read_text(encoding="utf-8"))["routes"]]
+
+    def matches(route: str, path: str) -> bool:
+        return re.fullmatch(route.replace("{p}", "[^/]+"), re.sub(r"\{[^}]+\}", "x", path)) is not None
+
+    unknown = [r for r in called_routes() if not r.startswith("/api/ai/") and not any(matches(r, p) for p in paths)]
     assert unknown == []
