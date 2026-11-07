@@ -6620,6 +6620,7 @@ ApplicationWindow {
             property var view: suiteBackend.setupView
             property var qr: (view && view.qr) ? view.qr : ({ "tooLong": true, "modules": [], "size": 0 })
             function stateColour(state) {
+                if (state === "info") return window.cyan
                 if (state === "done") return "#4fd08a"
                 if (state === "todo" || state === "warn") return window.amber
                 return "#556070"
@@ -6651,6 +6652,15 @@ ApplicationWindow {
                             onClicked: suiteBackend.setupPart(modelData.id)
                         }
                     }
+                }
+                TextField {
+                    objectName: "setupSearch"
+                    visible: setupRoot.view.search !== undefined && setupRoot.view.search !== null
+                    Layout.fillWidth: true
+                    placeholderText: setupRoot.view.search ? setupRoot.view.search.placeholder : ""
+                    text: setupRoot.view.search ? setupRoot.view.search.text : ""
+                    selectByMouse: true
+                    onTextEdited: suiteBackend.setupSearch(text)
                 }
                 Repeater {
                     model: setupRoot.view.facts || []

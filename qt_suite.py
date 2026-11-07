@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, tool_arms
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, tool_arms
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -480,6 +480,8 @@ class SuiteQtBridge(QObject):
         self._detection_hef_error = ""
         self._tool_arms: dict | None = None  # the arm state of the URTC tools (None: not read or not available)
         self._tool_arms_error = ""
+        self._help_level = help_levels.level_from_config(load_config())  # the level of the Help, kept in the configuration file
+        self._help_search = ""
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -2366,6 +2368,9 @@ class SuiteQtBridge(QObject):
         key = self._active_key
         if key not in setup_screens.SCREEN_KEYS:
             return {}
+        if key == "setup_help":
+            # the guides need no server
+            return help_levels.view(self._help_level, self._help_search, setup_screens.empty_view("HELP_TITLE", "HELP_INTRO"))
         if conn is None:
             return setup_screens.no_server_view(key, _("LBL_ES_NO_ACTIVE_SERVER"))
         admin = conn.is_admin is True and conn.login_ok is True
@@ -2408,6 +2413,14 @@ class SuiteQtBridge(QObject):
         elif button_id == "close_all" and self._active_key == "setup_remote":
             self._set_remote_access(setup_screens.close_all_setting)
 
+    @Slot(str)
+    def setupSearch(self, text: str) -> None:
+        """The words typed in the search box of the Help."""
+        if self._active_key != "setup_help":
+            return
+        self._help_search = help_levels.clean_search(text)
+        self.changed.emit()
+
     @Slot(str, bool)
     def setupToggle(self, toggle_id: str, checked: bool) -> None:
         if self._active_key == "setup_security" and toggle_id == "allow_rotation":
@@ -2419,6 +2432,12 @@ class SuiteQtBridge(QObject):
 
     @Slot(str)
     def setupPart(self, part: str) -> None:
+        if self._active_key == "setup_help":
+            if part in help_levels.LEVELS:
+                self._help_level = part
+                save_config(help_levels.config_update(part))
+                self.changed.emit()
+            return
         if self._active_key != "setup_history" or part not in ("connections", "audit"):
             return
         self._setup_history_part = part

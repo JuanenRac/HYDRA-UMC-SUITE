@@ -108,6 +108,11 @@ def _view(title_key: str, intro_key: str) -> dict:
     }
 
 
+def empty_view(title_key: str, intro_key: str) -> dict:
+    """The empty view of a screen that is not one of the Setup readings (the Help by level)."""
+    return _view(title_key, intro_key)
+
+
 def no_server_view(key: str, message: str) -> dict:
     """The screen of a Setup entry while no server is active: its title and why there is nothing to show."""
     label = next((label for label, panel in SCREENS if panel == key), "")

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A Help by level, under Ecosystem, in eight languages:** ten step-by-step guides for the Setup screens and the administration of the server in three levels (basic, advanced, technical) with a search box that ignores case and accents; the steps take the names of the screens from the navigation, so a guide never names a menu entry that is called something else, the level a person chooses is kept in the configuration file (an unknown value there means all levels), and the Help needs no server.
+
 - **A read-only panel of the arm state of the URTC tools in Server Admin, in eight languages:** for each robot and tool whether its power stage may act, who reported it and how old the report is, read through the server; a report older than the time limit is never shown as safe (an armed tool with an old report is a warning, a disarmed one is unknown), the dangerous rows come first, and a server without the safety zones service says the state is not available instead of showing an empty list. Nothing on the screen arms, disarms or stops a tool.
 
 - **A switch for the loaded-model reports of the detection service in Server Admin, in eight languages:** off by default, it asks for a confirmation before turning on (the request carries the confirmation only then), is locked when the environment of the server fixes it, and stays hidden on a server that predates it.
