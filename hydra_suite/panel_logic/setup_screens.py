@@ -104,7 +104,7 @@ def _view(title_key: str, intro_key: str) -> dict:
     return {
         "title": _(title_key), "intro": _(intro_key), "error": "", "notice": "", "noticeOk": True,
         "facts": [], "checks": [], "headers": [], "rows": [], "toggles": [], "buttons": [], "parts": [],
-        "qr": None, "note": "", "summary": "", "section": "", "extraRows": [], "extraHeaders": [], "extraTitle": "",
+        "qr": None, "note": "", "summary": "", "section": "", "extraRows": [], "extraHeaders": [], "extraTitle": "", "groups": [],
     }
 
 

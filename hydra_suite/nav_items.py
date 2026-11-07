@@ -56,6 +56,7 @@ SETUP_ITEMS: tuple[tuple[str, str], ...] = (
     ("DOCK_SETUP_NOTIFICATIONS", "setup_notifications"),
     ("DOCK_SETUP_HISTORY", "setup_history"),
     ("DOCK_SETUP_HELP", "setup_help"),
+    ("DOCK_SETUP_PREFERENCES", "setup_preferences"),
 )
 
 # The second block of the HYDRA-UMC submenu, under its own "Ecosystem" header: services, telemetry, the AI

@@ -26,6 +26,11 @@ ApplicationWindow {
 
     Component.onCompleted: showMaximized()
 
+    // The scale of the interface chosen in the Preferences: every text size goes through here. Reading the scale as a property of the window means a text
+    // is only worked out again when the scale itself changes, not on every update of the program.
+    readonly property real uiScale: suiteBackend.uiScaleFactor
+    function fs(pixels) { return Math.max(1, Math.round(pixels * uiScale)) }
+
     // Closing the window first sends the writes that are waiting and closes the connections, then quits.
     onClosing: function(close) {
         if (!suiteBackend.shutdownDone) {
@@ -107,7 +112,7 @@ ApplicationWindow {
         color: window.muted
         font.family: "Bahnschrift"
         font.bold: true
-        font.pixelSize: 10
+        font.pixelSize: window.fs(10)
         Layout.topMargin: 10
         Layout.leftMargin: 10
     }
@@ -135,7 +140,7 @@ ApplicationWindow {
                 color: navBtn.isCategory ? window.cyan : window.textPrimary
                 font.family: "Bahnschrift"
                 font.bold: navBtn.isCategory
-                font.pixelSize: 12
+                font.pixelSize: window.fs(12)
                 Layout.fillWidth: true
                 elide: Text.ElideRight
             }
@@ -143,7 +148,7 @@ ApplicationWindow {
                 visible: navBtn.isCategory
                 text: "›"
                 color: window.muted
-                font.pixelSize: 14
+                font.pixelSize: window.fs(14)
             }
         }
         MouseArea {
@@ -184,9 +189,9 @@ ApplicationWindow {
                 ColumnLayout {
                     Layout.preferredWidth: 320
                     spacing: 0
-                    Text { text: "HYDRA-UMC"; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 10 }
-                    Text { text: "SUITE"; color: window.textPrimary; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 19 }
-                    Text { text: suiteBackend.uiText("QT_SUITE_TAGLINE"); color: window.muted; font.family: "Bahnschrift"; font.pixelSize: 8 }
+                    Text { text: "HYDRA-UMC"; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(10) }
+                    Text { text: "SUITE"; color: window.textPrimary; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(19) }
+                    Text { text: suiteBackend.uiText("QT_SUITE_TAGLINE"); color: window.muted; font.family: "Bahnschrift"; font.pixelSize: window.fs(8) }
                 }
                 Item { Layout.fillWidth: true }
                 // Global STOP status: a clean result hides itself, anything else stays red.
@@ -207,7 +212,7 @@ ApplicationWindow {
                         color: suiteBackend.stopAllSeverity === "ok" ? window.green : (suiteBackend.stopAllSeverity === "busy" ? window.amber : "#ffffff")
                         font.family: "Bahnschrift"
                         font.bold: true
-                        font.pixelSize: 11
+                        font.pixelSize: window.fs(11)
                     }
                     ToolTip.visible: stopAllHover.hovered && suiteBackend.stopAllDetail !== ""
                     ToolTip.text: suiteBackend.stopAllDetail
@@ -232,8 +237,8 @@ ApplicationWindow {
                     }
                     contentItem: Column {
                         spacing: 0
-                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_LABEL"); color: "#ffffff"; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 20 }
-                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_CAPTION"); color: "#ffffff"; font.family: "Bahnschrift"; font.pixelSize: 10 }
+                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_LABEL"); color: "#ffffff"; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(20) }
+                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_CAPTION"); color: "#ffffff"; font.family: "Bahnschrift"; font.pixelSize: window.fs(10) }
                     }
                 }
                 Text {
@@ -241,14 +246,14 @@ ApplicationWindow {
                     color: suiteBackend.connectionStatus === "connected" ? window.green : (suiteBackend.connectionStatus === "connecting" ? window.amber : window.muted)
                     font.family: "Bahnschrift"
                     font.bold: true
-                    font.pixelSize: 11
+                    font.pixelSize: window.fs(11)
                 }
-                Text { text: "v" + suiteBackend.version; color: window.muted; font.family: "Bahnschrift"; font.pixelSize: 10 }
+                Text { text: "v" + suiteBackend.version; color: window.muted; font.family: "Bahnschrift"; font.pixelSize: window.fs(10) }
                 Button {
                     id: appMenuButton
                     objectName: "appMenuButton"
                     text: "\u2261"
-                    font.pixelSize: 18
+                    font.pixelSize: window.fs(18)
                     implicitWidth: 40
                     implicitHeight: 40
                     Accessible.name: suiteBackend.uiText("MENU_FILE").replace("&", "")
@@ -331,7 +336,7 @@ ApplicationWindow {
             Text {
                 text: suiteBackend.secureStoreAvailable ? suiteBackend.uiText("HINT_REMEMBER_SECURE") : suiteBackend.uiText("HINT_REMEMBER_NO_STORE")
                 color: suiteBackend.secureStoreAvailable ? window.muted : window.amber
-                font.pixelSize: 10
+                font.pixelSize: window.fs(10)
                 wrapMode: Text.WordWrap
                 Layout.preferredWidth: 330
             }
@@ -377,24 +382,24 @@ ApplicationWindow {
                 color: window.textPrimary
                 font.family: "Bahnschrift"
                 font.bold: true
-                font.pixelSize: 22
+                font.pixelSize: window.fs(22)
             }
-            Text { text: suiteBackend.uiText("ABOUT_TAGLINE"); color: window.cyan; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; font.pixelSize: 11 }
-            Text { text: suiteBackend.uiText("ABOUT_DESCRIPTION"); color: window.muted; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("ABOUT_TAGLINE"); color: window.cyan; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; font.pixelSize: window.fs(11) }
+            Text { text: suiteBackend.uiText("ABOUT_DESCRIPTION"); color: window.muted; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true; font.pixelSize: window.fs(11) }
             GridLayout {
                 columns: 2
                 columnSpacing: 12
                 Layout.alignment: Qt.AlignHCenter
-                Text { text: suiteBackend.uiText("ABOUT_VERSION_SUITE"); color: window.muted; font.pixelSize: 11 }
-                Text { text: suiteBackend.aboutInfo.version; color: window.textPrimary; font.pixelSize: 11 }
-                Text { text: suiteBackend.uiText("ABOUT_VERSION_SERVER"); color: window.muted; font.pixelSize: 11 }
-                Text { text: suiteBackend.aboutInfo.serverVersion; color: window.textPrimary; font.pixelSize: 11 }
-                Text { text: suiteBackend.uiText("ABOUT_AUTHOR"); color: window.muted; font.pixelSize: 11 }
-                Text { text: suiteBackend.aboutInfo.author; color: window.textPrimary; font.pixelSize: 11 }
-                Text { text: suiteBackend.uiText("ABOUT_EMAIL"); color: window.muted; font.pixelSize: 11 }
-                Text { text: suiteBackend.aboutInfo.email; color: window.textPrimary; font.pixelSize: 11 }
-                Text { text: suiteBackend.uiText("ABOUT_LICENSE"); color: window.muted; font.pixelSize: 11 }
-                Text { text: suiteBackend.aboutInfo.license; color: window.textPrimary; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("ABOUT_VERSION_SUITE"); color: window.muted; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.aboutInfo.version; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.uiText("ABOUT_VERSION_SERVER"); color: window.muted; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.aboutInfo.serverVersion; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.uiText("ABOUT_AUTHOR"); color: window.muted; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.aboutInfo.author; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.uiText("ABOUT_EMAIL"); color: window.muted; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.aboutInfo.email; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.uiText("ABOUT_LICENSE"); color: window.muted; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.aboutInfo.license; color: window.textPrimary; font.pixelSize: window.fs(11) }
             }
         }
     }
@@ -467,7 +472,7 @@ ApplicationWindow {
                 text: suiteBackend.noticeText
                 color: suiteBackend.noticeSeverity === "info" ? "#d8f6ff" : "#ffe9b8"
                 font.bold: true
-                font.pixelSize: 12
+                font.pixelSize: window.fs(12)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -572,7 +577,7 @@ ApplicationWindow {
                 text: suiteBackend.uiText("LBL_SETTINGS_ADMIN_ONLY")
                 color: "#fbbf24"
                 font.bold: true
-                font.pixelSize: 11
+                font.pixelSize: window.fs(11)
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: 6
@@ -636,7 +641,7 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 10
-            Text { text: suiteBackend.uiText("HEADING_SERVERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_SERVERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
@@ -645,7 +650,7 @@ ApplicationWindow {
                     enabled: !suiteBackend.serverScanning
                     onClicked: suiteBackend.scanServers()
                 }
-                Text { text: suiteBackend.serverScanStatus; color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.serverScanStatus; color: window.muted; font.pixelSize: window.fs(10) }
             }
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
             RowLayout {
@@ -698,17 +703,17 @@ ApplicationWindow {
             Text {
                 text: suiteBackend.secureStoreAvailable ? suiteBackend.uiText("HINT_REMEMBER_SECURE") : suiteBackend.uiText("HINT_REMEMBER_NO_STORE")
                 color: suiteBackend.secureStoreAvailable ? "#556070" : window.amber
-                font.pixelSize: 10
+                font.pixelSize: window.fs(10)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("COL_SERVER"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 200 }
-                Text { text: suiteBackend.uiText("COL_HOST"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 180 }
-                Text { text: suiteBackend.uiText("COL_ROBOTS"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 80 }
-                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("COL_SERVER"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 200 }
+                Text { text: suiteBackend.uiText("COL_HOST"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 180 }
+                Text { text: suiteBackend.uiText("COL_ROBOTS"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 80 }
+                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
             }
             ListView {
                 Layout.fillWidth: true
@@ -728,14 +733,14 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.leftMargin: 8
                         anchors.rightMargin: 8
-                        Text { text: modelData.name; color: window.textPrimary; font.bold: modelData.active; font.pixelSize: 11; Layout.preferredWidth: 192; elide: Text.ElideRight }
-                        Text { text: modelData.hostPort; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 172 }
-                        Text { text: modelData.robotCount; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 72 }
+                        Text { text: modelData.name; color: window.textPrimary; font.bold: modelData.active; font.pixelSize: window.fs(11); Layout.preferredWidth: 192; elide: Text.ElideRight }
+                        Text { text: modelData.hostPort; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 172 }
+                        Text { text: modelData.robotCount; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 72 }
                         Text {
                             text: modelData.statusText
                             color: modelData.statusText === suiteBackend.uiText("STATUS_CONNECTED") ? window.green
                                 : (modelData.loginDetail !== "" ? "#ee6b80" : window.amber)
-                            font.pixelSize: 10
+                            font.pixelSize: window.fs(10)
                             Layout.fillWidth: true
                             ToolTip.visible: modelData.loginDetail !== "" && statusHover.hovered
                             ToolTip.text: modelData.loginDetail
@@ -745,7 +750,7 @@ ApplicationWindow {
                             checked: modelData.remembered
                             text: suiteBackend.uiText("LBL_REMEMBERED")
                             palette.windowText: window.muted
-                            font.pixelSize: 10
+                            font.pixelSize: window.fs(10)
                             onToggled: suiteBackend.setServerRemembered(modelData.connId, checked)
                         }
                         Button { text: suiteBackend.uiText("BTN_SET_ACTIVE"); implicitHeight: 26; onClicked: suiteBackend.setActiveServer(modelData.connId) }
@@ -762,7 +767,7 @@ ApplicationWindow {
         ColumnLayout {
             width: contentLoader.width
             spacing: 14
-            Text { text: suiteBackend.uiText("HEADING_ROBOT_CONTROL"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_ROBOT_CONTROL"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             ComboBox {
                 id: robotCombo
                 Layout.preferredWidth: 260
@@ -819,7 +824,7 @@ ApplicationWindow {
                             text: suiteBackend.uiText("ACCESS_SIM_NOTICE")
                             color: window.amber
                             font.bold: true
-                            font.pixelSize: 11
+                            font.pixelSize: window.fs(11)
                             height: 32
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -837,7 +842,7 @@ ApplicationWindow {
                                 text: suiteBackend.selectedRobotAccess.text
                                 color: window.textPrimary
                                 font.bold: true
-                                font.pixelSize: 11
+                                font.pixelSize: window.fs(11)
                             }
                         }
                         Button {
@@ -889,7 +894,7 @@ ApplicationWindow {
                                 text: suiteBackend.selectedRobotSafeMode.text
                                 color: window.textPrimary
                                 font.bold: true
-                                font.pixelSize: 11
+                                font.pixelSize: window.fs(11)
                             }
                         }
                         Button {
@@ -925,17 +930,17 @@ ApplicationWindow {
                         visible: accessCard.showList
                         Layout.fillWidth: true
                         spacing: 3
-                        Text { visible: suiteBackend.claimsRows.length === 0; text: suiteBackend.uiText("ACCESS_LIST_EMPTY"); color: "#556070"; font.pixelSize: 11 }
+                        Text { visible: suiteBackend.claimsRows.length === 0; text: suiteBackend.uiText("ACCESS_LIST_EMPTY"); color: "#556070"; font.pixelSize: window.fs(11) }
                         Repeater {
                             model: suiteBackend.claimsRows
                             delegate: RowLayout {
                                 required property var modelData
                                 Layout.fillWidth: true
                                 spacing: 10
-                                Text { text: modelData.robot; color: modelData.mine ? window.green : window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 150 }
-                                Text { text: modelData.owner; color: window.muted; font.pixelSize: 11; Layout.preferredWidth: 130 }
-                                Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
-                                Text { text: modelData.left; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10 }
+                                Text { text: modelData.robot; color: modelData.mine ? window.green : window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 150 }
+                                Text { text: modelData.owner; color: window.muted; font.pixelSize: window.fs(11); Layout.preferredWidth: 130 }
+                                Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData.left; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10) }
                             }
                         }
                         CheckBox {
@@ -946,7 +951,7 @@ ApplicationWindow {
                         }
                         RowLayout {
                             spacing: 8
-                            Text { text: suiteBackend.uiText("ACCESS_CONDITIONAL_LABEL"); color: window.muted; font.pixelSize: 11 }
+                            Text { text: suiteBackend.uiText("ACCESS_CONDITIONAL_LABEL"); color: window.muted; font.pixelSize: window.fs(11) }
                             ComboBox {
                                 id: conditionalCombo
                                 objectName: "conditionalModeCombo"
@@ -971,7 +976,7 @@ ApplicationWindow {
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 8
-                    Text { text: suiteBackend.uiText("GROUP_JOINTS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Text { text: suiteBackend.uiText("GROUP_JOINTS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                     Repeater {
                         model: suiteBackend.selectedRobotJoints
                         delegate: RowLayout {
@@ -1003,7 +1008,7 @@ ApplicationWindow {
                     spacing: 6
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: suiteBackend.uiText("GROUP_COMBINE"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("GROUP_COMBINE"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         Item { Layout.fillWidth: true }
                         CheckBox {
                             objectName: "combinedModeSwitch"
@@ -1013,8 +1018,8 @@ ApplicationWindow {
                             onToggled: suiteBackend.extras.setCombinedModeEnabled(checked)
                         }
                     }
-                    Text { objectName: "combinedStatus"; text: suiteBackend.extras.combinedStatus; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                    Text { visible: !suiteBackend.extras.combinedModeEnabled; text: suiteBackend.uiText("COMBINE_SWITCH_HINT"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { objectName: "combinedStatus"; text: suiteBackend.extras.combinedStatus; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: !suiteBackend.extras.combinedModeEnabled; text: suiteBackend.uiText("COMBINE_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     Flow {
                         visible: suiteBackend.extras.combinedModeEnabled
                         Layout.fillWidth: true
@@ -1032,7 +1037,7 @@ ApplicationWindow {
                             }
                         }
                     }
-                    Text { visible: suiteBackend.extras.combinedModeEnabled && suiteBackend.extras.combineOptions.length === 0; text: suiteBackend.uiText("COMBINE_NO_OTHERS"); color: window.muted; font.pixelSize: 10 }
+                    Text { visible: suiteBackend.extras.combinedModeEnabled && suiteBackend.extras.combineOptions.length === 0; text: suiteBackend.uiText("COMBINE_NO_OTHERS"); color: window.muted; font.pixelSize: window.fs(10) }
                 }
             }
             Card {
@@ -1042,7 +1047,7 @@ ApplicationWindow {
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 8
-                    Text { text: suiteBackend.uiText("GROUP_PLAYBACK"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Text { text: suiteBackend.uiText("GROUP_PLAYBACK"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                     RowLayout {
                         spacing: 8
                         Button { objectName: "playButton"; text: suiteBackend.uiText("BTN_PLAYBACK_PLAY"); enabled: suiteBackend.selectedRobotTransport.canPlay; onClicked: suiteBackend.extras.requestPlay() }
@@ -1071,7 +1076,7 @@ ApplicationWindow {
                     anchors.fill: parent
                     anchors.margins: 14
                     spacing: 8
-                    Text { text: suiteBackend.uiText("GROUP_TOOL_ACCESSORIES"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                    Text { text: suiteBackend.uiText("GROUP_TOOL_ACCESSORIES"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                     RowLayout {
                         spacing: 8
                         Text { text: suiteBackend.uiText("LBL_URTC_TOOL"); color: window.muted; Layout.preferredWidth: 90 }
@@ -1140,12 +1145,12 @@ ApplicationWindow {
             height: contentLoader.height
             spacing: 10
             property int selectedRow: -1
-            Text { text: suiteBackend.uiText("HEADING_TRAJECTORY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
-            Text { text: suiteBackend.selectedRobotLabel; color: window.muted; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("HEADING_TRAJECTORY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
+            Text { text: suiteBackend.selectedRobotLabel; color: window.muted; font.pixelSize: window.fs(11) }
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("COL_TIME"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
-                Text { text: suiteBackend.uiText("HEADING_ROBOT_CONTROL") + " (J1…J6)"; color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("COL_TIME"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 100 }
+                Text { text: suiteBackend.uiText("HEADING_ROBOT_CONTROL") + " (J1…J6)"; color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
             }
             ListView {
                 Layout.fillWidth: true
@@ -1165,8 +1170,8 @@ ApplicationWindow {
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 6
-                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 94 }
-                        Text { text: modelData.joints; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true }
+                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 94 }
+                        Text { text: modelData.joints; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                     }
                     MouseArea { anchors.fill: parent; onClicked: trajectoryRoot.selectedRow = index }
                 }
@@ -1262,7 +1267,7 @@ ApplicationWindow {
                     pointZField.text = position.z !== undefined ? position.z : ""
                 }
                 Connections { target: trajectoryRoot; function onSelectedRowChanged() { pointPositionRow.refill() } }
-                Text { text: suiteBackend.uiText("TRJ_EDIT_X"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("TRJ_EDIT_X"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField {
                     id: pointXField
                     objectName: "pointXField"
@@ -1270,7 +1275,7 @@ ApplicationWindow {
                     color: window.textPrimary
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
-                Text { text: suiteBackend.uiText("TRJ_EDIT_Y"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("TRJ_EDIT_Y"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField {
                     id: pointYField
                     objectName: "pointYField"
@@ -1278,7 +1283,7 @@ ApplicationWindow {
                     color: window.textPrimary
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
-                Text { text: suiteBackend.uiText("TRJ_EDIT_Z"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("TRJ_EDIT_Z"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField {
                     id: pointZField
                     objectName: "pointZField"
@@ -1347,7 +1352,7 @@ ApplicationWindow {
                             height: 30
                             radius: 6
                             color: window.panelAlt
-                            Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8; text: modelData; color: window.textPrimary; font.pixelSize: 11 }
+                            Text { anchors.verticalCenter: parent.verticalCenter; anchors.left: parent.left; anchors.leftMargin: 8; text: modelData; color: window.textPrimary; font.pixelSize: window.fs(11) }
                             MouseArea { anchors.fill: parent; onClicked: { importWorkDialog.close(); suiteBackend.importWork(modelData) } }
                         }
                     }
@@ -1363,7 +1368,7 @@ ApplicationWindow {
             spacing: 12
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_AI_FAMILY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_AI_FAMILY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 Button {
                     text: suiteBackend.aiFamilyRefreshing ? "..." : suiteBackend.uiText("BTN_REFRESH")
@@ -1375,7 +1380,7 @@ ApplicationWindow {
                 visible: suiteBackend.aiFamilyStatusText !== ""
                 text: suiteBackend.aiFamilyStatusText
                 color: window.muted
-                font.pixelSize: 11
+                font.pixelSize: window.fs(11)
             }
             Repeater {
                 model: suiteBackend.aiFamilyGroups
@@ -1385,14 +1390,14 @@ ApplicationWindow {
                     spacing: 6
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: modelData.title; color: window.muted; font.bold: true; font.pixelSize: 10 }
+                        Text { text: modelData.title; color: window.muted; font.bold: true; font.pixelSize: window.fs(10) }
                         Item { Layout.fillWidth: true }
                         Rectangle {
                             radius: 9
                             implicitHeight: 20
                             implicitWidth: pillText.implicitWidth + 18
                             color: modelData.deviceConfigured ? "#123a4a" : window.panelAlt
-                            Text { id: pillText; anchors.centerIn: parent; text: modelData.devicePill; color: modelData.deviceConfigured ? "#4fc3f7" : window.muted; font.bold: true; font.pixelSize: 9 }
+                            Text { id: pillText; anchors.centerIn: parent; text: modelData.devicePill; color: modelData.deviceConfigured ? "#4fc3f7" : window.muted; font.bold: true; font.pixelSize: window.fs(9) }
                         }
                     }
                     Text {
@@ -1401,7 +1406,7 @@ ApplicationWindow {
                         color: window.amber
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
-                        font.pixelSize: 10
+                        font.pixelSize: window.fs(10)
                     }
                     GridLayout {
                         columns: 2
@@ -1420,14 +1425,14 @@ ApplicationWindow {
                                     ColumnLayout {
                                         spacing: 2
                                         Layout.fillWidth: true
-                                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                                        Text { text: modelData.meta; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                                        Text { text: modelData.meta; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                                     }
                                     Text {
                                         text: modelData.statusText
                                         color: modelData.live === true ? window.green : (modelData.live === false ? "#ee6b80" : window.muted)
                                         font.bold: true
-                                        font.pixelSize: 9
+                                        font.pixelSize: window.fs(9)
                                     }
                                 }
                             }
@@ -1437,9 +1442,9 @@ ApplicationWindow {
                         visible: modelData.projects.length === 0
                         text: suiteBackend.uiText("MSG_ES_NONE")
                         color: "#556070"
-                        font.pixelSize: 10
+                        font.pixelSize: window.fs(10)
                     }
-                    Text { text: modelData.countText; color: "#556070"; font.pixelSize: 9 }
+                    Text { text: modelData.countText; color: "#556070"; font.pixelSize: window.fs(9) }
                 }
             }
             Item { Layout.fillHeight: true }
@@ -1452,8 +1457,8 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 10
-            Text { text: suiteBackend.uiText("HEADING_ADMIN_CLIENTS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
-            Text { text: suiteBackend.adminClientsStatusText; color: window.muted; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("HEADING_ADMIN_CLIENTS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
+            Text { text: suiteBackend.adminClientsStatusText; color: window.muted; font.pixelSize: window.fs(11) }
             RowLayout {
                 visible: suiteBackend.adminClientsShowStats
                 spacing: 10
@@ -1464,8 +1469,8 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 2
-                        Text { text: suiteBackend.uiText("LBL_CLIENTS_STAT_CONNECTED"); color: window.muted; font.pixelSize: 9; font.bold: true }
-                        Text { text: suiteBackend.adminClientsConnectedCount; color: window.textPrimary; font.pixelSize: 20; font.bold: true }
+                        Text { text: suiteBackend.uiText("LBL_CLIENTS_STAT_CONNECTED"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
+                        Text { text: suiteBackend.adminClientsConnectedCount; color: window.textPrimary; font.pixelSize: window.fs(20); font.bold: true }
                     }
                 }
                 Card {
@@ -1475,8 +1480,8 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 2
-                        Text { text: suiteBackend.uiText("LBL_CLIENTS_STAT_ADMINS"); color: window.muted; font.pixelSize: 9; font.bold: true }
-                        Text { text: suiteBackend.adminClientsAdminCount; color: window.textPrimary; font.pixelSize: 20; font.bold: true }
+                        Text { text: suiteBackend.uiText("LBL_CLIENTS_STAT_ADMINS"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
+                        Text { text: suiteBackend.adminClientsAdminCount; color: window.textPrimary; font.pixelSize: window.fs(20); font.bold: true }
                     }
                 }
             }
@@ -1489,7 +1494,7 @@ ApplicationWindow {
                 visible: suiteBackend.adminClientsRows.length === 0
                 text: suiteBackend.uiText("MSG_CLIENTS_NONE")
                 color: "#556070"
-                font.pixelSize: 11
+                font.pixelSize: window.fs(11)
             }
             ListView {
                 Layout.fillWidth: true
@@ -1509,25 +1514,25 @@ ApplicationWindow {
                         Rectangle {
                             width: 24; height: 24; radius: 12
                             color: modelData.isAdmin ? "#123a1c" : "#0e2a3a"
-                            Text { anchors.centerIn: parent; text: modelData.isAdmin ? "A" : "U"; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: 10 }
+                            Text { anchors.centerIn: parent; text: modelData.isAdmin ? "A" : "U"; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: window.fs(10) }
                         }
                         ColumnLayout {
                             spacing: 2
                             Layout.fillWidth: true
-                            Text { text: modelData.username; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                            Text { text: modelData.address; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                            Text { text: modelData.username; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                            Text { text: modelData.address; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                         }
-                        Text { text: modelData.roleLabel; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: 9 }
-                        Text { text: modelData.duration; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
-                        Text { text: "●"; color: modelData.connected ? window.green : "#ee6b80"; font.pixelSize: 10 }
+                        Text { text: modelData.roleLabel; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: window.fs(9) }
+                        Text { text: modelData.duration; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
+                        Text { text: "●"; color: modelData.connected ? window.green : "#ee6b80"; font.pixelSize: window.fs(10) }
                     }
                 }
             }
-            Text { text: suiteBackend.uiText("CONNECTIONS_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 14 }
-            Text { text: suiteBackend.uiText("CONNECTIONS_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Text { visible: suiteBackend.connectionHistoryStatus !== ""; text: suiteBackend.connectionHistoryStatus; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Text { text: suiteBackend.uiText("CONNECTIONS_CLIENTS_TITLE"); color: window.muted; font.pixelSize: 9; font.bold: true }
-            Text { visible: suiteBackend.connectionHistoryStatus === "" && suiteBackend.connectionClientRows.length === 0; text: suiteBackend.uiText("CONNECTIONS_CLIENTS_NONE"); color: "#556070"; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("CONNECTIONS_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(14) }
+            Text { text: suiteBackend.uiText("CONNECTIONS_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: suiteBackend.connectionHistoryStatus !== ""; text: suiteBackend.connectionHistoryStatus; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { text: suiteBackend.uiText("CONNECTIONS_CLIENTS_TITLE"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
+            Text { visible: suiteBackend.connectionHistoryStatus === "" && suiteBackend.connectionClientRows.length === 0; text: suiteBackend.uiText("CONNECTIONS_CLIENTS_NONE"); color: "#556070"; font.pixelSize: window.fs(11) }
             ListView {
                 objectName: "connectionClientList"
                 Layout.fillWidth: true
@@ -1547,18 +1552,18 @@ ApplicationWindow {
                         ColumnLayout {
                             spacing: 2
                             Layout.fillWidth: true
-                            Text { text: modelData.who; color: window.textPrimary; font.bold: true; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
-                            Text { text: modelData.detail; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { text: modelData.who; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
                         }
-                        Text { visible: modelData.twoFactor; text: "2FA"; color: window.green; font.bold: true; font.pixelSize: 9 }
-                        Text { text: modelData.sessions; color: modelData.active ? window.green : window.muted; font.pixelSize: 9 }
-                        Text { text: modelData.logins; color: window.muted; font.pixelSize: 9 }
-                        Text { text: modelData.lastSeen; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                        Text { visible: modelData.twoFactor; text: "2FA"; color: window.green; font.bold: true; font.pixelSize: window.fs(9) }
+                        Text { text: modelData.sessions; color: modelData.active ? window.green : window.muted; font.pixelSize: window.fs(9) }
+                        Text { text: modelData.logins; color: window.muted; font.pixelSize: window.fs(9) }
+                        Text { text: modelData.lastSeen; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                     }
                 }
             }
-            Text { text: suiteBackend.uiText("CONNECTIONS_EVENTS_TITLE"); color: window.muted; font.pixelSize: 9; font.bold: true }
-            Text { visible: suiteBackend.connectionHistoryStatus === "" && suiteBackend.connectionEventRows.length === 0; text: suiteBackend.uiText("CONNECTIONS_EVENTS_NONE"); color: "#556070"; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("CONNECTIONS_EVENTS_TITLE"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
+            Text { visible: suiteBackend.connectionHistoryStatus === "" && suiteBackend.connectionEventRows.length === 0; text: suiteBackend.uiText("CONNECTIONS_EVENTS_NONE"); color: "#556070"; font.pixelSize: window.fs(11) }
             ListView {
                 objectName: "connectionEventList"
                 Layout.fillWidth: true
@@ -1571,9 +1576,9 @@ ApplicationWindow {
                     required property var modelData
                     width: ListView.view.width
                     spacing: 8
-                    Text { text: modelData.action; color: modelData.failure ? "#ee6b80" : window.textPrimary; font.bold: modelData.failure; font.pixelSize: 10 }
-                    Text { text: modelData.detail; color: "#556070"; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
-                    Text { text: modelData.ago; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                    Text { text: modelData.action; color: modelData.failure ? "#ee6b80" : window.textPrimary; font.bold: modelData.failure; font.pixelSize: window.fs(10) }
+                    Text { text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(10); elide: Text.ElideRight; Layout.fillWidth: true }
+                    Text { text: modelData.ago; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                 }
             }
         }
@@ -1587,7 +1592,7 @@ ApplicationWindow {
             spacing: 8
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_ADMIN_LOGS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_ADMIN_LOGS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 // the copy button of the log: an icon of two sheets that puts every line on the clipboard (through a hidden text box, which can copy)
                 Rectangle {
@@ -1622,7 +1627,7 @@ ApplicationWindow {
                 Button { text: suiteBackend.uiText("BTN_CLEAR"); onClicked: suiteBackend.clearAdminLogs() }
                 Button { text: suiteBackend.adminLogsLive ? suiteBackend.uiText("BTN_PAUSE") : suiteBackend.uiText("BTN_RESUME"); onClicked: suiteBackend.toggleAdminLogsLive() }
             }
-            Text { text: suiteBackend.adminLogsStatusText; color: window.muted; font.pixelSize: 11 }
+            Text { text: suiteBackend.adminLogsStatusText; color: window.muted; font.pixelSize: window.fs(11) }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
@@ -1661,7 +1666,7 @@ ApplicationWindow {
                     text: modelData
                     color: window.muted
                     font.family: "Cascadia Mono"
-                    font.pixelSize: 10
+                    font.pixelSize: window.fs(10)
                     wrapMode: Text.WrapAnywhere
                 }
             }
@@ -1682,8 +1687,8 @@ ApplicationWindow {
             id: adminServerColumn
             width: parent.width - 12
             spacing: 12
-            Text { text: suiteBackend.uiText("HEADING_ADMIN_SERVER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
-            Text { text: suiteBackend.adminServerStatusText; color: window.muted; font.pixelSize: 11 }
+            Text { text: suiteBackend.uiText("HEADING_ADMIN_SERVER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
+            Text { text: suiteBackend.adminServerStatusText; color: window.muted; font.pixelSize: window.fs(11) }
             Card {
                 visible: suiteBackend.adminServerInfoVisible
                 Layout.fillWidth: true
@@ -1693,31 +1698,31 @@ ApplicationWindow {
                     anchors.margins: 12
                     spacing: 6
                     RowLayout {
-                        Text { text: suiteBackend.adminServerProduct; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.adminServerProduct; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         Item { Layout.fillWidth: true }
-                        Text { text: suiteBackend.adminServerVersion; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.adminServerVersion; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                     }
                     RowLayout {
                         spacing: 24
                         ColumnLayout {
                             spacing: 1
-                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_UPTIME"); color: window.muted; font.pixelSize: 8 }
-                            Text { text: suiteBackend.adminServerUptime; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_UPTIME"); color: window.muted; font.pixelSize: window.fs(8) }
+                            Text { text: suiteBackend.adminServerUptime; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: window.fs(11) }
                         }
                         ColumnLayout {
                             spacing: 1
-                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_CONTROLLERS"); color: window.muted; font.pixelSize: 8 }
-                            Text { text: suiteBackend.adminServerControllerCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_CONTROLLERS"); color: window.muted; font.pixelSize: window.fs(8) }
+                            Text { text: suiteBackend.adminServerControllerCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: window.fs(11) }
                         }
                         ColumnLayout {
                             spacing: 1
-                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_ROBOTS"); color: window.muted; font.pixelSize: 8 }
-                            Text { text: suiteBackend.adminServerRobotCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_ROBOTS"); color: window.muted; font.pixelSize: window.fs(8) }
+                            Text { text: suiteBackend.adminServerRobotCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: window.fs(11) }
                         }
                         ColumnLayout {
                             spacing: 1
-                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_HOST"); color: window.muted; font.pixelSize: 8 }
-                            Text { text: suiteBackend.adminServerHost; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: 11 }
+                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_HOST"); color: window.muted; font.pixelSize: window.fs(8) }
+                            Text { text: suiteBackend.adminServerHost; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: window.fs(11) }
                         }
                     }
                 }
@@ -1725,7 +1730,7 @@ ApplicationWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
-                Text { text: suiteBackend.adminServerPortLabel; color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.adminServerPortLabel; color: window.muted; font.pixelSize: window.fs(11) }
                 TextField {
                     id: portField
                     text: suiteBackend.adminServerPendingPortText
@@ -1740,7 +1745,7 @@ ApplicationWindow {
                 color: window.amber
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
-                font.pixelSize: 10
+                font.pixelSize: window.fs(10)
             }
             Button {
                 id: restartButton
@@ -1763,11 +1768,11 @@ ApplicationWindow {
                     anchors.top: parent.top
                     anchors.margins: 12
                     spacing: 8
-                    Text { text: suiteBackend.uiText("HEADING_ADMIN_SECURITY"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
-                    Text { visible: suiteBackend.securityWarning !== ""; text: suiteBackend.securityWarning; color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
-                    Text { visible: suiteBackend.securityError !== ""; text: suiteBackend.securityError; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
-                    Text { visible: suiteBackend.securityMessage !== ""; text: suiteBackend.securityMessage; color: window.green; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
-                    Text { text: suiteBackend.uiText("LBL_SECURITY_AI"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                    Text { text: suiteBackend.uiText("HEADING_ADMIN_SECURITY"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                    Text { visible: suiteBackend.securityWarning !== ""; text: suiteBackend.securityWarning; color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
+                    Text { visible: suiteBackend.securityError !== ""; text: suiteBackend.securityError; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { visible: suiteBackend.securityMessage !== ""; text: suiteBackend.securityMessage; color: window.green; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { text: suiteBackend.uiText("LBL_SECURITY_AI"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                     ComboBox {
                         objectName: "securityAiCombo"
                         Layout.fillWidth: true
@@ -1778,7 +1783,7 @@ ApplicationWindow {
                         currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.aiValue))
                         onActivated: suiteBackend.setAiAccess(currentValue)
                     }
-                    Text { text: suiteBackend.securityView.aiSource; color: "#556070"; font.pixelSize: 9 }
+                    Text { text: suiteBackend.securityView.aiSource; color: "#556070"; font.pixelSize: window.fs(9) }
                     CheckBox {
                         objectName: "securityInfoBox"
                         text: suiteBackend.uiText("LBL_SECURITY_INFO")
@@ -1794,7 +1799,7 @@ ApplicationWindow {
                                 suiteBackend.setInfoAuth(wanted)
                         }
                     }
-                    Text { text: suiteBackend.securityView.infoSource; color: "#556070"; font.pixelSize: 9 }
+                    Text { text: suiteBackend.securityView.infoSource; color: "#556070"; font.pixelSize: window.fs(9) }
                     CheckBox {
                         id: tlsBox
                         objectName: "securityTlsBox"
@@ -1826,15 +1831,15 @@ ApplicationWindow {
                     RowLayout {
                         spacing: 8
                         Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("BTN_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: suiteBackend.saveTlsOptions(tlsBox.checked, tlsCertField.text, tlsKeyField.text) }
-                        Text { text: suiteBackend.securityView.tlsSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.tlsSource; color: "#556070"; font.pixelSize: window.fs(9) }
                     }
-                    Text { text: suiteBackend.uiText("LBL_SECURITY_TLS_FINGERPRINT") + ": " + suiteBackend.securityView.tlsFingerprint; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                    Text { text: suiteBackend.securityView.tlsStatus; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("LBL_SECURITY_TLS_FINGERPRINT") + ": " + suiteBackend.securityView.tlsFingerprint; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    Text { text: suiteBackend.securityView.tlsStatus; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     ColumnLayout {
                         visible: suiteBackend.securityView.bleAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_BLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_BLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         ComboBox {
                             id: bleModeCombo
                             objectName: "securityBleCombo"
@@ -1854,7 +1859,7 @@ ApplicationWindow {
                                     suiteBackend.setBleOptions(mode, encrypted)
                             }
                         }
-                        Text { text: suiteBackend.securityView.bleModeSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.bleModeSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             objectName: "securityBleEncryptionBox"
                             text: suiteBackend.uiText("LBL_SECURITY_BLE_ENCRYPTION")
@@ -1871,14 +1876,14 @@ ApplicationWindow {
                                     suiteBackend.setBleOptions(mode, wanted)
                             }
                         }
-                        Text { text: suiteBackend.securityView.bleEncryptionSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.securityView.bleRunning; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.bleEncryptionSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.securityView.bleRunning; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
                         visible: suiteBackend.securityView.mqttAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         ComboBox {
                             id: mqttModeCombo
                             objectName: "securityMqttCombo"
@@ -1889,7 +1894,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.mqttModeLocked
                             currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.mqttMode))
                         }
-                        Text { text: suiteBackend.securityView.mqttModeSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.mqttModeSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         TextField {
                             id: mqttUrlField
                             objectName: "securityMqttUrl"
@@ -1926,7 +1931,7 @@ ApplicationWindow {
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT_PASSWORDS"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT_PASSWORDS"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityMqttSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -1939,13 +1944,13 @@ ApplicationWindow {
                                     suiteBackend.saveMqttOptions(mode, url, prefix, user, commandUser)
                             }
                         }
-                        Text { text: suiteBackend.securityView.mqttRunning; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.mqttRunning; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
                         visible: suiteBackend.securityView.voiceAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: voiceHeardBox
                             objectName: "securityVoiceHeardBox"
@@ -1954,8 +1959,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.voiceHeardLocked
                             checked: suiteBackend.securityView.voiceHeard === true
                         }
-                        Text { text: suiteBackend.securityView.voiceHeardSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_CONFIDENCE"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.voiceHeardSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_CONFIDENCE"); color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         TextField {
                             id: voiceConfidenceField
                             objectName: "securityVoiceConfidence"
@@ -1965,8 +1970,8 @@ ApplicationWindow {
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
-                        Text { text: suiteBackend.securityView.voiceConfidenceSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.voiceConfidenceSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityVoiceSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -1984,7 +1989,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.robotsAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: robotsAllowEnableBox
                             objectName: "securityRobotsAllowEnableBox"
@@ -1993,8 +1998,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.robotsAllowEnableLocked
                             checked: suiteBackend.securityView.robotsAllowEnable === true
                         }
-                        Text { text: suiteBackend.securityView.robotsAllowEnableSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.robotsAllowEnableSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityRobotsSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2012,7 +2017,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.authAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_AUTH"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_AUTH"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         ComboBox {
                             id: authAlgorithmCombo
                             objectName: "securityAuthAlgorithmCombo"
@@ -2026,7 +2031,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.authAlgorithmLocked
                             currentIndex: Math.max(0, indexOfValue(suiteBackend.securityView.authAlgorithm))
                         }
-                        Text { text: suiteBackend.securityView.authAlgorithmSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.authAlgorithmSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             id: authAcceptBox
                             objectName: "securityAuthAcceptBox"
@@ -2035,8 +2040,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.authAcceptHs256Locked
                             checked: suiteBackend.securityView.authAcceptHs256 === true
                         }
-                        Text { text: suiteBackend.securityView.authAcceptHs256Source; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_AUTH_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.authAcceptHs256Source; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_AUTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         RowLayout {
                             spacing: 6
                             Button {
@@ -2064,7 +2069,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.healthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: healthOpenBox
                             objectName: "securityHealthOpenBox"
@@ -2073,8 +2078,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.healthOpenLocked
                             checked: suiteBackend.securityView.healthOpen === true
                         }
-                        Text { text: suiteBackend.securityView.healthOpenSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.healthOpenSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityHealthSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2092,7 +2097,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.safetyAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_STOP"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_STOP"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: safetyPublishBox
                             objectName: "securitySafetyPublishBox"
@@ -2101,8 +2106,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.safetyPublishStopLocked
                             checked: suiteBackend.securityView.safetyPublishStop === true
                         }
-                        Text { text: suiteBackend.securityView.safetyPublishStopSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_STOP_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.safetyPublishStopSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_STOP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securitySafetySave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2114,7 +2119,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.jdAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("TITLE_SECURITY_JD"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("TITLE_SECURITY_JD"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: jdRelayBox
                             objectName: "securityJdRelayBox"
@@ -2123,9 +2128,9 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.jdRelayLocked
                             checked: suiteBackend.securityView.jdRelay === true
                         }
-                        Text { text: suiteBackend.securityView.jdRelaySource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_RELAY_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.jdRelaySource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_RELAY_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP"); color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         TextArea {
                             id: jdMapField
                             objectName: "securityJdMapField"
@@ -2135,8 +2140,8 @@ ApplicationWindow {
                             placeholderText: suiteBackend.uiText("LBL_SECURITY_JD_MAP_PLACEHOLDER")
                             text: suiteBackend.securityView.jdMapText
                         }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_REPLAN"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_REPLAN"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: jdAllowBox
                             objectName: "securityJdAllowBox"
@@ -2145,7 +2150,7 @@ ApplicationWindow {
                             enabled: suiteBackend.securityView.jdReplanEditable === true
                             checked: suiteBackend.securityView.jdAllow === true
                         }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_TIMEOUT"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_JD_TIMEOUT"); color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         TextField {
                             id: jdTimeoutField
                             objectName: "securityJdTimeoutField"
@@ -2153,13 +2158,13 @@ ApplicationWindow {
                             enabled: suiteBackend.securityView.jdReplanEditable === true
                             text: suiteBackend.securityView.jdTimeout
                         }
-                        Text { text: suiteBackend.securityView.jdReplanNote; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.jdReplanNote; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text {
                             objectName: "securityJdReloadChip"
                             visible: suiteBackend.securityView.jdReloadState !== undefined && suiteBackend.securityView.jdReloadState !== "none"
                             text: suiteBackend.securityView.jdReloadText || ""
                             font.bold: true
-                            font.pixelSize: 10
+                            font.pixelSize: window.fs(10)
                             color: suiteBackend.securityView.jdReloadState === "applied" ? "#34d399" : (suiteBackend.securityView.jdReloadState === "failed" ? "#f87171" : (suiteBackend.securityView.jdReloadState === "pending" ? "#fbbf24" : "#94a3b8"))
                         }
                         Button {
@@ -2178,7 +2183,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.rlAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_RL"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RL"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: rlEnabledBox
                             objectName: "securityRlEnabledBox"
@@ -2187,7 +2192,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.rlEnabledLocked
                             checked: suiteBackend.securityView.rlEnabled === true
                         }
-                        Text { text: suiteBackend.securityView.rlEnabledSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.rlEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         Repeater {
                             id: rlRepeater
                             objectName: "securityRlRepeater"
@@ -2197,7 +2202,7 @@ ApplicationWindow {
                                 property string typed: rlField.text
                                 Layout.fillWidth: true
                                 spacing: 2
-                                Text { text: modelData.label; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.label; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                                 TextField {
                                     id: rlField
                                     objectName: "securityRlField_" + modelData.key
@@ -2206,10 +2211,10 @@ ApplicationWindow {
                                     inputMethodHints: Qt.ImhDigitsOnly
                                     Layout.preferredWidth: 140
                                 }
-                                Text { text: modelData.note; color: "#556070"; font.pixelSize: 9 }
+                                Text { text: modelData.note; color: "#556070"; font.pixelSize: window.fs(9) }
                             }
                         }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_RL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityRlSave"
                             text: suiteBackend.uiText("BTN_SECURITY_RL_SAVE")
@@ -2232,10 +2237,10 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.bridgesAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { objectName: "securityBridgesDelivery"; text: suiteBackend.securityView.bridgesDelivery; color: "#8a96a6"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { objectName: "securityBridgesSigning"; visible: text !== ""; text: suiteBackend.securityView.bridgesSigning; color: "#8a96a6"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_BRIDGES_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { objectName: "securityBridgesDelivery"; text: suiteBackend.securityView.bridgesDelivery; color: "#8a96a6"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { objectName: "securityBridgesSigning"; visible: text !== ""; text: suiteBackend.securityView.bridgesSigning; color: "#8a96a6"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Repeater {
                             id: bridgesRepeater
                             objectName: "securityBridgesRepeater"
@@ -2245,7 +2250,7 @@ ApplicationWindow {
                                 property var currentValue: modelData.isChoice ? bridgeChoice.currentValue : bridgeSwitch.checked
                                 Layout.fillWidth: true
                                 spacing: 2
-                                Text { text: modelData.bridge; color: "#556070"; font.pixelSize: 9; font.bold: true }
+                                Text { text: modelData.bridge; color: "#556070"; font.pixelSize: window.fs(9); font.bold: true }
                                 CheckBox {
                                     id: bridgeSwitch
                                     objectName: "securityBridgeSwitch_" + modelData.id
@@ -2257,7 +2262,7 @@ ApplicationWindow {
                                 RowLayout {
                                     visible: modelData.isChoice
                                     spacing: 8
-                                    Text { text: modelData.label; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                    Text { text: modelData.label; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                                     ComboBox {
                                         id: bridgeChoice
                                         objectName: "securityBridgeChoice_" + modelData.id
@@ -2267,7 +2272,7 @@ ApplicationWindow {
                                         currentIndex: Math.max(0, indexOfValue(modelData.value))
                                     }
                                 }
-                                Text { text: modelData.note; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.note; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             }
                         }
                         Button {
@@ -2291,7 +2296,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.trustedNetworksAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: trustedNetworksBox
                             objectName: "securityTrustedNetworksBox"
@@ -2300,8 +2305,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.trustedNetworksEnabledLocked
                             checked: suiteBackend.securityView.trustedNetworksEnabled === true
                         }
-                        Text { text: suiteBackend.securityView.trustedNetworksEnabledSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.trustedNetworksEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityTrustedNetworksSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2314,9 +2319,9 @@ ApplicationWindow {
                         objectName: "hubGatePanel"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("HUBGATE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("HUBGATE_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.hubGateView.error !== ""; text: suiteBackend.hubGateView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("HUBGATE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("HUBGATE_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hubGateView.error !== ""; text: suiteBackend.hubGateView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: hubGateBox
                             objectName: "hubGateBox"
@@ -2325,14 +2330,14 @@ ApplicationWindow {
                             palette.windowText: window.textPrimary
                             checked: suiteBackend.hubGateView.allow === true
                         }
-                        Text { visible: suiteBackend.hubGateView.available === true; objectName: "hubGateState"; text: suiteBackend.hubGateView.state; color: suiteBackend.hubGateView.allow === true ? "#e0a030" : "#4cc38a"; font.pixelSize: 10; font.bold: true }
-                        Text { visible: suiteBackend.hubGateView.available === true; text: suiteBackend.hubGateView.kept; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hubGateView.available === true; objectName: "hubGateState"; text: suiteBackend.hubGateView.state; color: suiteBackend.hubGateView.allow === true ? "#e0a030" : "#4cc38a"; font.pixelSize: window.fs(10); font.bold: true }
+                        Text { visible: suiteBackend.hubGateView.available === true; text: suiteBackend.hubGateView.kept; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text {
                             visible: suiteBackend.hubGateView.available === true && ((hubGateBox.checked && suiteBackend.hubGateView.canTurnOn !== true) || (!hubGateBox.checked && suiteBackend.hubGateView.canTurnOff !== true))
                             text: hubGateBox.checked ? suiteBackend.hubGateView.blockedOn : suiteBackend.hubGateView.blockedOff
-                            color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
                         }
-                        Text { visible: suiteBackend.hubGateView.message !== ""; text: suiteBackend.hubGateView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.hubGateView.message !== ""; text: suiteBackend.hubGateView.message; color: "#4cc38a"; font.pixelSize: window.fs(10) }
                         Button {
                             objectName: "hubGateSave"
                             visible: suiteBackend.hubGateView.available === true
@@ -2352,9 +2357,9 @@ ApplicationWindow {
                         objectName: "plannerIdentityPanel"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("PLANNERID_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("PLANNERID_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.plannerIdentityView.error !== ""; text: suiteBackend.plannerIdentityView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("PLANNERID_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("PLANNERID_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.plannerIdentityView.error !== ""; text: suiteBackend.plannerIdentityView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: plannerIdentityBox
                             objectName: "plannerIdentityBox"
@@ -2363,14 +2368,14 @@ ApplicationWindow {
                             palette.windowText: window.textPrimary
                             checked: suiteBackend.plannerIdentityView.require === true
                         }
-                        Text { visible: suiteBackend.plannerIdentityView.available === true; objectName: "plannerIdentityState"; text: suiteBackend.plannerIdentityView.state; color: suiteBackend.plannerIdentityView.require === true ? "#4cc38a" : "#e0a030"; font.pixelSize: 10; font.bold: true }
-                        Text { visible: suiteBackend.plannerIdentityView.available === true; text: suiteBackend.plannerIdentityView.kept; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.plannerIdentityView.available === true; objectName: "plannerIdentityState"; text: suiteBackend.plannerIdentityView.state; color: suiteBackend.plannerIdentityView.require === true ? "#4cc38a" : "#e0a030"; font.pixelSize: window.fs(10); font.bold: true }
+                        Text { visible: suiteBackend.plannerIdentityView.available === true; text: suiteBackend.plannerIdentityView.kept; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text {
                             visible: suiteBackend.plannerIdentityView.available === true && plannerIdentityBox.checked !== (suiteBackend.plannerIdentityView.require === true) && suiteBackend.plannerIdentityView.canChange !== true
                             text: suiteBackend.plannerIdentityView.blocked
-                            color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
                         }
-                        Text { visible: suiteBackend.plannerIdentityView.message !== ""; text: suiteBackend.plannerIdentityView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.plannerIdentityView.message !== ""; text: suiteBackend.plannerIdentityView.message; color: "#4cc38a"; font.pixelSize: window.fs(10) }
                         Button {
                             objectName: "plannerIdentitySave"
                             visible: suiteBackend.plannerIdentityView.available === true
@@ -2390,9 +2395,9 @@ ApplicationWindow {
                         objectName: "serviceIdentityPanel"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("SERVICEID_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("SERVICEID_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.error !== ""; text: suiteBackend.serviceIdentityView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("SERVICEID_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("SERVICEID_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.error !== ""; text: suiteBackend.serviceIdentityView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: serviceIdentityBox
                             objectName: "serviceIdentityBox"
@@ -2402,10 +2407,10 @@ ApplicationWindow {
                             palette.windowText: window.textPrimary
                             checked: suiteBackend.serviceIdentityView.enabled === true
                         }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; objectName: "serviceIdentityState"; text: suiteBackend.serviceIdentityView.state; color: suiteBackend.serviceIdentityView.enabled === true ? "#4cc38a" : "#8a97a8"; font.pixelSize: 10; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true && suiteBackend.serviceIdentityView.locked === true; text: suiteBackend.serviceIdentityView.lockedText; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true && !serviceIdentityBox.checked && suiteBackend.serviceIdentityView.enabled === true; text: suiteBackend.serviceIdentityView.offWarning; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.message !== ""; text: suiteBackend.serviceIdentityView.message; color: "#4cc38a"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; objectName: "serviceIdentityState"; text: suiteBackend.serviceIdentityView.state; color: suiteBackend.serviceIdentityView.enabled === true ? "#4cc38a" : "#8a97a8"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true && suiteBackend.serviceIdentityView.locked === true; text: suiteBackend.serviceIdentityView.lockedText; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true && !serviceIdentityBox.checked && suiteBackend.serviceIdentityView.enabled === true; text: suiteBackend.serviceIdentityView.offWarning; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.message !== ""; text: suiteBackend.serviceIdentityView.message; color: "#4cc38a"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "serviceIdentitySave"
                             visible: suiteBackend.serviceIdentityView.available === true
@@ -2419,23 +2424,23 @@ ApplicationWindow {
                                     suiteBackend.saveServiceIdentity(wanted)
                             }
                         }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.servicesTitle; color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; objectName: "serviceIdentityAccepts"; text: suiteBackend.serviceIdentityView.accepts; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.ownVerifier; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.notYet; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.orderTitle; color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order1; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order2; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order3; color: "#e0a030"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.servicesTitle; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10) }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; objectName: "serviceIdentityAccepts"; text: suiteBackend.serviceIdentityView.accepts; color: "#8a97a8"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.ownVerifier; color: "#8a97a8"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.notYet; color: "#8a97a8"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.orderTitle; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10) }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order1; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order2; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order3; color: "#e0a030"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
                         visible: suiteBackend.detectionHefView.visible === true
                         objectName: "detectionHefPanel"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("DETHEF_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("DETHEF_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.detectionHefView.error !== ""; text: suiteBackend.detectionHefView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("DETHEF_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("DETHEF_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.detectionHefView.error !== ""; text: suiteBackend.detectionHefView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: detectionHefBox
                             objectName: "detectionHefBox"
@@ -2444,9 +2449,9 @@ ApplicationWindow {
                             palette.windowText: window.textPrimary
                             checked: suiteBackend.detectionHefView.enabled === true
                         }
-                        Text { text: suiteBackend.uiText("DETHEF_HINT"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.detectionHefView.locked === true; text: suiteBackend.detectionHefView.lockedText; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.detectionHefView.message !== ""; text: suiteBackend.detectionHefView.message; color: "#4cc38a"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("DETHEF_HINT"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.detectionHefView.locked === true; text: suiteBackend.detectionHefView.lockedText; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.detectionHefView.message !== ""; text: suiteBackend.detectionHefView.message; color: "#4cc38a"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "detectionHefSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2466,35 +2471,35 @@ ApplicationWindow {
                         spacing: 4
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("TOOLARMS_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                            Text { text: suiteBackend.uiText("TOOLARMS_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                             Button { objectName: "toolArmsRefresh"; text: suiteBackend.uiText("TOOLARMS_REFRESH"); onClicked: suiteBackend.refreshToolArms() }
                         }
-                        Text { text: suiteBackend.uiText("TOOLARMS_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.toolArmsView.error !== ""; objectName: "toolArmsProblem"; text: suiteBackend.toolArmsView.error; color: "#e0a030"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.toolArmsView.available === true; objectName: "toolArmsSummary"; text: suiteBackend.toolArmsView.summary; color: "#8a97a8"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.toolArmsView.empty !== ""; objectName: "toolArmsEmpty"; text: suiteBackend.toolArmsView.empty; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("TOOLARMS_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.error !== ""; objectName: "toolArmsProblem"; text: suiteBackend.toolArmsView.error; color: "#e0a030"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.available === true; objectName: "toolArmsSummary"; text: suiteBackend.toolArmsView.summary; color: "#8a97a8"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.empty !== ""; objectName: "toolArmsEmpty"; text: suiteBackend.toolArmsView.empty; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Repeater {
                             model: suiteBackend.toolArmsView.rows
                             Text {
                                 required property var modelData
                                 text: modelData.text
                                 color: modelData.level === "armed" ? "#ee6b80" : modelData.level === "warning" ? "#e0a030" : modelData.level === "unknown" ? "#8a97a8" : "#4cc38a"
-                                font.pixelSize: 10
+                                font.pixelSize: window.fs(10)
                                 font.family: "monospace"
                                 wrapMode: Text.WordWrap
                                 Layout.fillWidth: true
                             }
                         }
-                        Text { visible: suiteBackend.toolArmsView.available === true; text: suiteBackend.toolArmsView.staleNote; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.available === true; text: suiteBackend.toolArmsView.staleNote; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
                         visible: suiteBackend.hilBridgeView.visible === true
                         objectName: "hilBridgePanel"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("HILBRIDGE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("HILBRIDGE_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.hilBridgeView.error !== ""; text: suiteBackend.hilBridgeView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("HILBRIDGE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("HILBRIDGE_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hilBridgeView.error !== ""; text: suiteBackend.hilBridgeView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: hilBridgeBox
                             objectName: "hilBridgeBox"
@@ -2503,17 +2508,17 @@ ApplicationWindow {
                             palette.windowText: window.textPrimary
                             checked: suiteBackend.hilBridgeView.require === true
                         }
-                        Text { visible: suiteBackend.hilBridgeView.available === true; objectName: "hilBridgeState"; text: suiteBackend.hilBridgeView.state; color: suiteBackend.hilBridgeView.require === true ? "#4cc38a" : "#8a95a5"; font.pixelSize: 10; font.bold: true }
-                        Text { visible: suiteBackend.hilBridgeView.available === true; text: suiteBackend.hilBridgeView.kept; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.hilBridgeView.locked !== ""; text: suiteBackend.hilBridgeView.locked; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hilBridgeView.available === true; objectName: "hilBridgeState"; text: suiteBackend.hilBridgeView.state; color: suiteBackend.hilBridgeView.require === true ? "#4cc38a" : "#8a95a5"; font.pixelSize: window.fs(10); font.bold: true }
+                        Text { visible: suiteBackend.hilBridgeView.available === true; text: suiteBackend.hilBridgeView.kept; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.hilBridgeView.locked !== ""; text: suiteBackend.hilBridgeView.locked; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text {
                             id: hilBridgeBlocked
                             property string reason: suiteBackend.hilBridgeView.available === true ? suiteBackend.hilBridgeBlockedText(hilBridgeBox.checked) : ""
                             visible: reason !== ""
                             text: reason
-                            color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
                         }
-                        Text { visible: suiteBackend.hilBridgeView.message !== ""; text: suiteBackend.hilBridgeView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.hilBridgeView.message !== ""; text: suiteBackend.hilBridgeView.message; color: "#4cc38a"; font.pixelSize: window.fs(10) }
                         Button {
                             objectName: "hilBridgeSave"
                             visible: suiteBackend.hilBridgeView.available === true
@@ -2535,22 +2540,22 @@ ApplicationWindow {
                         spacing: 6
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("OPSPROP_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                            Text { text: suiteBackend.uiText("OPSPROP_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
                             Button { objectName: "opsProposalsRefresh"; text: suiteBackend.uiText("OPSPROP_REFRESH"); onClicked: suiteBackend.refreshOpsProposals() }
                         }
-                        Text { text: suiteBackend.uiText("OPSPROP_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.opsProposalsView.error !== ""; text: suiteBackend.opsProposalsView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.opsProposalsView.message !== ""; text: suiteBackend.opsProposalsView.message; color: "#4cc38a"; font.pixelSize: 10 }
-                        Text { visible: suiteBackend.opsProposalsView.available === true && suiteBackend.opsProposalsView.none === true; objectName: "opsProposalsNone"; text: suiteBackend.uiText("OPSPROP_NONE"); color: "#556070"; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("OPSPROP_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.opsProposalsView.error !== ""; text: suiteBackend.opsProposalsView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.opsProposalsView.message !== ""; text: suiteBackend.opsProposalsView.message; color: "#4cc38a"; font.pixelSize: window.fs(10) }
+                        Text { visible: suiteBackend.opsProposalsView.available === true && suiteBackend.opsProposalsView.none === true; objectName: "opsProposalsNone"; text: suiteBackend.uiText("OPSPROP_NONE"); color: "#556070"; font.pixelSize: window.fs(10) }
                         Repeater {
                             model: suiteBackend.opsProposalsView.pending
                             delegate: ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 3
                                 property string incidentId: modelData.incidentId
-                                Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                                Text { text: modelData.symptom; color: "#8a95a5"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                                Text { text: modelData.meta; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.symptom; color: "#8a95a5"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                Text { text: modelData.meta; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                                 RowLayout {
                                     spacing: 8
                                     Button {
@@ -2567,14 +2572,14 @@ ApplicationWindow {
                         }
                         Repeater {
                             model: suiteBackend.opsProposalsView.decided
-                            delegate: Text { text: modelData; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            delegate: Text { text: modelData; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         }
                     }
                     ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: ecosystemHealthBox
                             objectName: "securityEcosystemHealthBox"
@@ -2583,8 +2588,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.ecosystemHealthEnabledLocked
                             checked: suiteBackend.securityView.ecosystemHealthEnabled === true
                         }
-                        Text { text: suiteBackend.securityView.ecosystemHealthEnabledSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.ecosystemHealthEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityEcosystemHealthSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2596,7 +2601,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.rulAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_RUL"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RUL"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: rulBox
                             objectName: "securityRulBox"
@@ -2605,8 +2610,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.rulEnabledLocked
                             checked: suiteBackend.securityView.rulEnabled === true
                         }
-                        Text { text: suiteBackend.securityView.rulEnabledSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_RUL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.rulEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_RUL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityRulSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2618,7 +2623,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.productionAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: productionRdpBox
                             objectName: "securityProductionRdpBox"
@@ -2627,8 +2632,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.productionRdpLocked
                             checked: suiteBackend.securityView.productionRdp === true
                         }
-                        Text { text: suiteBackend.securityView.productionRdpSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.productionRdpSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityProductionSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2649,8 +2654,8 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         spacing: 6
                         property var ingestWanted: ({})
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Repeater {
                             model: suiteBackend.securityView.ingestRows
                             delegate: ColumnLayout {
@@ -2668,11 +2673,11 @@ ApplicationWindow {
                                         ingestSection.ingestWanted = next
                                     }
                                 }
-                                Text { text: modelData.hint; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true; leftPadding: 28 }
-                                Text { visible: modelData.locked === true; text: suiteBackend.uiText("LBL_SECURITY_INGEST_LOCKED"); color: window.amber; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true; leftPadding: 28 }
+                                Text { text: modelData.hint; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true; leftPadding: 28 }
+                                Text { visible: modelData.locked === true; text: suiteBackend.uiText("LBL_SECURITY_INGEST_LOCKED"); color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true; leftPadding: 28 }
                             }
                         }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS"); color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10) }
                         TextField {
                             id: ingestKeysField
                             objectName: "securityIngestKeysFile"
@@ -2683,9 +2688,9 @@ ApplicationWindow {
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS_HINT"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: !suiteBackend.ingestKeysFileAcceptable(ingestSection.ingestWanted, ingestKeysField.text); objectName: "securityIngestKeysInvalid"; text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS_INVALID"); color: "#ee6b80"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.securityView.ingestRestart !== ""; text: suiteBackend.securityView.ingestRestart; color: window.amber; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS_HINT"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: !suiteBackend.ingestKeysFileAcceptable(ingestSection.ingestWanted, ingestKeysField.text); objectName: "securityIngestKeysInvalid"; text: suiteBackend.uiText("LBL_SECURITY_INGEST_KEYS_INVALID"); color: "#ee6b80"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.securityView.ingestRestart !== ""; text: suiteBackend.securityView.ingestRestart; color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityIngestSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2706,21 +2711,21 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.available === true
                         Layout.fillWidth: true
                         spacing: 4
-                        Text { text: suiteBackend.uiText("DEVNODE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("DEVNODE_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.developerNodesView.problem !== ""; objectName: "developerNodeProblem"; text: suiteBackend.developerNodesView.problem; color: "#8a97a8"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.developerNodesView.none === true; text: suiteBackend.uiText("DEVNODE_NONE"); color: "#556070"; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("DEVNODE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("DEVNODE_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.developerNodesView.problem !== ""; objectName: "developerNodeProblem"; text: suiteBackend.developerNodesView.problem; color: "#8a97a8"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.developerNodesView.none === true; text: suiteBackend.uiText("DEVNODE_NONE"); color: "#556070"; font.pixelSize: window.fs(10) }
                         Repeater {
                             model: suiteBackend.developerNodesView.rows
                             delegate: ColumnLayout {
                                 Layout.fillWidth: true
                                 spacing: 1
-                                Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: 10 }
-                                Text { text: modelData.received; color: "#556070"; font.pixelSize: 9 }
-                                Text { text: modelData.fields; color: "#8a97a8"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true; textFormat: Text.PlainText }
+                                Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10) }
+                                Text { text: modelData.received; color: "#556070"; font.pixelSize: window.fs(9) }
+                                Text { text: modelData.fields; color: "#8a97a8"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true; textFormat: Text.PlainText }
                             }
                         }
-                        Text { visible: suiteBackend.developerNodesView.chain !== ""; objectName: "developerNodeChain"; text: suiteBackend.developerNodesView.chain; color: suiteBackend.developerNodesView.chainOk === true ? window.green : "#ee6b80"; font.pixelSize: 10; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.developerNodesView.chain !== ""; objectName: "developerNodeChain"; text: suiteBackend.developerNodesView.chain; color: suiteBackend.developerNodesView.chainOk === true ? window.green : "#ee6b80"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         RowLayout {
                             spacing: 8
                             Button { objectName: "developerNodeRefresh"; text: suiteBackend.uiText("DEVNODE_REFRESH"); onClicked: suiteBackend.refreshDeveloperNodes(false) }
@@ -2731,7 +2736,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.connectionsAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: connectionsRecordBox
                             objectName: "securityConnectionsRecordBox"
@@ -2740,8 +2745,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.connectionsRecordLocked
                             checked: suiteBackend.securityView.connectionsRecord === true
                         }
-                        Text { text: suiteBackend.securityView.connectionsRecordSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.connectionsRecordSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityConnectionsSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2759,7 +2764,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.exposureAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: exposureCameraBox
                             objectName: "securityExposureCameraBox"
@@ -2768,7 +2773,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.exposureCameraOpenLocked
                             checked: suiteBackend.securityView.exposureCameraOpen === true
                         }
-                        Text { text: suiteBackend.securityView.exposureCameraOpenSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.exposureCameraOpenSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             id: exposureWsBox
                             objectName: "securityExposureWsBox"
@@ -2777,7 +2782,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.exposureWsQueryTokenLocked
                             checked: suiteBackend.securityView.exposureWsQueryToken === true
                         }
-                        Text { text: suiteBackend.securityView.exposureWsQueryTokenSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.exposureWsQueryTokenSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             id: exposureLogBox
                             objectName: "securityExposureLogBox"
@@ -2786,7 +2791,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.exposureLogRedactionLocked
                             checked: suiteBackend.securityView.exposureLogRedaction === true
                         }
-                        Text { text: suiteBackend.securityView.exposureLogRedactionSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.exposureLogRedactionSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             id: exposureVoiceBox
                             objectName: "securityExposureVoiceBox"
@@ -2795,8 +2800,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.exposureVoiceSignatureLocked
                             checked: suiteBackend.securityView.exposureVoiceSignature === true
                         }
-                        Text { text: suiteBackend.securityView.exposureVoiceSignatureSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.exposureVoiceSignatureSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityExposureSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2814,7 +2819,7 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.installAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: installCameraBox
                             objectName: "securityInstallCameraBox"
@@ -2823,7 +2828,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.installCameraCredentialsViaEnvLocked
                             checked: suiteBackend.securityView.installCameraCredentialsViaEnv === true
                         }
-                        Text { text: suiteBackend.securityView.installCameraCredentialsViaEnvSource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.installCameraCredentialsViaEnvSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             id: installTlsBox
                             objectName: "securityInstallTlsBox"
@@ -2832,8 +2837,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.installNewInstallTlsLocked
                             checked: suiteBackend.securityView.installNewInstallTls === true
                         }
-                        Text { text: suiteBackend.securityView.installNewInstallTlsSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.installNewInstallTlsSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityInstallSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2851,8 +2856,8 @@ ApplicationWindow {
                         visible: suiteBackend.securityView.mavlinkAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_KEY"); color: window.textPrimary; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_KEY"); color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         TextField {
                             id: mavlinkKeyField
                             objectName: "securityMavlinkKey"
@@ -2863,7 +2868,7 @@ ApplicationWindow {
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
-                        Text { text: suiteBackend.securityView.mavlinkKeySource; color: "#556070"; font.pixelSize: 9 }
+                        Text { text: suiteBackend.securityView.mavlinkKeySource; color: "#556070"; font.pixelSize: window.fs(9) }
                         CheckBox {
                             id: mavlinkUnsignedBox
                             objectName: "securityMavlinkUnsignedBox"
@@ -2872,8 +2877,8 @@ ApplicationWindow {
                             enabled: !suiteBackend.securityView.mavlinkUnsignedLocked
                             checked: suiteBackend.securityView.mavlinkUnsigned === true
                         }
-                        Text { text: suiteBackend.securityView.mavlinkUnsignedSource; color: "#556070"; font.pixelSize: 9 }
-                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.mavlinkUnsignedSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityMavlinkSave"
                             text: suiteBackend.uiText("BTN_SAVE")
@@ -2886,7 +2891,7 @@ ApplicationWindow {
                                     suiteBackend.saveMavlinkOptions(key, unsigned)
                             }
                         }
-                        Text { text: suiteBackend.securityView.mavlinkStatus; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.securityView.mavlinkStatus; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                 }
             }
@@ -2901,8 +2906,8 @@ ApplicationWindow {
                     anchors.top: parent.top
                     anchors.margins: 12
                     spacing: 8
-                    Text { text: suiteBackend.uiText("HEADING_FW_SIG"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
-                    Text { objectName: "firmwareSigningWarning"; visible: suiteBackend.firmwareSigningView.warning !== ""; text: suiteBackend.firmwareSigningView.warning; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
+                    Text { text: suiteBackend.uiText("HEADING_FW_SIG"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                    Text { objectName: "firmwareSigningWarning"; visible: suiteBackend.firmwareSigningView.warning !== ""; text: suiteBackend.firmwareSigningView.warning; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
                     CheckBox {
                         objectName: "firmwareSigningVerifyBox"
                         text: suiteBackend.uiText("LBL_FW_SIG_VERIFY")
@@ -2917,7 +2922,7 @@ ApplicationWindow {
                                 suiteBackend.setFirmwareSigningVerify(wanted)
                         }
                     }
-                    Text { text: suiteBackend.uiText("LBL_FW_SIG_KEY_FILE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                    Text { text: suiteBackend.uiText("LBL_FW_SIG_KEY_FILE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -2932,11 +2937,11 @@ ApplicationWindow {
                         }
                         Button { objectName: "firmwareSigningKeyFileSave"; text: suiteBackend.uiText("BTN_SAVE"); onClicked: suiteBackend.setFirmwareSigningKeyFile(firmwareKeyFileField.text) }
                     }
-                    Text { objectName: "firmwareSigningKeyStatus"; text: suiteBackend.firmwareSigningView.keyStatus; color: suiteBackend.firmwareSigningView.keyOk === true ? window.green : window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
-                    Text { visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.uiText("LBL_FW_SIG_FINGERPRINT"); color: window.textPrimary; font.pixelSize: 10 }
-                    Text { objectName: "firmwareSigningFingerprint"; visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.firmwareSigningView.fingerprint; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                    Text { text: suiteBackend.firmwareSigningView.configFile; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                    Text { text: suiteBackend.uiText("LBL_FW_SIG_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { objectName: "firmwareSigningKeyStatus"; text: suiteBackend.firmwareSigningView.keyStatus; color: suiteBackend.firmwareSigningView.keyOk === true ? window.green : window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.uiText("LBL_FW_SIG_FINGERPRINT"); color: window.textPrimary; font.pixelSize: window.fs(10) }
+                    Text { objectName: "firmwareSigningFingerprint"; visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.firmwareSigningView.fingerprint; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.firmwareSigningView.configFile; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("LBL_FW_SIG_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 }
             }
             Card {
@@ -2951,19 +2956,19 @@ ApplicationWindow {
                     anchors.top: parent.top
                     anchors.margins: 12
                     spacing: 8
-                    Text { text: suiteBackend.uiText("HEADING_TOTP"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
-                    Text { text: suiteBackend.uiText("TOTP_INTRO"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
-                    Text { visible: suiteBackend.totpError !== ""; objectName: "totpError"; text: suiteBackend.totpError; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
-                    Text { visible: suiteBackend.totpMessage !== ""; text: suiteBackend.totpMessage; color: window.green; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10; font.bold: true }
-                    Text { visible: suiteBackend.totpStep === "loading"; text: suiteBackend.uiText("TOTP_LOADING"); color: window.muted; font.pixelSize: 10 }
-                    Text { visible: suiteBackend.totpStep === "unsupported"; text: suiteBackend.uiText("TOTP_ERR_UNSUPPORTED"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
-                    Text { visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"; text: suiteBackend.totpStatusText; color: suiteBackend.totpStep === "on" ? window.green : window.muted; font.pixelSize: 10; font.bold: true }
+                    Text { text: suiteBackend.uiText("HEADING_TOTP"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                    Text { text: suiteBackend.uiText("TOTP_INTRO"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
+                    Text { visible: suiteBackend.totpError !== ""; objectName: "totpError"; text: suiteBackend.totpError; color: "#ee6b80"; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { visible: suiteBackend.totpMessage !== ""; text: suiteBackend.totpMessage; color: window.green; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { visible: suiteBackend.totpStep === "loading"; text: suiteBackend.uiText("TOTP_LOADING"); color: window.muted; font.pixelSize: window.fs(10) }
+                    Text { visible: suiteBackend.totpStep === "unsupported"; text: suiteBackend.uiText("TOTP_ERR_UNSUPPORTED"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
+                    Text { visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"; text: suiteBackend.totpStatusText; color: suiteBackend.totpStep === "on" ? window.green : window.muted; font.pixelSize: window.fs(10); font.bold: true }
 
                     ColumnLayout {
                         visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("TOTP_PASSWORD"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("TOTP_PASSWORD"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         TextField {
                             id: totpPasswordField
                             objectName: "totpPasswordField"
@@ -2979,7 +2984,7 @@ ApplicationWindow {
                             enabled: !suiteBackend.totpBusy && totpPasswordField.text !== ""
                             onClicked: { suiteBackend.startTotp(totpPasswordField.text); totpPasswordField.text = "" }
                         }
-                        Text { visible: suiteBackend.totpStep === "on"; text: suiteBackend.uiText("TOTP_TURN_OFF_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { visible: suiteBackend.totpStep === "on"; text: suiteBackend.uiText("TOTP_TURN_OFF_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         TextField {
                             id: totpOffCodeField
                             objectName: "totpOffCodeField"
@@ -3001,7 +3006,7 @@ ApplicationWindow {
                         visible: suiteBackend.totpStep === "enrolling"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("TOTP_SCAN"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("TOTP_SCAN"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
                         Canvas {
                             id: totpQrCanvas
                             objectName: "totpQrCanvas"
@@ -3025,11 +3030,11 @@ ApplicationWindow {
                                             ctx.fillRect((c + 4) * cell, (r + 4) * cell, Math.ceil(cell), Math.ceil(cell))
                             }
                         }
-                        Text { visible: suiteBackend.totpQr.tooLong === true; text: suiteBackend.uiText("TOTP_QR_TOO_LONG"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
-                        Text { text: suiteBackend.uiText("TOTP_KEY"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { objectName: "totpKeyText"; text: suiteBackend.totpKey; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: 13; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.totpQr.tooLong === true; text: suiteBackend.uiText("TOTP_QR_TOO_LONG"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
+                        Text { text: suiteBackend.uiText("TOTP_KEY"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { objectName: "totpKeyText"; text: suiteBackend.totpKey; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: window.fs(13); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button { text: suiteBackend.uiText("TOTP_COPY"); onClicked: suiteBackend.copyTotpKey() }
-                        Text { text: suiteBackend.uiText("TOTP_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("TOTP_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         TextField {
                             id: totpCodeField
                             objectName: "totpCodeField"
@@ -3054,11 +3059,11 @@ ApplicationWindow {
                         visible: suiteBackend.totpStep === "recovery"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("TOTP_RECOVERY_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("TOTP_RECOVERY_HINT"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("TOTP_RECOVERY_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("TOTP_RECOVERY_HINT"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
                         Repeater {
                             model: suiteBackend.totpRecovery
-                            delegate: Text { required property var modelData; text: modelData; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: 13 }
+                            delegate: Text { required property var modelData; text: modelData; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: window.fs(13) }
                         }
                         Button { objectName: "totpRecoverySavedButton"; text: suiteBackend.uiText("TOTP_RECOVERY_SAVED"); onClicked: suiteBackend.finishTotp() }
                     }
@@ -3078,8 +3083,8 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 8
             spacing: 2
-            Text { text: esStatBoxRoot.caption; color: window.muted; font.pixelSize: 8; font.bold: true }
-            Text { text: esStatBoxRoot.value; color: window.textPrimary; font.pixelSize: 16; font.bold: true }
+            Text { text: esStatBoxRoot.caption; color: window.muted; font.pixelSize: window.fs(8); font.bold: true }
+            Text { text: esStatBoxRoot.value; color: window.textPrimary; font.pixelSize: window.fs(16); font.bold: true }
         }
     }
 
@@ -3090,7 +3095,7 @@ ApplicationWindow {
             spacing: 10
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_ECOSYSTEM_SERVICES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_ECOSYSTEM_SERVICES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 Button {
                     text: suiteBackend.esRefreshing ? "..." : suiteBackend.uiText("BTN_REFRESH")
@@ -3098,7 +3103,7 @@ ApplicationWindow {
                     onClicked: suiteBackend.refreshEcosystemServices()
                 }
             }
-            Text { text: suiteBackend.esStatusText; color: window.muted; font.pixelSize: 11 }
+            Text { text: suiteBackend.esStatusText; color: window.muted; font.pixelSize: window.fs(11) }
             RowLayout {
                 visible: suiteBackend.esShowStats
                 spacing: 8
@@ -3153,7 +3158,7 @@ ApplicationWindow {
                             required property var modelData
                             Layout.fillWidth: true
                             spacing: 6
-                            Text { text: modelData.family + "  (" + modelData.count + ")"; color: window.muted; font.bold: true; font.pixelSize: 10 }
+                            Text { text: modelData.family + "  (" + modelData.count + ")"; color: window.muted; font.bold: true; font.pixelSize: window.fs(10) }
                             GridLayout {
                                 columns: 3
                                 columnSpacing: 8
@@ -3182,7 +3187,7 @@ ApplicationWindow {
                                                 // and the second line spilled down over the description text
                                                 // below it.
                                                 Layout.preferredHeight: Math.max(serviceNameText.implicitHeight, healthBadge.implicitHeight)
-                                                Text { id: serviceNameText; text: serviceCard.modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                                                Text { id: serviceNameText; text: serviceCard.modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.fillWidth: true; wrapMode: Text.WordWrap }
                                                 Rectangle {
                                                     id: healthBadge
                                                     radius: 6
@@ -3195,15 +3200,15 @@ ApplicationWindow {
                                                         id: badgeCol
                                                         anchors.centerIn: parent
                                                         spacing: 0
-                                                        Text { text: "● " + serviceCard.modelData.badgeText; color: serviceCard.modelData.healthColor; font.bold: true; font.pixelSize: 8 }
-                                                        Text { visible: serviceCard.modelData.version !== ""; text: serviceCard.modelData.version; color: serviceCard.modelData.healthColor; font.bold: true; font.pixelSize: 12; font.family: "Cascadia Mono" }
+                                                        Text { text: "● " + serviceCard.modelData.badgeText; color: serviceCard.modelData.healthColor; font.bold: true; font.pixelSize: window.fs(8) }
+                                                        Text { visible: serviceCard.modelData.version !== ""; text: serviceCard.modelData.version; color: serviceCard.modelData.healthColor; font.bold: true; font.pixelSize: window.fs(12); font.family: "Cascadia Mono" }
                                                     }
                                                 }
                                             }
                                             RowLayout {
                                                 spacing: 8
-                                                Text { visible: serviceCard.modelData.stack !== ""; text: serviceCard.modelData.stack; color: serviceCard.modelData.stackColor; font.bold: true; font.pixelSize: 8 }
-                                                Text { visible: serviceCard.modelData.maturity !== ""; text: serviceCard.modelData.maturity; color: "#556070"; font.bold: true; font.pixelSize: 8 }
+                                                Text { visible: serviceCard.modelData.stack !== ""; text: serviceCard.modelData.stack; color: serviceCard.modelData.stackColor; font.bold: true; font.pixelSize: window.fs(8) }
+                                                Text { visible: serviceCard.modelData.maturity !== ""; text: serviceCard.modelData.maturity; color: "#556070"; font.bold: true; font.pixelSize: window.fs(8) }
                                                 Item { Layout.fillWidth: true }
                                             }
                                             Text {
@@ -3211,7 +3216,7 @@ ApplicationWindow {
                                                 text: [serviceCard.modelData.hostPort, serviceCard.modelData.pidText].filter(function(s) { return s !== "" }).join("  ")
                                                 color: "#556070"
                                                 font.family: "Cascadia Mono"
-                                                font.pixelSize: 9
+                                                font.pixelSize: window.fs(9)
                                             }
                                             RowLayout {
                                                 visible: serviceCard.modelData.canControl
@@ -3220,20 +3225,20 @@ ApplicationWindow {
                                                     visible: serviceCard.modelData.actioning
                                                     text: suiteBackend.uiText("LBL_SERVICES_ACTION_PENDING")
                                                     color: window.muted
-                                                    font.pixelSize: 8
+                                                    font.pixelSize: window.fs(8)
                                                     font.bold: true
                                                 }
                                                 Button {
                                                     visible: !serviceCard.modelData.actioning
                                                     text: suiteBackend.uiText("BTN_SERVICES_START")
                                                     implicitHeight: 22
-                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_START"); color: "#4caf50"; font.pixelSize: 9 }
+                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_START"); color: "#4caf50"; font.pixelSize: window.fs(9) }
                                                     onClicked: suiteBackend.runEsServiceAction(serviceCard.modelData.unit, "start")
                                                 }
                                                 Button {
                                                     visible: !serviceCard.modelData.actioning
                                                     implicitHeight: 22
-                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_STOP"); color: "#e05050"; font.pixelSize: 9 }
+                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_STOP"); color: "#e05050"; font.pixelSize: window.fs(9) }
                                                     onClicked: window.requestConfirm(
                                                         suiteBackend.uiText("TITLE_SERVICES_CONFIRM_STOP"),
                                                         suiteBackend.uiText("MSG_SERVICES_CONFIRM_STOP").replace("{name}", serviceCard.modelData.name),
@@ -3242,7 +3247,7 @@ ApplicationWindow {
                                                 Button {
                                                     visible: !serviceCard.modelData.actioning
                                                     implicitHeight: 22
-                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_RESTART"); color: "#4fc3f7"; font.pixelSize: 9 }
+                                                    contentItem: Text { text: suiteBackend.uiText("BTN_SERVICES_RESTART"); color: "#4fc3f7"; font.pixelSize: window.fs(9) }
                                                     onClicked: window.requestConfirm(
                                                         suiteBackend.uiText("TITLE_SERVICES_CONFIRM_RESTART"),
                                                         suiteBackend.uiText("MSG_SERVICES_CONFIRM_RESTART").replace("{name}", serviceCard.modelData.name),
@@ -3253,7 +3258,7 @@ ApplicationWindow {
                                                 visible: serviceCard.modelData.errorText !== ""
                                                 text: serviceCard.modelData.errorText
                                                 color: "#e05050"
-                                                font.pixelSize: 8
+                                                font.pixelSize: window.fs(8)
                                                 wrapMode: Text.WordWrap
                                                 Layout.fillWidth: true
                                             }
@@ -3267,7 +3272,7 @@ ApplicationWindow {
                         visible: suiteBackend.esGroups.length === 0
                         text: suiteBackend.uiText("MSG_ES_NONE")
                         color: "#556070"
-                        font.pixelSize: 11
+                        font.pixelSize: window.fs(11)
                     }
                 }
             }
@@ -3276,7 +3281,7 @@ ApplicationWindow {
                 color: "#556070"
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
-                font.pixelSize: 9
+                font.pixelSize: window.fs(9)
             }
         }
     }
@@ -3296,32 +3301,32 @@ ApplicationWindow {
                     startField.text, endField.text, bucketField.text, aggCombo.currentText)
             }
 
-            Text { text: suiteBackend.uiText("HEADING_ECOSYSTEM_TELEMETRY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_ECOSYSTEM_TELEMETRY"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             GridLayout {
                 columns: 2
                 columnSpacing: 8
                 rowSpacing: 6
-                Text { text: suiteBackend.uiText("LBL_TELEMETRY_MODE"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_MODE"); color: window.muted; font.pixelSize: window.fs(10) }
                 ComboBox {
                     id: modeCombo
                     Layout.preferredWidth: 200
                     model: [suiteBackend.uiText("TELEMETRY_MODE_QUERY"), suiteBackend.uiText("TELEMETRY_MODE_AGGREGATE")]
                 }
-                Text { text: suiteBackend.uiText("LBL_TELEMETRY_SOURCE_ID"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_SOURCE_ID"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField { id: sourceIdField; color: window.textPrimary; Layout.preferredWidth: 220; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
-                Text { text: suiteBackend.uiText("LBL_TELEMETRY_KIND"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_KIND"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField { id: kindField; color: window.textPrimary; Layout.preferredWidth: 220; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
-                Text { text: suiteBackend.uiText("LBL_TELEMETRY_FIELD"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_FIELD"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField { id: fieldField; color: window.textPrimary; Layout.preferredWidth: 220; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
-                Text { visible: telemetryRoot.isAggregate; text: suiteBackend.uiText("LBL_TELEMETRY_BUCKET_MS"); color: window.muted; font.pixelSize: 10 }
+                Text { visible: telemetryRoot.isAggregate; text: suiteBackend.uiText("LBL_TELEMETRY_BUCKET_MS"); color: window.muted; font.pixelSize: window.fs(10) }
                 TextField { id: bucketField; visible: telemetryRoot.isAggregate; text: "60000"; color: window.textPrimary; Layout.preferredWidth: 120; background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder } }
-                Text { visible: telemetryRoot.isAggregate; text: suiteBackend.uiText("LBL_TELEMETRY_AGG"); color: window.muted; font.pixelSize: 10 }
+                Text { visible: telemetryRoot.isAggregate; text: suiteBackend.uiText("LBL_TELEMETRY_AGG"); color: window.muted; font.pixelSize: window.fs(10) }
                 ComboBox { id: aggCombo; visible: telemetryRoot.isAggregate; model: suiteBackend.telemetryAggregates; Layout.preferredWidth: 120 }
             }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
-                Text { text: suiteBackend.uiText("LBL_TELEMETRY_RANGE"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_TELEMETRY_RANGE"); color: window.muted; font.pixelSize: window.fs(10) }
                 Repeater {
                     model: suiteBackend.telemetryRangePresets
                     delegate: Button {
@@ -3345,7 +3350,7 @@ ApplicationWindow {
                     onClicked: telemetryRoot.runQuery()
                 }
             }
-            Text { text: suiteBackend.telemetryStatusText; color: window.muted; font.pixelSize: 11 }
+            Text { text: suiteBackend.telemetryStatusText; color: window.muted; font.pixelSize: window.fs(11) }
             RowLayout {
                 visible: suiteBackend.telemetryShowStats
                 spacing: 8
@@ -3406,17 +3411,17 @@ ApplicationWindow {
                 property var captions: ["PLAN_COL_KIND", "PLAN_COL_FIELD", "PLAN_COL_RAW", "PLAN_COL_BUCKET", "PLAN_COL_FINE", "PLAN_COL_KEEP", "PLAN_COL_FINE_KEEP"]
                 Component.onCompleted: if (suiteBackend.planVisible) suiteBackend.loadDownsamplePlan()
 
-                Text { text: suiteBackend.uiText("PLAN_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
-                Text { text: suiteBackend.uiText("PLAN_DESC"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLAN_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
+                Text { text: suiteBackend.uiText("PLAN_DESC"); color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Text {
                     visible: suiteBackend.planFailureText !== ""
                     text: suiteBackend.planFailureText
-                    color: "#fbbf24"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                    color: "#fbbf24"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true
                 }
                 Text {
                     visible: suiteBackend.planNoticeText !== ""
                     text: suiteBackend.planNoticeText
-                    color: "#34d399"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                    color: "#34d399"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true
                 }
 
                 ColumnLayout {
@@ -3426,15 +3431,15 @@ ApplicationWindow {
 
                     RowLayout {
                         spacing: 10
-                        Text { text: suiteBackend.planModeText; color: suiteBackend.planAllowDelete && suiteBackend.planModeText === suiteBackend.uiText("PLAN_MODE_DELETE") ? "#f87171" : window.muted; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.planModeText; color: suiteBackend.planAllowDelete && suiteBackend.planModeText === suiteBackend.uiText("PLAN_MODE_DELETE") ? "#f87171" : window.muted; font.bold: true; font.pixelSize: window.fs(11) }
                         Button { text: suiteBackend.uiText("PLAN_RELOAD"); enabled: !suiteBackend.planBusy; onClicked: suiteBackend.loadDownsamplePlan() }
                     }
-                    Text { text: suiteBackend.uiText("PLAN_STRICT_NOTE"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("PLAN_STRICT_NOTE"); color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
-                        Repeater { model: planRoot.captions; Text { text: suiteBackend.uiText(modelData); color: window.muted; font.pixelSize: 9; font.bold: true; Layout.fillWidth: true; Layout.preferredWidth: 90; elide: Text.ElideRight } }
+                        Repeater { model: planRoot.captions; Text { text: suiteBackend.uiText(modelData); color: window.muted; font.pixelSize: window.fs(9); font.bold: true; Layout.fillWidth: true; Layout.preferredWidth: 90; elide: Text.ElideRight } }
                         Item { Layout.preferredWidth: 32; Layout.preferredHeight: 1 }
                     }
                     Repeater {
@@ -3466,17 +3471,17 @@ ApplicationWindow {
                         }
                     }
                     Button { text: suiteBackend.uiText("PLAN_ADD_TIER"); onClicked: suiteBackend.addPlanTier() }
-                    Text { text: suiteBackend.uiText("PLAN_DURATION_HINT"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                    Text { visible: suiteBackend.planKnownKindsText !== ""; text: suiteBackend.planKnownKindsText; color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("PLAN_DURATION_HINT"); color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: suiteBackend.planKnownKindsText !== ""; text: suiteBackend.planKnownKindsText; color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
                     Text {
                         text: suiteBackend.planIssueSummary
                         color: suiteBackend.planValid ? "#34d399" : "#fb7185"
-                        font.bold: true; font.pixelSize: 11
+                        font.bold: true; font.pixelSize: window.fs(11)
                     }
                     Repeater {
                         model: suiteBackend.planIssueLines
-                        Text { text: "- " + modelData; color: "#fda4af"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: "- " + modelData; color: "#fda4af"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
 
                     CheckBox {
@@ -3485,10 +3490,10 @@ ApplicationWindow {
                         checked: suiteBackend.planDeleteOn
                         onToggled: suiteBackend.setPlanDelete(checked)
                     }
-                    Text { visible: !suiteBackend.planAllowDelete; text: suiteBackend.uiText("PLAN_DELETE_DISABLED"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                    Text { visible: suiteBackend.planAllowDelete && suiteBackend.planDeleteOn; text: suiteBackend.uiText("PLAN_DELETE_WARNING"); color: "#f87171"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: !suiteBackend.planAllowDelete; text: suiteBackend.uiText("PLAN_DELETE_DISABLED"); color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: suiteBackend.planAllowDelete && suiteBackend.planDeleteOn; text: suiteBackend.uiText("PLAN_DELETE_WARNING"); color: "#f87171"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
-                    Text { visible: suiteBackend.planEffectsText !== ""; text: suiteBackend.planEffectsText; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { visible: suiteBackend.planEffectsText !== ""; text: suiteBackend.planEffectsText; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
                     RowLayout {
                         spacing: 8
@@ -3504,8 +3509,8 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 8
-                            Text { text: suiteBackend.uiText("PLAN_CONFIRM_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 13 }
-                            Text { text: suiteBackend.planConfirmText; color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("PLAN_CONFIRM_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(13) }
+                            Text { text: suiteBackend.planConfirmText; color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             RowLayout {
                                 spacing: 8
                                 Button { text: suiteBackend.uiText("PLAN_CONFIRM_CANCEL"); onClicked: suiteBackend.cancelSaveDownsamplePlan() }
@@ -3514,10 +3519,10 @@ ApplicationWindow {
                         }
                     }
 
-                    Text { text: suiteBackend.uiText("PLAN_AUDIT_TITLE"); color: window.muted; font.bold: true; font.pixelSize: 10 }
+                    Text { text: suiteBackend.uiText("PLAN_AUDIT_TITLE"); color: window.muted; font.bold: true; font.pixelSize: window.fs(10) }
                     Repeater {
                         model: suiteBackend.planAuditLines
-                        Text { text: modelData; color: window.muted; font.pixelSize: 10; font.family: "Consolas" }
+                        Text { text: modelData; color: window.muted; font.pixelSize: window.fs(10); font.family: "Consolas" }
                     }
                 }
             }
@@ -3533,7 +3538,7 @@ ApplicationWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_XY_TABLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_XY_TABLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.xyCanReset; onClicked: suiteBackend.resetXyTable() }
                 ComboBox {
@@ -3576,7 +3581,7 @@ ApplicationWindow {
                         anchors.margins: 12
                         spacing: 8
                         RowLayout {
-                            Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12); Layout.fillWidth: true }
                             Button {
                                 id: xyRemoveButton
                                 text: suiteBackend.uiText("BTN_REMOVE_MODULE")
@@ -3586,9 +3591,9 @@ ApplicationWindow {
                         }
                         RowLayout {
                             spacing: 8
-                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { id: widthSpin; from: 100; to: 5000; stepSize: 10; value: suiteBackend.xyWidth; editable: true; onValueModified: suiteBackend.setXyWidth(value) }
-                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { id: lengthSpin; from: 100; to: 5000; stepSize: 10; value: suiteBackend.xyLength; editable: true; onValueModified: suiteBackend.setXyLength(value) }
                         }
                     }
@@ -3601,9 +3606,9 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 8
-                        Text { text: suiteBackend.uiText("GROUP_JOG_CONTROL"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("GROUP_JOG_CONTROL"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_STEP"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_STEP"); color: window.muted; font.pixelSize: window.fs(10) }
                             ComboBox {
                                 id: stepCombo
                                 Layout.preferredWidth: 100
@@ -3615,16 +3620,16 @@ ApplicationWindow {
                         RowLayout {
                             spacing: 24
                             ColumnLayout {
-                                Text { text: suiteBackend.uiText("QT_XY_TABLE_X_AXIS"); color: window.muted; font.pixelSize: 10 }
-                                Text { text: suiteBackend.xyPosX; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16 }
+                                Text { text: suiteBackend.uiText("QT_XY_TABLE_X_AXIS"); color: window.muted; font.pixelSize: window.fs(10) }
+                                Text { text: suiteBackend.xyPosX; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(16) }
                                 RowLayout {
                                     Button { text: "◀"; onClicked: suiteBackend.jogXyTable("x", -1) }
                                     Button { text: "▶"; onClicked: suiteBackend.jogXyTable("x", 1) }
                                 }
                             }
                             ColumnLayout {
-                                Text { text: suiteBackend.uiText("QT_XY_TABLE_Y_AXIS"); color: window.muted; font.pixelSize: 10 }
-                                Text { text: suiteBackend.xyPosY; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16 }
+                                Text { text: suiteBackend.uiText("QT_XY_TABLE_Y_AXIS"); color: window.muted; font.pixelSize: window.fs(10) }
+                                Text { text: suiteBackend.xyPosY; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(16) }
                                 RowLayout {
                                     Button { text: "▼"; onClicked: suiteBackend.jogXyTable("y", -1) }
                                     Button { text: "▲"; onClicked: suiteBackend.jogXyTable("y", 1) }
@@ -3680,11 +3685,11 @@ ApplicationWindow {
                 spacing: 6
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { text: rackCard.modelData.title; color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                    Text { text: rackCard.modelData.title; color: window.cyan; font.bold: true; font.pixelSize: window.fs(12); Layout.fillWidth: true }
                     Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); implicitHeight: 26; onClicked: suiteBackend.resetRackSystem() }
                 }
                 RowLayout {
-                    Text { text: suiteBackend.uiText("LBL_RACK_TYPE"); color: window.muted; font.pixelSize: 10 }
+                    Text { text: suiteBackend.uiText("LBL_RACK_TYPE"); color: window.muted; font.pixelSize: window.fs(10) }
                     ComboBox {
                         Layout.preferredWidth: 150
                         model: suiteBackend.rackTypeLabels
@@ -3721,7 +3726,7 @@ ApplicationWindow {
                     Button { text: suiteBackend.uiText("LBL_RACK_PREVIEW"); onClicked: suiteBackend.previewRack(rackCard.modelData.rackId) }
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: suiteBackend.uiText("LBL_CAPACITY"); color: window.muted; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("LBL_CAPACITY"); color: window.muted; font.pixelSize: window.fs(10) }
                         Slider {
                             Layout.fillWidth: true
                             from: 1; to: rackCard.modelData.maxCapacity
@@ -3730,7 +3735,7 @@ ApplicationWindow {
                         }
                         Text { text: rackCard.modelData.capacity; color: "#38bdf8"; font.family: "Cascadia Mono"; Layout.preferredWidth: 24 }
                     }
-                    Text { text: suiteBackend.uiText("LBL_USABLE_SLOTS"); color: window.muted; font.pixelSize: 10 }
+                    Text { text: suiteBackend.uiText("LBL_USABLE_SLOTS"); color: window.muted; font.pixelSize: window.fs(10) }
                     GridLayout {
                         columns: 6
                         columnSpacing: 3
@@ -3745,12 +3750,12 @@ ApplicationWindow {
                                 checkable: true
                                 checked: modelData
                                 text: (index + 1) + "\n" + (modelData ? "☑" : "☐")
-                                font.pixelSize: 8
+                                font.pixelSize: window.fs(8)
                                 onClicked: suiteBackend.toggleRackSlot(rackCard.modelData.rackId, index)
                             }
                         }
                     }
-                    Text { text: suiteBackend.uiText("LBL_BASE_PICKUP_POS"); color: window.muted; font.pixelSize: 10 }
+                    Text { text: suiteBackend.uiText("LBL_BASE_PICKUP_POS"); color: window.muted; font.pixelSize: window.fs(10) }
                     GridLayout {
                         columns: 3
                         columnSpacing: 6
@@ -3760,7 +3765,7 @@ ApplicationWindow {
                             delegate: ColumnLayout {
                                 required property string modelData
                                 spacing: 1
-                                Text { text: modelData.toUpperCase() + " (°)"; color: window.muted; font.pixelSize: 8 }
+                                Text { text: modelData.toUpperCase() + " (°)"; color: window.muted; font.pixelSize: window.fs(8) }
                                 DecimalSpinBox {
                                     realFrom: -360; realTo: 360
                                     realValue: rackCard.modelData.pos[modelData]
@@ -3778,7 +3783,7 @@ ApplicationWindow {
                             delegate: ColumnLayout {
                                 required property string modelData
                                 spacing: 1
-                                Text { text: suiteBackend.uiText("QT_XY_TABLE_LABEL") + " " + modelData.substring(1).toUpperCase() + " (mm)"; color: "#d97706"; font.pixelSize: 8 }
+                                Text { text: suiteBackend.uiText("QT_XY_TABLE_LABEL") + " " + modelData.substring(1).toUpperCase() + " (mm)"; color: "#d97706"; font.pixelSize: window.fs(8) }
                                 DecimalSpinBox {
                                     realFrom: -5000; realTo: 5000
                                     realValue: rackCard.modelData.pos[modelData]
@@ -3800,7 +3805,7 @@ ApplicationWindow {
             spacing: 12
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_RACK_MANAGER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_RACK_MANAGER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 ComboBox {
                     id: rackRobotCombo
@@ -3892,7 +3897,7 @@ ApplicationWindow {
         ColumnLayout {
             width: contentLoader.width
             spacing: 14
-            Text { text: suiteBackend.uiText("HEADING_OVERVIEW"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_OVERVIEW"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 14
@@ -3903,19 +3908,19 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 14
                         spacing: 6
-                        Text { text: suiteBackend.uiText("GROUP_ACTIVE_CONTROLLER"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("GROUP_ACTIVE_CONTROLLER"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                         GridLayout {
                             columns: 2
                             columnSpacing: 12
                             rowSpacing: 4
-                            Text { text: suiteBackend.uiText("LBL_NAME"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewName; color: window.textPrimary; font.pixelSize: 10 }
-                            Text { text: suiteBackend.uiText("LBL_IP"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewIp; color: window.textPrimary; font.pixelSize: 10 }
-                            Text { text: suiteBackend.uiText("LBL_ROBOTS"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewRobotCount; color: window.textPrimary; font.pixelSize: 10 }
-                            Text { text: suiteBackend.uiText("LBL_ONLINE"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewOnlineCount; color: window.textPrimary; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_NAME"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewName; color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("LBL_IP"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewIp; color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("LBL_ROBOTS"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewRobotCount; color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("LBL_ONLINE"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewOnlineCount; color: window.textPrimary; font.pixelSize: window.fs(10) }
                         }
                     }
                 }
@@ -3926,19 +3931,19 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 14
                         spacing: 6
-                        Text { text: suiteBackend.uiText("GROUP_SYSTEM_METRICS"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("GROUP_SYSTEM_METRICS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                         GridLayout {
                             columns: 2
                             columnSpacing: 12
                             rowSpacing: 4
-                            Text { text: suiteBackend.uiText("LBL_CPU_LOAD"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewCpu; color: window.textPrimary; font.pixelSize: 10 }
-                            Text { text: suiteBackend.uiText("LBL_MEMORY"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewMem; color: window.textPrimary; font.pixelSize: 10 }
-                            Text { text: suiteBackend.uiText("LBL_TEMP"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewTemp; color: window.textPrimary; font.pixelSize: 10 }
-                            Text { text: suiteBackend.uiText("LBL_UPTIME"); color: window.muted; font.pixelSize: 10 }
-                            Text { text: suiteBackend.overviewUptime; color: window.textPrimary; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_CPU_LOAD"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewCpu; color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("LBL_MEMORY"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewMem; color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("LBL_TEMP"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewTemp; color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("LBL_UPTIME"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.overviewUptime; color: window.textPrimary; font.pixelSize: window.fs(10) }
                         }
                     }
                 }
@@ -3947,11 +3952,11 @@ ApplicationWindow {
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("COL_ROBOT"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90 }
-                Text { text: suiteBackend.uiText("COL_MODEL"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
-                Text { text: suiteBackend.uiText("COL_ROLE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 120 }
-                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 210 }
-                Text { text: suiteBackend.uiText("COL_SPEED_ACCEL"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                Text { text: suiteBackend.uiText("COL_ROBOT"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                Text { text: suiteBackend.uiText("COL_MODEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("COL_ROLE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 120 }
+                Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 210 }
+                Text { text: suiteBackend.uiText("COL_SPEED_ACCEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
             }
             ListView {
                 Layout.fillWidth: true
@@ -3968,11 +3973,11 @@ ApplicationWindow {
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 4
-                        Text { text: "#" + modelData.id; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 86 }
-                        Text { text: modelData.model; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
-                        Text { text: modelData.role; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 120 }
-                        Text { text: modelData.status; color: modelData.motionSource === "live" ? window.green : (modelData.motionSource === "simulated" ? window.amber : window.muted); font.pixelSize: 10; Layout.preferredWidth: 210; elide: Text.ElideRight }
-                        Text { text: modelData.speedAccel; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                        Text { text: "#" + modelData.id; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 86 }
+                        Text { text: modelData.model; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { text: modelData.role; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 120 }
+                        Text { text: modelData.status; color: modelData.motionSource === "live" ? window.green : (modelData.motionSource === "simulated" ? window.amber : window.muted); font.pixelSize: window.fs(10); Layout.preferredWidth: 210; elide: Text.ElideRight }
+                        Text { text: modelData.speedAccel; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
                     }
                 }
             }
@@ -4026,15 +4031,15 @@ ApplicationWindow {
                         height: suiteBackend.extras.trajectoryViewHeight
                         pts: modelData.points
                     }
-                    Text { text: modelData.label; color: window.muted; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                    Text { text: modelData.label; color: window.muted; font.pixelSize: window.fs(9); Layout.alignment: Qt.AlignHCenter }
                 }
             }
         }
-        Text { objectName: "pathSummary"; text: viewer.view.summary || ""; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-        Text { visible: viewer.view.clean === true; text: suiteBackend.uiText("TRJ_CLEAN"); color: window.green; font.bold: true; font.pixelSize: 11 }
+        Text { objectName: "pathSummary"; text: viewer.view.summary || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+        Text { visible: viewer.view.clean === true; text: suiteBackend.uiText("TRJ_CLEAN"); color: window.green; font.bold: true; font.pixelSize: window.fs(11) }
         Repeater {
             model: viewer.view.issues || []
-            delegate: Text { required property var modelData; text: modelData; color: window.amber; font.family: "Cascadia Mono"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            delegate: Text { required property var modelData; text: modelData; color: window.amber; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
         }
     }
 
@@ -4052,7 +4057,7 @@ ApplicationWindow {
             Text {
                 text: suiteBackend.extras.pendingPreview.clean === true ? suiteBackend.uiText("TRJ_ASK_CLEAN") : suiteBackend.uiText("TRJ_ASK_ISSUES").replace("{count}", suiteBackend.extras.pendingPreview.count)
                 color: window.textPrimary
-                font.pixelSize: 12
+                font.pixelSize: window.fs(12)
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -4087,7 +4092,7 @@ ApplicationWindow {
             spacing: 10
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_SWARM"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_SWARM"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 CheckBox {
                     objectName: "swarmSwitch"
@@ -4097,13 +4102,13 @@ ApplicationWindow {
                     onToggled: suiteBackend.extras.setSwarmEnabled(checked)
                 }
             }
-            Text { visible: !suiteBackend.extras.swarmEnabled; text: suiteBackend.uiText("SWARM_SWITCH_HINT"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: !suiteBackend.extras.swarmEnabled; text: suiteBackend.uiText("SWARM_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
             ColumnLayout {
                 visible: suiteBackend.extras.swarmEnabled
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 8
-                Text { objectName: "swarmSummary"; text: suiteBackend.extras.swarmSummary; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "swarmSummary"; text: suiteBackend.extras.swarmSummary; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
@@ -4131,13 +4136,13 @@ ApplicationWindow {
                 }
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { text: suiteBackend.uiText("SWARM_COL_SERVER"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_ROBOT"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_MODEL"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_SOURCE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 110 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_PLAYBACK"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_HOLDER"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 110 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_COMBINED"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("SWARM_COL_SERVER"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_ROBOT"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_MODEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_SOURCE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_PLAYBACK"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_HOLDER"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("SWARM_COL_COMBINED"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                 }
                 ListView {
                     objectName: "swarmList"
@@ -4159,19 +4164,19 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.leftMargin: 4
                             spacing: 0
-                            Text { text: modelData.server; color: window.textPrimary; font.pixelSize: 10; Layout.preferredWidth: 150; elide: Text.ElideRight }
-                            Text { text: modelData.down ? "" : modelData.robot; color: window.cyan; font.pixelSize: 10; Layout.preferredWidth: 130; elide: Text.ElideRight }
-                            Text { text: modelData.model; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150; elide: Text.ElideRight }
-                            Text { text: modelData.sourceText; color: modelData.source === "live" ? window.green : (modelData.source === "simulated" ? window.amber : window.muted); font.pixelSize: 10; Layout.preferredWidth: 110; elide: Text.ElideRight }
-                            Text { text: modelData.playbackText; color: window.textPrimary; font.pixelSize: 10; Layout.preferredWidth: 90 }
-                            Text { text: modelData.holder; color: window.amber; font.pixelSize: 10; Layout.preferredWidth: 110; elide: Text.ElideRight }
-                            Text { text: modelData.combinedText; color: window.muted; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Text { text: modelData.server; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.preferredWidth: 150; elide: Text.ElideRight }
+                            Text { text: modelData.down ? "" : modelData.robot; color: window.cyan; font.pixelSize: window.fs(10); Layout.preferredWidth: 130; elide: Text.ElideRight }
+                            Text { text: modelData.model; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 150; elide: Text.ElideRight }
+                            Text { text: modelData.sourceText; color: modelData.source === "live" ? window.green : (modelData.source === "simulated" ? window.amber : window.muted); font.pixelSize: window.fs(10); Layout.preferredWidth: 110; elide: Text.ElideRight }
+                            Text { text: modelData.playbackText; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                            Text { text: modelData.holder; color: window.amber; font.pixelSize: window.fs(10); Layout.preferredWidth: 110; elide: Text.ElideRight }
+                            Text { text: modelData.combinedText; color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                             Button { visible: !modelData.down; text: suiteBackend.uiText("SWARM_OPEN"); onClicked: suiteBackend.extras.swarmOpen(modelData.connId, modelData.robotId) }
                             Button { text: suiteBackend.uiText("SWARM_STOP_SERVER"); onClicked: suiteBackend.extras.swarmStopServer(modelData.connId) }
                         }
                     }
                 }
-                Text { visible: suiteBackend.extras.swarmRows.length === 0; text: suiteBackend.uiText("SWARM_NO_ROWS"); color: window.muted; font.pixelSize: 11 }
+                Text { visible: suiteBackend.extras.swarmRows.length === 0; text: suiteBackend.uiText("SWARM_NO_ROWS"); color: window.muted; font.pixelSize: window.fs(11) }
             }
         }
     }
@@ -4183,7 +4188,7 @@ ApplicationWindow {
             spacing: 10
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_UPDATES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_UPDATES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 CheckBox {
                     objectName: "updatesSwitch"
@@ -4193,7 +4198,7 @@ ApplicationWindow {
                     onToggled: suiteBackend.extras.setUpdatesEnabled(checked)
                 }
             }
-            Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
             Button {
                 objectName: "updatesCheck"
                 visible: suiteBackend.extras.updatesEnabled
@@ -4211,15 +4216,15 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 3
-                        Text { text: modelData.title; color: modelData.bad ? window.amber : window.cyan; font.bold: true; font.pixelSize: 12 }
-                        Text { text: suiteBackend.uiText("UPD_INSTALLED") + ": " + modelData.installed + "    " + suiteBackend.uiText("UPD_LATEST") + ": " + modelData.latest + "    " + modelData.state; color: window.textPrimary; font.pixelSize: 11 }
-                        Text { visible: modelData.api !== ""; text: modelData.api; color: modelData.bad ? window.amber : window.muted; font.pixelSize: 10 }
+                        Text { text: modelData.title; color: modelData.bad ? window.amber : window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                        Text { text: suiteBackend.uiText("UPD_INSTALLED") + ": " + modelData.installed + "    " + suiteBackend.uiText("UPD_LATEST") + ": " + modelData.latest + "    " + modelData.state; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                        Text { visible: modelData.api !== ""; text: modelData.api; color: modelData.bad ? window.amber : window.muted; font.pixelSize: window.fs(10) }
                     }
                 }
             }
             Repeater {
                 model: suiteBackend.extras.updateResult.errors || []
-                delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
             }
         }
     }
@@ -4230,11 +4235,11 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 10
-            Text { text: suiteBackend.uiText("HEADING_LOGS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_LOGS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
-                Text { text: suiteBackend.uiText("LBL_LOG_LEVEL"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_LOG_LEVEL"); color: window.muted; font.pixelSize: window.fs(10) }
                 ComboBox {
                     id: levelCombo
                     model: suiteBackend.logLevels
@@ -4268,7 +4273,7 @@ ApplicationWindow {
                         : modelData.level === "WARNING" ? window.amber
                         : modelData.level === "DEBUG" ? "#5f7488" : window.textPrimary
                     font.family: "Cascadia Mono"
-                    font.pixelSize: 10
+                    font.pixelSize: window.fs(10)
                     wrapMode: Text.WrapAnywhere
                 }
             }
@@ -4283,7 +4288,7 @@ ApplicationWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_PICK_AND_PLACE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_PICK_AND_PLACE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 ComboBox {
                     id: pnpMachineCombo
@@ -4328,7 +4333,7 @@ ApplicationWindow {
                 spacing: 10
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12); Layout.fillWidth: true }
                     Button {
                         id: pnpRemoveButton
                         text: suiteBackend.uiText("BTN_REMOVE_MODULE")
@@ -4336,7 +4341,7 @@ ApplicationWindow {
                         onClicked: suiteBackend.disablePnp()
                     }
                 }
-                Text { text: suiteBackend.uiText("LBL_PNP_POSE_PREVIEW"); color: window.muted; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("LBL_PNP_POSE_PREVIEW"); color: window.muted; font.pixelSize: window.fs(10) }
                 Text { text: suiteBackend.uiText("LBL_MACHINE_ASSETS_NOTE"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Rectangle {
                     Layout.fillWidth: true
@@ -4380,7 +4385,7 @@ ApplicationWindow {
                                 required property var modelData
                                 Layout.fillWidth: true
                                 spacing: 8
-                                Text { text: modelData.label; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 120 }
+                                Text { text: modelData.label; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 120 }
                                 Slider {
                                     Layout.fillWidth: true
                                     from: modelData.min; to: modelData.max
@@ -4423,7 +4428,7 @@ ApplicationWindow {
                 implicitWidth: 34
                 implicitHeight: 30
                 text: index + 1
-                font.pixelSize: 10
+                font.pixelSize: window.fs(10)
                 onClicked: onToggle(index)
             }
         }
@@ -4442,7 +4447,7 @@ ApplicationWindow {
                 id: kbsColumn
                 width: kbsFlick.width
                 spacing: 12
-                Text { text: suiteBackend.uiText("HEADING_KINEMATIC_BRAIN_STAGE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_KINEMATIC_BRAIN_STAGE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
 
                 Card {
                     Layout.fillWidth: true
@@ -4453,8 +4458,8 @@ ApplicationWindow {
                         anchors.margins: 12
                         spacing: 8
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_GANTRY"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
-                            Text { text: suiteBackend.uiText("LBL_STEP"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_GANTRY"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12); Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("LBL_STEP"); color: window.muted; font.pixelSize: window.fs(10) }
                             ComboBox {
                                 id: kbsStepCombo
                                 Layout.preferredWidth: 100
@@ -4470,8 +4475,8 @@ ApplicationWindow {
                                 delegate: ColumnLayout {
                                     required property var modelData
                                     spacing: 2
-                                    Text { text: modelData.label; color: window.muted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
-                                    Text { text: modelData.value; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter }
+                                    Text { text: modelData.label; color: window.muted; font.pixelSize: window.fs(10); Layout.alignment: Qt.AlignHCenter }
+                                    Text { text: modelData.value; color: "#f59e0b"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(16); Layout.alignment: Qt.AlignHCenter }
                                     RowLayout {
                                         Layout.alignment: Qt.AlignHCenter
                                         Button { text: "−"; implicitWidth: 30; onClicked: suiteBackend.jogKbsAxis(modelData.axis, -1) }
@@ -4483,11 +4488,11 @@ ApplicationWindow {
                         }
                         RowLayout {
                             spacing: 8
-                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { from: 100; to: 5000; value: suiteBackend.kbsTableWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setKbsTableSize("width", value) }
-                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { from: 100; to: 5000; value: suiteBackend.kbsTableLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setKbsTableSize("length", value) }
-                            Text { text: suiteBackend.uiText("LBL_HEIGHT_Z"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_HEIGHT_Z"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { from: 10; to: 1000; value: suiteBackend.kbsTableHeight; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setKbsTableSize("height", value) }
                         }
                     }
@@ -4504,11 +4509,11 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 6
-                            Text { text: suiteBackend.uiText("HEADING_HEATED_BED"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
-                            RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_1"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm1; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 12 } }
-                            RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm2; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 12 } }
+                            Text { text: suiteBackend.uiText("HEADING_HEATED_BED"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                            RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_1"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm1; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(12) } }
+                            RowLayout { Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true } Text { text: suiteBackend.kbsTherm2; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(12) } }
                             RowLayout {
-                                Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: 10 }
+                                Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: window.fs(10) }
                                 SpinBox { from: 0; to: suiteBackend.kbsBedCeiling; value: suiteBackend.kbsTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setKbsTargetTemp(value) }
                                 Button {
                                     objectName: "kbsSsrButton"
@@ -4529,17 +4534,17 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 6
-                            Text { text: suiteBackend.uiText("LBL_ATC_REVOLVER_E0"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text { text: suiteBackend.uiText("LBL_ATC_REVOLVER_E0"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                             RowLayout {
                                 Button { text: "◀"; implicitWidth: 32; onClicked: suiteBackend.stepKbsAtc(-1) }
-                                Text { text: suiteBackend.kbsAtcIndex; color: "#a78bfa"; font.family: "Cascadia Mono"; font.pixelSize: 18; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter }
+                                Text { text: suiteBackend.kbsAtcIndex; color: "#a78bfa"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(18); Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter }
                                 Button { text: "▶"; implicitWidth: 32; onClicked: suiteBackend.stepKbsAtc(1) }
                             }
                             RowLayout {
-                                Text { text: suiteBackend.uiText("LBL_TOOL_COUNT"); color: window.muted; font.pixelSize: 10 }
+                                Text { text: suiteBackend.uiText("LBL_TOOL_COUNT"); color: window.muted; font.pixelSize: window.fs(10) }
                                 SpinBox { from: 2; to: 16; value: suiteBackend.kbsToolCount; editable: true; Layout.preferredWidth: 100; onValueModified: suiteBackend.setKbsToolCount(value) }
                             }
-                            Text { text: suiteBackend.kbsHomed ? suiteBackend.uiText("LBL_HOMED") : suiteBackend.uiText("LBL_NOT_HOMED"); color: suiteBackend.kbsHomed ? window.green : window.amber; font.pixelSize: 10 }
+                            Text { text: suiteBackend.kbsHomed ? suiteBackend.uiText("LBL_HOMED") : suiteBackend.uiText("LBL_NOT_HOMED"); color: suiteBackend.kbsHomed ? window.green : window.amber; font.pixelSize: window.fs(10) }
                         }
                     }
                 }
@@ -4552,7 +4557,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 10
-                        Text { text: suiteBackend.uiText("LBL_CONVEYOR"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("LBL_CONVEYOR"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         Text { text: suiteBackend.uiText("LBL_CONVEYOR_NOT_INSTALLED"); color: window.muted; visible: !suiteBackend.kbsConveyorInstalled; Layout.fillWidth: true }
                         Button { text: suiteBackend.uiText("BTN_MARK_INSTALLED"); visible: !suiteBackend.kbsConveyorInstalled; onClicked: suiteBackend.installKbsConveyor() }
                         Button {
@@ -4579,7 +4584,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_ENDSTOPS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("LBL_ENDSTOPS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         GridLayout {
                             columns: 6
                             columnSpacing: 6
@@ -4600,7 +4605,7 @@ ApplicationWindow {
                                         anchors.centerIn: parent
                                         text: modelData.label
                                         color: modelData.active ? "#ee6b80" : window.muted
-                                        font.pixelSize: 9
+                                        font.pixelSize: window.fs(9)
                                         font.bold: modelData.active
                                     }
                                 }
@@ -4620,7 +4625,7 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 6
-                            Text { text: suiteBackend.uiText("LBL_FANS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text { text: suiteBackend.uiText("LBL_FANS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                             ToggleGrid { values: suiteBackend.kbsFans; columns_: 5; onToggle: function(i) { suiteBackend.toggleKbsFan(i) } }
                         }
                     }
@@ -4632,7 +4637,7 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 6
-                            Text { text: suiteBackend.uiText("LBL_PUMPS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text { text: suiteBackend.uiText("LBL_PUMPS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                             ToggleGrid { values: suiteBackend.kbsPumps; columns_: 5; onToggle: function(i) { suiteBackend.toggleKbsPump(i) } }
                         }
                     }
@@ -4644,7 +4649,7 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 6
-                            Text { text: suiteBackend.uiText("LBL_VALVES"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text { text: suiteBackend.uiText("LBL_VALVES"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                             ToggleGrid { values: suiteBackend.kbsValves; columns_: 5; onToggle: function(i) { suiteBackend.toggleKbsValve(i) } }
                         }
                     }
@@ -4671,7 +4676,7 @@ ApplicationWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText(suiteBackend.moduleHeadingKey); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText(suiteBackend.moduleHeadingKey); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.moduleEnabled; onClicked: suiteBackend.resetModuleConfig() }
                 ComboBox {
@@ -4714,7 +4719,7 @@ ApplicationWindow {
                         anchors.margins: 12
                         spacing: 8
                         RowLayout {
-                            Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("GROUP_MODULE_SETTINGS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12); Layout.fillWidth: true }
                             Button {
                                 id: moduleRemoveButton
                                 text: suiteBackend.uiText("BTN_REMOVE_MODULE")
@@ -4762,9 +4767,9 @@ ApplicationWindow {
                         }
                         RowLayout {
                             spacing: 8
-                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_WIDTH_X"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { from: suiteBackend.moduleExtraKind === "heated_bed" ? 25 : 10; to: 5000; stepSize: ["vacuum_table", "heated_bed"].indexOf(suiteBackend.moduleExtraKind) >= 0 ? 5 : 10; value: suiteBackend.moduleWidth; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleWidth(value) }
-                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_LENGTH_Y"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { from: suiteBackend.moduleExtraKind === "heated_bed" ? 25 : 10; to: 5000; stepSize: ["vacuum_table", "heated_bed"].indexOf(suiteBackend.moduleExtraKind) >= 0 ? 5 : 10; value: suiteBackend.moduleLength; editable: true; Layout.preferredWidth: 130; onValueModified: suiteBackend.setModuleLength(value) }
                         }
                     }
@@ -4779,9 +4784,9 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 8
-                        Text { text: suiteBackend.uiText("GROUP_HEATING_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("GROUP_HEATING_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_TARGET_TEMP"); color: window.muted; font.pixelSize: window.fs(10) }
                             SpinBox { from: 0; to: suiteBackend.moduleBedCeiling; value: suiteBackend.moduleTargetTemp; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setModuleTargetTemp(value) }
                             Button {
                                 objectName: "moduleSsrButton"
@@ -4795,13 +4800,13 @@ ApplicationWindow {
                             spacing: 20
                             ColumnLayout {
                                 spacing: 2
-                                Text { text: suiteBackend.uiText("LBL_THERMISTOR_1"); color: window.muted; font.pixelSize: 9 }
-                                Text { text: suiteBackend.moduleTherm1; color: "#fb923c"; font.family: "Cascadia Mono"; font.pixelSize: 14 }
+                                Text { text: suiteBackend.uiText("LBL_THERMISTOR_1"); color: window.muted; font.pixelSize: window.fs(9) }
+                                Text { text: suiteBackend.moduleTherm1; color: "#fb923c"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(14) }
                             }
                             ColumnLayout {
                                 spacing: 2
-                                Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: 9 }
-                                Text { text: suiteBackend.moduleTherm2; color: "#fb923c"; font.family: "Cascadia Mono"; font.pixelSize: 14 }
+                                Text { text: suiteBackend.uiText("LBL_THERMISTOR_2"); color: window.muted; font.pixelSize: window.fs(9) }
+                                Text { text: suiteBackend.moduleTherm2; color: "#fb923c"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(14) }
                             }
                         }
                     }
@@ -4816,7 +4821,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 10
-                        Text { text: suiteBackend.uiText("GROUP_VACUUM_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("GROUP_VACUUM_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         Button {
                             text: suiteBackend.modulePumpOn ? suiteBackend.uiText("BTN_PUMP_ON") : suiteBackend.uiText("BTN_PUMP_OFF")
                             checkable: true
@@ -4843,7 +4848,7 @@ ApplicationWindow {
                         z: 2
                         visible: ["cnc","laser"].indexOf(suiteBackend.moduleExtraKind) >= 0
                         text: suiteBackend.uiText("LBL_MACHINE_ASSETS_NOTE")
-                        color: "#334155"; wrapMode: Text.WordWrap; font.pixelSize: 11
+                        color: "#334155"; wrapMode: Text.WordWrap; font.pixelSize: window.fs(11)
                     }
                     Component.onCompleted: if (visible) suiteBackend.refreshVacuumPreview()
                     onVisibleChanged: if (visible) suiteBackend.refreshVacuumPreview()
@@ -4891,7 +4896,7 @@ ApplicationWindow {
             delegate: ColumnLayout {
                 required property var modelData
                 spacing: 1
-                Text { text: modelData.label; color: window.muted; font.pixelSize: 8 }
+                Text { text: modelData.label; color: window.muted; font.pixelSize: window.fs(8) }
                 SpinBox {
                     from: modelData.min; to: modelData.max
                     value: Math.round(modelData.value)
@@ -5031,7 +5036,7 @@ ApplicationWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_ATC"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_ATC"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 Button { text: suiteBackend.uiText("BTN_RESET_MODULE"); enabled: suiteBackend.atcConfigured; onClicked: suiteBackend.resetAtc() }
                 Button { text: suiteBackend.uiText("BTN_LOAD_CONFIG"); enabled: suiteBackend.atcHasRobot; onClicked: atcLoadDialog.open() }
@@ -5054,7 +5059,7 @@ ApplicationWindow {
                 }
             }
 
-            Text { text: suiteBackend.atcLoadError; color: "#ee6b80"; font.pixelSize: 10; visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            Text { text: suiteBackend.atcLoadError; color: "#ee6b80"; font.pixelSize: window.fs(10); visible: text.length > 0; Layout.fillWidth: true; wrapMode: Text.WordWrap }
 
             ColumnLayout {
                 visible: !suiteBackend.atcConfigured
@@ -5116,7 +5121,7 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 anchors.margins: 10
                                 spacing: 4
-                                Text { text: suiteBackend.uiText("LBL_PANEL_GRID_LAYOUT"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                                Text { text: suiteBackend.uiText("LBL_PANEL_GRID_LAYOUT"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                                 ComboBox {
                                     Layout.preferredWidth: 120
                                     model: suiteBackend.atcPanelGridOptions
@@ -5135,17 +5140,17 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 anchors.margins: 10
                                 spacing: 6
-                                Text { text: suiteBackend.uiText("LBL_REVOLVER_CAPACITY"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                                Text { text: suiteBackend.uiText("LBL_REVOLVER_CAPACITY"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                                 SpinBox { from: 1; to: 16; value: suiteBackend.atcRevolverSlots; editable: true; Layout.preferredWidth: 110; onValueModified: suiteBackend.setAtcRevolverSlots(value) }
                                 RowLayout {
-                                    Text { text: suiteBackend.uiText("LBL_BASE_PICKUP_POS"); color: window.muted; font.pixelSize: 10; Layout.fillWidth: true }
+                                    Text { text: suiteBackend.uiText("LBL_BASE_PICKUP_POS"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                                     Button { text: suiteBackend.uiText("BTN_EDIT_POS"); checkable: true; checked: suiteBackend.atcBaseEditing; onClicked: suiteBackend.toggleAtcBasePos() }
                                 }
                                 AtcPosFields { visible: suiteBackend.atcBaseEditing; fields: suiteBackend.atcBasePos; slotKey: "revolver" }
                             }
                         }
 
-                        Text { text: suiteBackend.uiText("LBL_TOOL_ASSIGNMENTS"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_TOOL_ASSIGNMENTS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                         Repeater {
                             model: suiteBackend.atcSlotsData
                             delegate: Card {
@@ -5158,7 +5163,7 @@ ApplicationWindow {
                                     anchors.margins: 8
                                     spacing: 4
                                     RowLayout {
-                                        Text { text: modelData.slot + 1; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 20 }
+                                        Text { text: modelData.slot + 1; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 20 }
                                         ComboBox {
                                             Layout.fillWidth: true
                                             model: suiteBackend.atcToolOptions
@@ -5223,8 +5228,8 @@ ApplicationWindow {
                 spacing: 6
 
                 RowLayout {
-                    Text { text: suiteBackend.uiText("LBL_CAM") + " " + camCard.modelData.id; color: window.textPrimary; font.bold: true; font.pixelSize: 12; Layout.fillWidth: true }
-                    Text { text: camCard.frameInfo.statusText; color: camCard.frameInfo.statusColor; font.pixelSize: 9; font.bold: true }
+                    Text { text: suiteBackend.uiText("LBL_CAM") + " " + camCard.modelData.id; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12); Layout.fillWidth: true }
+                    Text { text: camCard.frameInfo.statusText; color: camCard.frameInfo.statusColor; font.pixelSize: window.fs(9); font.bold: true }
                 }
 
                 Item {
@@ -5250,7 +5255,7 @@ ApplicationWindow {
                             text: camCard.frameInfo.placeholderText
                             color: camCard.frameInfo.placeholderColor
                             font.bold: true
-                            font.pixelSize: 11
+                            font.pixelSize: window.fs(11)
                         }
                     }
                 }
@@ -5287,7 +5292,7 @@ ApplicationWindow {
                     visible: ptzToggleBtn.checked && camCard.modelData.ptzError.length > 0
                     text: camCard.modelData.ptzError
                     color: "#ef4444"
-                    font.pixelSize: 8
+                    font.pixelSize: window.fs(8)
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -5300,7 +5305,7 @@ ApplicationWindow {
                 }
 
                 RowLayout {
-                    Text { text: suiteBackend.uiText("LBL_ASSIGNED_ROBOT"); color: window.muted; font.pixelSize: 9 }
+                    Text { text: suiteBackend.uiText("LBL_ASSIGNED_ROBOT"); color: window.muted; font.pixelSize: window.fs(9) }
                     ComboBox {
                         Layout.fillWidth: true
                         model: suiteBackend.cameraRobotOptions
@@ -5321,7 +5326,7 @@ ApplicationWindow {
                     visible: !camCard.modelData.isIp
                     Layout.fillWidth: true
                     spacing: 3
-                    Text { text: suiteBackend.uiText("LBL_HARDWARE_SOURCE"); color: window.muted; font.pixelSize: 9 }
+                    Text { text: suiteBackend.uiText("LBL_HARDWARE_SOURCE"); color: window.muted; font.pixelSize: window.fs(9) }
                     TextField {
                         Layout.fillWidth: true
                         text: camCard.modelData.hardwareSource
@@ -5347,7 +5352,7 @@ ApplicationWindow {
                     visible: camCard.modelData.isIp
                     Layout.fillWidth: true
                     spacing: 3
-                    Text { text: suiteBackend.uiText("LBL_IP_HOST"); color: window.muted; font.pixelSize: 9 }
+                    Text { text: suiteBackend.uiText("LBL_IP_HOST"); color: window.muted; font.pixelSize: window.fs(9) }
                     TextField {
                         id: ipHostField
                         Layout.fillWidth: true
@@ -5357,7 +5362,7 @@ ApplicationWindow {
                     }
                     RowLayout {
                         ColumnLayout {
-                            Text { text: suiteBackend.uiText("LBL_RTSP_PORT"); color: window.muted; font.pixelSize: 9 }
+                            Text { text: suiteBackend.uiText("LBL_RTSP_PORT"); color: window.muted; font.pixelSize: window.fs(9) }
                             SpinBox {
                                 id: rtspPortSpin
                                 from: 1; to: 65535
@@ -5369,7 +5374,7 @@ ApplicationWindow {
                         }
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("LBL_RTSP_PATH"); color: window.muted; font.pixelSize: 9 }
+                            Text { text: suiteBackend.uiText("LBL_RTSP_PATH"); color: window.muted; font.pixelSize: window.fs(9) }
                             TextField {
                                 Layout.fillWidth: true
                                 text: camCard.modelData.rtspPath
@@ -5388,7 +5393,7 @@ ApplicationWindow {
                         delegate: ColumnLayout {
                             required property var modelData
                             Layout.fillWidth: true
-                            Text { text: modelData.label; color: window.muted; font.pixelSize: 9 }
+                            Text { text: modelData.label; color: window.muted; font.pixelSize: window.fs(9) }
                             TextField {
                                 Layout.fillWidth: true
                                 text: modelData.value
@@ -5399,7 +5404,7 @@ ApplicationWindow {
                     RowLayout {
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("LBL_IP_USERNAME"); color: window.muted; font.pixelSize: 9 }
+                            Text { text: suiteBackend.uiText("LBL_IP_USERNAME"); color: window.muted; font.pixelSize: window.fs(9) }
                             TextField {
                                 id: ipUserField
                                 Layout.fillWidth: true
@@ -5410,7 +5415,7 @@ ApplicationWindow {
                         }
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("LBL_IP_PASSWORD"); color: window.muted; font.pixelSize: 9 }
+                            Text { text: suiteBackend.uiText("LBL_IP_PASSWORD"); color: window.muted; font.pixelSize: window.fs(9) }
                             TextField {
                                 id: ipPassField
                                 Layout.fillWidth: true
@@ -5426,7 +5431,7 @@ ApplicationWindow {
                     visible: camCard.modelData.discoveryStatusText.length > 0
                     text: camCard.modelData.discoveryStatusText
                     color: camCard.modelData.discoveryStatusColor
-                    font.pixelSize: 9
+                    font.pixelSize: window.fs(9)
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -5456,7 +5461,7 @@ ApplicationWindow {
                     visible: suiteBackend.cameraCaptureError.length > 0
                     text: suiteBackend.cameraCaptureError
                     color: "#ef4444"
-                    font.pixelSize: 8
+                    font.pixelSize: window.fs(8)
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -5470,7 +5475,7 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 10
-            Text { text: suiteBackend.uiText("TAB_CAMERAS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("TAB_CAMERAS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             Flickable {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -5505,7 +5510,7 @@ ApplicationWindow {
             Component.onCompleted: suiteBackend.loadCameraMedia()
 
             RowLayout {
-                Text { text: suiteBackend.uiText("CAMERA_MEDIA_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("CAMERA_MEDIA_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16); Layout.fillWidth: true }
                 Button { text: suiteBackend.uiText("CAMERA_MEDIA_REFRESH"); onClicked: suiteBackend.loadCameraMedia() }
             }
 
@@ -5562,7 +5567,7 @@ ApplicationWindow {
                                         anchors.margins: 6
                                         text: modelData.label
                                         color: window.textPrimary
-                                        font.pixelSize: 10
+                                        font.pixelSize: window.fs(10)
                                         wrapMode: Text.WrapAnywhere
                                     }
                                     MouseArea {
@@ -5605,7 +5610,7 @@ ApplicationWindow {
                                     anchors.centerIn: parent
                                     text: suiteBackend.uiText("CAMERA_MEDIA_SELECT_HINT")
                                     color: window.muted
-                                    font.pixelSize: 11
+                                    font.pixelSize: window.fs(11)
                                 }
                             }
                         }
@@ -5631,7 +5636,7 @@ ApplicationWindow {
                             Text {
                                 text: (suiteBackend.cameraMediaFrameIndex + 1) + " / " + suiteBackend.cameraMediaFrameCount
                                 color: window.muted
-                                font.pixelSize: 9
+                                font.pixelSize: window.fs(9)
                             }
                         }
 
@@ -5653,7 +5658,7 @@ ApplicationWindow {
                             visible: suiteBackend.cameraMediaError.length > 0
                             text: suiteBackend.cameraMediaError
                             color: "#ef4444"
-                            font.pixelSize: 9
+                            font.pixelSize: window.fs(9)
                             wrapMode: Text.WordWrap
                             Layout.fillWidth: true
                         }
@@ -5710,7 +5715,7 @@ ApplicationWindow {
                 width: flasherFlick.width
                 spacing: 10
 
-                Text { text: suiteBackend.uiText("HEADING_FLASHER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_FLASHER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Text { text: suiteBackend.uiText("LBL_HARDWARE_TARGET_UNREACHABLE"); color: window.amber; visible: suiteBackend.flasherUnreachable; Layout.fillWidth: true; wrapMode: Text.WordWrap }
 
                 Card {
@@ -5722,7 +5727,7 @@ ApplicationWindow {
                         anchors.margins: 10
                         spacing: 6
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_BOARD"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_BOARD"); color: window.muted; font.pixelSize: window.fs(10) }
                             ComboBox {
                                 id: flasherTierCombo
                                 Layout.fillWidth: true
@@ -5742,7 +5747,7 @@ ApplicationWindow {
                         }
                         RowLayout {
                             visible: suiteBackend.flasherNeedsRobotSlot
-                            Text { text: suiteBackend.uiText("LBL_ROBOT_SLOT"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_ROBOT_SLOT"); color: window.muted; font.pixelSize: window.fs(10) }
                             ComboBox {
                                 id: flasherRobotCombo
                                 Layout.fillWidth: true
@@ -5760,9 +5765,9 @@ ApplicationWindow {
                                 onActivated: suiteBackend.selectFlasherRobot(currentValue)
                             }
                         }
-                        Text { text: suiteBackend.flasherHopDescription; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.flasherHopDescription; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         RowLayout {
-                            Text { text: suiteBackend.flasherVersionLabel; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true }
+                            Text { text: suiteBackend.flasherVersionLabel; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                             Button {
                                 text: suiteBackend.flasherQueryBusy ? "..." : suiteBackend.uiText("BTN_QUERY_VERSION")
                                 enabled: !suiteBackend.flasherQueryBusy
@@ -5780,7 +5785,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_FIRMWARE_FILE"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_FIRMWARE_FILE"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                         RowLayout {
                             Button { text: suiteBackend.uiText("BTN_BROWSE_BIN"); Layout.fillWidth: true; onClicked: flasherBrowseDialog.open() }
                             Button {
@@ -5791,7 +5796,7 @@ ApplicationWindow {
                                 onClicked: suiteBackend.fetchFlasherGithub()
                             }
                         }
-                        Text { text: suiteBackend.flasherFileInfo; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { text: suiteBackend.flasherFileInfo; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                         ColumnLayout {
                             visible: suiteBackend.flasherGithubAssets.length > 0
                             Layout.fillWidth: true
@@ -5804,7 +5809,7 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     text: modelData.label
                                     color: window.textPrimary
-                                    font.pixelSize: 9
+                                    font.pixelSize: window.fs(9)
                                     MouseArea { anchors.fill: parent; onClicked: suiteBackend.useFlasherGithubAsset(modelData.index) }
                                 }
                             }
@@ -5848,10 +5853,10 @@ ApplicationWindow {
                     enabled: suiteBackend.flasherCanFlash
                     onClicked: window.requestConfirm(suiteBackend.uiText("BTN_FLASH_NOW"), suiteBackend.flasherConfirmMessage, function() { suiteBackend.startFlasherFlash() })
                 }
-                Text { text: suiteBackend.flasherProgressLabel; color: window.muted; font.pixelSize: 10; visible: text.length > 0 }
+                Text { text: suiteBackend.flasherProgressLabel; color: window.muted; font.pixelSize: window.fs(10); visible: text.length > 0 }
                 ProgressBar { Layout.fillWidth: true; from: 0; to: 100; value: suiteBackend.flasherProgressPercent }
 
-                Text { text: suiteBackend.uiText("LBL_LOG_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("LBL_LOG_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                 Card {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 160
@@ -5875,7 +5880,7 @@ ApplicationWindow {
                                     text: modelData.text
                                     color: modelData.level === "error" ? "#fb7185" : (modelData.level === "ok" ? "#34d399" : "#94a3b8")
                                     font.family: "Cascadia Mono"
-                                    font.pixelSize: 9
+                                    font.pixelSize: window.fs(9)
                                     wrapMode: Text.WrapAnywhere
                                 }
                             }
@@ -5915,7 +5920,7 @@ ApplicationWindow {
                 width: testerFlick.width
                 spacing: 10
 
-                Text { text: suiteBackend.uiText("HEADING_TESTER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_TESTER"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Text { text: suiteBackend.uiText("LBL_TESTER_SIMULATED_NOTE"); color: window.amber; visible: suiteBackend.testerSimulatedNoteVisible; Layout.fillWidth: true; wrapMode: Text.WordWrap }
 
                 Card {
@@ -5927,7 +5932,7 @@ ApplicationWindow {
                         anchors.margins: 10
                         spacing: 6
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_BOARD"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_BOARD"); color: window.muted; font.pixelSize: window.fs(10) }
                             ComboBox {
                                 id: testerTierCombo
                                 Layout.fillWidth: true
@@ -5947,7 +5952,7 @@ ApplicationWindow {
                         }
                         RowLayout {
                             visible: suiteBackend.testerNeedsRobotSlot
-                            Text { text: suiteBackend.uiText("LBL_ROBOT_SLOT"); color: window.muted; font.pixelSize: 10 }
+                            Text { text: suiteBackend.uiText("LBL_ROBOT_SLOT"); color: window.muted; font.pixelSize: window.fs(10) }
                             ComboBox {
                                 id: testerRobotCombo
                                 Layout.fillWidth: true
@@ -5965,9 +5970,9 @@ ApplicationWindow {
                                 onActivated: suiteBackend.selectTesterRobot(currentValue)
                             }
                         }
-                        Text { text: suiteBackend.testerHopDescription; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.testerHopDescription; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         RowLayout {
-                            Text { text: suiteBackend.testerVersionLabel; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true }
+                            Text { text: suiteBackend.testerVersionLabel; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                             Button { text: suiteBackend.uiText("BTN_QUERY_VERSION"); enabled: suiteBackend.testerQueryEnabled; onClicked: suiteBackend.testerQueryVersion() }
                         }
                     }
@@ -5982,9 +5987,9 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_GLOBAL_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("LBL_GLOBAL_CONTROLS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_STATUS_LED"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                            Text { text: suiteBackend.uiText("LBL_STATUS_LED"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 100 }
                             Rectangle {
                                 width: 60; height: 26; radius: 4
                                 color: suiteBackend.testerStatusColor
@@ -5993,11 +5998,11 @@ ApplicationWindow {
                             }
                         }
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_RING_LED"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                            Text { text: suiteBackend.uiText("LBL_RING_LED"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 100 }
                             Button { text: suiteBackend.testerRingOn ? suiteBackend.uiText("LBL_ON") : suiteBackend.uiText("LBL_OFF"); onClicked: suiteBackend.toggleTesterRing() }
                         }
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_OLED_MODE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 100 }
+                            Text { text: suiteBackend.uiText("LBL_OLED_MODE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 100 }
                             ComboBox {
                                 Layout.preferredWidth: 140
                                 model: [suiteBackend.uiText("LBL_OLED_STANDARD"), suiteBackend.uiText("LBL_OLED_NIGHT"), suiteBackend.uiText("LBL_OLED_OFF")]
@@ -6006,7 +6011,7 @@ ApplicationWindow {
                                 onActivated: suiteBackend.setTesterOledMode(modes[currentIndex])
                             }
                         }
-                        Text { text: suiteBackend.testerExpansionLabel; color: window.muted; font.pixelSize: 9; visible: text.length > 0 }
+                        Text { text: suiteBackend.testerExpansionLabel; color: window.muted; font.pixelSize: window.fs(9); visible: text.length > 0 }
                     }
                 }
 
@@ -6019,8 +6024,8 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 6
-                        Text { text: suiteBackend.uiText("LBL_FRAM"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.testerFramStateLabel; color: window.textPrimary; font.pixelSize: 10 }
+                        Text { text: suiteBackend.uiText("LBL_FRAM"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.testerFramStateLabel; color: window.textPrimary; font.pixelSize: window.fs(10) }
                         RowLayout {
                             Button { text: suiteBackend.uiText("BTN_FRAM_QUERY"); onClicked: suiteBackend.testerFramQuery() }
                             Button { text: suiteBackend.uiText("BTN_FRAM_ERASE"); onClicked: suiteBackend.testerFramErase() }
@@ -6037,12 +6042,12 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 4
-                        Text { text: suiteBackend.testerTelemetryTitle; color: window.cyan; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.testerTelemetryLabel; color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.testerTelemetryTitle; color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.testerTelemetryLabel; color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                 }
 
-                Text { text: suiteBackend.uiText("LBL_SELF_TEST"); color: window.cyan; font.bold: true; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("LBL_SELF_TEST"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11) }
                 RowLayout {
                     // Explicit, not left implicit - see the ecosystem
                     // services card's own comment above for why a wrapped
@@ -6052,7 +6057,7 @@ ApplicationWindow {
                     // wrap at this row's own width, and was spilling down
                     // over the button next to it.
                     Layout.preferredHeight: Math.max(selfTestNoteText.implicitHeight, selfTestButton.implicitHeight)
-                    Text { id: selfTestNoteText; text: suiteBackend.uiText("LBL_SELF_TEST_NOTE"); color: window.muted; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { id: selfTestNoteText; text: suiteBackend.uiText("LBL_SELF_TEST_NOTE"); color: window.muted; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     Button {
                         id: selfTestButton
                         text: suiteBackend.testerTesting ? "..." : suiteBackend.uiText("BTN_RUN_SELF_TEST")
@@ -6069,14 +6074,14 @@ ApplicationWindow {
                             required property var modelData
                             text: (modelData.passed ? "✅ " : "❌ ") + modelData.label
                             color: modelData.passed ? "#34d399" : "#fb7185"
-                            font.pixelSize: 10
+                            font.pixelSize: window.fs(10)
                         }
                     }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { text: suiteBackend.uiText("LBL_BUS_MONITOR"); color: window.cyan; font.bold: true; font.pixelSize: 11; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("LBL_BUS_MONITOR"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(11); Layout.fillWidth: true }
                     Button {
                         text: suiteBackend.testerMonitorRunning ? suiteBackend.uiText("BTN_MONITOR_STOP") : suiteBackend.uiText("BTN_MONITOR_START")
                         enabled: suiteBackend.testerQueryEnabled || suiteBackend.testerMonitorRunning
@@ -6091,10 +6096,10 @@ ApplicationWindow {
                         anchors.margins: 8
                         spacing: 4
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_COL_TIME"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 80 }
-                            Text { text: suiteBackend.uiText("LBL_COL_ID"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
-                            Text { text: "DLC"; color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 40 }
-                            Text { text: suiteBackend.uiText("LBL_COL_DATA"); color: window.muted; font.pixelSize: 9; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("LBL_COL_TIME"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
+                            Text { text: suiteBackend.uiText("LBL_COL_ID"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
+                            Text { text: "DLC"; color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 40 }
+                            Text { text: suiteBackend.uiText("LBL_COL_DATA"); color: window.muted; font.pixelSize: window.fs(9); Layout.fillWidth: true }
                         }
                         Flickable {
                             Layout.fillWidth: true
@@ -6110,10 +6115,10 @@ ApplicationWindow {
                                     model: suiteBackend.testerFrames
                                     delegate: RowLayout {
                                         required property var modelData
-                                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 80 }
-                                        Text { text: modelData.id; color: "#38bdf8"; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 70 }
-                                        Text { text: modelData.dlc; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 40 }
-                                        Text { text: modelData.data; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.fillWidth: true }
+                                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
+                                        Text { text: modelData.id; color: "#38bdf8"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
+                                        Text { text: modelData.dlc; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 40 }
+                                        Text { text: modelData.data; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.fillWidth: true }
                                     }
                                 }
                             }
@@ -6144,7 +6149,7 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 8
-            Text { text: suiteBackend.uiText("HEADING_VIEWPORT"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_VIEWPORT"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
 
             Item {
                 id: viewportArea
@@ -6217,7 +6222,7 @@ ApplicationWindow {
                 onHeightChanged: if (viewportImage.visible) suiteBackend.viewportResize(width, height)
             }
 
-            Text { text: suiteBackend.uiText("HINT_CONTROLS"); color: "#4a5563"; font.pixelSize: 10 }
+            Text { text: suiteBackend.uiText("HINT_CONTROLS"); color: "#4a5563"; font.pixelSize: window.fs(10) }
         }
     }
 
@@ -6287,9 +6292,9 @@ ApplicationWindow {
             anchors.fill: parent
             anchors.margins: 10
             spacing: 1
-            Text { text: tile.label; color: window.muted; font.pixelSize: 9; font.bold: true }
-            Text { text: tile.value; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 18; font.bold: true }
-            Text { text: tile.sub; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9 }
+            Text { text: tile.label; color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
+            Text { text: tile.value; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(18); font.bold: true }
+            Text { text: tile.sub; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
         }
     }
 
@@ -6299,7 +6304,7 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 10
-            Text { text: suiteBackend.uiText("DOCK_ROBOTS_CATALOG"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("DOCK_ROBOTS_CATALOG"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -6382,8 +6387,8 @@ ApplicationWindow {
                                     checked: modelData.enabled
                                     onToggled: suiteBackend.setCatalogModelEnabled(modelData.model, checked)
                                 }
-                                Text { text: modelData.model; color: window.textPrimary; font.pixelSize: 11; font.bold: modelData.selected; Layout.fillWidth: true; elide: Text.ElideRight }
-                                Text { text: modelData.manufacturer; color: window.muted; font.pixelSize: 10 }
+                                Text { text: modelData.model; color: window.textPrimary; font.pixelSize: window.fs(11); font.bold: modelData.selected; Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData.manufacturer; color: window.muted; font.pixelSize: window.fs(10) }
                             }
                             MouseArea {
                                 anchors.fill: parent
@@ -6415,11 +6420,11 @@ ApplicationWindow {
             ColumnLayout {
                 width: parent.width
                 spacing: 10
-                Text { text: suiteBackend.uiText("PLANNING_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
-                Text { text: suiteBackend.uiText("PLANNING_INTRO"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_TITLE"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
+                Text { text: suiteBackend.uiText("PLANNING_INTRO"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
-                Text { text: suiteBackend.uiText("PLANNING_SIM_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
-                Text { text: suiteBackend.uiText("PLANNING_SIM_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_SIM_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                Text { text: suiteBackend.uiText("PLANNING_SIM_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 TextArea {
                     id: planText
                     objectName: "planningPlanText"
@@ -6430,77 +6435,77 @@ ApplicationWindow {
                 }
                 Button { objectName: "planningSimulate"; text: suiteBackend.uiText("PLANNING_SIM_RUN"); enabled: suiteBackend.planningView.busy !== "sim" && suiteBackend.planningView.busy !== "traj"; onClicked: suiteBackend.simulatePlan(planText.text) }
                 Button { objectName: "planningTrajectory"; text: suiteBackend.uiText("PLANNING_TRAJ_RUN"); enabled: suiteBackend.planningView.busy !== "sim" && suiteBackend.planningView.busy !== "traj"; onClicked: suiteBackend.checkPlanTrajectory(planText.text) }
-                Text { text: suiteBackend.uiText("PLANNING_TRAJ_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { objectName: "planningSimError"; visible: suiteBackend.planningView.simulationError !== ""; text: suiteBackend.planningView.simulationError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_TRAJ_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningSimError"; visible: suiteBackend.planningView.simulationError !== ""; text: suiteBackend.planningView.simulationError; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 ColumnLayout {
                     visible: suiteBackend.planningView.simulation !== null && suiteBackend.planningView.simulation !== undefined
                     Layout.fillWidth: true
-                    Text { objectName: "planningSimVerdict"; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.verdictText : ""; color: suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.accepted ? window.green : (suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.unchecked ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                    Text { objectName: "planningSimNotShownTitle"; visible: !!suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.notShownTitle !== ""; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notShownTitle : ""; color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                    Text { objectName: "planningSimVerdict"; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.verdictText : ""; color: suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.accepted ? window.green : (suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.unchecked ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: window.fs(12); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { objectName: "planningSimNotShownTitle"; visible: !!suiteBackend.planningView.simulation && suiteBackend.planningView.simulation.notShownTitle !== ""; text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notShownTitle : ""; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                     Repeater {
                         model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notShown : []
-                        delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
-                    Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notExecuted : ""; color: "#556070"; font.pixelSize: 9 }
+                    Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.notExecuted : ""; color: "#556070"; font.pixelSize: window.fs(9) }
                     Repeater {
                         model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.violations : []
-                        delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     Repeater {
                         model: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.timeline : []
-                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 10 }
+                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10) }
                     }
-                    Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.makespan : ""; color: "#556070"; font.pixelSize: 10 }
+                    Text { text: suiteBackend.planningView.simulation ? suiteBackend.planningView.simulation.makespan : ""; color: "#556070"; font.pixelSize: window.fs(10) }
                 }
 
-                Text { text: suiteBackend.uiText("PLANNING_ETA_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
-                Text { text: suiteBackend.uiText("PLANNING_ETA_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_ETA_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                Text { text: suiteBackend.uiText("PLANNING_ETA_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Button { objectName: "planningEtaLoad"; text: suiteBackend.uiText("PLANNING_ETA_LOAD"); enabled: suiteBackend.planningView.busy !== "eta"; onClicked: suiteBackend.loadPlanningEta() }
-                Text { objectName: "planningEtaError"; visible: suiteBackend.planningView.etaError !== ""; text: suiteBackend.planningView.etaError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningEtaError"; visible: suiteBackend.planningView.etaError !== ""; text: suiteBackend.planningView.etaError; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 ColumnLayout {
                     visible: suiteBackend.planningView.eta !== null && suiteBackend.planningView.eta !== undefined
                     Layout.fillWidth: true
-                    Text { text: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.drain : ""; color: window.textPrimary; font.pixelSize: 11 }
-                    Text { text: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.empty : ""; color: "#556070"; font.pixelSize: 11 }
+                    Text { text: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.drain : ""; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                    Text { text: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.empty : ""; color: "#556070"; font.pixelSize: window.fs(11) }
                     Repeater {
                         model: suiteBackend.planningView.eta ? suiteBackend.planningView.eta.rows : []
-                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 10 }
+                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10) }
                     }
                 }
 
-                Text { text: suiteBackend.uiText("PLANNING_RUL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
-                Text { text: suiteBackend.uiText("PLANNING_RUL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { text: suiteBackend.uiText("PLANNING_RUL_POINTS"); color: window.textPrimary; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_POINTS"); color: window.textPrimary; font.pixelSize: window.fs(10) }
                 TextArea { id: rulPoints; objectName: "planningRulPoints"; Layout.fillWidth: true; Layout.preferredHeight: 90; font.family: "monospace" }
-                Text { text: suiteBackend.uiText("PLANNING_RUL_LIMIT"); color: window.textPrimary; font.pixelSize: 10 }
+                Text { text: suiteBackend.uiText("PLANNING_RUL_LIMIT"); color: window.textPrimary; font.pixelSize: window.fs(10) }
                 TextField { id: rulLimit; objectName: "planningRulLimit"; Layout.preferredWidth: 120 }
                 Button { objectName: "planningRulRun"; text: suiteBackend.uiText("PLANNING_RUL_RUN"); enabled: suiteBackend.planningView.busy !== "rul"; onClicked: suiteBackend.estimateRul(rulPoints.text, rulLimit.text) }
-                Text { objectName: "planningRulError"; visible: suiteBackend.planningView.rulError !== ""; text: suiteBackend.planningView.rulError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { objectName: "planningRulResult"; visible: suiteBackend.planningView.rul !== ""; text: suiteBackend.planningView.rul; color: window.textPrimary; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningRulError"; visible: suiteBackend.planningView.rulError !== ""; text: suiteBackend.planningView.rulError; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningRulResult"; visible: suiteBackend.planningView.rul !== ""; text: suiteBackend.planningView.rul; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
 
-                Text { text: suiteBackend.uiText("PLANNING_TRAIN_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
-                Text { text: suiteBackend.uiText("PLANNING_TRAIN_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("PLANNING_TRAIN_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                Text { text: suiteBackend.uiText("PLANNING_TRAIN_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Button { objectName: "planningTrainLoad"; text: suiteBackend.uiText("PLANNING_TRAIN_LOAD"); onClicked: trainPlanDialog.open() }
-                Text { objectName: "planningTrainError"; visible: suiteBackend.planningView.trainError !== ""; text: suiteBackend.planningView.trainError; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningTrainError"; visible: suiteBackend.planningView.trainError !== ""; text: suiteBackend.planningView.trainError; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 ColumnLayout {
                     visible: suiteBackend.planningView.train !== null && suiteBackend.planningView.train !== undefined
                     Layout.fillWidth: true
-                    Text { text: suiteBackend.planningView.train ? suiteBackend.planningView.train.name : ""; color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
-                    Text { text: suiteBackend.planningView.train ? suiteBackend.planningView.train.okText : ""; color: window.green; font.pixelSize: 11 }
+                    Text { text: suiteBackend.planningView.train ? suiteBackend.planningView.train.name : ""; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                    Text { text: suiteBackend.planningView.train ? suiteBackend.planningView.train.okText : ""; color: window.green; font.pixelSize: window.fs(11) }
                     Repeater {
                         model: suiteBackend.planningView.train ? suiteBackend.planningView.train.problems : []
-                        delegate: Text { required property var modelData; text: modelData; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        delegate: Text { required property var modelData; text: modelData; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     Repeater {
                         model: suiteBackend.planningView.train ? suiteBackend.planningView.train.rows : []
-                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: 10 }
+                        delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10) }
                     }
                 }
 
-                Text { text: suiteBackend.uiText("PLANNING_DL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 12 }
-                Text { text: suiteBackend.uiText("PLANNING_DL_HELP"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { objectName: "planningWindows"; text: suiteBackend.planningView.windows; color: window.textPrimary; font.pixelSize: 11 }
-                Text { text: suiteBackend.uiText("PLANNING_DL_DOWNSAMPLING"); color: "#556070"; font.pixelSize: 9 }
+                Text { text: suiteBackend.uiText("PLANNING_DL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                Text { text: suiteBackend.uiText("PLANNING_DL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "planningWindows"; text: suiteBackend.planningView.windows; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.uiText("PLANNING_DL_DOWNSAMPLING"); color: "#556070"; font.pixelSize: window.fs(9) }
             }
         }
     }
@@ -6516,7 +6521,7 @@ ApplicationWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 10
-                Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_MAP"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_MAP"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 CheckBox {
                     objectName: "ecoMapEvidenceToggle"
@@ -6526,8 +6531,8 @@ ApplicationWindow {
                 }
                 Button { objectName: "ecoMapRefresh"; text: suiteBackend.uiText("ECOMAP_REFRESH"); onClicked: suiteBackend.refreshMap() }
             }
-            Text { text: suiteBackend.uiText("ECOMAP_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Text { visible: mapRoot.view.showEvidence === true; text: suiteBackend.uiText("ECOMAP_EVIDENCE_HINT"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { text: suiteBackend.uiText("ECOMAP_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: mapRoot.view.showEvidence === true; text: suiteBackend.uiText("ECOMAP_EVIDENCE_HINT"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
@@ -6556,8 +6561,8 @@ ApplicationWindow {
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
             }
-            Text { objectName: "ecoMapEmpty"; visible: mapRoot.view.empty !== ""; text: mapRoot.view.empty; color: "#556070"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Text { visible: mapRoot.view.scanned !== ""; text: mapRoot.view.scanned; color: "#556070"; font.pixelSize: 9 }
+            Text { objectName: "ecoMapEmpty"; visible: mapRoot.view.empty !== ""; text: mapRoot.view.empty; color: "#556070"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: mapRoot.view.scanned !== ""; text: mapRoot.view.scanned; color: "#556070"; font.pixelSize: window.fs(9) }
             ListView {
                 objectName: "ecoMapFamilies"
                 Layout.fillWidth: true
@@ -6569,7 +6574,7 @@ ApplicationWindow {
                     required property var modelData
                     width: ListView.view.width
                     spacing: 4
-                    Text { text: modelData.family + " - " + modelData.count; color: "#7f8ea1"; font.bold: true; font.pixelSize: 10 }
+                    Text { text: modelData.family + " - " + modelData.count; color: "#7f8ea1"; font.bold: true; font.pixelSize: window.fs(10) }
                     Flow {
                         Layout.fillWidth: true
                         spacing: 6
@@ -6589,15 +6594,15 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         spacing: 6
                                         Rectangle { width: 9; height: 9; radius: 5; color: modelData.colour }
-                                        Text { text: modelData.short; color: window.textPrimary; font.bold: true; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                        Text { text: modelData.short; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); elide: Text.ElideRight; Layout.fillWidth: true }
                                     }
-                                    Text { text: modelData.details; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                                    Text { text: modelData.details; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
                                     RowLayout {
                                         Layout.fillWidth: true
-                                        Text { text: modelData.stateLabel; color: modelData.colour; font.bold: true; font.pixelSize: 9 }
-                                        Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: 9 }
+                                        Text { text: modelData.stateLabel; color: modelData.colour; font.bold: true; font.pixelSize: window.fs(9) }
+                                        Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: window.fs(9) }
                                     }
-                                    Text { visible: modelData.evidence !== ""; text: modelData.evidence; color: modelData.evidenceColour; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                                    Text { visible: modelData.evidence !== ""; text: modelData.evidence; color: modelData.evidenceColour; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
                                 }
                             }
                         }
@@ -6632,12 +6637,12 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 10
-                    Text { objectName: "setupTitle"; text: setupRoot.view.title || ""; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { objectName: "setupTitle"; text: setupRoot.view.title || ""; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     BusyIndicator { running: suiteBackend.setupBusy; visible: suiteBackend.setupBusy; implicitWidth: 22; implicitHeight: 22 }
                 }
-                Text { visible: (setupRoot.view.intro || "") !== ""; text: setupRoot.view.intro || ""; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { objectName: "setupError"; visible: (setupRoot.view.error || "") !== ""; text: setupRoot.view.error || ""; color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { objectName: "setupNotice"; visible: (setupRoot.view.notice || "") !== ""; text: setupRoot.view.notice || ""; color: setupRoot.view.noticeOk === true ? "#4fd08a" : window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: (setupRoot.view.intro || "") !== ""; text: setupRoot.view.intro || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "setupError"; visible: (setupRoot.view.error || "") !== ""; text: setupRoot.view.error || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "setupNotice"; visible: (setupRoot.view.notice || "") !== ""; text: setupRoot.view.notice || ""; color: setupRoot.view.noticeOk === true ? "#4fd08a" : window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Flow {
                     Layout.fillWidth: true
                     spacing: 6
@@ -6663,17 +6668,42 @@ ApplicationWindow {
                     onTextEdited: suiteBackend.setupSearch(text)
                 }
                 Repeater {
+                    model: setupRoot.view.groups || []
+                    delegate: ColumnLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: (modelData.hint || "") !== ""; text: modelData.hint || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Repeater {
+                                model: modelData.parts
+                                delegate: Button {
+                                    required property var modelData
+                                    objectName: "setupChoice_" + modelData.id
+                                    text: modelData.label
+                                    checkable: true
+                                    checked: modelData.selected
+                                    onClicked: suiteBackend.setupPart(modelData.id)
+                                }
+                            }
+                        }
+                    }
+                }
+                Repeater {
                     model: setupRoot.view.facts || []
                     delegate: RowLayout {
                         required property var modelData
                         Layout.fillWidth: true
                         spacing: 8
-                        Text { text: modelData.label + ":"; color: window.muted; font.pixelSize: 11 }
-                        Text { objectName: "setupFact"; text: modelData.value; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 11; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { text: modelData.label + ":"; color: window.muted; font.pixelSize: window.fs(11) }
+                        Text { objectName: "setupFact"; text: modelData.value; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(11); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                     }
                 }
-                Text { visible: (setupRoot.view.section || "") !== ""; text: setupRoot.view.section || ""; color: window.textPrimary; font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: (setupRoot.view.summary || "") !== ""; text: setupRoot.view.summary || ""; color: "#7f8ea1"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: (setupRoot.view.section || "") !== ""; text: setupRoot.view.section || ""; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: (setupRoot.view.summary || "") !== ""; text: setupRoot.view.summary || ""; color: "#7f8ea1"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Canvas {
                     id: setupQrCanvas
                     objectName: "setupQrCanvas"
@@ -6708,8 +6738,8 @@ ApplicationWindow {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 1
-                            Text { text: modelData.label; color: window.textPrimary; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                            Text { visible: (modelData.hint || "") !== ""; text: modelData.hint || ""; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { text: modelData.label; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { visible: (modelData.hint || "") !== ""; text: modelData.hint || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         }
                     }
                 }
@@ -6719,7 +6749,7 @@ ApplicationWindow {
                     spacing: 8
                     Repeater {
                         model: setupRoot.view.headers || []
-                        delegate: Text { required property var modelData; text: modelData; color: "#7f8ea1"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; elide: Text.ElideRight }
+                        delegate: Text { required property var modelData; text: modelData; color: "#7f8ea1"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true; Layout.preferredWidth: 1; elide: Text.ElideRight }
                     }
                 }
                 Repeater {
@@ -6731,18 +6761,18 @@ ApplicationWindow {
                         spacing: 8
                         Repeater {
                             model: modelData
-                            delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; wrapMode: Text.WrapAnywhere }
+                            delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.fillWidth: true; Layout.preferredWidth: 1; wrapMode: Text.WrapAnywhere }
                         }
                     }
                 }
-                Text { visible: (setupRoot.view.extraTitle || "") !== ""; text: setupRoot.view.extraTitle || ""; color: window.textPrimary; font.bold: true; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true; Layout.topMargin: 6 }
+                Text { visible: (setupRoot.view.extraTitle || "") !== ""; text: setupRoot.view.extraTitle || ""; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12); wrapMode: Text.WordWrap; Layout.fillWidth: true; Layout.topMargin: 6 }
                 RowLayout {
                     visible: (setupRoot.view.extraHeaders || []).length > 0
                     Layout.fillWidth: true
                     spacing: 8
                     Repeater {
                         model: setupRoot.view.extraHeaders || []
-                        delegate: Text { required property var modelData; text: modelData; color: "#7f8ea1"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; elide: Text.ElideRight }
+                        delegate: Text { required property var modelData; text: modelData; color: "#7f8ea1"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true; Layout.preferredWidth: 1; elide: Text.ElideRight }
                     }
                 }
                 Repeater {
@@ -6754,7 +6784,7 @@ ApplicationWindow {
                         spacing: 8
                         Repeater {
                             model: modelData
-                            delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; Layout.preferredWidth: 1; wrapMode: Text.WordWrap }
+                            delegate: Text { required property var modelData; text: modelData; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.fillWidth: true; Layout.preferredWidth: 1; wrapMode: Text.WordWrap }
                         }
                     }
                 }
@@ -6791,7 +6821,7 @@ ApplicationWindow {
                         }
                     }
                 }
-                Text { objectName: "setupNote"; visible: (setupRoot.view.note || "") !== ""; text: setupRoot.view.note || ""; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true; Layout.topMargin: 4 }
+                Text { objectName: "setupNote"; visible: (setupRoot.view.note || "") !== ""; text: setupRoot.view.note || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true; Layout.topMargin: 4 }
             }
         }
     }
@@ -6804,14 +6834,14 @@ ApplicationWindow {
             spacing: 8
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_HEALTH"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_HEALTH"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
                 Button { objectName: "ecoHealthRefresh"; text: suiteBackend.uiText("ECOHEALTH_REFRESH"); onClicked: suiteBackend.refreshEcoHealth() }
             }
-            Text { text: suiteBackend.uiText("ECOHEALTH_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Text { objectName: "ecoHealthProblem"; visible: suiteBackend.ecoHealthStatus !== ""; text: suiteBackend.ecoHealthStatus; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Text { visible: !suiteBackend.ecoHealthLoaded && suiteBackend.ecoHealthStatus === ""; text: suiteBackend.uiText("ECOHEALTH_LOADING"); color: "#556070"; font.pixelSize: 11 }
-            Text { visible: suiteBackend.ecoHealthUnavailable; text: suiteBackend.uiText("ECOHEALTH_NOT_AVAILABLE"); color: window.amber; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { text: suiteBackend.uiText("ECOHEALTH_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { objectName: "ecoHealthProblem"; visible: suiteBackend.ecoHealthStatus !== ""; text: suiteBackend.ecoHealthStatus; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { visible: !suiteBackend.ecoHealthLoaded && suiteBackend.ecoHealthStatus === ""; text: suiteBackend.uiText("ECOHEALTH_LOADING"); color: "#556070"; font.pixelSize: window.fs(11) }
+            Text { visible: suiteBackend.ecoHealthUnavailable; text: suiteBackend.uiText("ECOHEALTH_NOT_AVAILABLE"); color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
             Repeater {
                 model: suiteBackend.ecoHealthNotices
                 delegate: Text {
@@ -6819,7 +6849,7 @@ ApplicationWindow {
                     objectName: "ecoHealthNotice"
                     text: modelData.text
                     color: modelData.level === "error" ? "#ee6b80" : (modelData.level === "warn" ? window.amber : window.muted)
-                    font.pixelSize: 11
+                    font.pixelSize: window.fs(11)
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
@@ -6839,7 +6869,7 @@ ApplicationWindow {
                     }
                 }
             }
-            Text { visible: suiteBackend.ecoHealthEmpty !== ""; text: suiteBackend.ecoHealthEmpty; color: "#556070"; font.pixelSize: 11 }
+            Text { visible: suiteBackend.ecoHealthEmpty !== ""; text: suiteBackend.ecoHealthEmpty; color: "#556070"; font.pixelSize: window.fs(11) }
             ListView {
                 objectName: "ecoHealthList"
                 Layout.fillWidth: true
@@ -6858,16 +6888,16 @@ ApplicationWindow {
                         spacing: 2
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
-                            Text { text: modelData.stateLabel; color: modelData.state === "ok" ? window.green : (modelData.state === "down" ? "#ee6b80" : (modelData.state === "degraded" ? window.amber : window.muted)); font.bold: true; font.pixelSize: 10 }
+                            Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12); elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { text: modelData.stateLabel; color: modelData.state === "ok" ? window.green : (modelData.state === "down" ? "#ee6b80" : (modelData.state === "degraded" ? window.amber : window.muted)); font.bold: true; font.pixelSize: window.fs(10) }
                         }
-                        Text { visible: modelData.reason !== ""; text: modelData.reason; color: window.muted; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                        Text { visible: modelData.reason !== ""; text: modelData.reason; color: window.muted; font.pixelSize: window.fs(10); elide: Text.ElideRight; Layout.fillWidth: true }
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: modelData.versions; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
-                            Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: 9 }
+                            Text { text: modelData.versions; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: window.fs(9) }
                         }
-                        Text { text: modelData.seen; color: "#556070"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true }
+                        Text { text: modelData.seen; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
                     }
                 }
             }
@@ -6891,10 +6921,10 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 14
-                    Text { text: suiteBackend.uiText("HEADING_SYSTEM_SUPERVISOR"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                    Text { text: suiteBackend.uiText("HEADING_SYSTEM_SUPERVISOR"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                     Item { Layout.fillWidth: true }
-                    Text { text: suiteBackend.supervisorLive; color: window.muted; font.pixelSize: 10 }
-                    Text { text: supervisorBody.view.uptime ? supervisorBody.view.uptime : ""; color: window.muted; font.pixelSize: 10 }
+                    Text { text: suiteBackend.supervisorLive; color: window.muted; font.pixelSize: window.fs(10) }
+                    Text { text: supervisorBody.view.uptime ? supervisorBody.view.uptime : ""; color: window.muted; font.pixelSize: window.fs(10) }
                     Repeater {
                         model: [
                             { name: suiteBackend.uiText("LBL_SUPERVISOR_WIFI"), state: supervisorBody.view.wifi },
@@ -6904,13 +6934,13 @@ ApplicationWindow {
                         delegate: Text {
                             required property var modelData
                             text: modelData.name
-                            font.pixelSize: 9
+                            font.pixelSize: window.fs(9)
                             font.bold: true
                             color: modelData.state === "on" ? window.green : (modelData.state === "off" ? "#e05050" : "#3a4250")
                         }
                     }
                 }
-                Text { visible: suiteBackend.supervisorStatus !== ""; text: suiteBackend.supervisorStatus; color: window.amber; font.pixelSize: 11 }
+                Text { visible: suiteBackend.supervisorStatus !== ""; text: suiteBackend.supervisorStatus; color: window.amber; font.pixelSize: window.fs(11) }
                 GridLayout {
                     Layout.fillWidth: true
                     columns: 6
@@ -6935,7 +6965,7 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 10
-                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_CPU_TREND"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_CPU_TREND"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                             LineChart {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -6954,7 +6984,7 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 10
                             spacing: 3
-                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_CPU_CORES"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_CPU_CORES"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                             Flickable {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -6969,9 +6999,9 @@ ApplicationWindow {
                                         delegate: RowLayout {
                                             required property var modelData
                                             Layout.fillWidth: true
-                                            Text { text: modelData.name; color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 24 }
+                                            Text { text: modelData.name; color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 24 }
                                             ProgressBar { Layout.fillWidth: true; from: 0; to: 100; value: modelData.percent }
-                                            Text { text: modelData.frequency; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 9; Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
+                                            Text { text: modelData.frequency; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 64; horizontalAlignment: Text.AlignRight }
                                         }
                                     }
                                 }
@@ -6990,7 +7020,7 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 10
-                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_MEMORY_TREND"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_MEMORY_TREND"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                             LineChart {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -7010,7 +7040,7 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 10
-                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_TEMP_TREND"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_TEMP_TREND"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                             LineChart {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -7047,7 +7077,7 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 10
-                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_NETWORK_THROUGHPUT"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_NETWORK_THROUGHPUT"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                             LineChart {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -7066,25 +7096,25 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.margins: 10
                         spacing: 4
-                        Text { text: suiteBackend.uiText("LBL_SUPERVISOR_PROCESSES"); color: window.muted; font.pixelSize: 9; font.bold: true }
+                        Text { text: suiteBackend.uiText("LBL_SUPERVISOR_PROCESSES"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_PID"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
-                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_PROCESS"); color: window.muted; font.pixelSize: 9; Layout.fillWidth: true }
-                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_CPU_PERCENT"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
-                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_MEM_PERCENT"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 70 }
-                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_RSS"); color: window.muted; font.pixelSize: 9; Layout.preferredWidth: 80 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_PID"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_PROCESS"); color: window.muted; font.pixelSize: window.fs(9); Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_CPU_PERCENT"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_MEM_PERCENT"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
+                            Text { text: suiteBackend.uiText("COL_SUPERVISOR_RSS"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
                         }
                         Repeater {
                             model: supervisorBody.view.processes ? supervisorBody.view.processes : []
                             delegate: RowLayout {
                                 required property var modelData
                                 Layout.fillWidth: true
-                                Text { text: modelData.pid; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                                Text { text: modelData.name; color: window.textPrimary; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
-                                Text { text: modelData.cpu; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                                Text { text: modelData.mem; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                                Text { text: modelData.rss; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 80 }
+                                Text { text: modelData.pid; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
+                                Text { text: modelData.name; color: window.textPrimary; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { text: modelData.cpu; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
+                                Text { text: modelData.mem; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
+                                Text { text: modelData.rss; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 80 }
                             }
                         }
                     }
@@ -7128,7 +7158,7 @@ ApplicationWindow {
                         safetyBody.hard = suiteBackend.safetyHard
                     }
                 }
-                Text { text: suiteBackend.uiText("HEADING_SAFETY_LIMITS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+                Text { text: suiteBackend.uiText("HEADING_SAFETY_LIMITS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Text {
                     visible: !suiteBackend.safetyHasServer
                     text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
@@ -7145,7 +7175,7 @@ ApplicationWindow {
                     visible: suiteBackend.safetyHasServer && suiteBackend.safetyIsAdmin
                     Layout.fillWidth: true
                     spacing: 12
-                    Text { text: suiteBackend.uiText("MSG_SAFETY_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("MSG_SAFETY_INTRO"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     Card {
                         Layout.fillWidth: true
                         Layout.preferredHeight: armColumn.implicitHeight + 28
@@ -7154,7 +7184,7 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 14
                             spacing: 8
-                            Text { text: suiteBackend.uiText("GROUP_SAFETY_ARMING"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text { text: suiteBackend.uiText("GROUP_SAFETY_ARMING"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                             CheckBox {
                                 id: armRequiredBox
                                 objectName: "armRequiredBox"
@@ -7163,7 +7193,7 @@ ApplicationWindow {
                                 onToggled: safetyBody.edit({ armRequired: checked })
                                 palette.windowText: window.textPrimary
                             }
-                            Text { text: suiteBackend.uiText("HINT_SAFETY_ARM_REQUIRED"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("HINT_SAFETY_ARM_REQUIRED"); color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             RowLayout {
                                 spacing: 8
                                 Text { text: suiteBackend.uiText("LBL_SAFETY_ARM_TTL"); color: window.muted; Layout.preferredWidth: 260 }
@@ -7175,7 +7205,7 @@ ApplicationWindow {
                                     color: window.textPrimary
                                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                                 }
-                                Text { text: suiteBackend.uiText("LBL_SAFETY_BETWEEN") + " " + safetyBody.hard.armTtlMinS + " - " + safetyBody.hard.armTtlMaxS; color: "#556070"; font.pixelSize: 10 }
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_BETWEEN") + " " + safetyBody.hard.armTtlMinS + " - " + safetyBody.hard.armTtlMaxS; color: "#556070"; font.pixelSize: window.fs(10) }
                             }
                             CheckBox {
                                 id: requireControllerBox
@@ -7185,7 +7215,7 @@ ApplicationWindow {
                                 onToggled: safetyBody.edit({ requireControllerId: checked })
                                 palette.windowText: window.textPrimary
                             }
-                            Text { text: suiteBackend.uiText("HINT_SAFETY_REQUIRE_CONTROLLER"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("HINT_SAFETY_REQUIRE_CONTROLLER"); color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             RowLayout {
                                 spacing: 8
                                 Text { text: suiteBackend.uiText("LBL_SAFETY_AUDIT_MOTION"); color: window.muted; Layout.preferredWidth: 260; wrapMode: Text.WordWrap }
@@ -7197,9 +7227,9 @@ ApplicationWindow {
                                     color: window.textPrimary
                                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                                 }
-                                Text { text: suiteBackend.uiText("LBL_SAFETY_BETWEEN") + " " + safetyBody.hard.auditMotionMinS + " - " + safetyBody.hard.auditMotionMaxS; color: "#556070"; font.pixelSize: 10 }
+                                Text { text: suiteBackend.uiText("LBL_SAFETY_BETWEEN") + " " + safetyBody.hard.auditMotionMinS + " - " + safetyBody.hard.auditMotionMaxS; color: "#556070"; font.pixelSize: window.fs(10) }
                             }
-                            Text { text: suiteBackend.uiText("HINT_SAFETY_AUDIT_MOTION"); color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { text: suiteBackend.uiText("HINT_SAFETY_AUDIT_MOTION"); color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         }
                     }
                     Card {
@@ -7210,18 +7240,18 @@ ApplicationWindow {
                             anchors.fill: parent
                             anchors.margins: 14
                             spacing: 6
-                            Text { text: suiteBackend.uiText("GROUP_SAFETY_LIMITS"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                            Text { text: suiteBackend.uiText("GROUP_SAFETY_LIMITS"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                             Text {
                                 text: suiteBackend.uiText("HINT_SAFETY_CEILINGS") + " " + safetyBody.hard.jogMaxAmount + " / " + safetyBody.hard.jogMaxAbsolute + " / " + safetyBody.hard.bedMaxC + " °C"
-                                color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true
+                                color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
                             }
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 6
-                                Text { text: suiteBackend.uiText("COL_SAFETY_MODEL"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 150 }
-                                Text { text: suiteBackend.uiText("COL_SAFETY_JOG_RELATIVE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
-                                Text { text: suiteBackend.uiText("COL_SAFETY_JOG_ABSOLUTE"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
-                                Text { text: suiteBackend.uiText("COL_SAFETY_BED"); color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 130 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_MODEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_JOG_RELATIVE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_JOG_ABSOLUTE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                                Text { text: suiteBackend.uiText("COL_SAFETY_BED"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
                             }
                             RowLayout {
                                 Layout.fillWidth: true
@@ -7325,8 +7355,8 @@ ApplicationWindow {
                             text: suiteBackend.uiText("BTN_SAFETY_DEFAULTS")
                             onClicked: { safetyBody.form = suiteBackend.safetyDefaultsForm(); safetyBody.dirty = true }
                         }
-                        Text { visible: suiteBackend.safetyMessage !== ""; text: suiteBackend.safetyMessage; color: window.green; font.bold: true; font.pixelSize: 11 }
-                        Text { visible: suiteBackend.safetyError !== ""; text: suiteBackend.safetyError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11 }
+                        Text { visible: suiteBackend.safetyMessage !== ""; text: suiteBackend.safetyMessage; color: window.green; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { visible: suiteBackend.safetyError !== ""; text: suiteBackend.safetyError; color: "#ee6b80"; font.bold: true; font.pixelSize: window.fs(11) }
                     }
                 }
             }
@@ -7339,7 +7369,7 @@ ApplicationWindow {
             width: contentLoader.width
             height: contentLoader.height
             spacing: 8
-            Text { text: suiteBackend.uiText("HEADING_AUDIT_RECORD"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_AUDIT_RECORD"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             Text {
                 visible: !suiteBackend.auditHasServer
                 text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
@@ -7357,7 +7387,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 8
-                Text { text: suiteBackend.uiText("AUDIT_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("AUDIT_INTRO"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
@@ -7394,8 +7424,8 @@ ApplicationWindow {
                     Button { objectName: "auditVerifyButton"; text: suiteBackend.uiText("AUDIT_VERIFY"); enabled: !suiteBackend.auditBusy; onClicked: suiteBackend.verifyAudit() }
                     Button { objectName: "auditExportButton"; text: suiteBackend.uiText("AUDIT_EXPORT"); enabled: !suiteBackend.auditBusy; onClicked: auditExportDialog.open() }
                 }
-                Text { visible: suiteBackend.auditMessage !== ""; text: suiteBackend.auditMessage; color: window.green; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: suiteBackend.auditError !== ""; text: suiteBackend.auditError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.auditMessage !== ""; text: suiteBackend.auditMessage; color: window.green; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.auditError !== ""; text: suiteBackend.auditError; color: "#ee6b80"; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Repeater {
                     model: suiteBackend.auditChain
                     delegate: Text {
@@ -7404,22 +7434,22 @@ ApplicationWindow {
                         text: modelData.text
                         color: modelData.ok ? window.green : "#ee6b80"
                         font.bold: true
-                        font.pixelSize: 11
+                        font.pixelSize: window.fs(11)
                         wrapMode: Text.WordWrap
                     }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Text { text: suiteBackend.uiText("AUDIT_COL_SEQ"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 40 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_TIME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 130 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_TYPE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 130 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_OUTCOME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_ACCOUNT"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 90 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_CONTROLLER"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_ADDRESS"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 100 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_ROBOT"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 90 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_DETAIL"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_SEQ"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 40 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_TIME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_TYPE"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_OUTCOME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_ACCOUNT"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_CONTROLLER"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_ADDRESS"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 100 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_ROBOT"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("AUDIT_COL_DETAIL"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                 }
                 ListView {
                     objectName: "auditList"
@@ -7431,15 +7461,15 @@ ApplicationWindow {
                         required property var modelData
                         width: ListView.view.width
                         spacing: 8
-                        Text { text: modelData.seq; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 40 }
-                        Text { text: modelData.time; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 130 }
-                        Text { text: modelData.type; color: window.textPrimary; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 130; elide: Text.ElideRight }
-                        Text { text: modelData.outcome; color: modelData.outcomeKind === "ok" ? window.green : (modelData.outcomeKind === "refused" ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 70 }
-                        Text { text: modelData.account; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90; elide: Text.ElideRight }
-                        Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 110; elide: Text.ElideRight }
-                        Text { text: modelData.address; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 100; elide: Text.ElideRight }
-                        Text { text: modelData.robot; color: window.muted; font.pixelSize: 10; Layout.preferredWidth: 90; elide: Text.ElideRight }
-                        Text { text: modelData.detail; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { text: modelData.seq; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 40 }
+                        Text { text: modelData.time; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                        Text { text: modelData.type; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130; elide: Text.ElideRight }
+                        Text { text: modelData.outcome; color: modelData.outcomeKind === "ok" ? window.green : (modelData.outcomeKind === "refused" ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
+                        Text { text: modelData.account; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90; elide: Text.ElideRight }
+                        Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 110; elide: Text.ElideRight }
+                        Text { text: modelData.address; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 100; elide: Text.ElideRight }
+                        Text { text: modelData.robot; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90; elide: Text.ElideRight }
+                        Text { text: modelData.detail; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                     }
                 }
             }
@@ -7476,7 +7506,7 @@ ApplicationWindow {
                 contentItem: Text { text: suiteBackend.uiText("TOTP_RESET_CONFIRM").replace("{username}", totpResetDialog.target); color: window.textPrimary; wrapMode: Text.WordWrap }
                 onAccepted: suiteBackend.resetUserTotp(totpResetDialog.target)
             }
-            Text { text: suiteBackend.uiText("HEADING_USERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_USERS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             Text {
                 visible: !suiteBackend.usersHasServer
                 text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
@@ -7494,15 +7524,15 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 8
-                Text { text: suiteBackend.uiText("USERS_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: suiteBackend.usersMessage !== ""; text: suiteBackend.usersMessage; color: window.green; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: suiteBackend.usersError !== ""; text: suiteBackend.usersError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.uiText("USERS_INTRO"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.usersMessage !== ""; text: suiteBackend.usersMessage; color: window.green; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.usersError !== ""; text: suiteBackend.usersError; color: "#ee6b80"; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Text { text: suiteBackend.uiText("USERS_COL_USERNAME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 180 }
-                    Text { text: suiteBackend.uiText("USERS_COL_ROLE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
-                    Text { text: suiteBackend.uiText("USERS_COL_CREATED"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("USERS_COL_USERNAME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 180 }
+                    Text { text: suiteBackend.uiText("USERS_COL_ROLE"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
+                    Text { text: suiteBackend.uiText("USERS_COL_CREATED"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                     Button { objectName: "usersRefreshButton"; text: suiteBackend.uiText("USERS_REFRESH"); enabled: !suiteBackend.usersBusy; onClicked: suiteBackend.refreshUsers() }
                 }
                 ListView {
@@ -7515,9 +7545,9 @@ ApplicationWindow {
                         required property var modelData
                         width: ListView.view.width
                         spacing: 8
-                        Text { text: modelData.username + (modelData.own ? " (" + suiteBackend.uiText("USERS_YOU") + ")" : ""); color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 180; elide: Text.ElideRight }
-                        Text { text: modelData.roleLabel; color: modelData.role === "admin" ? window.green : window.cyan; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 110 }
-                        Text { text: modelData.created; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { text: modelData.username + (modelData.own ? " (" + suiteBackend.uiText("USERS_YOU") + ")" : ""); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 180; elide: Text.ElideRight }
+                        Text { text: modelData.roleLabel; color: modelData.role === "admin" ? window.green : window.cyan; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
+                        Text { text: modelData.created; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                         Button {
                             objectName: "usersTotpResetButton"
                             text: suiteBackend.uiText("TOTP_RESET_BUTTON")
@@ -7539,7 +7569,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignTop
                         spacing: 6
-                        Text { text: suiteBackend.uiText("USERS_CHANGE_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("USERS_CHANGE_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         ComboBox {
                             id: usersChangeAccount
                             objectName: "usersChangeAccount"
@@ -7588,7 +7618,7 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignTop
                         spacing: 6
-                        Text { text: suiteBackend.uiText("USERS_CREATE_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: 12 }
+                        Text { text: suiteBackend.uiText("USERS_CREATE_TITLE"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
                         TextField {
                             id: usersNewName
                             objectName: "usersNewName"
@@ -7614,7 +7644,7 @@ ApplicationWindow {
                             textRole: "label"
                             valueRole: "value"
                         }
-                        Text { text: suiteBackend.uiText("USERS_ROLE_HINT"); color: window.muted; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("USERS_ROLE_HINT"); color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "usersCreateButton"
                             text: suiteBackend.uiText("USERS_CREATE_BUTTON")
@@ -7646,7 +7676,7 @@ ApplicationWindow {
                 nameFilters: ["URDF (*.urdf)"]
                 onAccepted: suiteBackend.saveModelUrdf(modelUrdfSaveDialog.category, modelUrdfSaveDialog.slug, selectedFile.toString())
             }
-            Text { text: suiteBackend.uiText("HEADING_SUBMITTED_MODELS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: 16 }
+            Text { text: suiteBackend.uiText("HEADING_SUBMITTED_MODELS"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
             Text {
                 visible: !suiteBackend.modelsHasServer
                 text: suiteBackend.uiText("LBL_ES_NO_ACTIVE_SERVER")
@@ -7657,17 +7687,17 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 8
-                Text { text: suiteBackend.uiText("MODELS_INTRO"); color: window.muted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: suiteBackend.modelsMessage !== ""; text: suiteBackend.modelsMessage; color: window.green; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: suiteBackend.modelsError !== ""; text: suiteBackend.modelsError; color: "#ee6b80"; font.bold: true; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                Text { visible: suiteBackend.modelsError === "" && !suiteBackend.modelsBusy && suiteBackend.modelsRows.length === 0; text: suiteBackend.uiText("MODELS_NONE"); color: window.muted; font.pixelSize: 11 }
+                Text { text: suiteBackend.uiText("MODELS_INTRO"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.modelsMessage !== ""; text: suiteBackend.modelsMessage; color: window.green; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.modelsError !== ""; text: suiteBackend.modelsError; color: "#ee6b80"; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { visible: suiteBackend.modelsError === "" && !suiteBackend.modelsBusy && suiteBackend.modelsRows.length === 0; text: suiteBackend.uiText("MODELS_NONE"); color: window.muted; font.pixelSize: window.fs(11) }
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Text { text: suiteBackend.uiText("MODELS_COL_NAME"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 200 }
-                    Text { text: suiteBackend.uiText("MODELS_COL_CATEGORY"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 140 }
-                    Text { text: suiteBackend.uiText("MODELS_COL_DATE"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.preferredWidth: 150 }
-                    Text { text: suiteBackend.uiText("MODELS_COL_ATTRIBUTION"); color: "#556070"; font.bold: true; font.pixelSize: 10; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("MODELS_COL_NAME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 200 }
+                    Text { text: suiteBackend.uiText("MODELS_COL_CATEGORY"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 140 }
+                    Text { text: suiteBackend.uiText("MODELS_COL_DATE"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
+                    Text { text: suiteBackend.uiText("MODELS_COL_ATTRIBUTION"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                     Button { objectName: "modelsRefreshButton"; text: suiteBackend.uiText("MODELS_REFRESH"); enabled: !suiteBackend.modelsBusy; onClicked: suiteBackend.refreshModels() }
                 }
                 ListView {
@@ -7680,10 +7710,10 @@ ApplicationWindow {
                         required property var modelData
                         width: ListView.view.width
                         spacing: 8
-                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: 11; Layout.preferredWidth: 200; elide: Text.ElideRight }
-                        Text { text: modelData.category; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 140; elide: Text.ElideRight }
-                        Text { text: modelData.submitted; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: 10; Layout.preferredWidth: 150; elide: Text.ElideRight }
-                        Text { objectName: "modelsAttribution"; text: modelData.attribution; color: window.muted; font.pixelSize: 10; Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 200; elide: Text.ElideRight }
+                        Text { text: modelData.category; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 140; elide: Text.ElideRight }
+                        Text { text: modelData.submitted; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 150; elide: Text.ElideRight }
+                        Text { objectName: "modelsAttribution"; text: modelData.attribution; color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                         Button {
                             objectName: "modelsSaveButton"
                             text: suiteBackend.uiText("MODELS_SAVE")

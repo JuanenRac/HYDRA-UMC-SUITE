@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, tool_arms
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, preferences, tool_arms
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -482,6 +482,7 @@ class SuiteQtBridge(QObject):
         self._tool_arms_error = ""
         self._help_level = help_levels.level_from_config(load_config())  # the level of the Help, kept in the configuration file
         self._help_search = ""
+        self._ui_scale = preferences.scale_from_config(load_config())  # the scale of the interface in percent, kept in the configuration file
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -2368,6 +2369,9 @@ class SuiteQtBridge(QObject):
         key = self._active_key
         if key not in setup_screens.SCREEN_KEYS:
             return {}
+        if key == "setup_preferences":
+            # personal preferences need no server
+            return preferences.view(self._ui_scale, self._help_level, setup_screens.empty_view("PREFS_TITLE", "PREFS_INTRO"))
         if key == "setup_help":
             # the guides need no server
             return help_levels.view(self._help_level, self._help_search, setup_screens.empty_view("HELP_TITLE", "HELP_INTRO"))
@@ -2396,6 +2400,11 @@ class SuiteQtBridge(QObject):
             self._setup_history_part, admin, connection_history.client_rows(self._connection_clients), connection_history.event_rows(self._connection_events),
             self._audit_rows, self._connection_status_text or self._audit_error,
         )
+
+    @Property(float, notify=changed)
+    def uiScaleFactor(self) -> float:
+        """What every text size of the interface is multiplied by (the scale chosen in the Preferences)."""
+        return preferences.scale_factor(self._ui_scale)
 
     @Property(bool, notify=changed)
     def setupBusy(self) -> bool:
@@ -2432,6 +2441,19 @@ class SuiteQtBridge(QObject):
 
     @Slot(str)
     def setupPart(self, part: str) -> None:
+        if self._active_key == "setup_preferences":
+            choice = preferences.parse_choice(part)
+            if choice is None:
+                return
+            group, value = choice
+            if group == "scale":
+                self._ui_scale = int(value)
+                save_config(preferences.config_update_scale(self._ui_scale))
+            else:
+                self._help_level = value
+                save_config(help_levels.config_update(value))
+            self.changed.emit()
+            return
         if self._active_key == "setup_help":
             if part in help_levels.LEVELS:
                 self._help_level = part
