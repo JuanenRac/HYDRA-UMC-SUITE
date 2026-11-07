@@ -750,6 +750,15 @@ class HydraConnection(QObject):
         """PUT /api/admin/server-config (admin-only) with {"auth": {"serviceIdentity": {"enabled": bool, "confirm": true to turn it on}}}."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
 
+    async def fetch_tool_arms(self) -> tuple[int, object] | None:
+        """GET /api/tool-arms (any signed-in account, read only): the arm state of the URTC tools as the safety zones service lists it. 404 on a
+        server that predates the route; 502/503/504 while the server has no address of that service or cannot reach it."""
+        return await self._request_json("GET", "/api/tool-arms", auth=True)
+
+    async def put_detection_hef(self, body: dict) -> tuple[int, object] | None:
+        """PUT /api/admin/server-config (admin-only) with {"detectionHef": {"acceptLoadedReports": bool, "confirm": true to turn it on}}."""
+        return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
+
     async def fetch_developer_node_status(self, verify: bool = False) -> tuple[int, object] | None:
         """GET /api/developer-node/status (any signed-in account): the latest status each developer node sent to the server; with verify the
         answer also carries the result of checking the signed record. 404 while the switch of the server is off or on a server that predates it."""

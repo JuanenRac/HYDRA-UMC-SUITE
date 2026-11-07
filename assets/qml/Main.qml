@@ -2429,6 +2429,65 @@ ApplicationWindow {
                         Text { visible: suiteBackend.serviceIdentityView.available === true; text: suiteBackend.serviceIdentityView.order3; color: "#e0a030"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.detectionHefView.visible === true
+                        objectName: "detectionHefPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("DETHEF_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("DETHEF_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.detectionHefView.error !== ""; text: suiteBackend.detectionHefView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: detectionHefBox
+                            objectName: "detectionHefBox"
+                            enabled: suiteBackend.detectionHefView.locked !== true
+                            text: suiteBackend.uiText("DETHEF_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.detectionHefView.enabled === true
+                        }
+                        Text { text: suiteBackend.uiText("DETHEF_HINT"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.detectionHefView.locked === true; text: suiteBackend.detectionHefView.lockedText; color: "#e0a030"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.detectionHefView.message !== ""; text: suiteBackend.detectionHefView.message; color: "#4cc38a"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "detectionHefSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: detectionHefBox.checked !== (suiteBackend.detectionHefView.enabled === true) && suiteBackend.detectionHefView.locked !== true
+                            onClicked: {
+                                var wanted = detectionHefBox.checked
+                                if (suiteBackend.detectionHefNeedsConfirmation(wanted))
+                                    window.requestConfirm(suiteBackend.uiText("DETHEF_CONFIRM_TITLE"), suiteBackend.uiText("DETHEF_CONFIRM_MESSAGE"), function() { suiteBackend.saveDetectionHef(wanted) })
+                                else
+                                    suiteBackend.saveDetectionHef(wanted)
+                            }
+                        }
+                    }
+                    ColumnLayout {
+                        objectName: "toolArmsPanel"
+                        Layout.fillWidth: true
+                        spacing: 4
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: suiteBackend.uiText("TOOLARMS_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                            Button { objectName: "toolArmsRefresh"; text: suiteBackend.uiText("TOOLARMS_REFRESH"); onClicked: suiteBackend.refreshToolArms() }
+                        }
+                        Text { text: suiteBackend.uiText("TOOLARMS_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.error !== ""; objectName: "toolArmsProblem"; text: suiteBackend.toolArmsView.error; color: "#e0a030"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.available === true; objectName: "toolArmsSummary"; text: suiteBackend.toolArmsView.summary; color: "#8a97a8"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.toolArmsView.empty !== ""; objectName: "toolArmsEmpty"; text: suiteBackend.toolArmsView.empty; color: "#556070"; font.pixelSize: 10; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Repeater {
+                            model: suiteBackend.toolArmsView.rows
+                            Text {
+                                required property var modelData
+                                text: modelData.text
+                                color: modelData.level === "armed" ? "#ee6b80" : modelData.level === "warning" ? "#e0a030" : modelData.level === "unknown" ? "#8a97a8" : "#4cc38a"
+                                font.pixelSize: 10
+                                font.family: "monospace"
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                            }
+                        }
+                        Text { visible: suiteBackend.toolArmsView.available === true; text: suiteBackend.toolArmsView.staleNote; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.hilBridgeView.visible === true
                         objectName: "hilBridgePanel"
                         Layout.fillWidth: true

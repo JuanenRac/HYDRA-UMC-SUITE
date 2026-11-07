@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, tool_arms
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -475,6 +475,11 @@ class SuiteQtBridge(QObject):
         self._service_identity: dict | None = None  # the identity the server presents to the services (None: a server without the route)
         self._service_identity_message = ""
         self._service_identity_error = ""
+        self._detection_hef: dict | None = None  # the switch of the loaded-model reports of DETECTION-HEF (None: a server that predates it)
+        self._detection_hef_message = ""
+        self._detection_hef_error = ""
+        self._tool_arms: dict | None = None  # the arm state of the URTC tools (None: not read or not available)
+        self._tool_arms_error = ""
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -3333,6 +3338,8 @@ class SuiteQtBridge(QObject):
         await self._refresh_ops_proposals(conn)
         await self._refresh_hil_bridge(conn)
         await self._refresh_service_identity(conn)
+        self._detection_hef = detection_hef.parse_state(body)
+        await self._refresh_tool_arms(conn)
         await self._refresh_developer_nodes(conn, False)
 
         info_result = await conn.fetch_hydra_info()
@@ -3484,6 +3491,73 @@ class SuiteQtBridge(QObject):
             self._service_identity_error = ""
             await self._refresh_service_identity(conn)
             self._service_identity_message = _("SERVICEID_SAVED") + ((" " + _("SERVICEID_OFF_WARNING")) if not wanted else "")
+        self.changed.emit()
+
+    # -- Switch of the loaded-model reports of DETECTION-HEF (administrators) ------------------
+
+    @Property("QVariantMap", notify=changed)
+    def detectionHefView(self) -> dict:
+        view = detection_hef.view(self._detection_hef)
+        view["message"] = self._detection_hef_message
+        view["error"] = self._detection_hef_error
+        view["visible"] = self._detection_hef is not None
+        return view
+
+    @Slot(bool, result=bool)
+    def detectionHefNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._detection_hef is not None and detection_hef.needs_confirmation(self._detection_hef["enabled"], wanted)
+
+    @Slot(bool)
+    def saveDetectionHef(self, wanted: bool) -> None:
+        if self._detection_hef is None or not detection_hef.change_allowed(self._detection_hef, wanted):
+            return
+        asyncio.ensure_future(self._save_detection_hef(wanted))
+
+    async def _save_detection_hef(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._detection_hef_message = ""
+        try:
+            result = await conn.put_detection_hef(detection_hef.body_for(wanted))
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("saving the switch of the DETECTION-HEF reports failed: %s", error)
+            result = None
+        problem = detection_hef.status_for(result)
+        if problem:
+            self._detection_hef_error = problem
+        else:
+            self._detection_hef_error = ""
+            self._detection_hef = {"enabled": wanted, "locked": False}
+            self._detection_hef_message = _("DETHEF_SAVED")
+        self.changed.emit()
+
+    # -- Arm state of the URTC tools (read only) -------------------------------------------
+
+    async def _refresh_tool_arms(self, conn) -> None:
+        try:
+            result = await conn.fetch_tool_arms()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the arm state of the tools failed: %s", error)
+            result = None
+        self._tool_arms_error = tool_arms.status_for(result)
+        self._tool_arms = tool_arms.parse_report(result[1]) if result is not None and not self._tool_arms_error else None
+
+    @Property("QVariantMap", notify=changed)
+    def toolArmsView(self) -> dict:
+        view = tool_arms.view(self._tool_arms)
+        view["error"] = self._tool_arms_error
+        return view
+
+    @Slot()
+    def refreshToolArms(self) -> None:
+        asyncio.ensure_future(self._reload_tool_arms())
+
+    async def _reload_tool_arms(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        await self._refresh_tool_arms(conn)
         self.changed.emit()
 
     # -- Switch of the pass verdict of the twin on the HIL bridge (administrators) ---------------

@@ -48,6 +48,7 @@
   "/api/telemetry/aggregate",
   "/api/telemetry/downsample-plan",
   "/api/telemetry/query",
+  "/api/tool-arms",
   "/api/totp/begin",
   "/api/totp/confirm",
   "/api/totp/disable",
