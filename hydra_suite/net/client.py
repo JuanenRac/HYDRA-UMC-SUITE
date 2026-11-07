@@ -750,6 +750,10 @@ class HydraConnection(QObject):
         """PUT /api/admin/server-config (admin-only) with {"auth": {"serviceIdentity": {"enabled": bool, "confirm": true to turn it on}}}."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
 
+    async def put_live_activity(self, body: dict) -> tuple[int, object] | None:
+        """PUT /api/admin/server-config (admin-only) with {"push": {"liveActivity": {"enabled": bool, "level": "status"|"progress"|"full", "confirm": true to show more}}}."""
+        return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)
+
     async def fetch_tool_arms(self) -> tuple[int, object] | None:
         """GET /api/tool-arms (any signed-in account, read only): the arm state of the URTC tools as the safety zones service lists it. 404 on a
         server that predates the route; 502/503/504 while the server has no address of that service or cannot reach it."""

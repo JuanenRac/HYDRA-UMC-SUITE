@@ -2466,6 +2466,54 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.liveActivityView.visible === true
+                        objectName: "liveActivityPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        property string wantedLevel: suiteBackend.liveActivityView.level
+                        Text { text: suiteBackend.uiText("LIVEACT_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("LIVEACT_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.liveActivityView.error !== ""; text: suiteBackend.liveActivityView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: liveActivityBox
+                            objectName: "liveActivityBox"
+                            enabled: suiteBackend.liveActivityView.locked !== true
+                            text: suiteBackend.uiText("LIVEACT_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.liveActivityView.enabled === true
+                        }
+                        Text { visible: suiteBackend.liveActivityView.pushOffText !== ""; text: suiteBackend.liveActivityView.pushOffText; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("LIVEACT_LEVEL_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10) }
+                        Repeater {
+                            model: suiteBackend.liveActivityView.levels
+                            delegate: RadioButton {
+                                required property var modelData
+                                objectName: "liveActivityLevel_" + modelData.id
+                                enabled: suiteBackend.liveActivityView.locked !== true
+                                text: modelData.label
+                                palette.windowText: window.textPrimary
+                                checked: modelData.id === parent.wantedLevel
+                                onClicked: parent.wantedLevel = modelData.id
+                            }
+                        }
+                        Text { text: suiteBackend.uiText("LIVEACT_LOCK_SCREEN_NOTE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.liveActivityView.locked === true; text: suiteBackend.liveActivityView.lockedText; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.liveActivityView.message !== ""; text: suiteBackend.liveActivityView.message; color: "#4cc38a"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "liveActivitySave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: suiteBackend.liveActivityView.locked !== true && (liveActivityBox.checked !== (suiteBackend.liveActivityView.enabled === true) || parent.wantedLevel !== suiteBackend.liveActivityView.level)
+                            onClicked: {
+                                var on = liveActivityBox.checked
+                                var level = parent.wantedLevel
+                                if (suiteBackend.liveActivityNeedsConfirmation(on, level))
+                                    window.requestConfirm(suiteBackend.uiText("LIVEACT_CONFIRM_TITLE"), suiteBackend.uiText("LIVEACT_CONFIRM_MESSAGE_" + level.toUpperCase()), function() { suiteBackend.saveLiveActivity(on, level) })
+                                else
+                                    suiteBackend.saveLiveActivity(on, level)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         objectName: "toolArmsPanel"
                         Layout.fillWidth: true
                         spacing: 4

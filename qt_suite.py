@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, preferences, tool_arms
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -478,6 +478,9 @@ class SuiteQtBridge(QObject):
         self._detection_hef: dict | None = None  # the switch of the loaded-model reports of DETECTION-HEF (None: a server that predates it)
         self._detection_hef_message = ""
         self._detection_hef_error = ""
+        self._live_activity: dict | None = None  # the Live Activity on the lock screen (None: a server that predates it)
+        self._live_activity_message = ""
+        self._live_activity_error = ""
         self._tool_arms: dict | None = None  # the arm state of the URTC tools (None: not read or not available)
         self._tool_arms_error = ""
         self._help_level = help_levels.level_from_config(load_config())  # the level of the Help, kept in the configuration file
@@ -3380,6 +3383,7 @@ class SuiteQtBridge(QObject):
         await self._refresh_hil_bridge(conn)
         await self._refresh_service_identity(conn)
         self._detection_hef = detection_hef.parse_state(body)
+        self._live_activity = live_activity.parse_state(body)
         await self._refresh_tool_arms(conn)
         await self._refresh_developer_nodes(conn, False)
 
@@ -3571,6 +3575,51 @@ class SuiteQtBridge(QObject):
             self._detection_hef_error = ""
             self._detection_hef = {"enabled": wanted, "locked": False}
             self._detection_hef_message = _("DETHEF_SAVED")
+        self.changed.emit()
+
+    # -- Live Activity on the lock screen (administrators) -------------------------------------
+
+    @Property("QVariantMap", notify=changed)
+    def liveActivityView(self) -> dict:
+        view = live_activity.view(self._live_activity)
+        view["message"] = self._live_activity_message
+        view["error"] = self._live_activity_error
+        view["visible"] = self._live_activity is not None
+        return view
+
+    @Slot(bool, str, result=bool)
+    def liveActivityNeedsConfirmation(self, enabled: bool, level: str) -> bool:
+        if self._live_activity is None:
+            return False
+        return live_activity.needs_confirmation(self._live_activity, live_activity.change_for(self._live_activity, enabled, level))
+
+    @Slot(bool, str)
+    def saveLiveActivity(self, enabled: bool, level: str) -> None:
+        if self._live_activity is None:
+            return
+        change = live_activity.change_for(self._live_activity, enabled, level)
+        if not change:
+            return
+        asyncio.ensure_future(self._save_live_activity(change))
+
+    async def _save_live_activity(self, change: dict) -> None:
+        conn = self._controller.active_connection
+        state = self._live_activity
+        if conn is None or not conn.is_admin or state is None:
+            return
+        self._live_activity_message = ""
+        try:
+            result = await conn.put_live_activity(live_activity.body_for(state, change))
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("saving the Live Activity setting failed: %s", error)
+            result = None
+        problem = live_activity.status_for(result)
+        if problem:
+            self._live_activity_error = problem
+        else:
+            self._live_activity_error = ""
+            self._live_activity = dict(state, enabled=change.get("enabled", state["enabled"]), level=change.get("level", state["level"]))
+            self._live_activity_message = _("LIVEACT_SAVED")
         self.changed.emit()
 
     # -- Arm state of the URTC tools (read only) -------------------------------------------
