@@ -69,5 +69,5 @@ jobs:
         if: ${{ hashFiles('tests/test_rest_routes.py') != '' }}
         run: |
           mkdir -p "$RUNNER_TEMP/hydra-umc-sdk"
-          curl -fsSL --retry 3 https://github.com/JuanenRac/HYDRA-UMC-SDK/archive/refs/tags/v0.5.8.tar.gz | tar -xz --strip-components=1 -C "$RUNNER_TEMP/hydra-umc-sdk"
+          curl -fsSL --retry 3 https://github.com/JuanenRac/HYDRA-UMC-SDK/archive/refs/tags/v0.5.9.tar.gz | tar -xz --strip-components=1 -C "$RUNNER_TEMP/hydra-umc-sdk"
           HYDRA_UMC_SDK_DIR="$RUNNER_TEMP/hydra-umc-sdk" python -m pytest tests/test_rest_routes.py -q
