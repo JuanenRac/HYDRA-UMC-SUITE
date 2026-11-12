@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 sys.path.insert(0, ".")
 from hydra_suite.can_ota import (
     CanOtaTarget,
+    flash_preflight,
     FlashOptions,
     crc32,
     chip_name_for,
@@ -203,6 +204,23 @@ def _run() -> None:
     finally:
         httpx.AsyncClient = real_client
     print("download checks the SHA-256: PASS")
+
+    # --- the checks before a flash over the real bus ---------------------
+    assert flash_preflight("0x48374334", "v1.2.3", "1.2.3", False, False) is None
+    assert flash_preflight(None, "v1.2.3", "1.2.3", False, False) == "no_hardware_id"
+    assert flash_preflight("", "v1.2.3", None, False, False) == "no_hardware_id"
+    assert flash_preflight("0", "v1.2.3", None, False, False) == "no_hardware_id"
+    assert flash_preflight("nonsense", "v1.2.3", None, False, False) == "no_hardware_id"
+    assert flash_preflight("0x1", None, None, False, False) == "no_version"
+    assert flash_preflight("0x1", "latest", "1.0.0", True, False) == "no_version"
+    assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, True) == "fram_erase_unsupported"
+    assert flash_preflight("0x1", "v1.2.2", "1.2.3", False, False) == "downgrade_blocked"
+    assert flash_preflight("0x1", "v1.1.9", "1.2.0", False, False) == "downgrade_blocked"
+    assert flash_preflight("0x1", "v0.9", "1.0.0", False, False) == "downgrade_blocked"
+    assert flash_preflight("0x1", "v1.2.2", "1.2.3", True, False) is None  # the downgrade was asked for
+    assert flash_preflight("0x1", "v1.2.4", "1.2.3", False, False) is None
+    assert flash_preflight("0x1", "v1.2.3", "unreadable", False, False) is None  # an unreadable installed version cannot show a downgrade
+    print("preflight of the flash over the real bus: PASS")
 
     print("ALL VERIFY_CAN_OTA CHECKS PASSED")
 

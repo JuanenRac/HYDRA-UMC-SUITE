@@ -1766,3 +1766,9 @@ TWINLIVE_STATE_SIMULATED=シミュレーションの状態: 関節 {joints} 個�
 TWINLIVE_NO_STATE=まだ状態を受信していません。
 TWINLIVE_STATUS=ツインからの通知: {code}
 TWINLIVE_VEHICLES=機体: {count} ({stale} 件は古い報告)
+
+# The checks of an image before a flash over the real bus
+FLASHER_PREFLIGHT_NO_HARDWARE_ID=このイメージにはハードウェア ID がありません (ローカルファイル)。基板が自分用か確認できるよう、リリースから選んでください。
+FLASHER_PREFLIGHT_NO_VERSION=このイメージにはバージョンがありません。基板がインストール済みと比較できるよう、リリースから選んでください。
+FLASHER_PREFLIGHT_DOWNGRADE_BLOCKED=このイメージはインストール済みのバージョンより古いです。意図する場合はダウングレードの選択をオンにしてください。
+FLASHER_PREFLIGHT_FRAM_ERASE_UNSUPPORTED=F-RAM の消去は実バスでは利用できません。チェックを外してください (シミュレーションのみ対応)。

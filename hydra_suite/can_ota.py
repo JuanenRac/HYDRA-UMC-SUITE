@@ -556,6 +556,28 @@ def parse_version_full(tag: str | None) -> tuple[int, int, int] | None:
     return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
 
 
+def flash_preflight(hardware_id: str | None, version_tag: str | None, installed_version: str | None, allow_downgrade: bool, erase_fram: bool) -> str | None:
+    """Why a flash over the real bus must not start (the name of the refusal), or None when it may. The hardware path sends the version and the hardware id
+    of the image and compares it with the installed version first: an image without a hardware id (a local file) or without a version is refused instead of
+    being sent as 0, an older image needs the explicit downgrade choice, and the F-RAM erase is refused because the bridge has no command for it (the
+    simulation alone honours it)."""
+    try:
+        number = int(hardware_id, 0) if hardware_id else 0
+    except (TypeError, ValueError):
+        number = 0
+    if number <= 0:
+        return "no_hardware_id"
+    image = parse_version_full(version_tag)
+    if image is None:
+        return "no_version"
+    if erase_fram:
+        return "fram_erase_unsupported"
+    installed = parse_version_full(installed_version)
+    if installed is not None and image < installed and not allow_downgrade:
+        return "downgrade_blocked"
+    return None
+
+
 def normalize_signature(text: str | None) -> str | None:
     """A signature as 128 lowercase hexadecimal digits, or None when the text is not one (a .sig file may end in a newline)."""
     clean = (text or "").strip().lower()

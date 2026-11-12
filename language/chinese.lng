@@ -1766,3 +1766,9 @@ TWINLIVE_STATE_SIMULATED=模拟的状态:{joints} 个关节。
 TWINLIVE_NO_STATE=尚未收到状态。
 TWINLIVE_STATUS=孪生体报告:{code}
 TWINLIVE_VEHICLES=飞行器:{count}({stale} 个报告已过期)
+
+# The checks of an image before a flash over the real bus
+FLASHER_PREFLIGHT_NO_HARDWARE_ID=此镜像没有硬件 ID（本地文件）：请从发布版中选择，以便板子核对它是否适用。
+FLASHER_PREFLIGHT_NO_VERSION=此镜像没有版本号：请从发布版中选择，以便板子与已安装版本比较。
+FLASHER_PREFLIGHT_DOWNGRADE_BLOCKED=此镜像比已安装版本更旧：如确需降级，请勾选降级选项。
+FLASHER_PREFLIGHT_FRAM_ERASE_UNSUPPORTED=真实总线不支持擦除 F-RAM：请取消勾选（只有模拟会执行）。

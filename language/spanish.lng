@@ -1767,3 +1767,9 @@ TWINLIVE_STATE_SIMULATED=Estado de una simulación: {joints} articulaciones.
 TWINLIVE_NO_STATE=Aún no se ha recibido ningún estado.
 TWINLIVE_STATUS=El gemelo informa: {code}
 TWINLIVE_VEHICLES=Vehículos: {count} ({stale} con un informe antiguo)
+
+# The checks of an image before a flash over the real bus
+FLASHER_PREFLIGHT_NO_HARDWARE_ID=Esta imagen no tiene identificador de hardware (un fichero local): elígela desde la release para que la placa pueda comprobar que es suya.
+FLASHER_PREFLIGHT_NO_VERSION=Esta imagen no tiene versión: elígela desde la release para que la placa la compare con la instalada.
+FLASHER_PREFLIGHT_DOWNGRADE_BLOCKED=Esta imagen es más antigua que la versión instalada: marca la opción de bajar de versión si es lo que quieres.
+FLASHER_PREFLIGHT_FRAM_ERASE_UNSUPPORTED=Borrar la F-RAM no está disponible por el bus real: desmárcalo (solo la simulación lo respeta).

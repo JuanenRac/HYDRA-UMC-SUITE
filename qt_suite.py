@@ -48,6 +48,7 @@ from hydra_suite.can_ota import (
     download_github_firmware,
     fetch_github_firmware_releases,
     hardware_query_version,
+    flash_preflight,
     flash_signing_options,
     hardware_start_flash,
     normalize_signature,
@@ -86,6 +87,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
+from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
@@ -7404,6 +7406,21 @@ class SuiteQtBridge(QObject):
             return
         asyncio.ensure_future(self._run_flash(key, target, file))
 
+    def _flasher_on_progress(self, key: str, payload: object) -> None:
+        """One live line of a real flash cycle: only while this panel's own hardware flash runs, so another session's flash never shows here."""
+        line = flasher_logic.progress_line(payload)
+        if line is None or not self._flasher_flashing.get(key) or not self._flasher_is_hardware:
+            return
+        label = _(f"FLASHER_PROGRESS_{line['phase'].upper()}")
+        if line["pages"] is not None and line["phase"] == "transferring":
+            label += f" ({line['pages'][0]}/{line['pages'][1]})"
+        self._flasher_progress[key] = {"label": label, "percent": line["percent"] if line["percent"] is not None else self._flasher_progress.get(key, {}).get("percent", 0)}
+        if line["phase"] == "error":
+            self._flasher_push_log(key, f"{_('LBL_FLASH_HARDWARE_FAILED')}: {line['reason'] or _('FLASHER_PROGRESS_ERROR')}", "error")
+        elif line["log"]:
+            self._flasher_push_log(key, label, "info")
+        self.changed.emit()
+
     async def _run_flash(self, key: str, target: CanOtaTarget, file: dict) -> None:
         self._flasher_flashing[key] = True
         self._flasher_push_log(key, f"{_('LBL_FLASH_START')}: {file['name']} - {hop_description(target)}")
@@ -7416,6 +7433,14 @@ class SuiteQtBridge(QObject):
                     return
                 self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_CONNECTING"), "percent": 0}
                 self.changed.emit()
+                refusal = flash_preflight(
+                    file.get("hardware_id"), file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"),
+                    self._flasher_allow_downgrade.get(key, False), self._flasher_erase_fram.get(key, False),
+                )
+                if refusal:
+                    self._flasher_push_log(key, _("FLASHER_PREFLIGHT_" + refusal.upper()), "error")
+                    self._flasher_progress[key] = {"label": "", "percent": 0}
+                    return
                 version_major, version_minor = parse_version_tag(file.get("version_tag"))
                 hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
                 # the signature is checked here, on this computer, before a single byte goes to the flashing service
@@ -7434,13 +7459,21 @@ class SuiteQtBridge(QObject):
                 if conn is None:
                     self._flasher_push_log(key, _("LBL_NO_RESPONSE"), "error")
                     return
-                result = await hardware_start_flash(
-                    conn, target, file["bytes"],
-                    version_major,
-                    version_minor,
-                    hardware_id_number,
-                    flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature")),
-                )
+                # the live per-page progress of the cycle arrives over the WebSocket, not through the answer of the request, which comes once at the end
+                def on_progress(payload: object, _key: str = key) -> None:
+                    self._flasher_on_progress(_key, payload)
+
+                conn.canota_progress.connect(on_progress)
+                try:
+                    result = await hardware_start_flash(
+                        conn, target, file["bytes"],
+                        version_major,
+                        version_minor,
+                        hardware_id_number,
+                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature")),
+                    )
+                finally:
+                    conn.canota_progress.disconnect(on_progress)
                 if result.success:
                     self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_DONE"), "percent": 100}
                     self._flasher_push_log(key, _("LBL_FLASH_DONE"), "ok")

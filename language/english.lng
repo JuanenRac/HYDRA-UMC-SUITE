@@ -1766,3 +1766,9 @@ TWINLIVE_STATE_SIMULATED=State of a simulation: {joints} joints.
 TWINLIVE_NO_STATE=No state received yet.
 TWINLIVE_STATUS=The twin reports: {code}
 TWINLIVE_VEHICLES=Vehicles: {count} ({stale} with an old report)
+
+# The checks of an image before a flash over the real bus
+FLASHER_PREFLIGHT_NO_HARDWARE_ID=This image has no hardware id (a local file): pick it from the release so the board can check it is for it.
+FLASHER_PREFLIGHT_NO_VERSION=This image has no version: pick it from the release so the board can check it against the installed one.
+FLASHER_PREFLIGHT_DOWNGRADE_BLOCKED=This image is older than the installed version: tick the downgrade choice if that is what you want.
+FLASHER_PREFLIGHT_FRAM_ERASE_UNSUPPORTED=Erasing the F-RAM is not available over the real bus: untick it (the simulation alone honours it).
