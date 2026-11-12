@@ -7463,7 +7463,9 @@ class SuiteQtBridge(QObject):
                 def on_progress(payload: object, _key: str = key) -> None:
                     self._flasher_on_progress(_key, payload)
 
-                conn.canota_progress.connect(on_progress)
+                progress_signal = getattr(conn, "canota_progress", None)  # a stand-in connection of a check has none
+                if progress_signal is not None:
+                    progress_signal.connect(on_progress)
                 try:
                     result = await hardware_start_flash(
                         conn, target, file["bytes"],
@@ -7473,7 +7475,8 @@ class SuiteQtBridge(QObject):
                         flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature")),
                     )
                 finally:
-                    conn.canota_progress.disconnect(on_progress)
+                    if progress_signal is not None:
+                        progress_signal.disconnect(on_progress)
                 if result.success:
                     self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_DONE"), "percent": 100}
                     self._flasher_push_log(key, _("LBL_FLASH_DONE"), "ok")
