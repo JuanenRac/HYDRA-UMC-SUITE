@@ -597,6 +597,7 @@ class HydraConnection(QObject):
         *,
         params: dict | None = None,
         data: bytes | None = None,
+        json_body: dict | None = None,
         timeout: float = 60.0,
     ) -> tuple[int, object] | None:
         """Real GET/POST to HYDRA-UMC-SERVER's own /api/hardware/canota/*
@@ -614,6 +615,10 @@ class HydraConnection(QObject):
         headers = {}
         if data is not None:
             headers["Content-Type"] = "application/octet-stream"
+        elif json_body is not None:
+            # a small JSON request (the F-RAM operations): the server reads it as an object
+            data = json.dumps(json_body).encode("utf-8")
+            headers["Content-Type"] = "application/json"
         try:
             resp = await self._http(method, path, params=params, content=data, headers=headers, timeout=timeout)
             body = resp.json()

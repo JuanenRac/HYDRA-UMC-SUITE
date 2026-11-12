@@ -131,6 +131,30 @@ check("only opening the health route asks", [sec.health_needs_confirmation(a, b)
 check("the warning of opening it", sec.known_warning(["health_open"]), _("SECURITY_HEALTH_WARNING"))
 check("every key of the view exists without a server (health and stop included)", set(sec.view(None)) == set(sec.view(hs)), True)
 
+# the F-RAM erase of the brain and the interval of the emergency stop watch (options of the safety block, reported only by a server that has them)
+STOP = {"publishGlobalStop": {"value": False, "source": "default"}}
+FRAM_WATCH = {**HEALTH, "safety": {**STOP, "framErase": {"value": False, "source": "default"}, "estopWatchMs": {"value": 2000, "source": "config"}}}
+fw = sec.parse_state(FRAM_WATCH)
+check("reads the two new options when the server reports them", (fw["safety"]["framErase"], fw["safety"]["estopWatchMs"]), ({"value": False, "source": "default"}, {"value": 2000, "source": "config"}))
+check("a server that predates them reports only the announcement", sec.parse_state({**HEALTH, "safety": STOP})["safety"], STOP)
+check("a damaged one is dropped and the announcement stays", (
+    sec.parse_state({**HEALTH, "safety": {**STOP, "framErase": {"value": "no", "source": "default"}}})["safety"],
+    sec.parse_state({**HEALTH, "safety": {**STOP, "estopWatchMs": {"value": 100, "source": "default"}}})["safety"],
+    sec.parse_state({**HEALTH, "safety": {**STOP, "estopWatchMs": {"value": True, "source": "default"}}})["safety"],
+    sec.parse_state({**HEALTH, "safety": {**STOP, "estopWatchMs": {"value": 1000, "source": "nowhere"}}})["safety"],
+), (STOP, STOP, STOP, STOP))
+fv = sec.view(fw)
+check("the views of the two options", (fv["safetyFramAvailable"], fv["safetyFramErase"], fv["safetyFramEraseLocked"], fv["safetyEstopWatchAvailable"], fv["safetyEstopWatchText"], fv["safetyEstopWatchLocked"]), (True, False, False, True, "2000", False))
+check("no section for the two options on a server without them", (sec.view(hs)["safetyFramAvailable"], sec.view(hs)["safetyEstopWatchAvailable"], sec.view(hs)["safetyEstopWatchText"]), (False, False, ""))
+check("the watch off shows an empty box", sec.view(sec.parse_state({**HEALTH, "safety": {**STOP, "estopWatchMs": {"value": 0, "source": "default"}}}))["safetyEstopWatchText"], "")
+check("the interval the server accepts", ([sec.valid_estop_watch_ms(v) for v in (0, 500, 2000, 60000, -1, 499, 60001, True, "500", None, 1.5)]), [True, True, True, True, False, False, False, False, False, False, False])
+check("the interval typed in the box", [sec.parse_estop_watch_text(t) for t in ("", "  ", "0", " 2000 ", "499", "60001", "1e3", "-5", "abc", "2.5")], [0, 0, 0, 2000, None, None, None, None, None, None])
+check("the requests: the first option alone is what it always was", (sec.safety_patch(False), sec.safety_patch(True, None, 1500)), ({"safety": {"publishGlobalStop": False}}, {"safety": {"publishGlobalStop": True, "estopWatchMs": 1500}}))
+check("the erase carries the confirmation when it is turned on and not when it is turned off", (sec.safety_patch(False, True), sec.safety_patch(False, False)), ({"safety": {"publishGlobalStop": False, "framErase": True, "confirm": True}}, {"safety": {"publishGlobalStop": False, "framErase": False}}))
+check("the announcement left out when the environment fixes it", (sec.safety_patch(None, None, 1000), sec.safety_patch(None)), ({"safety": {"estopWatchMs": 1000}}, {"safety": {}}))
+check("only offering the erase asks", [sec.fram_erase_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))], [True, False, False, False])
+check("every key of the view exists without a server (the two options included)", set(sec.view(None)) == set(fv), True)
+
 def _opt(value, source="default"):
     return {"value": value, "source": source}
 

@@ -29,6 +29,7 @@
   "/api/ecosystem/status",
   "/api/hardware/canota/flash",
   "/api/hardware/canota/version",
+  "/api/hardware/fram/{p}",
   "/api/hil-bridge/settings",
   "/api/hydra-info",
   "/api/models",

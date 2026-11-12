@@ -46,6 +46,7 @@ import httpx
 # 600 s at most) after the request arrives; giving up earlier would show a
 # network error while the board is still being written.
 FLASH_TIMEOUT_S = 630.0
+FRAM_TIMEOUT_S = 30.0  # the erase of the whole chip over the SPI link takes the brain a few seconds
 
 CanOtaTier = Literal["kinematicBrain", "controllerBoard", "urtcHead", "urtcExpansion"]
 FlashPhase = Literal[
@@ -72,8 +73,8 @@ def slot_label(robot_index0: int) -> str:
 
 
 def slot_base_id(robot_index0: int) -> int:
-    """CAN_ID_STACKA_BASE + slot*0x20 - see architecture.md section 3."""
-    return 0x600 + robot_index0 * 0x20
+    """CAN_ID_STACKA_BASE + slot*0x40: the window of a slot is 64 identifiers wide (HYDRA-UMC docs/FRAM_ERASE.md, tools/can_ids.py)."""
+    return 0x600 + robot_index0 * SLOT_WINDOW
 
 
 def tier_base_id(robot_index0: int, _tier: CanOtaTier) -> int:
@@ -136,6 +137,8 @@ class VersionQueryResult:
     bootloader_version: str | None = None
     hardware_id: str | None = None
     expansion_board_type: int | None = None  # only meaningful for a urtcHead query
+    #: true only when the server announced capabilities.fram_erase: the bridge offers the F-RAM operations and the server has them switched on
+    fram_erase_supported: bool = False
 
 
 async def mock_query_version(target: CanOtaTarget) -> VersionQueryResult:
@@ -528,6 +531,7 @@ async def hardware_query_version(conn, target: CanOtaTarget) -> VersionQueryResu
         online=True,
         firmware_version=f"{body.get('firmware_major', 0)}.{body.get('firmware_minor', 0)}.0",
         hardware_id=f"0x{int(body.get('hardware_id', 0)):08X}",
+        fram_erase_supported=isinstance(body.get("capabilities"), dict) and body["capabilities"].get("fram_erase") is True,
     )
 
 
@@ -567,7 +571,7 @@ SLOT_FRAMES = {
     "boot_downgrade_token": 0x1B,
     "boot_downgrade_nonce_response": 0x1C,
 }
-SLOT_WINDOW = 0x20  # identifiers per slot
+SLOT_WINDOW = 0x40  # identifiers per slot: the eight slots fill 0x600 to 0x7FF
 
 
 def parse_version_full(tag: str | None) -> tuple[int, int, int] | None:
@@ -578,11 +582,14 @@ def parse_version_full(tag: str | None) -> tuple[int, int, int] | None:
     return int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
 
 
-def flash_preflight(hardware_id: str | None, version_tag: str | None, installed_version: str | None, allow_downgrade: bool, erase_fram: bool) -> str | None:
+def flash_preflight(
+    hardware_id: str | None, version_tag: str | None, installed_version: str | None, allow_downgrade: bool, erase_fram: bool,
+    fram_erase_supported: bool = False, tier: str | None = None,
+) -> str | None:
     """Why a flash over the real bus must not start (the name of the refusal), or None when it may. The hardware path sends the version and the hardware id
     of the image and compares it with the installed version first: an image without a hardware id (a local file) or without a version is refused instead of
-    being sent as 0, an older image needs the explicit downgrade choice, and the F-RAM erase is refused because the bridge has no command for it (the
-    simulation alone honours it)."""
+    being sent as 0, an older image needs the explicit downgrade choice, and the F-RAM erase is refused unless the server announced it (the version query
+    says `capabilities.fram_erase`) and the target is the kinematic brain, whose main board holds the chip."""
     try:
         number = int(hardware_id, 0) if hardware_id else 0
     except (TypeError, ValueError):
@@ -593,11 +600,54 @@ def flash_preflight(hardware_id: str | None, version_tag: str | None, installed_
     if image is None:
         return "no_version"
     if erase_fram:
-        return "fram_erase_unsupported"
+        if not fram_erase_supported:
+            return "fram_erase_unsupported"
+        if tier is not None and tier != "kinematicBrain":
+            return "fram_erase_wrong_tier"
     installed = parse_version_full(installed_version)
     if installed is not None and image < installed and not allow_downgrade:
         return "downgrade_blocked"
     return None
+
+
+#: The word an erase of the F-RAM needs typed before it is sent (the server and the bridge ask for it too).
+FRAM_ERASE_WORD = "ERASE"
+
+
+def fram_erase_word_matches(typed: str | None) -> bool:
+    """Whether what was typed is exactly the word (the spaces around it ignored): a letter of another case does not confirm."""
+    return (typed or "").strip() == FRAM_ERASE_WORD
+
+
+@dataclass
+class FramOperationResult:
+    reachable: bool  # false when the server or the bridge could not be reached at all
+    ok: bool
+    #: what the brain answered (ok, disabled, no-chip, wrong-slot, busy, chip-error, verify-fail), or server_disabled / unreachable / unknown
+    status: str
+    value: int = 0  # bytes written (erase) or the address that failed (self-test)
+
+
+async def hardware_fram_operation(conn, operation: str, typed_word: str = "") -> FramOperationResult:
+    """Real POST /api/hardware/fram/erase or /selftest (administrators only; off by default in the server). An erase sends the word the person typed and
+    never goes out unless it is exactly ERASE."""
+    if operation not in ("erase", "selftest"):
+        return FramOperationResult(reachable=True, ok=False, status="unknown")
+    if operation == "erase" and not fram_erase_word_matches(typed_word):
+        return FramOperationResult(reachable=True, ok=False, status="unknown")
+    body = {"confirm": FRAM_ERASE_WORD} if operation == "erase" else {}
+    result = await conn.canota_request("POST", f"/api/hardware/fram/{operation}", json_body=body, timeout=FRAM_TIMEOUT_S)
+    if result is None:
+        return FramOperationResult(reachable=False, ok=False, status="unreachable")
+    status, answer = result
+    answer = answer if isinstance(answer, dict) else {}
+    if status == 403 and answer.get("code") == "FRAM_ERASE_DISABLED":
+        return FramOperationResult(reachable=True, ok=False, status="server_disabled")
+    name = answer.get("status")
+    if not isinstance(name, str):
+        return FramOperationResult(reachable=True, ok=False, status="unreachable" if status in (503, 504) else "unknown")
+    value = answer.get("value")
+    return FramOperationResult(reachable=True, ok=answer.get("ok") is True, status=name, value=value if isinstance(value, int) and not isinstance(value, bool) else 0)
 
 
 def normalize_signature(text: str | None) -> str | None:

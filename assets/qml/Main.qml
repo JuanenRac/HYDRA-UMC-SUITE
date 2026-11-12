@@ -462,6 +462,35 @@ ApplicationWindow {
         }
     }
 
+    // The erase of the F-RAM asks for the word typed; the server and the bridge ask for it again.
+    Dialog {
+        id: framEraseDialog
+        objectName: "framEraseDialog"
+        anchors.centerIn: parent
+        modal: true
+        width: 420
+        title: suiteBackend.uiText("TITLE_FRAMOP_ERASE")
+        standardButtons: Dialog.Cancel
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.panelBorder }
+        contentItem: ColumnLayout {
+            spacing: 12
+            Text { text: suiteBackend.uiText("MSG_FRAMOP_ERASE_BODY").replace("{word}", suiteBackend.framEraseWord); color: window.textPrimary; wrapMode: Text.WordWrap; Layout.preferredWidth: 380 }
+            TextField {
+                id: framEraseWordField
+                objectName: "framEraseWordField"
+                Layout.fillWidth: true
+                placeholderText: suiteBackend.uiText("LBL_FRAMOP_ERASE_PLACEHOLDER").replace("{word}", suiteBackend.framEraseWord)
+            }
+            Button {
+                objectName: "framEraseConfirm"
+                text: suiteBackend.uiText("BTN_FRAMOP_ERASE_CONFIRM")
+                Layout.fillWidth: true
+                enabled: suiteBackend.framWordMatches(framEraseWordField.text)
+                onClicked: { var word = framEraseWordField.text; framEraseDialog.close(); suiteBackend.flasherFramErase(word) }
+            }
+        }
+    }
+
     // A Work with points out of reach that could be loaded scaled about the base of the robot asks first.
     Connections {
         target: suiteBackend
@@ -2131,11 +2160,51 @@ ApplicationWindow {
                         }
                         Text { text: suiteBackend.securityView.safetyPublishStopSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         Text { text: suiteBackend.uiText("LBL_SECURITY_STOP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: safetyFramBox
+                            objectName: "securitySafetyFramBox"
+                            visible: suiteBackend.securityView.safetyFramAvailable === true
+                            text: suiteBackend.uiText("LBL_SECURITY_FRAMOP")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.safetyFramEraseLocked
+                            checked: suiteBackend.securityView.safetyFramErase === true
+                        }
+                        Text { visible: suiteBackend.securityView.safetyFramAvailable === true; text: suiteBackend.securityView.safetyFramEraseSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { visible: suiteBackend.securityView.safetyFramAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_FRAMOP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            visible: suiteBackend.securityView.safetyEstopWatchAvailable === true
+                            spacing: 8
+                            Text { text: suiteBackend.uiText("LBL_SECURITY_ESTOP_WATCH"); color: window.textPrimary; font.pixelSize: window.fs(10) }
+                            TextField {
+                                id: safetyEstopWatchField
+                                objectName: "securitySafetyEstopWatchField"
+                                Layout.preferredWidth: 90
+                                text: suiteBackend.securityView.safetyEstopWatchText
+                                placeholderText: "0"
+                                enabled: !suiteBackend.securityView.safetyEstopWatchLocked
+                                inputMethodHints: Qt.ImhDigitsOnly
+                            }
+                        }
+                        Text { visible: suiteBackend.securityView.safetyEstopWatchAvailable === true; text: suiteBackend.securityView.safetyEstopWatchSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { visible: suiteBackend.securityView.safetyEstopWatchAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_ESTOP_WATCH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text {
+                            objectName: "securitySafetyEstopWatchInvalid"
+                            visible: suiteBackend.securityView.safetyEstopWatchAvailable === true && !suiteBackend.estopWatchTextValid(safetyEstopWatchField.text)
+                            text: suiteBackend.uiText("LBL_SECURITY_ESTOP_WATCH_INVALID"); color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        }
                         Button {
                             objectName: "securitySafetySave"
                             text: suiteBackend.uiText("BTN_SAVE")
-                            enabled: !suiteBackend.securityView.safetyPublishStopLocked
-                            onClicked: suiteBackend.saveSafetyOptions(safetyPublishBox.checked)
+                            enabled: (!suiteBackend.securityView.safetyPublishStopLocked || suiteBackend.securityView.safetyFramAvailable === true || suiteBackend.securityView.safetyEstopWatchAvailable === true) && suiteBackend.estopWatchTextValid(safetyEstopWatchField.text)
+                            onClicked: {
+                                var publish = safetyPublishBox.checked
+                                var fram = safetyFramBox.checked
+                                var watch = safetyEstopWatchField.text
+                                if (suiteBackend.safetyNeedsConfirmation(fram, watch))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_FRAMOP"), suiteBackend.uiText("MSG_SECURITY_FRAMOP_CONFIRM"), function() { suiteBackend.saveSafetyOptions(publish, fram, watch) })
+                                else
+                                    suiteBackend.saveSafetyOptions(publish, fram, watch)
+                            }
                         }
                     }
                     ColumnLayout {
@@ -5947,12 +6016,37 @@ ApplicationWindow {
                             }
                             RowLayout {
                                 spacing: 6
-                                CheckBox { id: eraseFramCheck; checked: suiteBackend.flasherEraseFram; onToggled: suiteBackend.setFlasherEraseFram(checked) }
+                                CheckBox { id: eraseFramCheck; enabled: suiteBackend.flasherEraseFramEnabled; checked: suiteBackend.flasherEraseFram; onToggled: suiteBackend.setFlasherEraseFram(checked) }
                                 Text {
                                     text: suiteBackend.uiText("LBL_ERASE_FRAM")
                                     color: window.muted
                                     MouseArea { anchors.fill: parent; onClicked: eraseFramCheck.toggle() }
                                 }
+                            }
+                            // The F-RAM of the kinematic brain: offered only when the version query said the server and the bridge have the operations on.
+                            ColumnLayout {
+                                objectName: "flasherFramPanel"
+                                visible: suiteBackend.flasherFramVisible
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Text { text: suiteBackend.uiText("TITLE_FRAMOP"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                                Text { visible: suiteBackend.flasherFramNote !== ""; text: suiteBackend.flasherFramNote; color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                                RowLayout {
+                                    spacing: 8
+                                    Button {
+                                        objectName: "flasherFramSelfTest"
+                                        text: suiteBackend.uiText("BTN_FRAMOP_SELFTEST")
+                                        enabled: suiteBackend.flasherFramReady
+                                        onClicked: suiteBackend.flasherFramSelfTest()
+                                    }
+                                    Button {
+                                        objectName: "flasherFramErase"
+                                        text: suiteBackend.uiText("BTN_FRAMOP_ERASE")
+                                        enabled: suiteBackend.flasherFramReady
+                                        onClicked: { framEraseWordField.text = ""; framEraseDialog.open() }
+                                    }
+                                }
+                                Text { visible: suiteBackend.flasherFramResult !== ""; text: suiteBackend.flasherFramResult; color: window.muted; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             }
                         }
                     }

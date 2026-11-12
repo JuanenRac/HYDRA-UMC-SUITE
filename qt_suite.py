@@ -48,6 +48,10 @@ from hydra_suite.can_ota import (
     crc32,
     download_github_firmware,
     fetch_github_firmware_releases,
+    hardware_fram_operation,
+    FramOperationResult,
+    fram_erase_word_matches,
+    FRAM_ERASE_WORD,
     hardware_query_version,
     flash_preflight,
     flash_signing_options,
@@ -639,6 +643,10 @@ class SuiteQtBridge(QObject):
         self._flasher_log: dict[str, list[dict]] = {k: [] for k in _FLASHER_TIERS}
         self._flasher_allow_downgrade: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
         self._flasher_erase_fram: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        # what the last version query said about the F-RAM operations (capabilities.fram_erase): None until a query was made
+        self._flasher_fram_supported: dict[str, bool | None] = {k: None for k in _FLASHER_TIERS}
+        self._flasher_fram_busy: dict[str, bool] = {k: False for k in _FLASHER_TIERS}
+        self._flasher_fram_result: dict[str, str] = {k: "" for k in _FLASHER_TIERS}
         controller.active_state_changed.connect(self._on_flasher_state_changed)
 
         # -- Tester: can_ota.py's mock_self_test()/mock_bus_monitor()/CanFrame/SelfTestStep and _category_for() of panel_logic/tester.py
@@ -4244,9 +4252,44 @@ class SuiteQtBridge(QObject):
             return
         asyncio.ensure_future(self._save_security(patch))
 
-    @Slot(bool)
-    def saveSafetyOptions(self, publish_global_stop: bool) -> None:
-        asyncio.ensure_future(self._save_security(server_security.safety_patch(publish_global_stop)))
+    @Slot(bool, bool, str, result=bool)
+    def safetyNeedsConfirmation(self, fram_erase: bool, estop_watch_text: str) -> bool:
+        body = self._safety_body(True, fram_erase, estop_watch_text)
+        state = self._security_state
+        if body is None or state is None or not state.get("safety") or "framErase" not in state["safety"]:
+            return False
+        new = body["safety"].get("framErase")
+        return new is not None and server_security.fram_erase_needs_confirmation(state["safety"]["framErase"]["value"], new)
+
+    def _safety_body(self, publish_global_stop: bool, fram_erase: bool, estop_watch_text: str) -> dict | None:
+        """The request for the safety block: only what the server reports and does not have fixed by its environment goes, and the F-RAM erase and the watch
+        only when they changed. None when nothing is left to send."""
+        state = self._security_state
+        safety = state.get("safety") if state else None
+        if not safety:
+            return None
+        publish = None if server_security.is_locked(safety["publishGlobalStop"]["source"]) else publish_global_stop
+        fram = None
+        if "framErase" in safety and not server_security.is_locked(safety["framErase"]["source"]) and bool(fram_erase) != safety["framErase"]["value"]:
+            fram = bool(fram_erase)
+        watch = None
+        if "estopWatchMs" in safety and not server_security.is_locked(safety["estopWatchMs"]["source"]):
+            parsed = server_security.parse_estop_watch_text(estop_watch_text)
+            if parsed is not None and parsed != safety["estopWatchMs"]["value"]:
+                watch = parsed
+        if publish is None and fram is None and watch is None:
+            return None
+        return server_security.safety_patch(publish, fram, watch)
+
+    @Slot(bool, bool, str)
+    def saveSafetyOptions(self, publish_global_stop: bool, fram_erase: bool = False, estop_watch_text: str = "") -> None:
+        body = self._safety_body(publish_global_stop, fram_erase, estop_watch_text)
+        if body is not None:
+            asyncio.ensure_future(self._save_security(body))
+
+    @Slot(str, result=bool)
+    def estopWatchTextValid(self, text: str) -> bool:
+        return server_security.parse_estop_watch_text(text) is not None
 
     @Slot(str, bool, result=bool)
     def mavlinkNeedsConfirmation(self, signing_key_file: str, allow_unsigned: bool) -> bool:
@@ -7149,6 +7192,8 @@ class SuiteQtBridge(QObject):
         key = self._flasher_active_key()
         if key is not None:
             self._flasher_tier[key] = tier
+            self._flasher_fram_supported[key] = None
+            self._flasher_fram_result[key] = ""
             self.changed.emit()
 
     @Property(bool, notify=changed)
@@ -7238,6 +7283,7 @@ class SuiteQtBridge(QObject):
         finally:
             self._flasher_query_busy[key] = False
             self.changed.emit()
+        self._flasher_fram_supported[key] = result.fram_erase_supported if (self._flasher_is_hardware and result.online) else None
         if not result.online:
             self._flasher_push_log(key, _("LBL_NO_RESPONSE"), "error")
             self.changed.emit()
@@ -7383,6 +7429,94 @@ class SuiteQtBridge(QObject):
             self._flasher_erase_fram[key] = value
 
     @Property(bool, notify=changed)
+    def flasherEraseFramEnabled(self) -> bool:
+        """The simulation honours the option as it always did; over the real bus it needs the announcement of the server and the kinematic brain as the target."""
+        key = self._flasher_active_key()
+        if key is None:
+            return False
+        if not self._flasher_is_hardware:
+            return True
+        return self._flasher_fram_supported.get(key) is True and self._flasher_tier.get(key) == "kinematicBrain"
+
+    @Property(bool, notify=changed)
+    def flasherFramVisible(self) -> bool:
+        key = self._flasher_active_key()
+        return key is not None and self._flasher_is_hardware and self._flasher_tier.get(key) == "kinematicBrain"
+
+    @Property(str, notify=changed)
+    def flasherFramNote(self) -> str:
+        key = self._flasher_active_key()
+        if key is None:
+            return ""
+        supported = self._flasher_fram_supported.get(key)
+        if supported is None:
+            return _("LBL_FRAMOP_UNKNOWN")
+        return "" if supported else _("LBL_FRAMOP_UNSUPPORTED")
+
+    @Property(bool, notify=changed)
+    def flasherFramReady(self) -> bool:
+        key = self._flasher_active_key()
+        return key is not None and self._flasher_fram_supported.get(key) is True and not self._flasher_fram_busy.get(key, False) and not self._flasher_flashing.get(key, False)
+
+    @Property(bool, notify=changed)
+    def flasherFramBusy(self) -> bool:
+        key = self._flasher_active_key()
+        return bool(key) and self._flasher_fram_busy.get(key, False)
+
+    @Property(str, notify=changed)
+    def flasherFramResult(self) -> str:
+        key = self._flasher_active_key()
+        return self._flasher_fram_result.get(key, "") if key else ""
+
+    @Property(str, constant=True)
+    def framEraseWord(self) -> str:
+        return FRAM_ERASE_WORD
+
+    @Slot(str, result=bool)
+    def framWordMatches(self, typed: str) -> bool:
+        return fram_erase_word_matches(typed)
+
+    @Slot()
+    def flasherFramSelfTest(self) -> None:
+        key = self._flasher_active_key()
+        if key is not None and self.flasherFramReady:
+            asyncio.ensure_future(self._run_fram(key, "selftest"))
+
+    @Slot(str)
+    def flasherFramErase(self, typed_word: str) -> None:
+        key = self._flasher_active_key()
+        if key is not None and self.flasherFramReady and fram_erase_word_matches(typed_word):
+            asyncio.ensure_future(self._run_fram(key, "erase", typed_word))
+
+    @staticmethod
+    def _fram_status_text(status: str) -> str:
+        text_key = "FRAMOP_STATUS_" + status.upper().replace("-", "_")
+        text = _(text_key)
+        return text if text != text_key else _("FRAMOP_STATUS_UNKNOWN")
+
+    def _fram_result_text(self, operation: str, result: FramOperationResult) -> str:
+        if result.ok:
+            return _("MSG_FRAMOP_RESULT_ERASE_OK", value=result.value) if operation == "erase" else _("MSG_FRAMOP_RESULT_SELFTEST_OK")
+        return _("MSG_FRAMOP_RESULT_FAILED", operation=_("FRAMOP_OPERATION_" + operation.upper()), status=self._fram_status_text(result.status))
+
+    async def _run_fram(self, key: str, operation: str, typed_word: str = "") -> None:
+        self._flasher_fram_busy[key] = True
+        self._flasher_fram_result[key] = _("LBL_FRAMOP_BUSY")
+        self.changed.emit()
+        try:
+            conn = self._controller.active_connection
+            if conn is None:
+                result = FramOperationResult(reachable=False, ok=False, status="unreachable")
+            else:
+                result = await hardware_fram_operation(conn, operation, typed_word)
+        finally:
+            self._flasher_fram_busy[key] = False
+        text = self._fram_result_text(operation, result)
+        self._flasher_fram_result[key] = text
+        self._flasher_push_log(key, text, "ok" if result.ok else "error")
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
     def flasherFlashing(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_flashing.get(key, False) if key else False
@@ -7403,7 +7537,10 @@ class SuiteQtBridge(QObject):
         robot = self._flasher_current_robot(key)
         ctrl = self._flasher_controller.get(key)
         robot_label = robot.model if robot is not None else (ctrl.name if ctrl is not None else "")
-        return _("MSG_CONFIRM_FLASH", target=_(_TIER_LABEL_KEYS[self._flasher_tier[key]]), robot=robot_label)
+        message = _("MSG_CONFIRM_FLASH", target=_(_TIER_LABEL_KEYS[self._flasher_tier[key]]), robot=robot_label)
+        if self._flasher_is_hardware and self._flasher_erase_fram.get(key, False):
+            message += " " + _("MSG_CONFIRM_FLASH_ERASE")
+        return message
 
     @Property(str, notify=changed)
     def flasherProgressLabel(self) -> str:
@@ -7461,6 +7598,7 @@ class SuiteQtBridge(QObject):
                 refusal = flash_preflight(
                     file.get("hardware_id"), file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"),
                     self._flasher_allow_downgrade.get(key, False), self._flasher_erase_fram.get(key, False),
+                    self._flasher_fram_supported.get(key) is True, self._flasher_tier.get(key),
                 )
                 if refusal:
                     self._flasher_push_log(key, _("FLASHER_PREFLIGHT_" + refusal.upper()), "error")
@@ -7506,6 +7644,11 @@ class SuiteQtBridge(QObject):
                     self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_DONE"), "percent": 100}
                     self._flasher_push_log(key, _("LBL_FLASH_DONE"), "ok")
                     self._flasher_apply_patch(key, {"firmwareVersion": file.get("version_tag") or file["name"].removesuffix(".bin")})
+                    if self._flasher_erase_fram.get(key, False):
+                        # the person ticked the erase and confirmed the flash, whose dialog says it: the word is the one the server and the bridge ask for
+                        self._flasher_push_log(key, _("LOG_FRAMOP_AFTER_FLASH"))
+                        erased = await hardware_fram_operation(conn, "erase", FRAM_ERASE_WORD)
+                        self._flasher_push_log(key, self._fram_result_text("erase", erased), "ok" if erased.ok else "error")
                 else:
                     self._flasher_push_log(key, f"{_('LBL_FLASH_HARDWARE_FAILED')}: {result.reason}", "error")
                 return

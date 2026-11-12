@@ -27,12 +27,16 @@ from hydra_suite.can_ota import (
 )
 
 
+async def _none():
+    return None
+
+
 def _run() -> None:
     # --- pure helpers --------------------------------------------------
     assert slot_label(0) == "A1"
     assert slot_label(7) == "A8"
     assert slot_base_id(0) == 0x600
-    assert slot_base_id(1) == 0x620
+    assert slot_base_id(1) == 0x640 and slot_base_id(7) == 0x7C0  # the window of a slot is 64 identifiers wide
 
     assert hop_count("kinematicBrain") == 0
     assert hop_count("controllerBoard") == 1
@@ -221,6 +225,62 @@ def _run() -> None:
     assert flash_preflight("0x1", "v1.2.4", "1.2.3", False, False) is None
     assert flash_preflight("0x1", "v1.2.3", "unreadable", False, False) is None  # an unreadable installed version cannot show a downgrade
     print("preflight of the flash over the real bus: PASS")
+
+    # --- the F-RAM of the kinematic brain: the announcement, the preflight and the operations ------------
+    from hydra_suite.can_ota import FRAM_ERASE_WORD, fram_erase_word_matches, hardware_fram_operation, hardware_query_version
+
+    assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, True) == "fram_erase_unsupported"
+    assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, True, False, "kinematicBrain") == "fram_erase_unsupported"
+    assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, True, True) is None
+    assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, True, True, "kinematicBrain") is None
+    for other in ("controllerBoard", "urtcHead", "urtcExpansion"):
+        assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, True, True, other) == "fram_erase_wrong_tier"
+    assert flash_preflight("0x1", "v1.2.3", "1.2.3", False, False, False, "controllerBoard") is None  # no erase asked for: nothing to refuse
+    assert flash_preflight(None, "v1.2.3", "1.2.3", False, True, True) == "no_hardware_id"  # the image is checked first
+    assert flash_preflight("0x1", "v1.2.2", "1.2.3", False, True, True) == "downgrade_blocked"
+
+    assert FRAM_ERASE_WORD == "ERASE" and fram_erase_word_matches("ERASE") and fram_erase_word_matches("  ERASE ")
+    for typed in ("", "erase", "Erase", "ERAS", "ERASEE", "ERASE ME", "E R A S E", None):
+        assert not fram_erase_word_matches(typed), typed
+
+    class _Answering:
+        def __init__(self, status, body):
+            self.status, self.body, self.calls = status, body, []
+
+        async def canota_request(self, method, path, params=None, data=None, json_body=None, timeout=None):
+            self.calls.append((method, path, params, data, json_body))
+            return self.status, self.body
+
+    version_board = {"online": True, "firmware_major": 0, "firmware_minor": 1, "hardware_id": 1}
+    for capabilities, expected in (({"fram_erase": True}, True), ({"fram_erase": False}, False), ({}, False), (None, False), ({"fram_erase": "true"}, False), ({"fram_erase": 1}, False)):
+        body = dict(version_board)
+        if capabilities is not None:
+            body["capabilities"] = capabilities
+        queried = asyncio.run(hardware_query_version(_Answering(200, body), CanOtaTarget("Cell", "kinematicBrain")))
+        assert queried.online and queried.fram_erase_supported is expected, capabilities
+
+    conn = _Answering(200, {"operation": "erase", "status": "ok", "ok": True, "board_id": 0, "value": 8192})
+    done = asyncio.run(hardware_fram_operation(conn, "erase", "ERASE"))
+    assert (done.reachable, done.ok, done.status, done.value) == (True, True, "ok", 8192)
+    assert conn.calls == [("POST", "/api/hardware/fram/erase", None, None, {"confirm": "ERASE"})]
+    for typed in ("", "erase", "ERAS"):
+        silent = _Answering(200, {"status": "ok", "ok": True})
+        refused = asyncio.run(hardware_fram_operation(silent, "erase", typed))
+        assert not refused.ok and silent.calls == [], typed  # an erase never goes out unless the word was typed
+    test = _Answering(200, {"operation": "selftest", "status": "ok", "ok": True, "value": 0})
+    assert asyncio.run(hardware_fram_operation(test, "selftest")).ok and test.calls[0][4] == {}
+    assert not asyncio.run(hardware_fram_operation(test, "format")).ok and len(test.calls) == 1
+    for name in ("disabled", "no-chip", "chip-error", "verify-fail"):
+        answered = asyncio.run(hardware_fram_operation(_Answering(200, {"status": name, "ok": False, "value": 7}), "erase", "ERASE"))
+        assert (answered.reachable, answered.ok, answered.status, answered.value) == (True, False, name, 7)
+    assert asyncio.run(hardware_fram_operation(_Answering(403, {"code": "FRAM_ERASE_DISABLED"}), "selftest")).status == "server_disabled"
+    assert asyncio.run(hardware_fram_operation(_Answering(503, {"error": "x"}), "selftest")).status == "unreachable"
+    assert asyncio.run(hardware_fram_operation(_Answering(504, {"error": "x"}), "selftest")).status == "unreachable"
+    assert asyncio.run(hardware_fram_operation(_Answering(500, {}), "selftest")).status == "unknown"
+    assert asyncio.run(hardware_fram_operation(_Answering(200, {"status": "ok", "ok": "yes", "value": True}), "selftest")).ok is False
+    lost = asyncio.run(hardware_fram_operation(type("Lost", (), {"canota_request": staticmethod(lambda *a, **k: _none())})(), "selftest"))
+    assert (lost.reachable, lost.ok, lost.status) == (False, False, "unreachable")
+    print("F-RAM operations of the kinematic brain: PASS")
 
     print("ALL VERIFY_CAN_OTA CHECKS PASSED")
 

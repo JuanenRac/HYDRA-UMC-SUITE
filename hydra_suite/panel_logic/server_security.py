@@ -342,6 +342,13 @@ def parse_state(body: object) -> dict | None:
         publish = _option(safety.get("publishGlobalStop"), bool)
         if publish is not None:
             state["safety"] = {"publishGlobalStop": publish}
+            # absent on a server that predates them: shown only when the server reports them
+            fram_erase = _option(safety.get("framErase"), bool)
+            if fram_erase is not None:
+                state["safety"]["framErase"] = fram_erase
+            watch = _option(safety.get("estopWatchMs"), int)
+            if watch is not None and valid_estop_watch_ms(watch["value"]):
+                state["safety"]["estopWatchMs"] = watch
     job_dispatcher = _job_dispatcher(body.get("jobDispatcher"))
     if job_dispatcher is not None:
         state["jobDispatcher"] = job_dispatcher
@@ -608,9 +615,41 @@ def job_dispatcher_needs_confirmation(current: dict, patch: dict) -> bool:
     return bool(relay_on or unconfirmed)
 
 
-def safety_patch(publish_global_stop: bool) -> dict:
-    """The request body for the option that announces a global stop on the MQTT bridge (off by default; announcing a stop never asks)."""
-    return {"safety": {"publishGlobalStop": bool(publish_global_stop)}}
+def valid_estop_watch_ms(value: object) -> bool:
+    """0 (the watch is off) or a whole number of milliseconds from 500 to 60000: what the server accepts for the interval of the emergency stop watch."""
+    return isinstance(value, int) and not isinstance(value, bool) and (value == 0 or 500 <= value <= 60000)
+
+
+def parse_estop_watch_text(text: str) -> int | None:
+    """The interval typed in the box as a number the server accepts ("" is 0, the watch off), or None when the text is not one."""
+    trimmed = (text or "").strip()
+    if trimmed == "":
+        return 0
+    if not (trimmed.isascii() and trimmed.isdigit()):
+        return None
+    value = int(trimmed)
+    return value if valid_estop_watch_ms(value) else None
+
+
+def safety_patch(publish_global_stop: bool | None, fram_erase: bool | None = None, estop_watch_ms: int | None = None) -> dict:
+    """The request body for the options of the safety block: the announcement of a global stop on the MQTT bridge (off by default; announcing a stop never
+    asks) and, only when given, the F-RAM erase of the kinematic brain (off by default; turning it on carries the confirmation the server asks for) and the
+    interval of the emergency stop watch. None leaves the announcement out: a server that has it fixed by its environment refuses a request that names it."""
+    safety: dict = {}
+    if publish_global_stop is not None:
+        safety["publishGlobalStop"] = bool(publish_global_stop)
+    if fram_erase is not None:
+        safety["framErase"] = bool(fram_erase)
+        if fram_erase:
+            safety["confirm"] = True
+    if estop_watch_ms is not None:
+        safety["estopWatchMs"] = int(estop_watch_ms)
+    return {"safety": safety}
+
+
+def fram_erase_needs_confirmation(current: bool, new: bool) -> bool:
+    """Offering the erase of the F-RAM asks first; switching it off never does."""
+    return bool(new) and not current
 
 
 def production_patch(on: bool) -> dict:
@@ -881,6 +920,8 @@ EMPTY_VIEW: dict = {
     "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
+    "safetyFramAvailable": False, "safetyFramErase": False, "safetyFramEraseLocked": False, "safetyFramEraseSource": "",
+    "safetyEstopWatchAvailable": False, "safetyEstopWatchText": "", "safetyEstopWatchLocked": False, "safetyEstopWatchSource": "",
     "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
     "jdReplanEditable": False, "jdReplanNote": "",
     "productionAvailable": False, "productionRdp": False, "productionRdpLocked": False, "productionRdpSource": "",
@@ -1087,6 +1128,24 @@ def view(state: dict | None) -> dict:
                 "safetyPublishStopSource": source_text(safety["publishGlobalStop"]["source"]),
             }
         )
+        if "framErase" in safety:
+            out.update(
+                {
+                    "safetyFramAvailable": True,
+                    "safetyFramErase": safety["framErase"]["value"],
+                    "safetyFramEraseLocked": is_locked(safety["framErase"]["source"]),
+                    "safetyFramEraseSource": source_text(safety["framErase"]["source"]),
+                }
+            )
+        if "estopWatchMs" in safety:
+            out.update(
+                {
+                    "safetyEstopWatchAvailable": True,
+                    "safetyEstopWatchText": str(safety["estopWatchMs"]["value"]) if safety["estopWatchMs"]["value"] else "",
+                    "safetyEstopWatchLocked": is_locked(safety["estopWatchMs"]["source"]),
+                    "safetyEstopWatchSource": source_text(safety["estopWatchMs"]["source"]),
+                }
+            )
     job_dispatcher = state.get("jobDispatcher")
     if job_dispatcher is not None:
         out.update(
