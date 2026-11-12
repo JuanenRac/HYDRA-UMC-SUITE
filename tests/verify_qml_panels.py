@@ -393,9 +393,18 @@ def main():
     async def fetch_refused():
         return 401, {"error": "Authentication required"}
 
+    # Nothing of the earlier reads may still be in flight when the answer is swapped, and the check waits for this read to end
+    # (a fixed number of rounds was too short on a slow runner: an earlier read that found no server wrote its sentence last).
+    for _round in range(200):
+        settle(loop, 2)
+        if not bridge.modelsBusy:
+            break
     conn.fetch_submitted_models = fetch_refused
     bridge.refreshModels()
-    settle(loop, 6)
+    for _round in range(200):
+        settle(loop, 2)
+        if not bridge.modelsBusy and bridge.modelsError:
+            break
     check("models: a server that asks for a sign-in says so and lists nothing", (bridge.modelsError, bridge.modelsRows), (_("MODELS_ERROR_LOGIN"), []))
 
     async def fetch_dead():
