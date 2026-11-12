@@ -196,6 +196,11 @@ def is_settings_tree(data: object) -> bool:
     return True
 
 
+def _listen_only_refusal(method: str, url: str) -> "httpx.Response":
+    """The answer of a write that listen-only mode refused: a 423 that never left the program."""
+    return httpx.Response(423, json={"error": "listen only", "code": "listen-only"}, request=httpx.Request(method, url))
+
+
 def _body_code(resp: "httpx.Response") -> str | None:
     try:
         body = resp.json()
@@ -553,6 +558,9 @@ class HydraConnection(QObject):
         if used:
             request_headers["Authorization"] = f"Bearer {used}"
         url = f"{self.info.base_url}{path}"
+        # Listen only refuses every write but STOP and the session before it leaves the program.
+        if access.LISTEN_ONLY.enabled and not access.listen_only_allows(method, path, kwargs.get("json")):
+            return _listen_only_refusal(method, url)
         async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
             resp = await client.request(method, url, headers=request_headers, timeout=timeout, **kwargs)
         if used and (resp.status_code == 401 or (resp.status_code == 403 and _body_code(resp) in _RENEWABLE_TOKEN_CODES)):
@@ -1483,6 +1491,8 @@ class HydraConnection(QObject):
         renew the session and repeat itself on a 401: a wrong password or code is an answer here, and sending it twice would
         count twice against the server's wait. Status 0 means the server could not be reached."""
         headers = self.session.auth_headers()
+        if access.LISTEN_ONLY.enabled and not access.listen_only_allows(method, path, body):
+            return 423, {"error": "listen only", "code": "listen-only"}, None
         try:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
                 resp = await client.request(method, f"{self.info.base_url}{path}", headers=headers, json=body, timeout=5.0)

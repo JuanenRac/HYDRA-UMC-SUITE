@@ -205,6 +205,20 @@ def listen_only():
     check("listen only: a damaged value leaves it off", [access.ListenOnlyState.from_config(c).enabled for c in (None, {}, {"listenOnly": "yes"}, {"listenOnly": 1}, {"listenOnly": False})], [False] * 5)
     state.set(False)
     check("listen only: turned off blocks nothing again", state.blocks("jog"), False)
+    allows = access.listen_only_allows
+    check("listen only door: reads, STOP and the session go through", [
+        allows("GET", "/api/settings"), allows("HEAD", "/api/settings"), allows("POST", "/api/stop-all"),
+        allows("POST", "/api/robot/3/command", {"command": "stop"}), allows("POST", "/api/robot/3/command", {"command": "disable"}),
+        allows("POST", "/api/login"), allows("POST", "/api/refresh"), allows("POST", "/api/logout"), allows("POST", "/api/device/login"),
+    ], [True] * 9)
+    refused = [
+        ("POST", "/api/settings", {}), ("PUT", "/api/settings", {}), ("POST", "/api/system/reboot", {}), ("DELETE", "/api/users/bob", None),
+        ("PUT", "/api/users/bob", {}), ("POST", "/api/camera/1/recording/start", {}), ("POST", "/api/ecosystem/services/x/restart", {}),
+        ("POST", "/api/totp/disable", {}), ("PUT", "/api/admin/safety-limits", {}), ("POST", "/api/robot/3/command", {"command": "jog"}),
+        ("POST", "/api/robot/3/command", {"command": "play"}), ("POST", "/api/robot/3/command", None), ("POST", "/api/robot/3/command", "stop"),
+        ("POST", "/elsewhere", {}),
+    ]
+    check("listen only door: every other write is refused", [allows(m, p, b) for m, p, b in refused], [False] * len(refused))
 
 
 def joints():

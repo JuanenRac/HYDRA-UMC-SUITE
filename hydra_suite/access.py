@@ -637,6 +637,27 @@ class ListenOnlyState:
 #: The listen-only choice of this program, loaded from the configuration at start.
 LISTEN_ONLY = ListenOnlyState()
 
+_LISTEN_ONLY_SESSION = frozenset({"login", "refresh", "logout"})
+
+
+def listen_only_allows(method: str, path: str, body: object = None) -> bool:
+    """Whether a request may leave the program in listen-only mode: a read, STOP (the global one and a robot command that
+    is stop or disable) and the sign-in, the renewal and the end of the session. Every other write to the server
+    (settings, services, cameras, users, files) is refused. The path is read by its segments."""
+    if method.upper() in ("GET", "HEAD"):
+        return True
+    parts = [p for p in path.split("?")[0].split("/") if p]
+    if not parts or parts[0] != "api":
+        return False
+    rest = parts[1:]
+    if len(rest) == 1 and (rest[0] in _LISTEN_ONLY_SESSION or rest[0] == "stop-all"):
+        return True
+    if len(rest) == 2 and rest == ["device", "login"]:
+        return True
+    if len(rest) == 3 and rest[0] == "robot" and rest[2] == "command":
+        return isinstance(body, dict) and body.get("command") in LISTEN_ONLY_ALLOWED
+    return False
+
 
 # --- conditional writes (contract v2, block 2) ---------------------------------------------------------------
 #
