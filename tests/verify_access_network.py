@@ -160,6 +160,20 @@ async def run(port):
     check("sim: another robot is not affected", commands()[-1][0], "/api/robot/2/command")
     access.MODES.modes.clear()
 
+    # --- listen only: nothing leaves but the stops ---
+    access.LISTEN_ONLY.set(True)
+    messages.clear()
+    reset()
+    for command in ("jog", "play", "pause", "enable", "speed", "vision"):
+        await conn.send_command(1, command, {"axis": "x", "amount": 1})
+    check("listen only: six commands, no request", commands(), [])
+    check("listen only: each one is said to the operator", len(messages), 6)
+    check("listen only: with its own sentence", messages[0], _("MSG_NET_LISTEN_ONLY_BLOCKED", command="jog", robot=1))
+    await conn.send_command(1, "stop", {})
+    await conn.send_command(1, "disable", {})
+    check("listen only: STOP and the safe-mode disable still go out", [b["command"] for p, b in commands()], ["stop", "disable"])
+    access.LISTEN_ONLY.set(False)
+
     # --- a jog above the limit of its model ---
     conn.safety = access.parse_safety_limits({"limits": {"jog": {"default": {"maxAmount": 100, "maxAbsolute": 1000}, "models": {"parol6": {"maxAmount": 20}}}}})
     reset()

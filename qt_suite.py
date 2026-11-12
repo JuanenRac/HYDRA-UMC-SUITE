@@ -1314,6 +1314,16 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
 
     @Property(bool, notify=changed)
+    def listenOnly(self) -> bool:
+        return access.LISTEN_ONLY.enabled
+
+    @Slot(bool)
+    def setListenOnly(self, on: bool) -> None:
+        access.LISTEN_ONLY.set(on)
+        save_config(access.LISTEN_ONLY.to_config())
+        self.changed.emit()
+
+    @Property(bool, notify=changed)
     def defaultRobotModeSim(self) -> bool:
         return access.MODES.default_mode == "sim"
 
@@ -8284,6 +8294,7 @@ def run_qtquick() -> int:
     loaded_modes = access.ModeState.from_config(load_config())
     access.MODES.modes.update(loaded_modes.modes)
     access.MODES.default_mode = loaded_modes.default_mode
+    access.LISTEN_ONLY.set(access.ListenOnlyState.from_config(load_config()).enabled)
     credential_store = CredentialStore(keyring_backend(), load_config, save_config)
     catalog_frame_provider = ViewportFrameProvider()
     frame_provider = CameraFrameProvider()

@@ -606,6 +606,38 @@ class ModeState:
 MODES = ModeState()
 
 
+# --- Listen only -------------------------------------------------------------------------------------------------
+
+#: What still goes out in listen-only mode: STOP, and the safe-mode disable (refusing a stop would be the unsafe side).
+LISTEN_ONLY_ALLOWED = frozenset({"stop", "disable"})
+
+
+@dataclass
+class ListenOnlyState:
+    """The listen-only switch of this program: one choice for every server and robot, off by default. While it is
+    on the program shows the robots and their data and sends no command but STOP and the safe-mode disable."""
+
+    enabled: bool = False
+
+    def blocks(self, command: str) -> bool:
+        return self.enabled and command not in LISTEN_ONLY_ALLOWED
+
+    def set(self, on: bool) -> None:
+        self.enabled = bool(on)
+
+    def to_config(self) -> dict:
+        return {"listenOnly": self.enabled}
+
+    @classmethod
+    def from_config(cls, config: object) -> "ListenOnlyState":
+        # Only a real true switches it on: a damaged value leaves the program as it was before the option existed.
+        return cls(enabled=isinstance(config, dict) and config.get("listenOnly") is True)
+
+
+#: The listen-only choice of this program, loaded from the configuration at start.
+LISTEN_ONLY = ListenOnlyState()
+
+
 # --- conditional writes (contract v2, block 2) ---------------------------------------------------------------
 #
 # The server gives every robot a revision (GET /api/robot/:id, and every answer of a command, a reservation or a

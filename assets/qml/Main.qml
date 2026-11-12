@@ -996,6 +996,20 @@ ApplicationWindow {
                             }
                         }
                         CheckBox {
+                            objectName: "listenOnlyCheck"
+                            text: suiteBackend.uiText("ACCESS_LISTEN_ONLY")
+                            checked: suiteBackend.listenOnly
+                            palette.windowText: window.muted
+                            onToggled: suiteBackend.setListenOnly(checked)
+                        }
+                        Text {
+                            visible: suiteBackend.listenOnly
+                            text: suiteBackend.uiText("ACCESS_LISTEN_ONLY_NOTICE")
+                            color: window.amber
+                            font.bold: true
+                            font.pixelSize: window.fs(11)
+                        }
+                        CheckBox {
                             text: suiteBackend.uiText("ACCESS_DEFAULT_SIM")
                             checked: suiteBackend.defaultRobotModeSim
                             palette.windowText: window.muted

@@ -1192,6 +1192,10 @@ class HydraConnection(QObject):
         # above the limit of its model is not sent: both are refused here, before any local change or
         # network traffic, and the operator is told why.
         scope = f"{self.info.host}:{self.info.port}"
+        # Listen-only mode sends nothing but STOP and the safe-mode disable, whatever the robot's mode.
+        if access.LISTEN_ONLY.blocks(command):
+            self.error.emit(_("MSG_NET_LISTEN_ONLY_BLOCKED", command=command, robot=robot_id))
+            return
         if access.MODES.blocked(scope, [robot_id], command):
             self.error.emit(_("MSG_NET_SIM_BLOCKED", command=command, robot=robot_id))
             return

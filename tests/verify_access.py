@@ -193,6 +193,20 @@ def live_sim():
     check("sim: damaged configuration", (access.ModeState.from_config(None).modes, access.ModeState.from_config({"robotModes": {"x": "sim", "s#1": "fast", "s#2": "sim"}}).modes), ({}, {"s#2": "sim"}))
 
 
+def listen_only():
+    state = access.ListenOnlyState()
+    check("listen only: off by default and blocks nothing", (state.enabled, state.blocks("jog"), state.blocks("play")), (False, False, False))
+    state.set(True)
+    moving = ("jog", "play", "pause", "reset", "tool", "valve", "pump", "trajectory", "speed", "table", "enable", "vision", "jogStep")
+    check("listen only: blocks every command but the stops", [state.blocks(c) for c in moving], [True] * len(moving))
+    check("listen only: STOP and the safe-mode disable still go out", [state.blocks(c) for c in ("stop", "disable")], [False, False])
+    restored = access.ListenOnlyState.from_config(state.to_config())
+    check("listen only: kept and restored", restored.enabled, True)
+    check("listen only: a damaged value leaves it off", [access.ListenOnlyState.from_config(c).enabled for c in (None, {}, {"listenOnly": "yes"}, {"listenOnly": 1}, {"listenOnly": False})], [False] * 5)
+    state.set(False)
+    check("listen only: turned off blocks nothing again", state.blocks("jog"), False)
+
+
 def joints():
     check("joints: a model with a published range", joint_range_deg("Parol6 (6-DOF)", "j1"), (-97.4, 187.4))
     check("joints: another", joint_range_deg("UR3e (6-DOF)", "j3"), (-180.0, 180.0))
@@ -211,6 +225,7 @@ def main():
     form()
     warnings()
     live_sim()
+    listen_only()
     joints()
     print("FAILURES:", failures)
     return 1 if failures else 0

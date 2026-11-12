@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Listen-only mode (off by default):** a check box in the access panel makes the program show the robots and their data without sending any command. While it is on, every command is refused before it leaves (jog, speed, PLAY, PAUSE, tools, valves, pumps, trajectories, the enable of a robot and the rest) and the operator is told so in their language; only STOP and the safe-mode disable still go out, because refusing a stop would be the unsafe side. The choice is one for all servers and robots, is kept in the configuration and a damaged value leaves it off. Texts in the eight languages; 2 verifiers extended.
+
 - **Enabling the XY table writes its layout at once:** the table of a robot has the 300 mm layout from the first click, so the size fields and the jog answer without pressing Reset first, as in STUDIO. Comments that narrated old defects or pointed at STUDIO source lines were rewritten as plain descriptions.
 
 - **The kinematic table is the document of the SDK, and the F-RAM routes are checked against the pinned contract:** `assets/kinematic_data.json` is now byte for byte `contracts/kinematics.json` of the SDK (`tests/verify_kinematic_data.py` compares both when the SDK is next to this repository or in `HYDRA_UMC_SDK_DIR` and reads its `schema_version`), the continuous integration is pinned to the SDK tag that carries the F-RAM routes and that document, and the exemption the route test kept for `/api/hardware/fram/*` is gone.
