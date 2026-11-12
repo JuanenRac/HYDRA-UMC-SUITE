@@ -38,7 +38,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| Versione | `0.8.0.3` |
+| Versione | `0.8.0.4` |
 | Maturità | Funzionale |
 | Test | 69 (`python tools/run_offline_verifiers.py`) |
 | Tecnologia | Python 3.12 / PySide6 |

@@ -1,8 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.8.0.4] - A setting for what the Live Activity of a robot shows on the lock screen, in Server Admin, in eight languages: the card is off by default and shows only the state of the robot; an administrator can raise it to the state and the progress, or to the whole panel
 
 - **A setting for what the Live Activity of a robot shows on the lock screen, in Server Admin, in eight languages:** the card is off by default and shows only the state of the robot; an administrator can raise it to the state and the progress, or to the whole panel (the most there is), and the server applies the level before anything leaves it. Turning the card on or raising the level asks for a confirmation that says what the lock screen will show; lowering it or turning it off never asks. No level above the one the server allows is offered, a value fixed by the environment is locked, push being off is said, and the setting stays hidden on a server that predates it.
 

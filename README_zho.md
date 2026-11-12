@@ -38,7 +38,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| 版本 | `0.8.0.3` |
+| 版本 | `0.8.0.4` |
 | 成熟度 | 可用 |
 | 测试 | 69 (`python tools/run_offline_verifiers.py`) |
 | 技术栈 | Python 3.12 / PySide6 |
