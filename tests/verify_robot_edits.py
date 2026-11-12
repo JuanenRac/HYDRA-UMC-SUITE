@@ -81,7 +81,8 @@ def screen() -> None:
     bridge._xy_robots_cache = list(conn.state.active_controller.robots)
     bridge._xy_selected_robot_id = "1"
     bridge.enableXyTable()
-    check("screen: enabling the table sends the command and not the tree", (sent, pushed), ([("1", "xyTableConfig", {"enabled": True})], []))
+    check("screen: enabling the table sends the flag with its layout as one command and not the tree", (sent, pushed), ([("1", "xyTableConfig", {"enabled": True, "tableSize": {"width": 300, "length": 300}, "worldPos": {"x": 0, "y": 0}, "worldRot": 0, "renderScale": 1})], []))
+    check("screen: the table has its layout and position at once", conn.state.active_controller.robot_by_id("1").xy_table["pos"], {"x": 0, "y": 0})
     check("screen: and the table shows as enabled at once", conn.state.active_controller.robot_by_id("1").has_xy_table, True)
 
     sent.clear()

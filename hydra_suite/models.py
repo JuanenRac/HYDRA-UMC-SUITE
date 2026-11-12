@@ -134,7 +134,7 @@ class RobotView:
         # "Infinity"/"-Infinity" into float('nan')/inf by default - that's
         # valid Python-flavored JSON, not a parse error), or a value already
         # sitting in a swarm this app connected to mid-corruption. Silently
-        # forwarding it further downstream is the real bug this guards
+        # forwarding it further downstream is what this guards
         # against: RotaryKnob.setValue() happens to clamp NaN/Inf away via
         # Python's own min()/max() NaN semantics, but JointRow.set_value()'s
         # own `int(value * SLIDER_SCALE)` does NOT - int() raises ValueError
@@ -410,8 +410,7 @@ def ip_stream_labels(paths: list[str] | None) -> tuple[str, ...]:
         return ("IP Vision Camera Main Stream", "IP Vision Camera Sub Stream")
     return ("IP Vision Camera Main Stream", *(f"IP Vision Camera Sub Stream {i}" for i in range(1, count)))
 
-# Matches HYDRA-UMC-STUDIO's own store.tsx RTSP_DEFAULT_PORT (real port
-# 554 - the RTSP/RFC 2326 standard) - see CameraView.rtsp_port below for
+# The standard RTSP port (554, RFC 2326); see CameraView.rtsp_port below for
 # why "unset" reads as this, not 0.
 RTSP_DEFAULT_PORT = 554
 

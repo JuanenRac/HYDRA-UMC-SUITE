@@ -5094,9 +5094,18 @@ class SuiteQtBridge(QObject):
         robot = self._xy_selected_robot()
         if robot is None:
             return
-        # Matches XYTableConfig.tsx's own handleAddTable() exactly: only
-        # the flag, no xyTable block yet (panel_logic/xy_table.py says why).
-        self._edit_robot(robot, {"hasXYTable": True}, lambda r: r.set_has_xy_table(True))
+        # Enabling the table also writes the layout it needs when the robot has none, so the size fields and the jog work at once.
+        if robot.xy_table:
+            self._edit_robot(robot, {"hasXYTable": True}, lambda r: r.set_has_xy_table(True))
+        else:
+            default_table = _default_xy_table()
+            layout = {name: value for name, value in default_table.items() if name != "pos"}  # the position travels with the table command
+
+            def _enable(r) -> None:
+                r.set_has_xy_table(True)
+                r.set_xy_table(copy.deepcopy(default_table))
+
+            self._edit_robot(robot, {"hasXYTable": True, "xyTable": layout}, _enable)
         self.changed.emit()
 
     @Slot()
@@ -5123,7 +5132,7 @@ class SuiteQtBridge(QObject):
             return
         table = robot.xy_table
         if not table:
-            return  # matches XYTableConfig.tsx's own handleSizeChange() no-op guard
+            return  # no layout yet: nothing to resize
         resized = copy.deepcopy(table)
         resized["tableSize"]["width"] = value
         self._edit_robot(robot, {"xyTable": resized}, lambda r: r.set_xy_table(copy.deepcopy(resized)))
@@ -5149,7 +5158,7 @@ class SuiteQtBridge(QObject):
             return
         table = robot.xy_table
         if not table:
-            return  # matches XYTableConfig.tsx's own handleJog() no-op guard
+            return  # no layout yet: nothing to jog
         new_value = table["pos"][axis] + direction * self._xy_jog_step_mm
         bound = table["tableSize"]["width" if axis == "x" else "length"]
         new_value = max(0.0, min(new_value, float(bound)))
@@ -5289,7 +5298,6 @@ class SuiteQtBridge(QObject):
 
     @Slot()
     def resetRackSystem(self) -> None:
-        # Matches RackConfigView.tsx's own real handleReset() exactly:
         # BOTH racks reset, regardless of which rack's own Reset button
         # was clicked: a deliberately preserved behaviour of the rack screen
         # of Studio, not a bug of this one.
@@ -7727,7 +7735,7 @@ class SuiteQtBridge(QObject):
             self._tester_monitor_task[key] = None
 
     def _tester_reset_for_new_target(self, key: str) -> None:
-        """Matches Tester.tsx's own resetForTargetKey effect - switching
+        """Switching
         tier/robot drops any in-flight self-test/monitor state for the
         PREVIOUS target rather than leaving it displayed against a now-
         different one."""

@@ -8,7 +8,7 @@
 # =============================================================================
 from __future__ import annotations
 
-# Matches Tester.tsx's own TOOL_CATEGORY exactly - lives here, not in
+# The tool category table of the tester - lives here, not in
 # can_ota.py, since STUDIO itself keeps this Tester-only.
 _TOOL_CATEGORY: dict[str, str] = {
     "Soldering Station (T12)": "thermal",

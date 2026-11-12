@@ -17,7 +17,7 @@ AXIS_KEYS: tuple[str, ...] = ("x", "y1", "y2", "z")
 JOG_STEPS_MM: tuple[float, ...] = (0.01, 0.1, 1.0, 2.0, 5.0, 10.0, 100.0)
 
 
-# (endstop key, label) - matches KinematicBrainStage.tsx's own endstopEntries exactly.
+# (endstop key, label) of the kinematic brain stage.
 ENDSTOP_ENTRIES: tuple[tuple[str, str], ...] = (
     ("xMin", "X MIN"), ("xMax", "X MAX"),
     ("y1Min", "Y1 MIN"), ("y1Max", "Y1 MAX"),

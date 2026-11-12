@@ -390,25 +390,16 @@ def _run() -> None:
     push_calls_xy = []
     controller.push_active_state = lambda: push_calls_xy.append(True)
     bridge.enableXyTable()
-    # handleAddTable()'s own real quirk: only the flag is set, no
-    # xyTable block yet - the classic UI still switches to the settings
-    # page on has_xy_table alone (xyHasTable mirrors that flag exactly)
-    # and shows the 500mm DISPLAY fallback, but the underlying object is
-    # still genuinely None.
+    # Enabling writes the flag together with the default layout, so the table is usable at once.
     assert bridge.xyHasTable is True
     xy_robot = bridge._xy_selected_robot()
     assert xy_robot.has_xy_table is True
-    assert xy_robot.xy_table is None
-    assert bridge.xyWidth == 500 and bridge.xyLength == 500
+    assert xy_robot.xy_table is not None, "enabling writes the layout the table needs"
+    assert bridge.xyWidth == 300 and bridge.xyLength == 300
 
-    # The no-op guards: width/jog must do nothing against a robot with
-    # the flag but no real xyTable object yet - matches
-    # handleSizeChange()/handleJog()'s own real no-op guards.
-    before_push_count = len(push_calls_xy)
+    # The table exists from the moment it is enabled: the size field answers without a Reset first.
     bridge.setXyWidth(800)
-    bridge.jogXyTable("x", 1)
-    assert len(push_calls_xy) == before_push_count, "a no-op guard must never call push_active_state()"
-    assert xy_robot.xy_table is None, "still no real table object until Reset"
+    assert bridge.xyWidth == 800
 
     bridge.resetXyTable()
     assert bridge.xyHasTable is True

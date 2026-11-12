@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **Enabling the XY table writes its layout at once:** the table of a robot has the 300 mm layout from the first click, so the size fields and the jog answer without pressing Reset first, as in STUDIO. Comments that narrated old defects or pointed at STUDIO source lines were rewritten as plain descriptions.
+
 - **The kinematic table is the document of the SDK, and the F-RAM routes are checked against the pinned contract:** `assets/kinematic_data.json` is now byte for byte `contracts/kinematics.json` of the SDK (`tests/verify_kinematic_data.py` compares both when the SDK is next to this repository or in `HYDRA_UMC_SDK_DIR` and reads its `schema_version`), the continuous integration is pinned to the SDK tag that carries the F-RAM routes and that document, and the exemption the route test kept for `/api/hardware/fram/*` is gone.
 
 - **The Flasher offers the self-test and the erase of the F-RAM of the kinematic brain when the server announces them:** the preflight no longer refuses the erase outright; it reads `capabilities.fram_erase` of the version query (true only when the SPI bridge and the server both offer the operation, both off by default) and refuses with a reason when it is missing or the target is not the brain, whose main board holds the chip. A new panel in the Flasher has a self-test button and an erase button whose dialog asks for the word `ERASE` typed (the server and the bridge ask for it again); the option "erase the F-RAM after the flash" runs the erase after a successful hardware flash of the brain, and the confirmation of the flash says so. All the texts are in the eight languages.

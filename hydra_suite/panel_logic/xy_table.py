@@ -8,14 +8,11 @@
 # =============================================================================
 from __future__ import annotations
 
-# Matches XYTableConfig.tsx's own `xyTable?.tableSize.width || 500` -
-# what shows in the size fields before any real xyTable object exists.
+# What the size fields show when a robot has no table layout yet.
 _DISPLAY_DEFAULT_SIZE_MM = 500
 
 
-# Matches XYTableConfig.tsx's own handleReset() - what Reset actually
-# writes. Deliberately different from the display default above - see
-# this file's own header.
+# The size that enabling the table and Reset write; the display default above only shows until a layout exists.
 _RESET_SIZE_MM = 300
 
 

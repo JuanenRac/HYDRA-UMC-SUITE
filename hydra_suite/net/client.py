@@ -1174,8 +1174,7 @@ class HydraConnection(QObject):
         `local_mutate` above still applies immediately on every call, so a
         dragged RotaryKnob/QSlider (the former robot control panel's JointRow/speed
         controls, both of which emit continuously) still gets instant
-        per-tick visual feedback. This is a real THROTTLE, not a debounce
-        (see the implementation's own comment for the real bug that fixed):
+        per-tick visual feedback. This is a throttle, not a debounce:
         a rapid burst still collapses down to roughly one real POST per
         `debounce_ms`, but a send for this exact `command` name keeps
         firing at that steady cadence for as long as the burst continues,
@@ -1819,8 +1818,8 @@ class HydraConnection(QObject):
         from a partial patch - non-optional.
 
         DOES recompute _last_payload_json from the now-mutated state
-        once the patch is applied (see the assignment below its own
-        comment for the real bug this fixes) - this delta's own small
+        once the patch is applied (see the comment at the assignment
+        below) - this delta's own small
         payload is still never compared against that guard directly, but
         leaving the guard's baseline stale after a real state mutation is
         exactly what let a later legitimate full snapshot get silently

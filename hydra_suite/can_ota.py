@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 #
-# Real port of HYDRA-UMC-STUDIO's own src/lib/canOta.ts (510 lines) - the
+# The same logic as src/lib/canOta.ts of HYDRA-UMC-STUDIO - the
 # shared CAN-OTA (and, for the Kinematic Brain, SPI-OTA) transport used by
 # both the flasher and the tester screens, mirroring how Flasher.tsx/
 # Tester.tsx both import from the one canOta.ts module rather than each
