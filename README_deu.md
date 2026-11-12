@@ -104,6 +104,8 @@ gebauter "Generic"-Fallback für jedes Modell ohne eigenen Mesh-Satz.
 
 **HYDRA-UMC-SUITE** ist die Desktop-Kommandozentrale der Zelle für Windows und Linux: Sie findet jeden HYDRA-UMC-SERVER im Netzwerk (Subnetz-Scan und mDNS oder eine eingetippte Adresse), verbindet sich mit beliebig vielen und zeigt, bewegt und konfiguriert deren Roboter nebeneinander in einer Qt-Quick-Oberfläche mit 3D-Ansicht. Sie ist das Desktop-Gegenstück zu STUDIO, spricht dasselbe Protokoll und entscheidet nichts über Sicherheit: Das bleibt auf jedem Server.
 
+> **Plattform:** Wo dieses README CM5 sagt, ist der Pilotprüfstand gemeint, der heute läuft; die Zielplattform von HYDRA-UMC ist ein NVIDIA Jetson Orin NX 16 GB, ein Entwurf, der weder gebaut noch getestet wurde.
+
 ## 🏛️ Architektur
 
 <p align="center">

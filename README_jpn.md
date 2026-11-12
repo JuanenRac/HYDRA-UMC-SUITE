@@ -78,6 +78,8 @@ GPL-3.0-or-later - see LICENSE
 
 **HYDRA-UMC-SUITE** は Windows と Linux 向けのセルのデスクトップ司令センターです。ネットワーク上のすべての HYDRA-UMC-SERVER を探し（サブネットのスキャンと mDNS、または入力したアドレス）、好きな数だけ接続し、Qt Quick の画面と 3D ビューでそれらのロボットを並べて表示・ジョグ・設定します。STUDIO のデスクトップ版で、同じプロトコルを話し、安全に関する判断はしません。それは各サーバーに残ります。
 
+> **プラットフォーム：** この README の「CM5」は、現在動作している試験用ベンチを指します。HYDRA-UMC の目標プラットフォームは NVIDIA Jetson Orin NX 16 GB ですが、これは製作も試験もされていない設計です。
+
 ## 🏛️ アーキテクチャ
 
 <p align="center">

@@ -104,6 +104,8 @@ propio.
 
 **HYDRA-UMC-SUITE** es el centro de mando de escritorio de la celda para Windows y Linux: encuentra cada HYDRA-UMC-SERVER de la red (escaneo de subred y mDNS, o una dirección que escribas), se conecta a tantos como quieras y muestra, mueve y configura sus robots lado a lado en una interfaz Qt Quick con visor 3D. Es el equivalente de escritorio de STUDIO, habla el mismo protocolo y no decide nada de seguridad: eso queda en cada servidor.
 
+> **Plataforma:** donde este README dice CM5, se refiere al banco piloto que funciona hoy; la plataforma objetivo de HYDRA-UMC es una NVIDIA Jetson Orin NX de 16 GB, un diseño que no se ha construido ni probado.
+
 ## 🏛️ Arquitectura
 
 <p align="center">

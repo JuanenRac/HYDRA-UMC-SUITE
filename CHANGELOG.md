@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **README: the platform statement:** a note says that where the README speaks of the CM5 it means the pilot bench that runs today, and that the target platform of HYDRA-UMC, an NVIDIA Jetson Orin NX 16 GB, is a design that has not been built or tested.
 - **Listen-only mode (off by default):** a check box in the access panel makes the program show the robots and their data without sending any command. While it is on, every command is refused before it leaves (jog, speed, PLAY, PAUSE, tools, valves, pumps, trajectories, the enable of a robot and the rest) and the operator is told so in their language; only STOP and the safe-mode disable still go out, because refusing a stop would be the unsafe side. The choice is one for all servers and robots, is kept in the configuration and a damaged value leaves it off. Texts in the eight languages; 2 verifiers extended. The same mode also refuses every other write to the server (settings, services, cameras, users, files) before it leaves the program, with a 423, except STOP, the sign-in, the renewal and the end of the session (`access.listen_only_allows`, applied in the one request method and in the second-step calls of the connection; `verify_access` has 3 more checks).
 
 - **Enabling the XY table writes its layout at once:** the table of a robot has the 300 mm layout from the first click, so the size fields and the jog answer without pressing Reset first, as in STUDIO. Comments that narrated old defects or pointed at STUDIO source lines were rewritten as plain descriptions.

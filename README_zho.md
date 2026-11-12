@@ -78,6 +78,8 @@ GPL-3.0-or-later - see LICENSE
 
 **HYDRA-UMC-SUITE** 是适用于 Windows 和 Linux 的单元桌面指挥中心：它找出网络上的每个 HYDRA-UMC-SERVER（子网扫描和 mDNS，或手动输入地址），连接任意多个，并在带 3D 视图的 Qt Quick 界面中并排显示、点动和配置它们的机器人。它是 STUDIO 的桌面对应物，使用相同的协议，不做任何安全决定：这些仍由各服务器负责。
 
+> **平台：** 本 README 中的 CM5 指的是目前正在运行的试验台；HYDRA-UMC 的目标平台是 NVIDIA Jetson Orin NX 16 GB，这是尚未制造或测试的设计。
+
 ## 🏛️ 架构
 
 <p align="center">

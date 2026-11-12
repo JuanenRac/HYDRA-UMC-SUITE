@@ -100,6 +100,8 @@ without a dedicated mesh set.
 
 **HYDRA-UMC-SUITE** is the desktop command center of the cell for Windows and Linux: it finds every HYDRA-UMC-SERVER on the network (subnet scan and mDNS, or an address you type), connects to as many as you like and shows, jogs and configures their robots side by side in a Qt Quick interface with a 3D viewport. It is the desktop counterpart of STUDIO, speaks the same protocol, and decides nothing about safety: that stays on each server.
 
+> **Platform:** where this README says CM5, it means the pilot bench that runs today; the target platform of HYDRA-UMC is an NVIDIA Jetson Orin NX 16 GB, a design that has not been built or tested.
+
 ## 🏛️ Architecture
 
 <p align="center">
