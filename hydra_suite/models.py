@@ -776,6 +776,11 @@ class ServerInfo:
         # by default.
         return f"{base}?remoteApiVersion=2"
 
+    def twin_ws_url(self) -> str:
+        """The relay of the live state of the twin: the same host and port, the token as the same subprotocol (never in the address)."""
+        scheme = "wss" if self.use_tls else "ws"
+        return f"{scheme}://{self.host}:{self.port}" + "/api" + "/twin/ws"
+
     @staticmethod
     def ws_subprotocols(token: str | None) -> list[str] | None:
         """`Sec-WebSocket-Protocol: hydra.bearer, <token>` - how the server

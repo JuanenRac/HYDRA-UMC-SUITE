@@ -1750,3 +1750,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=Jeder, der ein iPhone mit einer Live Activity hä
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=Jeder, der ein iPhone mit einer Live Activity hält, sieht den Zustand und den Fortschritt des Auftrags auf dem Sperrbildschirm.
 LIVEACT_CONFIRM_MESSAGE_FULL=Jeder, der ein iPhone mit einer Live Activity hält, sieht das ganze Bedienfeld des Roboters auf dem Sperrbildschirm: Name, Modell, Werkzeug und die Stellung seiner Gelenke.
 LIVEACT_CONFIRM_BUTTON=Anzeigen
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=Live-Zustand des Zwillings
+TWINLIVE_DESC=Zeigt den Zustand, den der digitale Zwilling über diesen Server sendet (die Gelenke des Roboters und die Fahrzeuge, denen er folgt). Standardmäßig aus und nur eine Wahl dieses Browsers; dieses Fenster liest nur, nichts davon erreicht den Zwilling.
+TWINLIVE_LABEL=Live-Zustand des Zwillings beobachten
+TWINLIVE_OFF=Keine Beobachtung.
+TWINLIVE_CONNECTING=Verbindung zum Zwilling über den Server wird aufgebaut...
+TWINLIVE_LIVE=Verbunden: Der Server leitet weiter, was der Zwilling sendet.
+TWINLIVE_DENIED=Die Sitzung wurde abgelehnt: Melden Sie sich erneut an, um den Zwilling zu beobachten.
+TWINLIVE_NOT_AVAILABLE=Der Server kann den Zwilling jetzt nicht weiterleiten: Er ist nicht eingerichtet, oder zu viele Panels schauen zu.
+TWINLIVE_UNAVAILABLE=Der Zwilling ist nicht erreichbar; neuer Versuch in Kürze.
+TWINLIVE_CLOSED=Die Verbindung wurde geschlossen; neuer Versuch in Kürze.
+TWINLIVE_STATE_REAL=Zustand des echten Roboters: {joints} Gelenke.
+TWINLIVE_STATE_SIMULATED=Zustand einer Simulation: {joints} Gelenke.
+TWINLIVE_NO_STATE=Noch kein Zustand empfangen.
+TWINLIVE_STATUS=Der Zwilling meldet: {code}
+TWINLIVE_VEHICLES=Fahrzeuge: {count} ({stale} mit altem Bericht)

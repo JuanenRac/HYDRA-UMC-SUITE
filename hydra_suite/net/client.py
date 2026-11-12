@@ -74,6 +74,8 @@ HYDRA_CLIENT_HEADERS = {"X-Hydra-Client": client_header_value(__version__)}
 # A finite ceiling for one WebSocket message (the full settings tree is a few
 # MB): enough for any real payload, not enough to exhaust the PC's memory.
 WS_MAX_MESSAGE_BYTES = 128 * 1024 * 1024
+# A frame of the twin is a state of one robot: a megabyte is far above any real one.
+TWIN_FEED_MAX_MESSAGE_BYTES = 1024 * 1024
 # Server error codes (auth middleware) that a fresh login/refresh can cure.
 _RENEWABLE_TOKEN_CODES = ("TOKEN_EXPIRED", "TOKEN_INVALID")
 
@@ -758,6 +760,34 @@ class HydraConnection(QObject):
         """GET /api/tool-arms (any signed-in account, read only): the arm state of the URTC tools as the safety zones service lists it. 404 on a
         server that predates the route; 502/503/504 while the server has no address of that service or cannot reach it."""
         return await self._request_json("GET", "/api/tool-arms", auth=True)
+
+    async def watch_twin_feed(self, on_frame, on_open=None) -> object:
+        """Opens the relay of the live state of the twin (the session token as the subprotocol, never in the address) and hands every text frame to
+        on_frame until the socket closes. Returns the close code the server sent (1008: the session was refused, 1013: the server cannot pass the twin
+        on, 1011: the twin is unavailable), or None when the link broke without one. Nothing is ever sent to the twin."""
+        token = self._token
+        if not token:
+            return 1008
+        try:
+            async with websockets.connect(
+                self.info.twin_ws_url(),
+                subprotocols=self.info.ws_subprotocols(token),
+                open_timeout=5.0,
+                max_size=TWIN_FEED_MAX_MESSAGE_BYTES,
+            ) as ws:
+                if on_open is not None:
+                    on_open()
+                async for raw in ws:
+                    if isinstance(raw, str):
+                        on_frame(raw)
+        except websockets.ConnectionClosed as closed:
+            return closed.rcvd.code if closed.rcvd is not None else None
+        except websockets.InvalidStatus:
+            return 1008
+        except (websockets.WebSocketException, OSError) as error:
+            logger.info("HydraConnection %s: the twin feed dropped (%s)", self.info.host, error)
+            return None
+        return None
 
     async def put_detection_hef(self, body: dict) -> tuple[int, object] | None:
         """PUT /api/admin/server-config (admin-only) with {"detectionHef": {"acceptLoadedReports": bool, "confirm": true to turn it on}}."""

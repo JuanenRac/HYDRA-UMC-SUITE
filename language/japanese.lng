@@ -1749,3 +1749,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=ライブアクティビティのある iPhone �
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=ライブアクティビティのある iPhone を手にした人は誰でも、ロック画面でジョブの状態と進行状況を見ることができます。
 LIVEACT_CONFIRM_MESSAGE_FULL=ライブアクティビティのある iPhone を手にした人は誰でも、ロック画面でロボットのパネル全体（名前、モデル、ツール、関節の位置）を見ることができます。
 LIVEACT_CONFIRM_BUTTON=表示する
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=ツインのライブ状態
+TWINLIVE_DESC=デジタルツインがこのサーバー経由で送る状態(ロボットの関節と追跡中の機体)を表示します。既定ではオフで、このブラウザーだけの設定です。この画面は読み取り専用で、送信した内容がツインに届くことはありません。
+TWINLIVE_LABEL=ツインのライブ状態を表示する
+TWINLIVE_OFF=表示していません。
+TWINLIVE_CONNECTING=サーバー経由でツインに接続しています...
+TWINLIVE_LIVE=接続済み: サーバーがツインの送る内容を中継しています。
+TWINLIVE_DENIED=セッションが拒否されました。ツインを表示するには再度サインインしてください。
+TWINLIVE_NOT_AVAILABLE=サーバーは現在ツインを中継できません。未設定か、表示中のパネルが多すぎます。
+TWINLIVE_UNAVAILABLE=ツインに到達できません。まもなく再試行します。
+TWINLIVE_CLOSED=接続が閉じられました。まもなく再試行します。
+TWINLIVE_STATE_REAL=実ロボットの状態: 関節 {joints} 個。
+TWINLIVE_STATE_SIMULATED=シミュレーションの状態: 関節 {joints} 個。
+TWINLIVE_NO_STATE=まだ状態を受信していません。
+TWINLIVE_STATUS=ツインからの通知: {code}
+TWINLIVE_VEHICLES=機体: {count} ({stale} 件は古い報告)

@@ -4,6 +4,8 @@
 
 All notable changes to this project are documented here.
 
+- **A panel for the live state of the twin in the server administration, in eight languages (off by default):** with the box ticked the program opens the relay of the server (the session token as a subprotocol, since the twin's own socket asks for a header only the server sends) and shows whether the state is of the real robot or of a simulation, how many joints it holds, why there is none when the twin says so, and the vehicles it follows. A state older than the last one of the same robot is dropped, a refused session is not retried with the same token, a server that cannot pass the twin on says so, and an unreachable twin is tried again shortly. The choice is kept in the configuration file of this computer only, and nothing is ever sent to the twin.
+
 ## [0.8.0.4] - A setting for what the Live Activity of a robot shows on the lock screen, in Server Admin, in eight languages: the card is off by default and shows only the state of the robot; an administrator can raise it to the state and the progress, or to the whole panel
 
 - **A setting for what the Live Activity of a robot shows on the lock screen, in Server Admin, in eight languages:** the card is off by default and shows only the state of the robot; an administrator can raise it to the state and the progress, or to the whole panel (the most there is), and the server applies the level before anything leaves it. Turning the card on or raising the level asks for a confirmation that says what the lock screen will show; lowering it or turning it off never asks. No level above the one the server allows is offered, a value fixed by the environment is locked, push being off is said, and the setting stays hidden on a server that predates it.

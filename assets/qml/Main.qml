@@ -2514,6 +2514,24 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        objectName: "twinFeedPanel"
+                        Layout.fillWidth: true
+                        spacing: 4
+                        Text { text: suiteBackend.uiText("TWINLIVE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("TWINLIVE_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            objectName: "twinFeedBox"
+                            text: suiteBackend.uiText("TWINLIVE_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.twinFeedView.watching === true
+                            onClicked: suiteBackend.setTwinFeedWatching(checked)
+                        }
+                        Text { objectName: "twinFeedLink"; text: suiteBackend.twinFeedView.link; color: "#8a97a8"; font.bold: true; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.twinFeedView.state !== ""; objectName: "twinFeedState"; text: suiteBackend.twinFeedView.state; color: "#c8d0da"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.twinFeedView.status !== ""; objectName: "twinFeedStatus"; text: suiteBackend.twinFeedView.status; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.twinFeedView.vehicles !== ""; objectName: "twinFeedVehicles"; text: suiteBackend.twinFeedView.vehicles; color: "#c8d0da"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                    ColumnLayout {
                         objectName: "toolArmsPanel"
                         Layout.fillWidth: true
                         spacing: 4

@@ -1749,3 +1749,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=Anyone who holds an iPhone with a Live Activity w
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=Anyone who holds an iPhone with a Live Activity will see the state and the progress of the job on its lock screen.
 LIVEACT_CONFIRM_MESSAGE_FULL=Anyone who holds an iPhone with a Live Activity will see the whole panel of the robot on its lock screen: its name, model, tool and the position of its joints.
 LIVEACT_CONFIRM_BUTTON=Show it
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=Live state of the twin
+TWINLIVE_DESC=Watch the state the digital twin pushes (the joints of the robot and the vehicles it follows) through this server. It is off by default and only a choice of this browser; this window only reads and nothing it sends reaches the twin.
+TWINLIVE_LABEL=Watch the live state of the twin
+TWINLIVE_OFF=Not watching.
+TWINLIVE_CONNECTING=Connecting to the twin through the server...
+TWINLIVE_LIVE=Connected: the server passes on what the twin pushes.
+TWINLIVE_DENIED=The session was refused: sign in again to watch the twin.
+TWINLIVE_NOT_AVAILABLE=The server cannot pass on the twin now: it is not set up, or too many panels are watching.
+TWINLIVE_UNAVAILABLE=The twin cannot be reached; trying again shortly.
+TWINLIVE_CLOSED=The connection closed; trying again shortly.
+TWINLIVE_STATE_REAL=State of the real robot: {joints} joints.
+TWINLIVE_STATE_SIMULATED=State of a simulation: {joints} joints.
+TWINLIVE_NO_STATE=No state received yet.
+TWINLIVE_STATUS=The twin reports: {code}
+TWINLIVE_VEHICLES=Vehicles: {count} ({stale} with an old report)

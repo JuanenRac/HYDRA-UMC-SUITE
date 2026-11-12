@@ -1750,3 +1750,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=Qualquer pessoa com um iPhone com uma Live Activi
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=Qualquer pessoa com um iPhone com uma Live Activity verá o estado e o progresso do trabalho no ecrã de bloqueio.
 LIVEACT_CONFIRM_MESSAGE_FULL=Qualquer pessoa com um iPhone com uma Live Activity verá todo o painel do robô no ecrã de bloqueio: o nome, o modelo, a ferramenta e a posição das articulações.
 LIVEACT_CONFIRM_BUTTON=Mostrar
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=Estado em direto do gémeo
+TWINLIVE_DESC=Acompanha o estado que o gémeo digital envia (as articulações do robô e os veículos que segue) através deste servidor. Está desligado por predefinição e é apenas uma escolha deste navegador; esta janela só lê e nada do que envia chega ao gémeo.
+TWINLIVE_LABEL=Acompanhar o estado em direto do gémeo
+TWINLIVE_OFF=Sem acompanhamento.
+TWINLIVE_CONNECTING=A ligar ao gémeo através do servidor...
+TWINLIVE_LIVE=Ligado: o servidor reencaminha o que o gémeo envia.
+TWINLIVE_DENIED=A sessão foi recusada: inicie sessão novamente para acompanhar o gémeo.
+TWINLIVE_NOT_AVAILABLE=O servidor não pode reencaminhar o gémeo agora: não está configurado ou há painéis a mais a acompanhar.
+TWINLIVE_UNAVAILABLE=Não é possível chegar ao gémeo; nova tentativa em breve.
+TWINLIVE_CLOSED=A ligação foi fechada; nova tentativa em breve.
+TWINLIVE_STATE_REAL=Estado do robô real: {joints} articulações.
+TWINLIVE_STATE_SIMULATED=Estado de uma simulação: {joints} articulações.
+TWINLIVE_NO_STATE=Ainda não foi recebido nenhum estado.
+TWINLIVE_STATUS=O gémeo comunica: {code}
+TWINLIVE_VEHICLES=Veículos: {count} ({stale} com um relatório antigo)

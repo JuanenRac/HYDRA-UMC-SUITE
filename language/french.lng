@@ -1750,3 +1750,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=Quiconque tient un iPhone avec une Live Activity 
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=Quiconque tient un iPhone avec une Live Activity verra l'état et la progression du travail sur son écran verrouillé.
 LIVEACT_CONFIRM_MESSAGE_FULL=Quiconque tient un iPhone avec une Live Activity verra tout le panneau du robot sur son écran verrouillé : son nom, son modèle, son outil et la position de ses articulations.
 LIVEACT_CONFIRM_BUTTON=Afficher
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=État en direct du jumeau
+TWINLIVE_DESC=Suit l'état que le jumeau numérique envoie (les articulations du robot et les véhicules qu'il suit) par ce serveur. Désactivé par défaut et simple choix de ce navigateur ; cette fenêtre ne fait que lire et rien de ce qu'elle envoie n'atteint le jumeau.
+TWINLIVE_LABEL=Suivre l'état en direct du jumeau
+TWINLIVE_OFF=Pas de suivi.
+TWINLIVE_CONNECTING=Connexion au jumeau par le serveur...
+TWINLIVE_LIVE=Connecté : le serveur transmet ce que le jumeau envoie.
+TWINLIVE_DENIED=La session a été refusée : reconnectez-vous pour suivre le jumeau.
+TWINLIVE_NOT_AVAILABLE=Le serveur ne peut pas transmettre le jumeau maintenant : il n'est pas configuré, ou trop de panneaux le suivent.
+TWINLIVE_UNAVAILABLE=Le jumeau est injoignable ; nouvel essai sous peu.
+TWINLIVE_CLOSED=La connexion s'est fermée ; nouvel essai sous peu.
+TWINLIVE_STATE_REAL=État du robot réel : {joints} articulations.
+TWINLIVE_STATE_SIMULATED=État d'une simulation : {joints} articulations.
+TWINLIVE_NO_STATE=Aucun état reçu pour l'instant.
+TWINLIVE_STATUS=Le jumeau signale : {code}
+TWINLIVE_VEHICLES=Véhicules : {count} ({stale} avec un ancien rapport)

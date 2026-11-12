@@ -1749,3 +1749,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=任何拿着带有实时活动的 iPhone 的人�
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=任何拿着带有实时活动的 iPhone 的人都能在锁屏上看到作业的状态和进度。
 LIVEACT_CONFIRM_MESSAGE_FULL=任何拿着带有实时活动的 iPhone 的人都能在锁屏上看到机器人的整个面板：名称、型号、工具和各关节的位置。
 LIVEACT_CONFIRM_BUTTON=显示
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=孪生体实时状态
+TWINLIVE_DESC=通过此服务器查看数字孪生推送的状态(机器人的关节及其跟踪的飞行器)。默认关闭,仅为此浏览器的选择;此窗口只读取,发送的任何内容都不会到达孪生体。
+TWINLIVE_LABEL=查看孪生体实时状态
+TWINLIVE_OFF=未在查看。
+TWINLIVE_CONNECTING=正在通过服务器连接孪生体...
+TWINLIVE_LIVE=已连接:服务器转发孪生体推送的内容。
+TWINLIVE_DENIED=会话被拒绝:请重新登录以查看孪生体。
+TWINLIVE_NOT_AVAILABLE=服务器目前无法转发孪生体:尚未配置,或查看的面板过多。
+TWINLIVE_UNAVAILABLE=无法连接孪生体;稍后重试。
+TWINLIVE_CLOSED=连接已关闭;稍后重试。
+TWINLIVE_STATE_REAL=真实机器人的状态:{joints} 个关节。
+TWINLIVE_STATE_SIMULATED=模拟的状态:{joints} 个关节。
+TWINLIVE_NO_STATE=尚未收到状态。
+TWINLIVE_STATUS=孪生体报告:{code}
+TWINLIVE_VEHICLES=飞行器:{count}({stale} 个报告已过期)

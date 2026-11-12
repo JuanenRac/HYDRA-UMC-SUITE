@@ -86,7 +86,7 @@ from hydra_suite.panel_logic.admin_clients import _relative_duration
 from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -481,6 +481,10 @@ class SuiteQtBridge(QObject):
         self._live_activity: dict | None = None  # the Live Activity on the lock screen (None: a server that predates it)
         self._live_activity_message = ""
         self._live_activity_error = ""
+        self._twin_watching = twin_feed.watching_from_config(load_config())  # whether this computer watches the live state of the twin (off by default, kept in the configuration file)
+        self._twin_link = "off"  # connecting, live, or the way the last connection ended (twin_feed.END_*)
+        self._twin_state = twin_feed.empty_state()
+        self._twin_task: asyncio.Task | None = None
         self._tool_arms: dict | None = None  # the arm state of the URTC tools (None: not read or not available)
         self._tool_arms_error = ""
         self._help_level = help_levels.level_from_config(load_config())  # the level of the Help, kept in the configuration file
@@ -3386,6 +3390,8 @@ class SuiteQtBridge(QObject):
         self._live_activity = live_activity.parse_state(body)
         await self._refresh_tool_arms(conn)
         await self._refresh_developer_nodes(conn, False)
+        if self._twin_watching and self._twin_task is None:
+            self._restart_twin_feed()
 
         info_result = await conn.fetch_hydra_info()
         if info_result is not None:
@@ -3621,6 +3627,63 @@ class SuiteQtBridge(QObject):
             self._live_activity = dict(state, enabled=change.get("enabled", state["enabled"]), level=change.get("level", state["level"]))
             self._live_activity_message = _("LIVEACT_SAVED")
         self.changed.emit()
+
+    # -- Live state of the twin through the server (any signed-in account, read only) ---------------
+
+    @Property("QVariantMap", notify=changed)
+    def twinFeedView(self) -> dict:
+        return twin_feed.view(self._twin_watching, self._twin_link, self._twin_state)
+
+    @Slot(bool)
+    def setTwinFeedWatching(self, on: bool) -> None:
+        self._twin_watching = bool(on)
+        save_config(twin_feed.config_update(self._twin_watching))
+        self._twin_state = twin_feed.empty_state()
+        self._restart_twin_feed()
+        self.changed.emit()
+
+    def _restart_twin_feed(self) -> None:
+        task, self._twin_task = self._twin_task, None
+        if task is not None:
+            task.cancel()
+        if not self._twin_watching:
+            self._twin_link = "off"
+            return
+        self._twin_link = "connecting"
+        self._twin_task = asyncio.ensure_future(self._run_twin_feed())
+
+    def _on_twin_frame(self, raw: str) -> None:
+        frame = twin_feed.parse_frame(raw)
+        if frame is None:
+            return
+        self._twin_state = twin_feed.apply_frame(self._twin_state, frame)
+        self.changed.emit()
+
+    def _on_twin_open(self) -> None:
+        self._twin_link = "live"
+        self.changed.emit()
+
+    async def _run_twin_feed(self) -> None:
+        while self._twin_watching:
+            conn = self._controller.active_connection
+            if conn is None:
+                await asyncio.sleep(twin_feed.RECONNECT_S)
+                continue
+            self._twin_link = "connecting"
+            self.changed.emit()
+            try:
+                code = await conn.watch_twin_feed(self._on_twin_frame, self._on_twin_open)
+            except asyncio.CancelledError:
+                raise
+            except Exception as error:  # a damaged frame or link must not stop the screen
+                logger.warning("the twin feed failed: %s", error)
+                code = None
+            end = twin_feed.end_for_close_code(code)
+            self._twin_link = end
+            self.changed.emit()
+            if not twin_feed.retries(end):
+                return
+            await asyncio.sleep(twin_feed.RECONNECT_S)
 
     # -- Arm state of the URTC tools (read only) -------------------------------------------
 

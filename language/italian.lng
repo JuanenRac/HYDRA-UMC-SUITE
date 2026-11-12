@@ -1750,3 +1750,20 @@ LIVEACT_CONFIRM_MESSAGE_STATUS=Chiunque abbia un iPhone con una Live Activity ve
 LIVEACT_CONFIRM_MESSAGE_PROGRESS=Chiunque abbia un iPhone con una Live Activity vedrà lo stato e l'avanzamento del lavoro sulla sua schermata di blocco.
 LIVEACT_CONFIRM_MESSAGE_FULL=Chiunque abbia un iPhone con una Live Activity vedrà tutto il pannello del robot sulla sua schermata di blocco: nome, modello, utensile e posizione dei giunti.
 LIVEACT_CONFIRM_BUTTON=Mostra
+
+# The live state of the twin through the server (Server Admin)
+TWINLIVE_TITLE=Stato in diretta del gemello
+TWINLIVE_DESC=Segue lo stato che il gemello digitale invia (i giunti del robot e i veicoli che segue) tramite questo server. È spento per impostazione predefinita e solo una scelta di questo browser; questa finestra legge soltanto e nulla di ciò che invia raggiunge il gemello.
+TWINLIVE_LABEL=Segui lo stato in diretta del gemello
+TWINLIVE_OFF=Nessun monitoraggio.
+TWINLIVE_CONNECTING=Connessione al gemello tramite il server...
+TWINLIVE_LIVE=Connesso: il server inoltra ciò che il gemello invia.
+TWINLIVE_DENIED=La sessione è stata rifiutata: accedi di nuovo per seguire il gemello.
+TWINLIVE_NOT_AVAILABLE=Il server non può inoltrare il gemello ora: non è configurato o troppi pannelli lo stanno seguendo.
+TWINLIVE_UNAVAILABLE=Il gemello non è raggiungibile; nuovo tentativo a breve.
+TWINLIVE_CLOSED=La connessione si è chiusa; nuovo tentativo a breve.
+TWINLIVE_STATE_REAL=Stato del robot reale: {joints} giunti.
+TWINLIVE_STATE_SIMULATED=Stato di una simulazione: {joints} giunti.
+TWINLIVE_NO_STATE=Nessuno stato ricevuto finora.
+TWINLIVE_STATUS=Il gemello segnala: {code}
+TWINLIVE_VEHICLES=Veicoli: {count} ({stale} con un rapporto vecchio)
