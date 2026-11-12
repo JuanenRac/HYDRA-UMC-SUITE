@@ -218,6 +218,29 @@ ApplicationWindow {
                     ToolTip.text: suiteBackend.stopAllDetail
                     HoverHandler { id: stopAllHover }
                 }
+                // The one stop state (the physical emergency stop together with the global stop): nothing is drawn until a server has said something.
+                Rectangle {
+                    objectName: "stopStateBadge"
+                    visible: suiteBackend.stopStateText !== ""
+                    Layout.preferredHeight: 32
+                    Layout.preferredWidth: stopStateLabel.implicitWidth + 24
+                    radius: 16
+                    color: suiteBackend.stopStateSeverity === "error" ? "#7a0010" : "transparent"
+                    border.width: 1
+                    border.color: suiteBackend.stopStateSeverity === "error" ? "#ff5a6e" : (suiteBackend.stopStateSeverity === "ok" ? window.green : window.muted)
+                    Text {
+                        id: stopStateLabel
+                        anchors.centerIn: parent
+                        text: suiteBackend.stopStateText
+                        color: suiteBackend.stopStateSeverity === "error" ? "#ffd5da" : (suiteBackend.stopStateSeverity === "ok" ? window.green : window.muted)
+                        font.family: "Bahnschrift"
+                        font.bold: true
+                        font.pixelSize: window.fs(10)
+                    }
+                    ToolTip.visible: stopStateHover.hovered && suiteBackend.stopStateDetail !== ""
+                    ToolTip.text: suiteBackend.stopStateDetail
+                    HoverHandler { id: stopStateHover }
+                }
                 // The global STOP: one click, always visible, on every panel (F12 too).
                 Button {
                     id: stopAllButton

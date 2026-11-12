@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **One stop state in the header, joining the physical emergency stop with the global stop:** the server pushes a `stop-state` message on the socket (right after the connection opens and at every change) and a badge beside the STOP button shows it: red `STOPPED` while the physical emergency stop (the frame on identifier `0x001`, as the kinematic brain holds it) or the global stop is on, green `Ready` once the physical stop is known to be released, grey `Stop not monitored` while the server does not watch it (its default). With several servers connected a stop on any of them wins and an unknown one is never read as ready; the tooltip names both stops, nothing is drawn before a server has said anything, a damaged message leaves the last state as it was, and the badge only reads: it never sends a stop. In the eight languages, with `panel_logic/stop_state.py` as the logic and `tests/verify_stop_state.py` as the check. Needs the server to watch the stop (`HYDRA_UMC_ESTOP_WATCH_MS`); not run against a real brain.
+
 ## [0.8.0.5] - The Flasher sends the board and the oldest bootloader the manifest names: the entry of an image in the manifest of the release may state `target` (the board the image is for) and `min_bootloader` (the oldest bootloader that may take it); the listing reads them
 
 All notable changes to this project are documented here.

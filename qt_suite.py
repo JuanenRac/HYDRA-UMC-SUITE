@@ -38,6 +38,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 from hydra_suite import __version__, access, logging_handler, robot_edits
 from hydra_suite.scheduler import TICK_MS as SCHEDULER_TICK_MS, PollScheduler
 from hydra_suite.app import StopAllSummary, SuiteController, describe_stop_all
+from hydra_suite.panel_logic import stop_state as stop_state_logic
 from hydra_suite.extras_bridge import SuiteExtras
 from hydra_suite.can_ota import (
     GITHUB_FIRMWARE_REPO,
@@ -391,6 +392,7 @@ class SuiteQtBridge(QObject):
         self._stop_all_clean_timer.setSingleShot(True)
         self._stop_all_clean_timer.timeout.connect(self._clear_stop_all_text)
         controller.stop_all_changed.connect(self._on_stop_all_changed)
+        controller.connection_stop_state_changed.connect(lambda _cid: self.changed.emit())
 
         # -- Servers: STATUS_DISPLAY_KEYS is imported from panel_logic/server_browser.py rather than copied, so the status wording
         # is written once. --
@@ -898,6 +900,22 @@ class SuiteQtBridge(QObject):
     @Property(str, notify=changed)
     def stopAllSeverity(self) -> str:
         return self._stop_all_severity
+
+    def _stop_state_view(self):
+        """The one stop state of every connected server, summed up (None until one has spoken)."""
+        return stop_state_logic.sum_up([conn.stop_state for conn in self._controller.connections.values() if conn.stop_state is not None])
+
+    @Property(str, notify=changed)
+    def stopStateText(self) -> str:
+        return stop_state_logic.badge_text(self._stop_state_view())
+
+    @Property(str, notify=changed)
+    def stopStateDetail(self) -> str:
+        return stop_state_logic.badge_tooltip(self._stop_state_view())
+
+    @Property(str, notify=changed)
+    def stopStateSeverity(self) -> str:
+        return stop_state_logic.severity(self._stop_state_view())
 
     @Slot(object)
     def _on_stop_all_changed(self, summary: StopAllSummary) -> None:

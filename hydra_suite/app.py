@@ -131,6 +131,8 @@ class SuiteController(QObject):
     connection_error = Signal(str, str)                # (conn_id, message)
     # The server pushed the list of reservations (WebSocket message `claims`) on one of the connections.
     connection_claims_changed = Signal(str)            # (conn_id)
+    # The server pushed the one stop state (WebSocket message `stop-state`) on one of the connections.
+    connection_stop_state_changed = Signal(str)        # (conn_id)
     # The global STOP: emitted with a StopAllSummary when it starts (state
     # "sending") and again when every server has answered or given up.
     stop_all_changed = Signal(object)
@@ -168,6 +170,7 @@ class SuiteController(QObject):
         conn.login_changed.connect(lambda ok, detail, cid=conn_id: self.connection_login_changed.emit(cid, ok, detail))
         conn.error.connect(lambda message, cid=conn_id: self.connection_error.emit(cid, message))
         conn.claims_changed.connect(lambda cid=conn_id: self.connection_claims_changed.emit(cid))
+        conn.stop_state_changed.connect(lambda cid=conn_id: self.connection_stop_state_changed.emit(cid))
         self.connections[conn_id] = conn
         spawn(conn.connect())
         self.connections_changed.emit()

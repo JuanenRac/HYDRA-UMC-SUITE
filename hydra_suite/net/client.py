@@ -38,7 +38,7 @@ import websockets
 from PySide6.QtCore import QObject, Signal
 
 from hydra_suite import __version__, access, command_sequence, robot_edits
-from hydra_suite.panel_logic import submitted_models
+from hydra_suite.panel_logic import stop_state as stop_state_logic, submitted_models
 from hydra_suite.panel_logic.totp import normalize_code
 from hydra_suite.i18n import _
 from hydra_suite.models import HydraState, RobotView, ServerInfo
@@ -280,6 +280,7 @@ class HydraConnection(QObject):
     # success or not.
     login_changed = Signal(bool, str)        # (ok, detail) - detail is "" on success
     claims_changed = Signal()                # the server pushed the list of reservations (WebSocket message `claims`)
+    stop_state_changed = Signal()            # the server pushed the one stop state (WebSocket message `stop-state`)
     canota_progress = Signal(object)         # one progress line of a CAN flash cycle (WebSocket message `canota_progress`; admin sessions only)
 
     def __init__(self, info: ServerInfo, parent: QObject | None = None):
@@ -347,6 +348,8 @@ class HydraConnection(QObject):
         # An operator's edit of the settings tree is not sent (the server takes it only from an administrator): said once.
         self._operator_edit_told = False
         self.claims_pushed_at = 0.0
+        # The one stop state the server last pushed (the physical emergency stop with the global stop); None before the first message.
+        self.stop_state: stop_state_logic.StopStateView | None = None
         self.last_canota_progress: dict | None = None  # the latest progress line of a CAN flash cycle, None before the first
         # Whether the server was last seen to understand the "table" command (true until it says otherwise).
         self.has_table_command = True
@@ -1750,6 +1753,14 @@ class HydraConnection(QObject):
                 if claim.controller_id == access.get_controller_id():
                     self.jog_armed_until[claim.robot_id] = claim.jog_armed_until
             self.claims_changed.emit()
+            return
+        # The physical emergency stop together with the global stop, pushed once after the connection opens and at every change (only to a
+        # connection that asked for remoteApiVersion=2). A damaged message leaves the last state as it was.
+        if msg.get("type") == "stop-state":
+            view = stop_state_logic.parse_stop_state(msg)
+            if view is not None:
+                self.stop_state = view
+                self.stop_state_changed.emit()
             return
         # One progress line of a CAN flash cycle, relayed by the server to admin sessions only: kept as the latest
         # line and announced, so a flasher view can show the live phase and percentage while the request is pending.
