@@ -252,6 +252,7 @@ def parse_state(body: object) -> dict | None:
         "auth": None,
         "health": None,
         "ecosystemHealth": None,
+        "twinRelay": None,
         "trustedNetworks": None,
         "rul": None,
         "safety": None,
@@ -321,6 +322,11 @@ def parse_state(body: object) -> dict | None:
         enabled = _option(ecosystem_health.get("enabled"), bool)
         if enabled is not None:
             state["ecosystemHealth"] = {"enabled": enabled}
+    twin_relay = body.get("twinRelay")
+    if isinstance(twin_relay, dict):
+        relay_enabled = _option(twin_relay.get("enabled"), bool)
+        if relay_enabled is not None:
+            state["twinRelay"] = {"enabled": relay_enabled}
     trusted = body.get("trustedNetworks")
     if isinstance(trusted, dict):
         trusted_enabled = _option(trusted.get("enabled"), bool)
@@ -540,6 +546,12 @@ def ecosystem_health_patch(enabled: bool) -> dict:
     """The request body for the option that lets operators and administrators read GET /api/ecosystem/health (off by default). Turning
     it on never asks: the route is read only and shows no port, address or unit to anyone but an administrator."""
     return {"ecosystemHealth": {"enabled": bool(enabled)}}
+
+
+def twin_relay_patch(enabled: bool) -> dict:
+    """The request body for the option that lets the panels follow the live state of the twin through the server (off by default).
+    Turning it on never asks: nothing a panel sends reaches the twin."""
+    return {"twinRelay": {"enabled": bool(enabled)}}
 
 
 MAX_STOP_ACK_TIMEOUT_SECONDS = 86400
@@ -866,6 +878,7 @@ EMPTY_VIEW: dict = {
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
     "trustedNetworksAvailable": False, "trustedNetworksEnabled": False, "trustedNetworksEnabledLocked": False, "trustedNetworksEnabledSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
+    "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
     "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
@@ -1002,6 +1015,16 @@ def view(state: dict | None) -> dict:
                 "ecosystemHealthEnabled": ecosystem_health["enabled"]["value"],
                 "ecosystemHealthEnabledLocked": is_locked(ecosystem_health["enabled"]["source"]),
                 "ecosystemHealthEnabledSource": source_text(ecosystem_health["enabled"]["source"]),
+            }
+        )
+    twin_relay = state.get("twinRelay")
+    if twin_relay is not None:
+        out.update(
+            {
+                "twinRelayAvailable": True,
+                "twinRelayEnabled": twin_relay["enabled"]["value"],
+                "twinRelayEnabledLocked": is_locked(twin_relay["enabled"]["source"]),
+                "twinRelayEnabledSource": source_text(twin_relay["enabled"]["source"]),
             }
         )
     rate_limits = state.get("rateLimits")

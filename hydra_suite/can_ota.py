@@ -306,6 +306,24 @@ TIER_COMPONENTS: dict[CanOtaTier, list[str]] = {
 }
 
 
+_TARGET_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+_MIN_BOOTLOADER_RE = re.compile(r"\d{1,5}\.\d{1,5}\.\d{1,5}")
+
+
+def manifest_flash_requirements(comp: dict | None, bin_info: dict | None) -> dict:
+    """The `target` and `min_bootloader` an image's manifest entry states, read from the component or from its binary (the
+    binary wins). A value the flashing relay would refuse is dropped here, so that a malformed manifest never becomes a
+    refused request."""
+    out: dict = {}
+    for key, pattern in (("target", _TARGET_RE), ("min_bootloader", _MIN_BOOTLOADER_RE)):
+        for source in (bin_info or {}, comp or {}):
+            value = source.get(key)
+            if isinstance(value, str) and pattern.fullmatch(value):
+                out[key] = value
+                break
+    return out
+
+
 @dataclass
 class GithubFirmwareAsset:
     name: str
@@ -319,6 +337,8 @@ class GithubFirmwareAsset:
     hardware_id: str | None = None  # real hardware_id (e.g. "0x48374334") the bootloader validates START_UPDATE against
     signature: str | None = None  # Ed25519 signature of the image (128 hexadecimal digits) when the manifest states one
     sha256: str | None = None  # SHA-256 of the image (lowercase hex) when the manifest or the release states one
+    target: str | None = None  # the board the manifest says the image is for (for example g474), when it names one
+    min_bootloader: str | None = None  # the oldest bootloader (major.minor.patch) the manifest says may take the image
 
 
 # Repos whose firmware images are NOT kept in git: they are built in GitHub Actions and published only as assets
@@ -386,6 +406,7 @@ async def fetch_release_asset_firmware(repo: str, tier: CanOtaTier, client: "htt
                     hardware_id=comp.get("hardware_id"),
                     signature=signature,
                     sha256=manifest_sha.lower() if isinstance(manifest_sha, str) else sha256_from_digest(image.get("digest")),
+                    **manifest_flash_requirements(comp, bin_info),
                 )
             )
         return assets
@@ -430,6 +451,7 @@ async def fetch_github_firmware_releases(repo: str, tier: CanOtaTier, branch: st
                 chip=comp.get("chip"),
                 hardware_id=comp.get("hardware_id"),
                 signature=normalize_signature(bin_info.get("signature")),
+                **manifest_flash_requirements(comp, bin_info),
             )
         )
     return assets
@@ -584,16 +606,21 @@ def normalize_signature(text: str | None) -> str | None:
     return clean if re.fullmatch(r"[0-9a-f]{128}", clean) else None
 
 
-def flash_signing_options(image_version: str | None, installed_version: str | None, signature: str | None) -> dict:
+def flash_signing_options(image_version: str | None, installed_version: str | None, signature: str | None, requirements: dict | None = None) -> dict:
     """What an image needs besides its bytes to be accepted by a HYDRA-UMC bootloader: the patch of its version, its
     signature and, when it is older than the installed one (the bootloader's anti-rollback rule), that installed version."""
     image = parse_version_full(image_version)
     installed = parse_version_full(installed_version)
-    return {
+    options = {
         "version_patch": image[2] if image else 0,
         "signature": normalize_signature(signature),
         "downgrade_from": ".".join(str(n) for n in installed) if image and installed and image < installed else None,
     }
+    # What the manifest says about the image (see manifest_flash_requirements): present only when it states them.
+    for key, value in (requirements or {}).items():
+        if key in ("target", "min_bootloader") and value:
+            options[key] = value
+    return options
 
 
 async def hardware_start_flash(
@@ -633,6 +660,11 @@ async def hardware_start_flash(
         params["signature"] = normalize_signature(signing["signature"])
     if signing.get("downgrade_from") and parse_version_full(signing["downgrade_from"]):
         params["downgrade_from"] = signing["downgrade_from"]
+    # The relay passes them on and the bridge refuses a foreign board or an older bootloader before it sends a byte.
+    if isinstance(signing.get("target"), str) and _TARGET_RE.fullmatch(signing["target"]):
+        params["target"] = signing["target"]
+    if isinstance(signing.get("min_bootloader"), str) and _MIN_BOOTLOADER_RE.fullmatch(signing["min_bootloader"]):
+        params["min_bootloader"] = signing["min_bootloader"]
     result = await conn.canota_request(
         "POST", "/api/hardware/canota/flash", params=params, data=firmware, timeout=FLASH_TIMEOUT_S
     )

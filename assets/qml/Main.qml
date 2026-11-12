@@ -2664,6 +2664,28 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.twinRelayAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_TWINRELAY"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        CheckBox {
+                            id: twinRelayBox
+                            objectName: "securityTwinRelayBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_TWINRELAY_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.twinRelayEnabledLocked
+                            checked: suiteBackend.securityView.twinRelayEnabled === true
+                        }
+                        Text { text: suiteBackend.securityView.twinRelayEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_TWINRELAY_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityTwinRelaySave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.twinRelayEnabledLocked
+                            onClicked: suiteBackend.saveTwinRelayOptions(twinRelayBox.checked)
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.rulAvailable === true
                         Layout.fillWidth: true
                         spacing: 6

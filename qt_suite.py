@@ -4143,6 +4143,13 @@ class SuiteQtBridge(QObject):
         asyncio.ensure_future(self._save_security(server_security.trusted_networks_patch(enabled)))
 
     @Slot(bool)
+    def saveTwinRelayOptions(self, enabled: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("twinRelay"):
+            return
+        asyncio.ensure_future(self._save_security(server_security.twin_relay_patch(enabled)))
+
+    @Slot(bool)
     def saveEcosystemHealthOptions(self, enabled: bool) -> None:
         state = self._security_state
         if state is None or not state.get("ecosystemHealth"):
@@ -7320,7 +7327,7 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
         try:
             data = await download_github_firmware(asset)
-            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature}
+            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature, "target": asset.target, "min_bootloader": asset.min_bootloader}
             if not asset.signature:
                 # the .sig file published next to the image; an image without one is left to the board to judge
                 try:
@@ -7472,7 +7479,7 @@ class SuiteQtBridge(QObject):
                         version_major,
                         version_minor,
                         hardware_id_number,
-                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature")),
+                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature"), {"target": file.get("target"), "min_bootloader": file.get("min_bootloader")}),
                     )
                 finally:
                     if progress_signal is not None:
