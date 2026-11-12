@@ -9,6 +9,7 @@
 # sits next to this one, its copy of the file is the same.
 # =============================================================================
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -33,7 +34,7 @@ def check(label, actual, expected):
 def main() -> int:
     data = kinematic_data.load()
     models = data["models"]
-    check("file: schema 1", data.get("schema"), 1)
+    check("file: schema 1.0", data.get("schema_version"), "1.0")
     check("file: every listed model has six joints with a range that goes up", all(set(e["limits"]) == set(kinematic_data.JOINTS) and all(lo < hi for lo, hi in e["limits"].values()) for e in models.values()), True)
     registry = {name for name in ROBOT_REGISTRY if not name.startswith("Generic")}
     check("file: every robot of the registry (but the generic one) is in it, and nothing else", set(models), registry)
@@ -42,6 +43,12 @@ def main() -> int:
     check("limits: a listed model gets its own", joint_range_deg("Parol6 (6-DOF)", "j1"), (-97.4, 187.4))
     wrong = [(model, joint) for model, pose in kinematic_data.home_poses().items() for joint, value in pose.items() if abs(ROBOT_REGISTRY[model].home_pose_deg.get(joint, 0.0) - value) > 1e-6]
     check("home: each model starts from the pose in the file", wrong, [])
+
+    sdk_file = Path(os.environ.get("HYDRA_UMC_SDK_DIR") or Path(__file__).resolve().parents[2] / "HYDRA-UMC-SDK") / "contracts" / "kinematics.json"
+    if sdk_file.is_file():
+        check("sdk: the file is the document of the SDK", json.loads(sdk_file.read_text(encoding="utf-8")), data)
+    else:
+        print("skip sdk: the contracts of the SDK are not next to this repository")
 
     sibling = Path(__file__).resolve().parents[2] / "HYDRA-UMC-STUDIO" / "src" / "data" / "kinematicData.json"
     if sibling.is_file():
