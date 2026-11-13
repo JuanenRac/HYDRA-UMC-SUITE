@@ -50,7 +50,7 @@ def notify_of(name: str) -> str:
 
 for name in GROUP:
     check(f"{name} notifies the signal of the connection lists", notify_of(name), "_adminClientsChanged")
-check("a property of another screen still notifies the general signal", notify_of("securityWarning"), "changed")
+check("a property of another screen still notifies the general signal", notify_of("activePanel"), "changed")
 
 general, group = [], []
 bridge.changed.connect(lambda: general.append(1))
@@ -136,6 +136,17 @@ check("the state and the metrics of the Overview reach the Overview only", (len(
 check("the metrics are shown", (bridge.overviewCpu, bridge.overviewUptime), ("12%", "1h 1m"))
 bridge.changed.emit()
 check("a general change reaches both", (len(more["kbsChanged"]), len(more["overviewChanged"])), (2, 3))
+
+# --- settings and security ----------------------------------------------------------------------------------------------------
+for prop in ("safetyIsAdmin", "usersIsAdmin", "adminServerStatusText"):
+    if meta.indexOfProperty(prop) >= 0:
+        check(f"{prop} notifies securityChanged", notify_of(prop), "securityChanged")
+
+security = count(["changed", "securityChanged"])
+bridge.setAuditType("all")
+check("choosing the kind of the audit record announces the security group only", (len(security["changed"]), len(security["securityChanged"])), (0, 1))
+bridge.changed.emit()
+check("a general change reaches the security group", len(security["securityChanged"]), 2)
 
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)

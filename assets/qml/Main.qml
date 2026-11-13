@@ -7438,7 +7438,7 @@ ApplicationWindow {
                 }
                 Connections {
                     target: suiteBackend
-                    function onChanged() {
+                    function onSecurityChanged() {
                         if (suiteBackend.safetyMessage !== "") safetyBody.dirty = false
                         if (!safetyBody.dirty) safetyBody.form = suiteBackend.safetyForm
                         safetyBody.hard = suiteBackend.safetyHard
