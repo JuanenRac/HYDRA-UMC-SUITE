@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **A server in read-only mode is told in the language of the program:** a request refused with `server-read-only` (423) is no longer shown as a robot in safe mode. The program says that the server is read-only and that only STOP and the safe-mode disable go through, in the eight languages (`MSG_ACCESS_SERVER_READ_ONLY`, `MSG_NET_REJ_READ_ONLY`). Checks in `tests/verify_access.py` and `tests/verify_bridge_access.py`.
 - **Listen only can be set for one server (off by default):** next to the general switch, the access panel has a switch for the server of the selected robot (`listenOnlyServers` in the configuration, the list of `host:port`). While it is on, that server gets no command but STOP and the safe-mode disable and no write but the session and STOP (423, told to the operator in the language of the program); other servers are not affected, the switch is locked while the general one is on, and a damaged list leaves none. The text is in the eight languages. Checks in `tests/verify_access.py` and `tests/verify_access_network.py`.
 
 ## [0.8.0.6] - Listen-only mode, one stop state in the header, the kinematic table of the SDK and the F-RAM self-test and erase in the Flasher
