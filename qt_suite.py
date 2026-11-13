@@ -71,6 +71,7 @@ from hydra_suite.credentials import CredentialStore, keyring_backend
 from hydra_suite.diagnostics import build_bundle
 from hydra_suite.i18n import AVAILABLE_LANGUAGES, CONFIG_FILE_PATH, _, current_language, load_config, save_config
 from hydra_suite import firmware_signature, reach
+from hydra_suite.net import tls_pin
 from hydra_suite import i18n as i18n_module
 from hydra_suite.joint_limits import joint_range_deg
 from hydra_suite.models import (
@@ -3966,6 +3967,64 @@ class SuiteQtBridge(QObject):
         else:
             self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=i18n_module.CONFIG_FILE_PATH), "warn")
         self.changed.emit()
+
+    # --- pinning of the certificate of a server (configuration file; off unless the person turns it on) ---
+
+    @Property("QVariantMap", notify=changed)
+    def tlsPinningView(self) -> dict:
+        enabled, pins = tls_pin.read_settings(load_config())
+        return {
+            "enabled": enabled,
+            "servers": [{"address": address, "fingerprint": entry["fingerprint"]} for address, entry in sorted(pins.items())],
+            "configFile": str(CONFIG_FILE_PATH),
+        }
+
+    def _save_tls_pinning(self, section: dict) -> None:
+        if save_config({tls_pin.CONFIG_KEY: section}):
+            self._set_notice(_("TLS_PIN_SAVED"), "info")
+        else:
+            self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=CONFIG_FILE_PATH), "warn")
+        self.changed.emit()
+
+    @Slot(bool)
+    def setTlsPinningEnabled(self, enabled: bool) -> None:
+        self._save_tls_pinning(tls_pin.with_enabled(load_config(), enabled))
+
+    @Slot(str, str)
+    def pinServerCertificate(self, address: str, fingerprint: str) -> None:
+        """Reads the certificate the server at `address` (host or host:port) shows and pins it; with a fingerprint typed, only if it matches."""
+        host, port = self._split_server_address(address)
+        if not host:
+            self._set_notice(_("TLS_PIN_BAD_ADDRESS"), "warn")
+            return
+        asyncio.ensure_future(self._pin_server_certificate(host, port, fingerprint.strip()))
+
+    async def _pin_server_certificate(self, host: str, port: int, fingerprint: str) -> None:
+        loop = asyncio.get_running_loop()
+        try:
+            pem, _shown = await loop.run_in_executor(None, tls_pin.fetch_certificate, host, port)
+            section = tls_pin.pin_entry(load_config(), host, port, pem, expected_fingerprint=fingerprint)
+        except tls_pin.PinError as error:
+            self._set_notice(_("TLS_PIN_FAILED", reason=str(error)), "warn")
+            return
+        self._save_tls_pinning(section)
+
+    @Slot(str)
+    def unpinServer(self, address: str) -> None:
+        host, port = self._split_server_address(address)
+        if not host:
+            self._set_notice(_("TLS_PIN_BAD_ADDRESS"), "warn")
+            return
+        self._save_tls_pinning(tls_pin.unpin_entry(load_config(), host, port))
+
+    @staticmethod
+    def _split_server_address(address: str) -> tuple[str, int]:
+        text = address.strip()
+        host, _sep, port_text = text.rpartition(":")
+        if not _sep or not port_text.isdigit():
+            host, port_text = text, "3000"
+        port = int(port_text)
+        return (host.strip(), port) if host.strip() and 0 < port < 65536 else ("", 0)
 
     @Slot(bool, result=bool)
     def infoAuthNeedsConfirmation(self, new_value: bool) -> bool:

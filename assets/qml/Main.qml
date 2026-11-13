@@ -3147,6 +3147,65 @@ ApplicationWindow {
                 }
             }
             Card {
+                objectName: "tlsPinningCard"
+                Layout.fillWidth: true
+                Layout.preferredHeight: tlsPinningColumn.implicitHeight + 24
+                ColumnLayout {
+                    id: tlsPinningColumn
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 12
+                    spacing: 8
+                    Text { text: suiteBackend.uiText("HEADING_TLS_PIN"); color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                    CheckBox {
+                        objectName: "tlsPinningEnabledBox"
+                        text: suiteBackend.uiText("LBL_TLS_PIN_ENABLE")
+                        palette.windowText: window.textPrimary
+                        checked: suiteBackend.tlsPinningView.enabled === true
+                        onClicked: {
+                            var wanted = checked
+                            checked = Qt.binding(function() { return suiteBackend.tlsPinningView.enabled === true })
+                            suiteBackend.setTlsPinningEnabled(wanted)
+                        }
+                    }
+                    Repeater {
+                        model: suiteBackend.tlsPinningView.servers
+                        delegate: RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Text { text: modelData.address + "  " + modelData.fingerprint; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                            Button { text: suiteBackend.uiText("BTN_TLS_UNPIN"); onClicked: suiteBackend.unpinServer(modelData.address) }
+                        }
+                    }
+                    Text { visible: (suiteBackend.tlsPinningView.servers || []).length === 0; text: suiteBackend.uiText("TLS_PIN_NONE"); color: window.muted; font.pixelSize: window.fs(10) }
+                    Text { text: suiteBackend.uiText("LBL_TLS_PIN_ADDRESS"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                    TextField {
+                        id: tlsPinAddressField
+                        objectName: "tlsPinningAddress"
+                        Layout.fillWidth: true
+                        placeholderText: suiteBackend.uiText("PH_TLS_PIN_ADDRESS")
+                        color: window.textPrimary
+                        background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                    }
+                    Text { text: suiteBackend.uiText("LBL_TLS_PIN_FINGERPRINT"); color: window.textPrimary; font.pixelSize: window.fs(10) }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        TextField {
+                            id: tlsPinFingerprintField
+                            objectName: "tlsPinningFingerprint"
+                            Layout.fillWidth: true
+                            color: window.textPrimary
+                            background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
+                        }
+                        Button { objectName: "tlsPinningPin"; text: suiteBackend.uiText("BTN_TLS_PIN"); onClicked: suiteBackend.pinServerCertificate(tlsPinAddressField.text, tlsPinFingerprintField.text) }
+                    }
+                    Text { text: suiteBackend.tlsPinningView.configFile; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    Text { text: suiteBackend.uiText("LBL_TLS_PIN_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                }
+            }
+            Card {
                 visible: suiteBackend.totpStep !== "none"
                 objectName: "totpCard"
                 Layout.fillWidth: true
