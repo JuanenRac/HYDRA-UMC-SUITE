@@ -148,5 +148,15 @@ check("choosing the kind of the audit record announces the security group only",
 bridge.changed.emit()
 check("a general change reaches the security group", len(security["securityChanged"]), 2)
 
+# --- the ecosystem screens -----------------------------------------------------------------------------------------------------
+for prop in ("telemetryStatusText", "esStatusText", "mapView", "aiFamilyStatusText"):
+    check(f"{prop} notifies ecosystemChanged", notify_of(prop), "ecosystemChanged")
+
+eco = count(["changed", "ecosystemChanged"])
+bridge.setMapFilter("up")
+check("choosing the filter of the map announces the ecosystem group only", (len(eco["changed"]), len(eco["ecosystemChanged"])), (0, 1))
+bridge.changed.emit()
+check("a general change reaches the ecosystem group", len(eco["ecosystemChanged"]), 2)
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)

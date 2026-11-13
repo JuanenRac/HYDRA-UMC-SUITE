@@ -3627,7 +3627,7 @@ ApplicationWindow {
                     id: telemetryCanvas
                     anchors.fill: parent
                     anchors.margins: 12
-                    Connections { target: suiteBackend; function onChanged() { telemetryCanvas.requestPaint() } }
+                    Connections { target: suiteBackend; function onEcosystemChanged() { telemetryCanvas.requestPaint() } }
                     onPaint: {
                         var ctx = getContext("2d")
                         ctx.clearRect(0, 0, width, height)
