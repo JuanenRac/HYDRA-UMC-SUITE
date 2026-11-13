@@ -4949,7 +4949,7 @@ ApplicationWindow {
                     Component.onCompleted: currentIndex = indexOfValue(suiteBackend.moduleSelectedRobotId)
                     Connections {
                         target: suiteBackend
-                        function onChanged() {
+                        function onModuleChanged() {
                             var idx = moduleRobotCombo.indexOfValue(suiteBackend.moduleSelectedRobotId)
                             if (idx !== moduleRobotCombo.currentIndex) moduleRobotCombo.currentIndex = idx
                         }
@@ -5001,7 +5001,7 @@ ApplicationWindow {
                                 Component.onCompleted: currentIndex = indexOfValue(suiteBackend.vacuumModelId)
                                 Connections {
                                     target: suiteBackend
-                                    function onChanged() { vacuumModelCombo.currentIndex = vacuumModelCombo.indexOfValue(suiteBackend.vacuumModelId) }
+                                    function onModuleChanged() { vacuumModelCombo.currentIndex = vacuumModelCombo.indexOfValue(suiteBackend.vacuumModelId) }
                                 }
                                 onActivated: suiteBackend.selectVacuumModel(currentValue)
                             }
@@ -5020,7 +5020,7 @@ ApplicationWindow {
                                 Component.onCompleted: currentIndex = indexOfValue(suiteBackend.heatedModelId)
                                 Connections {
                                     target: suiteBackend
-                                    function onChanged() { heatedModelCombo.currentIndex = heatedModelCombo.indexOfValue(suiteBackend.heatedModelId) }
+                                    function onModuleChanged() { heatedModelCombo.currentIndex = heatedModelCombo.indexOfValue(suiteBackend.heatedModelId) }
                                 }
                                 onActivated: suiteBackend.selectHeatedModel(currentValue)
                             }
@@ -5115,7 +5115,7 @@ ApplicationWindow {
                     onVisibleChanged: if (visible) suiteBackend.refreshVacuumPreview()
                     Connections {
                         target: suiteBackend
-                        function onChanged() { if (vacuumPreview.visible) suiteBackend.refreshVacuumPreview() }
+                        function onModuleChanged() { if (vacuumPreview.visible) suiteBackend.refreshVacuumPreview() }
                     }
                     Image {
                         anchors.fill: parent
@@ -5191,7 +5191,7 @@ ApplicationWindow {
             }
             Connections {
                 target: suiteBackend
-                function onChanged() { atcCanvas.requestPaint() }
+                function onAtcChanged() { atcCanvas.requestPaint() }
             }
             onPaint: {
                 var ctx = getContext("2d")
@@ -5311,7 +5311,7 @@ ApplicationWindow {
                     Component.onCompleted: currentIndex = indexOfValue(suiteBackend.atcSelectedRobotId)
                     Connections {
                         target: suiteBackend
-                        function onChanged() {
+                        function onAtcChanged() {
                             var idx = atcRobotCombo.indexOfValue(suiteBackend.atcSelectedRobotId)
                             if (idx !== atcRobotCombo.currentIndex) atcRobotCombo.currentIndex = idx
                         }
@@ -5998,7 +5998,7 @@ ApplicationWindow {
                                 Component.onCompleted: currentIndex = indexOfValue(suiteBackend.flasherTier)
                                 Connections {
                                     target: suiteBackend
-                                    function onChanged() {
+                                    function onFlasherChanged() {
                                         var idx = flasherTierCombo.indexOfValue(suiteBackend.flasherTier)
                                         if (idx !== flasherTierCombo.currentIndex) flasherTierCombo.currentIndex = idx
                                     }
@@ -6018,7 +6018,7 @@ ApplicationWindow {
                                 Component.onCompleted: currentIndex = indexOfValue(suiteBackend.flasherSelectedRobotId)
                                 Connections {
                                     target: suiteBackend
-                                    function onChanged() {
+                                    function onFlasherChanged() {
                                         var idx = flasherRobotCombo.indexOfValue(suiteBackend.flasherSelectedRobotId)
                                         if (idx !== flasherRobotCombo.currentIndex) flasherRobotCombo.currentIndex = idx
                                     }
@@ -6228,7 +6228,7 @@ ApplicationWindow {
                                 Component.onCompleted: currentIndex = indexOfValue(suiteBackend.testerTier)
                                 Connections {
                                     target: suiteBackend
-                                    function onChanged() {
+                                    function onTesterChanged() {
                                         var idx = testerTierCombo.indexOfValue(suiteBackend.testerTier)
                                         if (idx !== testerTierCombo.currentIndex) testerTierCombo.currentIndex = idx
                                     }
@@ -6248,7 +6248,7 @@ ApplicationWindow {
                                 Component.onCompleted: currentIndex = indexOfValue(suiteBackend.testerSelectedRobotId)
                                 Connections {
                                     target: suiteBackend
-                                    function onChanged() {
+                                    function onTesterChanged() {
                                         var idx = testerRobotCombo.indexOfValue(suiteBackend.testerSelectedRobotId)
                                         if (idx !== testerRobotCombo.currentIndex) testerRobotCombo.currentIndex = idx
                                     }

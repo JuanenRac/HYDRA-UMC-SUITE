@@ -328,12 +328,16 @@ class SuiteQtBridge(QObject):
     # to them, and their own clocks and handlers announce only them.
     _accessChanged = Signal()
     _ecoHealthChanged = Signal()
-    _flasherChanged = Signal()
+    flasherChanged = Signal()
     # The Rack Manager, Pick and Place and XY Table screens: public names, because the robot pickers and the preview of the vacuum table
     # of the screens listen to them from QML.
     rackChanged = Signal()
     pnpChanged = Signal()
     xyTableChanged = Signal()
+    # The Module Config, ATC Tools and Tester screens, with the same reasoning: their pickers and canvases listen to them from QML.
+    moduleChanged = Signal()
+    atcChanged = Signal()
+    testerChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -364,10 +368,13 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self._adminClientsChanged)  # a general change still updates the connection lists
         self.changed.connect(self._accessChanged)
         self.changed.connect(self._ecoHealthChanged)
-        self.changed.connect(self._flasherChanged)
+        self.changed.connect(self.flasherChanged)
         self.changed.connect(self.rackChanged)
         self.changed.connect(self.pnpChanged)
         self.changed.connect(self.xyTableChanged)
+        self.changed.connect(self.moduleChanged)
+        self.changed.connect(self.atcChanged)
+        self.changed.connect(self.testerChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -5850,7 +5857,7 @@ class SuiteQtBridge(QObject):
             self._module_robots_cache[key] = robots
             if self._module_selected_robot_id[key] not in ids:
                 self._module_selected_robot_id[key] = robots[0].id if robots else None
-        self.changed.emit()
+        self.moduleChanged.emit()
 
     def _active_module_key(self) -> str | None:
         return self._active_key if self._active_key in _MODULE_CONFIGS else None
@@ -5862,12 +5869,12 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=moduleChanged)
     def moduleRobotOptions(self) -> list[dict[str, str]]:
         key = self._active_module_key()
         return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._module_robots_cache.get(key, [])] if key else []
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleSelectedRobotId(self) -> str:
         key = self._active_module_key()
         return (self._module_selected_robot_id.get(key) or "") if key else ""
@@ -5879,27 +5886,27 @@ class SuiteQtBridge(QObject):
             self._module_selected_robot_id[key] = robot_id or None
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleHeadingKey(self) -> str:
         key = self._active_module_key()
         return str(_MODULE_CONFIGS[key]["heading"]) if key else ""
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleMachineName(self) -> str:
         key = self._active_module_key()
         return str(_MODULE_CONFIGS[key]["machine"]) if key else ""
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleExtraKind(self) -> str:
         key = self._active_module_key()
         return str(_MODULE_CONFIGS[key]["extra"]) if key else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleHasRobot(self) -> bool:
         key = self._active_module_key()
         return key is not None and self._module_selected_robot(key) is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleEnabled(self) -> bool:
         key = self._active_module_key()
         if key is None:
@@ -5921,11 +5928,11 @@ class SuiteQtBridge(QObject):
         size = robot.module(_MODULE_CONFIGS[key]["module_key"]).get("size") or {}
         return int(size.get(field, DEFAULT_SIZE_MM))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleWidth(self) -> int:
         return self._module_size_field("width")
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleLength(self) -> int:
         return self._module_size_field("length")
 
@@ -6037,19 +6044,19 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
 
     # Heated Bed's own extra fields.
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleTargetTemp(self) -> int:
         return int(self._module_extra_value("targetTemp", _HB_DEFAULT_TARGET_TEMP_C))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleSsrOn(self) -> bool:
         return bool(self._module_extra_value("ssrActive", False))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleTherm1(self) -> str:
         return f"{float(self._module_extra_value('currentTemp1', _HB_DEFAULT_AMBIENT_TEMP_C)):.1f} °C"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleTherm2(self) -> str:
         return f"{float(self._module_extra_value('currentTemp2', _HB_DEFAULT_AMBIENT_TEMP_C)):.1f} °C"
 
@@ -6057,7 +6064,7 @@ class SuiteQtBridge(QObject):
     def setModuleTargetTemp(self, value: int) -> None:
         self._set_module_extra_field("targetTemp", access.clamp_bed_target(value, self.moduleBedCeiling))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleBedCeiling(self) -> int:
         """The hottest target the server allows for the model of the robot whose heated bed is open."""
         conn = self._controller.active_connection
@@ -6067,7 +6074,7 @@ class SuiteQtBridge(QObject):
             return int(access.SafetyLimits().bed_default_c)
         return int(access.bed_max_for(conn.safety.limits, robot.model if robot is not None else None))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def kbsBedCeiling(self) -> int:
         """The hottest target the server allows any model: the Kinematic Brain Stage has no single robot."""
         return int(self._bed_ceiling())
@@ -6081,7 +6088,7 @@ class SuiteQtBridge(QObject):
     def heatedModelOptions(self):
         return [{"id": m["id"], "label": m["label"]} for m in HEATED_BED_MODELS]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def heatedModelId(self):
         return heated_bed_model(self._module_extra_value("modelId", None))["id"]
 
@@ -6100,7 +6107,7 @@ class SuiteQtBridge(QObject):
     def vacuumModelOptions(self):
         return [{"id": model["id"], "label": model["label"]} for model in VACUUM_TABLE_MODELS]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def vacuumModelId(self):
         return vacuum_table_model(self._module_extra_value("modelId", None))["id"]
 
@@ -6210,11 +6217,11 @@ class SuiteQtBridge(QObject):
             self.refreshVacuumPreview()
 
     # Vacuum Table's own extra fields.
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def modulePumpOn(self) -> bool:
         return bool(self._module_extra_value("pumpActive", False))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleValveOn(self) -> bool:
         return bool(self._module_extra_value("valveActive", False))
 
@@ -6234,7 +6241,7 @@ class SuiteQtBridge(QObject):
         self._atc_robots_cache = robots
         if self._atc_selected_robot_id not in {r.id for r in robots}:
             self._atc_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.atcChanged.emit()
 
     def _atc_selected_robot(self) -> RobotView | None:
         for r in self._atc_robots_cache:
@@ -6271,11 +6278,11 @@ class SuiteQtBridge(QObject):
         except (ValueError, TypeError):
             return 8
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=atcChanged)
     def atcRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._atc_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcSelectedRobotId(self) -> str:
         return self._atc_selected_robot_id or ""
 
@@ -6286,16 +6293,16 @@ class SuiteQtBridge(QObject):
             self._atc_editing_slot = None
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcHasRobot(self) -> bool:
         return self._atc_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcConfigured(self) -> bool:
         robot = self._atc_selected_robot()
         return robot is not None and robot.atc is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcType(self) -> str:
         return str(self._atc_config().get("type", "vertical_panel"))
 
@@ -6304,11 +6311,11 @@ class SuiteQtBridge(QObject):
         labels = {"vertical_panel": "LBL_ATC_VERTICAL", "horizontal_panel": "LBL_ATC_HORIZONTAL", "revolver": "LBL_ATC_REVOLVER"}
         return [{"key": k, "labelKey": labels[k]} for k in _ATC_TYPE_KEYS]
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcIsPanel(self) -> bool:
         return self.atcType in ("vertical_panel", "horizontal_panel")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcPanelGrid(self) -> str:
         return str(self._atc_config().get("panelGrid", "2x2"))
 
@@ -6316,7 +6323,7 @@ class SuiteQtBridge(QObject):
     def atcPanelGridOptions(self) -> list[str]:
         return list(PANEL_GRIDS)
 
-    @Property(int, notify=changed)
+    @Property(int, notify=atcChanged)
     def atcRevolverSlots(self) -> int:
         return int(self._atc_config().get("revolverSlots", 8) or 8)
 
@@ -6324,16 +6331,16 @@ class SuiteQtBridge(QObject):
     def atcToolOptions(self) -> list[str]:
         return list(URTC_TOOLS)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcHasXyTable(self) -> bool:
         robot = self._atc_selected_robot()
         return bool(robot is not None and robot.has_xy_table)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcEditingSlotKey(self) -> str:
         return "" if self._atc_editing_slot is None else str(self._atc_editing_slot)
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=atcChanged)
     def atcSlotsData(self) -> list[dict[str, object]]:
         if not self.atcConfigured:
             return []  # matches _refresh_controls()'s own real early-return before any config exists
@@ -6356,12 +6363,12 @@ class SuiteQtBridge(QObject):
             })
         return result
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=atcChanged)
     def atcBasePos(self) -> list[dict[str, object]]:
         config = self._atc_config()
         return self._atc_pos_fields(config.get("revolverPos") or _default_pos(), self.atcHasXyTable)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcBaseEditing(self) -> bool:
         return self._atc_editing_slot == "revolver"
 
@@ -6473,7 +6480,7 @@ class SuiteQtBridge(QObject):
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(self._atc_config(), f, indent=2)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcLoadError(self) -> str:
         return self._atc_load_error
 
@@ -7223,7 +7230,7 @@ class SuiteQtBridge(QObject):
             ids = {r.id for r in robots}
             if self._flasher_robot_id[key] not in ids:
                 self._flasher_robot_id[key] = robots[0].id if robots else None
-        self._flasherChanged.emit()
+        self.flasherChanged.emit()
 
     def _flasher_current_robot(self, key: str) -> RobotView | None:
         ctrl = self._flasher_controller.get(key)
@@ -7284,7 +7291,7 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property("QVariantList", notify=_flasherChanged)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherTierOptions(self) -> list[dict[str, object]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7301,7 +7308,7 @@ class SuiteQtBridge(QObject):
             result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
         return result
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherTier(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_tier.get(key, "") if key else ""
@@ -7315,12 +7322,12 @@ class SuiteQtBridge(QObject):
             self._flasher_fram_result[key] = ""
             self.changed.emit()
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherNeedsRobotSlot(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_tier[key] != "kinematicBrain"
 
-    @Property("QVariantList", notify=_flasherChanged)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherRobotOptions(self) -> list[dict[str, str]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7333,7 +7340,7 @@ class SuiteQtBridge(QObject):
             result.append({"id": r.id, "label": f"{slot_label(i)} - {r.model}{unreachable}"})
         return result
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherSelectedRobotId(self) -> str:
         key = self._flasher_active_key()
         return (self._flasher_robot_id.get(key) or "") if key else ""
@@ -7345,7 +7352,7 @@ class SuiteQtBridge(QObject):
             self._flasher_robot_id[key] = robot_id or None
             self.changed.emit()
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherHopDescription(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7353,7 +7360,7 @@ class SuiteQtBridge(QObject):
         target = self._flasher_target(key)
         return hop_description(target) if target else ""
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherUnreachable(self) -> bool:
         key = self._flasher_active_key()
         if key is None or not self._flasher_is_hardware:
@@ -7361,7 +7368,7 @@ class SuiteQtBridge(QObject):
         target = self._flasher_target(key)
         return target is not None and resolve_hardware_target(target) is None
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherVersionLabel(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7371,7 +7378,7 @@ class SuiteQtBridge(QObject):
             return f"{_('LBL_CURRENT_VERSION')}: {board.get('firmwareVersion', '?')} ({_('LBL_BOOTLOADER')} {board.get('bootloaderVersion', '?')})"
         return _("LBL_NO_VERSION_KNOWN")
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherQueryBusy(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_query_busy.get(key, False) if key else False
@@ -7413,7 +7420,7 @@ class SuiteQtBridge(QObject):
             patch["expansionBoardType"] = result.expansion_board_type
         self._flasher_apply_patch(key, patch)
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherFileInfo(self) -> str:
         key = self._flasher_active_key()
         file = self._flasher_file.get(key) if key else None
@@ -7421,7 +7428,7 @@ class SuiteQtBridge(QObject):
             return _("LBL_NO_FILE")
         return f"{file['name']} - {len(file['bytes']) / 1024:.1f} KB - CRC32 0x{crc32(file['bytes']):08X}"
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherHasFile(self) -> bool:
         key = self._flasher_active_key()
         return bool(self._flasher_file.get(key)) if key else False
@@ -7441,12 +7448,12 @@ class SuiteQtBridge(QObject):
         self._flasher_push_log(key, f"{_('LBL_FILE_LOADED')}: {name} ({len(data)} bytes)")
         self.changed.emit()
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherGithubAvailable(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key]) is not None
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherGithubButtonLabel(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7454,12 +7461,12 @@ class SuiteQtBridge(QObject):
         repo = GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key])
         return f"{_('BTN_DOWNLOAD_GITHUB')} ({repo})" if repo else ""
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherGithubBusy(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_gh_busy.get(key, False) if key else False
 
-    @Property("QVariantList", notify=_flasherChanged)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherGithubAssets(self) -> list[dict[str, object]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7525,7 +7532,7 @@ class SuiteQtBridge(QObject):
             self._flasher_push_log(key, f"{_('LBL_GITHUB_ERROR')}: {exc}", "error")
         self.changed.emit()
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherAllowDowngrade(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_allow_downgrade.get(key, False) if key else False
@@ -7536,7 +7543,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._flasher_allow_downgrade[key] = value
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherEraseFram(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_erase_fram.get(key, False) if key else False
@@ -7547,7 +7554,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._flasher_erase_fram[key] = value
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherEraseFramEnabled(self) -> bool:
         """The simulation honours the option as it always did; over the real bus it needs the announcement of the server and the kinematic brain as the target."""
         key = self._flasher_active_key()
@@ -7557,12 +7564,12 @@ class SuiteQtBridge(QObject):
             return True
         return self._flasher_fram_supported.get(key) is True and self._flasher_tier.get(key) == "kinematicBrain"
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherFramVisible(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_is_hardware and self._flasher_tier.get(key) == "kinematicBrain"
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherFramNote(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7572,17 +7579,17 @@ class SuiteQtBridge(QObject):
             return _("LBL_FRAMOP_UNKNOWN")
         return "" if supported else _("LBL_FRAMOP_UNSUPPORTED")
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherFramReady(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_fram_supported.get(key) is True and not self._flasher_fram_busy.get(key, False) and not self._flasher_flashing.get(key, False)
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherFramBusy(self) -> bool:
         key = self._flasher_active_key()
         return bool(key) and self._flasher_fram_busy.get(key, False)
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherFramResult(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_fram_result.get(key, "") if key else ""
@@ -7635,17 +7642,17 @@ class SuiteQtBridge(QObject):
         self._flasher_push_log(key, text, "ok" if result.ok else "error")
         self.changed.emit()
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherFlashing(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_flashing.get(key, False) if key else False
 
-    @Property(bool, notify=_flasherChanged)
+    @Property(bool, notify=flasherChanged)
     def flasherCanFlash(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self.flasherHasFile and not self._flasher_flashing.get(key, False) and not self.flasherUnreachable
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherConfirmMessage(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7661,17 +7668,17 @@ class SuiteQtBridge(QObject):
             message += " " + _("MSG_CONFIRM_FLASH_ERASE")
         return message
 
-    @Property(str, notify=_flasherChanged)
+    @Property(str, notify=flasherChanged)
     def flasherProgressLabel(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_progress.get(key, {}).get("label", "") if key else ""
 
-    @Property(int, notify=_flasherChanged)
+    @Property(int, notify=flasherChanged)
     def flasherProgressPercent(self) -> int:
         key = self._flasher_active_key()
         return self._flasher_progress.get(key, {}).get("percent", 0) if key else 0
 
-    @Property("QVariantList", notify=_flasherChanged)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherLog(self) -> list[dict[str, str]]:
         key = self._flasher_active_key()
         return self._flasher_log.get(key, []) if key else []
@@ -7803,7 +7810,8 @@ class SuiteQtBridge(QObject):
             ids = {r.id for r in robots}
             if self._tester_robot_id[key] not in ids:
                 self._tester_robot_id[key] = robots[0].id if robots else None
-        self.changed.emit()
+        self.testerChanged.emit()
+        self.flasherChanged.emit()
 
     def _tester_current_robot(self, key: str) -> RobotView | None:
         ctrl = self._tester_controller.get(key)
@@ -7857,7 +7865,7 @@ class SuiteQtBridge(QObject):
         self._tester_frames[key] = []
         self.changed.emit()
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerTierOptions(self) -> list[dict[str, object]]:
         key = self._tester_active_key()
         if key is None:
@@ -7874,7 +7882,7 @@ class SuiteQtBridge(QObject):
             result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
         return result
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerTier(self) -> str:
         key = self._tester_active_key()
         return self._tester_tier.get(key, "") if key else ""
@@ -7886,12 +7894,12 @@ class SuiteQtBridge(QObject):
             self._tester_tier[key] = tier
             self._tester_reset_for_new_target(key)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerNeedsRobotSlot(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] != "kinematicBrain"
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerRobotOptions(self) -> list[dict[str, str]]:
         key = self._tester_active_key()
         if key is None:
@@ -7900,7 +7908,7 @@ class SuiteQtBridge(QObject):
         robots = ctrl.robots if ctrl is not None else []
         return [{"id": r.id, "label": f"{slot_label(i)} - {r.model}"} for i, r in enumerate(robots)]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerSelectedRobotId(self) -> str:
         key = self._tester_active_key()
         return (self._tester_robot_id.get(key) or "") if key else ""
@@ -7912,7 +7920,7 @@ class SuiteQtBridge(QObject):
             self._tester_robot_id[key] = robot_id or None
             self._tester_reset_for_new_target(key)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerHopDescription(self) -> str:
         key = self._tester_active_key()
         if key is None:
@@ -7920,16 +7928,16 @@ class SuiteQtBridge(QObject):
         target = self._tester_target(key)
         return hop_description(target) if target else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerSimulatedNoteVisible(self) -> bool:
         return self._flasher_is_hardware
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerQueryEnabled(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_target(key) is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerVersionLabel(self) -> str:
         key = self._tester_active_key()
         if key is None:
@@ -7977,22 +7985,22 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerShowGlobal(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] == "urtcHead"
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerShowFram(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] in ("controllerBoard", "urtcHead")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerShowTelemetry(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] == "urtcHead" and self._tester_current_robot(key) is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerStatusColor(self) -> str:
         key = self._tester_active_key()
         return self._tester_status_color.get(key, "#00ff66") if key else "#00ff66"
@@ -8004,7 +8012,7 @@ class SuiteQtBridge(QObject):
             self._tester_status_color[key] = color
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerRingOn(self) -> bool:
         key = self._tester_active_key()
         return self._tester_ring_on.get(key, False) if key else False
@@ -8016,7 +8024,7 @@ class SuiteQtBridge(QObject):
             self._tester_ring_on[key] = not self._tester_ring_on[key]
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerOledMode(self) -> str:
         key = self._tester_active_key()
         return self._tester_oled_mode.get(key, "standard") if key else "standard"
@@ -8027,7 +8035,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._tester_oled_mode[key] = mode
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerExpansionLabel(self) -> str:
         key = self._tester_active_key()
         if key is None:
@@ -8040,7 +8048,7 @@ class SuiteQtBridge(QObject):
         label = _("LBL_EXPANSION_NONE") if expansion_type == 0 else f"#{expansion_type}" + (f" ({_(_TIER_LABEL_KEYS['urtcExpansion'])})" if expansion_available else "")
         return f"{_('LBL_EXPANSION_BOARD')}: {label}"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerFramStateLabel(self) -> str:
         key = self._tester_active_key()
         state = self._tester_fram_state.get(key) if key else None
@@ -8066,24 +8074,24 @@ class SuiteQtBridge(QObject):
             self._tester_fram_state[key] = False
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerTelemetryTitle(self) -> str:
         key = self._tester_active_key()
         robot = self._tester_current_robot(key) if key else None
         return f"{_('LBL_TOOL_TELEMETRY')} - {robot.tool}" if robot is not None else ""
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerTelemetryLabel(self) -> str:
         key = self._tester_active_key()
         robot = self._tester_current_robot(key) if key else None
         return _(f"LBL_TELEMETRY_{_category_for(robot.tool).upper()}") if robot is not None else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerTesting(self) -> bool:
         key = self._tester_active_key()
         return self._tester_testing.get(key, False) if key else False
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerSelfTestSteps(self) -> list[dict[str, object]]:
         key = self._tester_active_key()
         return self._tester_self_test_steps.get(key, []) if key else []
@@ -8113,12 +8121,12 @@ class SuiteQtBridge(QObject):
             self._tester_testing[key] = False
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerMonitorRunning(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_monitor_task.get(key) is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerFrames(self) -> list[dict[str, object]]:
         key = self._tester_active_key()
         frames = self._tester_frames.get(key, []) if key else []
