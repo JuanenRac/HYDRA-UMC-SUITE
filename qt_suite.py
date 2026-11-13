@@ -323,6 +323,12 @@ class SuiteQtBridge(QObject):
     # notify this signal, and `changed` forwards to it (see __init__), so whatever still announces a general change updates them;
     # the one-second clock announces only this one, so the other ~300 properties are not evaluated for a clock tick.
     _adminClientsChanged = Signal()
+    # Same idea for the reservations and arming of the Robot Control screen (a one-second clock), the health of the ecosystem (a
+    # one-second clock) and the Flasher (every state change of the server): their properties notify these, `changed` forwards
+    # to them, and their own clocks and handlers announce only them.
+    _accessChanged = Signal()
+    _ecoHealthChanged = Signal()
+    _flasherChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -351,6 +357,9 @@ class SuiteQtBridge(QObject):
     ) -> None:
         super().__init__()
         self.changed.connect(self._adminClientsChanged)  # a general change still updates the connection lists
+        self.changed.connect(self._accessChanged)
+        self.changed.connect(self._ecoHealthChanged)
+        self.changed.connect(self._flasherChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -700,7 +709,7 @@ class SuiteQtBridge(QObject):
         # the limits are read from the server every 10 seconds while the Robot Control screen is open. --
         self._access_busy = False
         self._access_robot_timer = self._scheduler.add("access_robot", _ACCESS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
-        self._access_tick_timer = self._scheduler.add("access_clock", 1000, self.changed.emit)
+        self._access_tick_timer = self._scheduler.add("access_clock", 1000, self._accessChanged.emit)
 
         # -- Safety limits (administrators): the form is edited in QML; this keeps what the server holds. --
         self._safety_message = ""
@@ -771,7 +780,7 @@ class SuiteQtBridge(QObject):
         self._eco_health_filter = "all"
         self._eco_health_status = ""
         self._eco_health_timer = self._scheduler.add("ecosystem_health", ecosystem_health.POLL_MS, lambda: asyncio.ensure_future(self._refresh_eco_health()))
-        self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self.changed.emit)
+        self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self._ecoHealthChanged.emit)
         controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
         # -- Map of the ecosystem: the projects of GET /api/ecosystem/status (shared with the services screen) plus the drift of the health; read only. --
         self._map_filter = "all"
@@ -1299,11 +1308,11 @@ class SuiteQtBridge(QObject):
     def controllerId(self) -> str:
         return access.get_controller_id()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def accessBusy(self) -> bool:
         return self._access_busy
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_accessChanged)
     def selectedRobotMode(self) -> str:
         conn, robot_id = self._access_target()
         if conn is None or robot_id is None:
@@ -1319,17 +1328,17 @@ class SuiteQtBridge(QObject):
         save_config(access.MODES.to_config())
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def listenOnly(self) -> bool:
         return access.LISTEN_ONLY.enabled
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def listenOnlyServer(self) -> bool:
         """Whether listen only holds for the server of the selected robot by its own switch (not by the general one)."""
         conn, _robot_id = self._access_target()
         return conn is not None and self._scope(conn) in access.LISTEN_ONLY.servers
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def canSetListenOnlyServer(self) -> bool:
         conn, _robot_id = self._access_target()
         return conn is not None and not access.LISTEN_ONLY.enabled
@@ -1349,7 +1358,7 @@ class SuiteQtBridge(QObject):
         save_config(access.LISTEN_ONLY.to_config())
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def defaultRobotModeSim(self) -> bool:
         return access.MODES.default_mode == "sim"
 
@@ -1373,7 +1382,7 @@ class SuiteQtBridge(QObject):
     def _clock(seconds: int | None) -> str:
         return "" if seconds is None else f"{seconds // 60}:{seconds % 60:02d}"
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=_accessChanged)
     def selectedRobotAccess(self) -> dict[str, object]:
         """Where the selected robot stands for this program, the sentence that says it, and which buttons apply."""
         conn, robot_id = self._access_target()
@@ -1394,7 +1403,7 @@ class SuiteQtBridge(QObject):
             "canTakeOver": signed_in and standing in ("other-controller", "other-account") and conn is not None and conn.is_admin,
         }
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_accessChanged)
     def claimsRows(self) -> list[dict[str, object]]:
         conn = self._controller.active_connection
         if conn is None:
@@ -1412,7 +1421,7 @@ class SuiteQtBridge(QObject):
             for claim in conn.claims
         ]
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=_accessChanged)
     def selectedRobotSafeMode(self) -> dict[str, object]:
         """Whether the selected robot is in safe mode and which of the two buttons applies: anyone signed in can
         disable a robot (like a stop); only an administrator is offered the enable."""
@@ -1439,12 +1448,12 @@ class SuiteQtBridge(QObject):
         if conn is not None and robot_id is not None and conn.is_admin:
             asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_ENABLE"), lambda: conn.set_robot_enabled(robot_id, True)))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def jogArmRequired(self) -> bool:
         conn = self._controller.active_connection
         return conn is not None and conn.safety.limits.arm_required
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=_accessChanged)
     def selectedRobotArm(self) -> dict[str, object]:
         conn, robot_id = self._access_target()
         until = conn.jog_armed_until.get(robot_id) if conn is not None and robot_id is not None else None
@@ -2307,34 +2316,34 @@ class SuiteQtBridge(QObject):
 
     # -- Ecosystem health ----------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_ecoHealthChanged)
     def ecoHealthStatus(self) -> str:
         return self._eco_health_status
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_ecoHealthChanged)
     def ecoHealthLoaded(self) -> bool:
         return self._eco_health is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_ecoHealthChanged)
     def ecoHealthUnavailable(self) -> bool:
         return self._eco_health is not None and not self._eco_health["available"]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_ecoHealthChanged)
     def ecoHealthEmpty(self) -> str:
         """The sentence for an empty list: no service at all, or none that matches the filter."""
         if self._eco_health is None or self._eco_health["services"] and self.ecoHealthCards:
             return ""
         return _("ECOHEALTH_NO_SERVICES") if not self._eco_health["services"] else _("ECOHEALTH_NO_MATCH")
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_ecoHealthChanged)
     def ecoHealthFilters(self) -> list[dict[str, object]]:
         return ecosystem_health.filter_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_ecoHealthChanged)
     def ecoHealthNotices(self) -> list[dict[str, object]]:
         return ecosystem_health.notice_rows(self._eco_health) if self._eco_health else []
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_ecoHealthChanged)
     def ecoHealthCards(self) -> list[dict[str, object]]:
         return ecosystem_health.card_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
 
@@ -7206,7 +7215,7 @@ class SuiteQtBridge(QObject):
             ids = {r.id for r in robots}
             if self._flasher_robot_id[key] not in ids:
                 self._flasher_robot_id[key] = robots[0].id if robots else None
-        self.changed.emit()
+        self._flasherChanged.emit()
 
     def _flasher_current_robot(self, key: str) -> RobotView | None:
         ctrl = self._flasher_controller.get(key)
@@ -7267,7 +7276,7 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_flasherChanged)
     def flasherTierOptions(self) -> list[dict[str, object]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7284,7 +7293,7 @@ class SuiteQtBridge(QObject):
             result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
         return result
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherTier(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_tier.get(key, "") if key else ""
@@ -7298,12 +7307,12 @@ class SuiteQtBridge(QObject):
             self._flasher_fram_result[key] = ""
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherNeedsRobotSlot(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_tier[key] != "kinematicBrain"
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_flasherChanged)
     def flasherRobotOptions(self) -> list[dict[str, str]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7316,7 +7325,7 @@ class SuiteQtBridge(QObject):
             result.append({"id": r.id, "label": f"{slot_label(i)} - {r.model}{unreachable}"})
         return result
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherSelectedRobotId(self) -> str:
         key = self._flasher_active_key()
         return (self._flasher_robot_id.get(key) or "") if key else ""
@@ -7328,7 +7337,7 @@ class SuiteQtBridge(QObject):
             self._flasher_robot_id[key] = robot_id or None
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherHopDescription(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7336,7 +7345,7 @@ class SuiteQtBridge(QObject):
         target = self._flasher_target(key)
         return hop_description(target) if target else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherUnreachable(self) -> bool:
         key = self._flasher_active_key()
         if key is None or not self._flasher_is_hardware:
@@ -7344,7 +7353,7 @@ class SuiteQtBridge(QObject):
         target = self._flasher_target(key)
         return target is not None and resolve_hardware_target(target) is None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherVersionLabel(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7354,7 +7363,7 @@ class SuiteQtBridge(QObject):
             return f"{_('LBL_CURRENT_VERSION')}: {board.get('firmwareVersion', '?')} ({_('LBL_BOOTLOADER')} {board.get('bootloaderVersion', '?')})"
         return _("LBL_NO_VERSION_KNOWN")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherQueryBusy(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_query_busy.get(key, False) if key else False
@@ -7396,7 +7405,7 @@ class SuiteQtBridge(QObject):
             patch["expansionBoardType"] = result.expansion_board_type
         self._flasher_apply_patch(key, patch)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherFileInfo(self) -> str:
         key = self._flasher_active_key()
         file = self._flasher_file.get(key) if key else None
@@ -7404,7 +7413,7 @@ class SuiteQtBridge(QObject):
             return _("LBL_NO_FILE")
         return f"{file['name']} - {len(file['bytes']) / 1024:.1f} KB - CRC32 0x{crc32(file['bytes']):08X}"
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherHasFile(self) -> bool:
         key = self._flasher_active_key()
         return bool(self._flasher_file.get(key)) if key else False
@@ -7424,12 +7433,12 @@ class SuiteQtBridge(QObject):
         self._flasher_push_log(key, f"{_('LBL_FILE_LOADED')}: {name} ({len(data)} bytes)")
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherGithubAvailable(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key]) is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherGithubButtonLabel(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7437,12 +7446,12 @@ class SuiteQtBridge(QObject):
         repo = GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key])
         return f"{_('BTN_DOWNLOAD_GITHUB')} ({repo})" if repo else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherGithubBusy(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_gh_busy.get(key, False) if key else False
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_flasherChanged)
     def flasherGithubAssets(self) -> list[dict[str, object]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7508,7 +7517,7 @@ class SuiteQtBridge(QObject):
             self._flasher_push_log(key, f"{_('LBL_GITHUB_ERROR')}: {exc}", "error")
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherAllowDowngrade(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_allow_downgrade.get(key, False) if key else False
@@ -7519,7 +7528,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._flasher_allow_downgrade[key] = value
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherEraseFram(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_erase_fram.get(key, False) if key else False
@@ -7530,7 +7539,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._flasher_erase_fram[key] = value
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherEraseFramEnabled(self) -> bool:
         """The simulation honours the option as it always did; over the real bus it needs the announcement of the server and the kinematic brain as the target."""
         key = self._flasher_active_key()
@@ -7540,12 +7549,12 @@ class SuiteQtBridge(QObject):
             return True
         return self._flasher_fram_supported.get(key) is True and self._flasher_tier.get(key) == "kinematicBrain"
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherFramVisible(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_is_hardware and self._flasher_tier.get(key) == "kinematicBrain"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherFramNote(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7555,17 +7564,17 @@ class SuiteQtBridge(QObject):
             return _("LBL_FRAMOP_UNKNOWN")
         return "" if supported else _("LBL_FRAMOP_UNSUPPORTED")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherFramReady(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_fram_supported.get(key) is True and not self._flasher_fram_busy.get(key, False) and not self._flasher_flashing.get(key, False)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherFramBusy(self) -> bool:
         key = self._flasher_active_key()
         return bool(key) and self._flasher_fram_busy.get(key, False)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherFramResult(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_fram_result.get(key, "") if key else ""
@@ -7618,17 +7627,17 @@ class SuiteQtBridge(QObject):
         self._flasher_push_log(key, text, "ok" if result.ok else "error")
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherFlashing(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_flashing.get(key, False) if key else False
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_flasherChanged)
     def flasherCanFlash(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self.flasherHasFile and not self._flasher_flashing.get(key, False) and not self.flasherUnreachable
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherConfirmMessage(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7644,17 +7653,17 @@ class SuiteQtBridge(QObject):
             message += " " + _("MSG_CONFIRM_FLASH_ERASE")
         return message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_flasherChanged)
     def flasherProgressLabel(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_progress.get(key, {}).get("label", "") if key else ""
 
-    @Property(int, notify=changed)
+    @Property(int, notify=_flasherChanged)
     def flasherProgressPercent(self) -> int:
         key = self._flasher_active_key()
         return self._flasher_progress.get(key, {}).get("percent", 0) if key else 0
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_flasherChanged)
     def flasherLog(self) -> list[dict[str, str]]:
         key = self._flasher_active_key()
         return self._flasher_log.get(key, []) if key else []
