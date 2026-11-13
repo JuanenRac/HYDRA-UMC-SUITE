@@ -95,5 +95,20 @@ check("a state change of the server reaches the Flasher without a general change
 bridge.changed.emit()
 check("a general change reaches all of them", (len(seen["_accessChanged"]), len(seen["_ecoHealthChanged"]), len(seen["_flasherChanged"])), (2, 2, 2))
 
+# --- the Rack Manager, Pick and Place and XY Table screens -------------------------------------------------------------------
+for prop, signal in (("rackRobotOptions", "rackChanged"), ("pnpRobotOptions", "pnpChanged"), ("xyRobotOptions", "xyTableChanged")):
+    check(f"{prop} notifies {signal}", notify_of(prop), signal)
+
+screens = count(["changed", "rackChanged", "pnpChanged", "xyTableChanged"])
+state = HydraState({})
+bridge._on_rack_state_changed(state)
+check("a state change reaches the Rack Manager only", (len(screens["changed"]), len(screens["rackChanged"]), len(screens["pnpChanged"]), len(screens["xyTableChanged"])), (0, 1, 0, 0))
+bridge._on_pnp_state_changed(state)
+check("a state change reaches Pick and Place only", (len(screens["changed"]), len(screens["rackChanged"]), len(screens["pnpChanged"]), len(screens["xyTableChanged"])), (0, 1, 1, 0))
+bridge._on_xy_state_changed(state)
+check("a state change reaches the XY Table only", (len(screens["changed"]), len(screens["rackChanged"]), len(screens["pnpChanged"]), len(screens["xyTableChanged"])), (0, 1, 1, 1))
+bridge.changed.emit()
+check("a general change reaches the three screens", (len(screens["rackChanged"]), len(screens["pnpChanged"]), len(screens["xyTableChanged"])), (2, 2, 2))
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
