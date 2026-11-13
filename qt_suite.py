@@ -348,6 +348,9 @@ class SuiteQtBridge(QObject):
     # The ecosystem screens: telemetry, the tier plan of the data lake, the services, the map and the AI family status. The telemetry chart
     # listens to it from QML.
     ecosystemChanged = Signal()
+    # The server logs screen, and the robots catalog with the models submitted to it.
+    adminLogsChanged = Signal()
+    catalogChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -389,6 +392,8 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self.overviewChanged)
         self.changed.connect(self.securityChanged)
         self.changed.connect(self.ecosystemChanged)
+        self.changed.connect(self.adminLogsChanged)
+        self.changed.connect(self.catalogChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -1834,23 +1839,23 @@ class SuiteQtBridge(QObject):
 
     # -- Submitted models -----------------------------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=catalogChanged)
     def modelsHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=catalogChanged)
     def modelsRows(self) -> list[dict[str, str]]:
         return self._models_rows
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def modelsMessage(self) -> str:
         return self._models_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def modelsError(self) -> str:
         return self._models_error
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=catalogChanged)
     def modelsBusy(self) -> bool:
         return self._models_busy
 
@@ -1865,10 +1870,10 @@ class SuiteQtBridge(QObject):
         if conn is None or conn.login_ok is not True:
             self._models_rows = []
             self._models_list = []
-            self.changed.emit()
+            self.catalogChanged.emit()
             return
         self._models_busy = True
-        self.changed.emit()
+        self.catalogChanged.emit()
         try:
             result = await conn.fetch_submitted_models()
             status = 0 if result is None else result[0]
@@ -1881,7 +1886,7 @@ class SuiteQtBridge(QObject):
             self._models_rows = submitted_models.rows(self._models_list)
         finally:
             self._models_busy = False
-            self.changed.emit()
+            self.catalogChanged.emit()
 
     @Slot(str, str, str)
     def saveModelUrdf(self, category: str, slug: str, path: str) -> None:
@@ -1900,7 +1905,7 @@ class SuiteQtBridge(QObject):
         xml = submitted_models.urdf_text(answer)
         if xml is None:
             self._models_error = _("MODELS_SAVE_FAILED", name=name)
-            self.changed.emit()
+            self.catalogChanged.emit()
             return
         local_path = QUrl(path).toLocalFile() or path
         if not local_path.lower().endswith(".urdf"):
@@ -1912,7 +1917,7 @@ class SuiteQtBridge(QObject):
             self._models_error = _("MODELS_SAVE_WRITE_FAILED", error=error)
         else:
             self._models_message = _("MODELS_SAVED", path=local_path)
-        self.changed.emit()
+        self.catalogChanged.emit()
 
     # -- User accounts (administrators only) -------------------------------------------
 
@@ -2196,19 +2201,19 @@ class SuiteQtBridge(QObject):
             {"value": m, "label": m} for m in sorted(set(ROBOT_MANUFACTURERS.values()))
         ]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def catalogManufacturer(self) -> str:
         return self._catalog_manufacturer
 
-    @Property(int, notify=changed)
+    @Property(int, notify=catalogChanged)
     def catalogDof(self) -> int:
         return self._catalog_dof
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def catalogSelected(self) -> str:
         return self._catalog_selected
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=catalogChanged)
     def catalogRows(self) -> list[dict[str, object]]:
         state = self._controller.active_state
         models = REAL_ROBOT_MODELS
@@ -2229,19 +2234,19 @@ class SuiteQtBridge(QObject):
     @Slot(str)
     def setCatalogManufacturer(self, value: str) -> None:
         self._catalog_manufacturer = value or "__all__"
-        self.changed.emit()
+        self.catalogChanged.emit()
 
     @Slot(int)
     def setCatalogDof(self, value: int) -> None:
         self._catalog_dof = value if value in (5, 6) else 0
-        self.changed.emit()
+        self.catalogChanged.emit()
 
     @Slot(str)
     def selectCatalogModel(self, model: str) -> None:
         if model in REAL_ROBOT_MODELS:
             self._catalog_selected = model
             self.refreshCatalogPreview()
-            self.changed.emit()
+            self.catalogChanged.emit()
 
     @Slot(str, bool)
     def setCatalogModelEnabled(self, model: str, enabled: bool) -> None:
@@ -3319,19 +3324,19 @@ class SuiteQtBridge(QObject):
 
     # -- Admin Logs --------------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=adminLogsChanged)
     def adminLogsStatusText(self) -> str:
         return self._admin_logs_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=adminLogsChanged)
     def adminLogsLive(self) -> bool:
         return self._admin_logs_live
 
-    @Property(str, notify=changed)
+    @Property(str, notify=adminLogsChanged)
     def adminLogsTagFilter(self) -> str:
         return self._admin_logs_tag_filter or ""
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=adminLogsChanged)
     def adminLogsTags(self) -> list[str]:
         return sorted({tag for line in self._admin_logs_all_lines if (tag := _extract_tag(line))})
 
@@ -3349,7 +3354,7 @@ class SuiteQtBridge(QObject):
             return self._admin_logs_all_lines
         return self._admin_logs_all_lines[idx + 1:]
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=adminLogsChanged)
     def adminLogsLines(self) -> list[str]:
         displayed = self._admin_logs_displayed_lines()
         needle = self._admin_logs_search.strip().lower()
@@ -3365,7 +3370,7 @@ class SuiteQtBridge(QObject):
     @Slot()
     def toggleAdminLogsLive(self) -> None:
         self._admin_logs_live = not self._admin_logs_live
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     @Slot()
     def clearAdminLogs(self) -> None:
@@ -3375,17 +3380,17 @@ class SuiteQtBridge(QObject):
         else:
             self._admin_logs_cleared_anchor = None
             self._admin_logs_cleared_at_empty = True
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     @Slot(str)
     def setAdminLogsTagFilter(self, tag: str) -> None:
         self._admin_logs_tag_filter = tag or None
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     @Slot(str)
     def setAdminLogsSearch(self, text: str) -> None:
         self._admin_logs_search = text
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     async def _refresh_admin_logs(self) -> None:
         if not self._admin_logs_live:
@@ -3393,26 +3398,26 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._admin_logs_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         if not conn.is_admin:
             self._admin_logs_status_text = _("MSG_ADMIN_ONLY")
             self._admin_logs_all_lines = []
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         result = await conn.fetch_admin_logs(_ADMIN_LOGS_LINES)
         if result is None:
             self._admin_logs_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict):
             self._admin_logs_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         self._admin_logs_all_lines = body.get("lines") or []
         self._admin_logs_status_text = _("LBL_LOGS_FOOTER_LIVE", lines=_ADMIN_LOGS_LINES, seconds=_ADMIN_LOGS_POLL_MS // 1000)
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     # -- Admin Server ------------------------------------------------------
 
