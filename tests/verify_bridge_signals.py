@@ -74,7 +74,7 @@ from hydra_suite.models import HydraState
 
 check("a reservation property notifies the signal of the access clock", notify_of("selectedRobotMode"), "_accessChanged")
 check("a health property notifies the signal of the health clock", notify_of("ecoHealthStatus"), "_ecoHealthChanged")
-check("a Flasher property notifies the signal of the Flasher", notify_of("flasherTier"), "_flasherChanged")
+check("a Flasher property notifies the signal of the Flasher", notify_of("flasherTier"), "flasherChanged")
 
 
 def count(signal_names):
@@ -85,15 +85,15 @@ def count(signal_names):
     return seen
 
 
-seen = count(["changed", "_accessChanged", "_ecoHealthChanged", "_flasherChanged"])
+seen = count(["changed", "_accessChanged", "_ecoHealthChanged", "flasherChanged"])
 bridge._access_tick_timer._callback()
-check("the access clock announces its own signal only", (len(seen["changed"]), len(seen["_accessChanged"]), len(seen["_flasherChanged"])), (0, 1, 0))
+check("the access clock announces its own signal only", (len(seen["changed"]), len(seen["_accessChanged"]), len(seen["flasherChanged"])), (0, 1, 0))
 bridge._eco_health_tick._callback()
-check("the health clock announces its own signal only", (len(seen["changed"]), len(seen["_ecoHealthChanged"]), len(seen["_flasherChanged"])), (0, 1, 0))
+check("the health clock announces its own signal only", (len(seen["changed"]), len(seen["_ecoHealthChanged"]), len(seen["flasherChanged"])), (0, 1, 0))
 bridge._on_flasher_state_changed(HydraState({}))
-check("a state change of the server reaches the Flasher without a general change", (len(seen["changed"]), len(seen["_flasherChanged"])), (0, 1))
+check("a state change of the server reaches the Flasher without a general change", (len(seen["changed"]), len(seen["flasherChanged"])), (0, 1))
 bridge.changed.emit()
-check("a general change reaches all of them", (len(seen["_accessChanged"]), len(seen["_ecoHealthChanged"]), len(seen["_flasherChanged"])), (2, 2, 2))
+check("a general change reaches all of them", (len(seen["_accessChanged"]), len(seen["_ecoHealthChanged"]), len(seen["flasherChanged"])), (2, 2, 2))
 
 # --- the Rack Manager, Pick and Place and XY Table screens -------------------------------------------------------------------
 for prop, signal in (("rackRobotOptions", "rackChanged"), ("pnpRobotOptions", "pnpChanged"), ("xyRobotOptions", "xyTableChanged")):
@@ -109,6 +109,19 @@ bridge._on_xy_state_changed(state)
 check("a state change reaches the XY Table only", (len(screens["changed"]), len(screens["rackChanged"]), len(screens["pnpChanged"]), len(screens["xyTableChanged"])), (0, 1, 1, 1))
 bridge.changed.emit()
 check("a general change reaches the three screens", (len(screens["rackChanged"]), len(screens["pnpChanged"]), len(screens["xyTableChanged"])), (2, 2, 2))
+
+# --- the Module Config, ATC Tools and Tester screens -----------------------------------------------------------------------------
+for prop, signal in (("moduleSelectedRobotId", "moduleChanged"), ("atcSelectedRobotId", "atcChanged"), ("testerSelectedRobotId", "testerChanged")):
+    check(f"{prop} notifies {signal}", notify_of(prop), signal)
+
+tools = count(["changed", "moduleChanged", "atcChanged", "testerChanged", "flasherChanged"])
+bridge._on_module_state_changed(state)
+bridge._on_atc_state_changed(state)
+check("a state change reaches the Module Config and ATC Tools screens only", (len(tools["changed"]), len(tools["moduleChanged"]), len(tools["atcChanged"]), len(tools["testerChanged"])), (0, 1, 1, 0))
+bridge._on_tester_state_changed(state)
+check("a state change of the Tester reaches the Tester and the Flasher, which shows the same CAN link flag", (len(tools["changed"]), len(tools["testerChanged"]), len(tools["flasherChanged"])), (0, 1, 1))
+bridge.changed.emit()
+check("a general change reaches the three screens", (len(tools["moduleChanged"]), len(tools["atcChanged"]), len(tools["testerChanged"])), (2, 2, 2))
 
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
