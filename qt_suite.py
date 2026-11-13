@@ -338,6 +338,9 @@ class SuiteQtBridge(QObject):
     moduleChanged = Signal()
     atcChanged = Signal()
     testerChanged = Signal()
+    # The Kinematic Brain Stage and Overview screens.
+    kbsChanged = Signal()
+    overviewChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -375,6 +378,8 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self.moduleChanged)
         self.changed.connect(self.atcChanged)
         self.changed.connect(self.testerChanged)
+        self.changed.connect(self.kbsChanged)
+        self.changed.connect(self.overviewChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -5638,7 +5643,7 @@ class SuiteQtBridge(QObject):
 
     def _on_kbs_state_changed(self, state: HydraState) -> None:
         self._kbs_controller = state.active_controller
-        self.changed.emit()
+        self.kbsChanged.emit()
 
     def _kbs_stage(self) -> dict:
         """The stage of the controller with whatever the server left out (or sent as another type) read as the
@@ -5656,11 +5661,11 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsHasController(self) -> bool:
         return self._kbs_controller is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsAxisData(self) -> list[dict[str, str]]:
         xy = self._kbs_stage().get("xyTable", {})
         return [{"axis": axis, "label": axis.upper(), "value": f"{float(xy.get(axis, 0)):.2f}"} for axis in _KBS_AXIS_KEYS]
@@ -5684,15 +5689,15 @@ class SuiteQtBridge(QObject):
         xy[axis] = _clamp(next_value, 0, float(bound))
         self._kbs_patch({"xyTable": xy})
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTableWidth(self) -> int:
         return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("width", 0))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTableLength(self) -> int:
         return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("length", 0))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTableHeight(self) -> int:
         return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("height", 0))
 
@@ -5706,15 +5711,15 @@ class SuiteQtBridge(QObject):
         stage["xyTable"]["tableSize"][field] = _clamp(value, lo, hi)
         self._kbs_patch({"xyTable": stage["xyTable"]})
 
-    @Property(str, notify=changed)
+    @Property(str, notify=kbsChanged)
     def kbsTherm1(self) -> str:
         return f"{float(self._kbs_stage().get('heatedBed', {}).get('currentTemp1', 0)):.1f}°C"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=kbsChanged)
     def kbsTherm2(self) -> str:
         return f"{float(self._kbs_stage().get('heatedBed', {}).get('currentTemp2', 0)):.1f}°C"
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTargetTemp(self) -> int:
         return int(self._kbs_stage().get("heatedBed", {}).get("targetTemp", 0))
 
@@ -5726,7 +5731,7 @@ class SuiteQtBridge(QObject):
         bed["targetTemp"] = access.clamp_bed_target(value, self._bed_ceiling())
         self._kbs_patch({"heatedBed": bed})
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsSsrOn(self) -> bool:
         return bool(self._kbs_stage().get("heatedBed", {}).get("ssrActive"))
 
@@ -5738,15 +5743,15 @@ class SuiteQtBridge(QObject):
         bed["ssrActive"] = not bed.get("ssrActive")
         self._kbs_patch({"heatedBed": bed})
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsAtcIndex(self) -> int:
         return int(self._kbs_stage().get("atcRevolver", {}).get("currentIndex", 0)) + 1
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsToolCount(self) -> int:
         return int(self._kbs_stage().get("atcRevolver", {}).get("toolCount", 6))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsHomed(self) -> bool:
         return bool(self._kbs_stage().get("atcRevolver", {}).get("homed"))
 
@@ -5773,15 +5778,15 @@ class SuiteQtBridge(QObject):
         atc["toolCount"] = _clamp(value, 2, 16)
         self._kbs_patch({"atcRevolver": atc})
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsConveyorInstalled(self) -> bool:
         return bool(self._kbs_stage().get("conveyor", {}).get("installed"))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsConveyorRunning(self) -> bool:
         return bool(self._kbs_stage().get("conveyor", {}).get("running"))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsConveyorSpeed(self) -> int:
         return int(self._kbs_stage().get("conveyor", {}).get("speedPercent", 0))
 
@@ -5809,7 +5814,7 @@ class SuiteQtBridge(QObject):
         conveyor["speedPercent"] = value
         self._kbs_patch({"conveyor": conveyor})
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsEndstopData(self) -> list[dict[str, object]]:
         endstops = self._kbs_stage().get("endstops", {})
         return [{"key": key, "label": label, "active": bool(endstops.get(key))} for key, label in ENDSTOP_ENTRIES]
@@ -5823,15 +5828,15 @@ class SuiteQtBridge(QObject):
         group[index] = not group[index]
         self._kbs_patch({group_key: group})
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsFans(self) -> list[bool]:
         return list(self._kbs_stage().get("fans", []))
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsPumps(self) -> list[bool]:
         return list(self._kbs_stage().get("pumps", []))
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsValves(self) -> list[bool]:
         return list(self._kbs_stage().get("valves", []))
 
@@ -8283,39 +8288,39 @@ class SuiteQtBridge(QObject):
 
     # -- Overview --------------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewName(self) -> str:
         return self._overview_name
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewIp(self) -> str:
         return self._overview_ip
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewRobotCount(self) -> str:
         return self._overview_robot_count
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewOnlineCount(self) -> str:
         return self._overview_online_count
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewCpu(self) -> str:
         return self._overview_cpu
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewMem(self) -> str:
         return self._overview_mem
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewTemp(self) -> str:
         return self._overview_temp
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewUptime(self) -> str:
         return self._overview_uptime
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=overviewChanged)
     def overviewRobots(self) -> list[dict[str, object]]:
         return self._overview_robots
 
@@ -8334,7 +8339,7 @@ class SuiteQtBridge(QObject):
             self._overview_uptime = f"{hours}h {minutes}m"
         else:
             self._overview_uptime = "-"
-        self.changed.emit()
+        self.overviewChanged.emit()
 
     def _on_overview_state_changed(self, state: HydraState) -> None:
         active = state.active_controller
@@ -8344,7 +8349,7 @@ class SuiteQtBridge(QObject):
             self._overview_robot_count = "-"
             self._overview_online_count = "-"
             self._overview_robots = []
-            self.changed.emit()
+            self.overviewChanged.emit()
             return
         robots = active.robots
         online = sum(1 for r in robots if r.online)
@@ -8364,7 +8369,7 @@ class SuiteQtBridge(QObject):
             }
             for r in robots
         ]
-        self.changed.emit()
+        self.overviewChanged.emit()
 
 
 def run_qtquick() -> int:
