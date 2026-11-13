@@ -604,6 +604,7 @@ ACCESS_LIST_EMPTY=Nenhum robô está reservado.
 ACCESS_DEFAULT_SIM=Iniciar em modo Sim os robôs que não escolhi
 ACCESS_LISTEN_ONLY=Só escuta: não enviar nenhum comando exceto STOP
 ACCESS_LISTEN_ONLY_NOTICE=Só escuta: os comandos estão desativados, o STOP continua a funcionar
+ACCESS_LISTEN_ONLY_SERVER=Só escuta para este servidor: não lhe enviar nenhum comando exceto STOP
 MSG_ACCESS_CLAIM_OTHER_ACCOUNT={what} recusada: o robô está reservado por outra conta. {detail}
 MSG_ACCESS_CLAIM_OTHER_CONTROLLER={what} recusada: o robô está reservado pela sua conta noutra janela ou dispositivo. Use esse, ou liberte lá a reserva. {detail}
 MSG_ACCESS_CLAIM_CONTROLLER_REQUIRED={what} recusada: a reserva indica um controlador e este pedido não indicou nenhum. {detail}

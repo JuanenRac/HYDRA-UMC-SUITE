@@ -559,7 +559,7 @@ class HydraConnection(QObject):
             request_headers["Authorization"] = f"Bearer {used}"
         url = f"{self.info.base_url}{path}"
         # Listen only refuses every write but STOP and the session before it leaves the program.
-        if access.LISTEN_ONLY.enabled and not access.listen_only_allows(method, path, kwargs.get("json")):
+        if access.LISTEN_ONLY.applies(f"{self.info.host}:{self.info.port}") and not access.listen_only_allows(method, path, kwargs.get("json")):
             return _listen_only_refusal(method, url)
         async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
             resp = await client.request(method, url, headers=request_headers, timeout=timeout, **kwargs)
@@ -1201,7 +1201,7 @@ class HydraConnection(QObject):
         # network traffic, and the operator is told why.
         scope = f"{self.info.host}:{self.info.port}"
         # Listen-only mode sends nothing but STOP and the safe-mode disable, whatever the robot's mode.
-        if access.LISTEN_ONLY.blocks(command):
+        if access.LISTEN_ONLY.blocks(command, scope):
             self.error.emit(_("MSG_NET_LISTEN_ONLY_BLOCKED", command=command, robot=robot_id))
             return
         if access.MODES.blocked(scope, [robot_id], command):
@@ -1491,7 +1491,7 @@ class HydraConnection(QObject):
         renew the session and repeat itself on a 401: a wrong password or code is an answer here, and sending it twice would
         count twice against the server's wait. Status 0 means the server could not be reached."""
         headers = self.session.auth_headers()
-        if access.LISTEN_ONLY.enabled and not access.listen_only_allows(method, path, body):
+        if access.LISTEN_ONLY.applies(f"{self.info.host}:{self.info.port}") and not access.listen_only_allows(method, path, body):
             return 423, {"error": "listen only", "code": "listen-only"}, None
         try:
             async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:

@@ -612,26 +612,50 @@ MODES = ModeState()
 LISTEN_ONLY_ALLOWED = frozenset({"stop", "disable"})
 
 
+MAX_LISTEN_ONLY_SERVERS = 50
+
+
+def _valid_scope(scope: object) -> bool:
+    return isinstance(scope, str) and 0 < len(scope) <= 200 and scope.strip() == scope
+
+
 @dataclass
 class ListenOnlyState:
     """The listen-only switch of this program: one choice for every server and robot, off by default. While it is
     on the program shows the robots and their data and sends no command but STOP and the safe-mode disable."""
 
     enabled: bool = False
+    #: Listen only for some servers only: their scopes ("host:port"), off by default. A server in the set is read-only
+    #: even when the general switch is off; the general switch covers every server.
+    servers: set[str] = field(default_factory=set)
 
-    def blocks(self, command: str) -> bool:
-        return self.enabled and command not in LISTEN_ONLY_ALLOWED
+    def applies(self, scope: str | None = None) -> bool:
+        """Whether listen only holds for the server [scope]: the general switch, or that server in the set."""
+        return self.enabled or (scope is not None and scope in self.servers)
+
+    def blocks(self, command: str, scope: str | None = None) -> bool:
+        return self.applies(scope) and command not in LISTEN_ONLY_ALLOWED
 
     def set(self, on: bool) -> None:
         self.enabled = bool(on)
 
+    def set_server(self, scope: str, on: bool) -> None:
+        if on and _valid_scope(scope):
+            self.servers.add(scope)
+        else:
+            self.servers.discard(scope)
+
     def to_config(self) -> dict:
-        return {"listenOnly": self.enabled}
+        return {"listenOnly": self.enabled, "listenOnlyServers": sorted(self.servers)}
 
     @classmethod
     def from_config(cls, config: object) -> "ListenOnlyState":
         # Only a real true switches it on: a damaged value leaves the program as it was before the option existed.
-        return cls(enabled=isinstance(config, dict) and config.get("listenOnly") is True)
+        state = cls(enabled=isinstance(config, dict) and config.get("listenOnly") is True)
+        listed = config.get("listenOnlyServers") if isinstance(config, dict) else None
+        if isinstance(listed, list):
+            state.servers = {item for item in listed[:MAX_LISTEN_ONLY_SERVERS] if isinstance(item, str) and _valid_scope(item)}
+        return state
 
 
 #: The listen-only choice of this program, loaded from the configuration at start.

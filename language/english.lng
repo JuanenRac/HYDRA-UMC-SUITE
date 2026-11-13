@@ -604,6 +604,7 @@ ACCESS_LIST_EMPTY=No robot is reserved.
 ACCESS_DEFAULT_SIM=Start the robots I have not chosen for in Sim mode
 ACCESS_LISTEN_ONLY=Listen only: send no command but STOP
 ACCESS_LISTEN_ONLY_NOTICE=Listen only: commands are disabled, STOP still works
+ACCESS_LISTEN_ONLY_SERVER=Listen only for this server: send it no command but STOP
 MSG_ACCESS_CLAIM_OTHER_ACCOUNT={what} refused: the robot is reserved by another account. {detail}
 MSG_ACCESS_CLAIM_OTHER_CONTROLLER={what} refused: the robot is reserved by your account from another window or device. Use that one, or release the reservation there. {detail}
 MSG_ACCESS_CLAIM_CONTROLLER_REQUIRED={what} refused: the reservation names a controller and this request named none. {detail}

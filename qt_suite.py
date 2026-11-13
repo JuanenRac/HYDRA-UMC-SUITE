@@ -1317,6 +1317,26 @@ class SuiteQtBridge(QObject):
     def listenOnly(self) -> bool:
         return access.LISTEN_ONLY.enabled
 
+    @Property(bool, notify=changed)
+    def listenOnlyServer(self) -> bool:
+        """Whether listen only holds for the server of the selected robot by its own switch (not by the general one)."""
+        conn, _robot_id = self._access_target()
+        return conn is not None and self._scope(conn) in access.LISTEN_ONLY.servers
+
+    @Property(bool, notify=changed)
+    def canSetListenOnlyServer(self) -> bool:
+        conn, _robot_id = self._access_target()
+        return conn is not None and not access.LISTEN_ONLY.enabled
+
+    @Slot(bool)
+    def setListenOnlyServer(self, on: bool) -> None:
+        conn, _robot_id = self._access_target()
+        if conn is None:
+            return
+        access.LISTEN_ONLY.set_server(self._scope(conn), on)
+        save_config(access.LISTEN_ONLY.to_config())
+        self.changed.emit()
+
     @Slot(bool)
     def setListenOnly(self, on: bool) -> None:
         access.LISTEN_ONLY.set(on)
@@ -8294,7 +8314,9 @@ def run_qtquick() -> int:
     loaded_modes = access.ModeState.from_config(load_config())
     access.MODES.modes.update(loaded_modes.modes)
     access.MODES.default_mode = loaded_modes.default_mode
-    access.LISTEN_ONLY.set(access.ListenOnlyState.from_config(load_config()).enabled)
+    _listen_only = access.ListenOnlyState.from_config(load_config())
+    access.LISTEN_ONLY.set(_listen_only.enabled)
+    access.LISTEN_ONLY.servers = set(_listen_only.servers)
     credential_store = CredentialStore(keyring_backend(), load_config, save_config)
     catalog_frame_provider = ViewportFrameProvider()
     frame_provider = CameraFrameProvider()
