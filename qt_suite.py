@@ -318,6 +318,10 @@ class SuiteQtBridge(QObject):
     (their Property/Slot layer over an unmodified real backend)."""
 
     changed = Signal()
+    # The connection lists of the admin screens ("5m ago" durations advance every second while one is on view). Their properties
+    # notify this signal, and `changed` forwards to it (see __init__), so whatever still announces a general change updates them;
+    # the one-second clock announces only this one, so the other ~300 properties are not evaluated for a clock tick.
+    _adminClientsChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -345,6 +349,7 @@ class SuiteQtBridge(QObject):
         catalog_frame_provider: "ViewportFrameProvider | None" = None,
     ) -> None:
         super().__init__()
+        self.changed.connect(self._adminClientsChanged)  # a general change still updates the connection lists
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -443,7 +448,7 @@ class SuiteQtBridge(QObject):
         self._scheduler_timer.timeout.connect(self._scheduler.tick)
         self._scheduler_timer.start()
         self._admin_clients_timer = self._scheduler.add("admin_clients", _ADMIN_CLIENTS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_admin_clients()))
-        self._admin_clients_tick_timer = self._scheduler.add("admin_clients_clock", 1000, self.changed.emit)
+        self._admin_clients_tick_timer = self._scheduler.add("admin_clients_clock", 1000, self._adminClientsChanged.emit)
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_clients()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
@@ -3176,23 +3181,23 @@ class SuiteQtBridge(QObject):
 
     # -- Admin Clients -----------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_adminClientsChanged)
     def adminClientsStatusText(self) -> str:
         return self._admin_clients_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_adminClientsChanged)
     def adminClientsShowStats(self) -> bool:
         return len(self._admin_clients) > 0
 
-    @Property(int, notify=changed)
+    @Property(int, notify=_adminClientsChanged)
     def adminClientsConnectedCount(self) -> int:
         return len(self._admin_clients)
 
-    @Property(int, notify=changed)
+    @Property(int, notify=_adminClientsChanged)
     def adminClientsAdminCount(self) -> int:
         return sum(1 for c in self._admin_clients if c.get("role") == "admin")
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_adminClientsChanged)
     def adminClientsRows(self) -> list[dict[str, object]]:
         sorted_clients = sorted(
             self._admin_clients,
@@ -3212,15 +3217,15 @@ class SuiteQtBridge(QObject):
 
     # -- Connection history (any signed-in account) --------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_adminClientsChanged)
     def connectionHistoryStatus(self) -> str:
         return self._connection_status_text
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_adminClientsChanged)
     def connectionClientRows(self) -> list[dict[str, object]]:
         return connection_history.client_rows(self._connection_clients)
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_adminClientsChanged)
     def connectionEventRows(self) -> list[dict[str, object]]:
         return connection_history.event_rows(self._connection_events)
 
