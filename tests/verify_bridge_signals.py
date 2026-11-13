@@ -123,5 +123,19 @@ check("a state change of the Tester reaches the Tester and the Flasher, which sh
 bridge.changed.emit()
 check("a general change reaches the three screens", (len(tools["moduleChanged"]), len(tools["atcChanged"]), len(tools["testerChanged"])), (2, 2, 2))
 
+# --- the Kinematic Brain Stage and Overview screens -----------------------------------------------------------------------------
+for prop, signal in (("kbsHasController", "kbsChanged"), ("overviewName", "overviewChanged")):
+    check(f"{prop} notifies {signal}", notify_of(prop), signal)
+
+more = count(["changed", "kbsChanged", "overviewChanged"])
+bridge._on_kbs_state_changed(state)
+check("a state change reaches the Kinematic Brain Stage only", (len(more["changed"]), len(more["kbsChanged"]), len(more["overviewChanged"])), (0, 1, 0))
+bridge._on_overview_state_changed(state)
+bridge._on_overview_metrics_changed({"cpu_load": 12, "memory_usage": 40, "temp": 51, "uptime": 3700})
+check("the state and the metrics of the Overview reach the Overview only", (len(more["changed"]), len(more["kbsChanged"]), len(more["overviewChanged"])), (0, 1, 2))
+check("the metrics are shown", (bridge.overviewCpu, bridge.overviewUptime), ("12%", "1h 1m"))
+bridge.changed.emit()
+check("a general change reaches both", (len(more["kbsChanged"]), len(more["overviewChanged"])), (2, 3))
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
