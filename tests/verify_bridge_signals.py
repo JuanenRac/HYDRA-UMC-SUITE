@@ -158,5 +158,17 @@ check("choosing the filter of the map announces the ecosystem group only", (len(
 bridge.changed.emit()
 check("a general change reaches the ecosystem group", len(eco["ecosystemChanged"]), 2)
 
+# --- the server logs screen, and the robots catalog with the submitted models --------------------------------------------------------
+for prop, signal in (("adminLogsStatusText", "adminLogsChanged"), ("catalogManufacturer", "catalogChanged"), ("modelsHasServer", "catalogChanged")):
+    check(f"{prop} notifies {signal}", notify_of(prop), signal)
+
+lists = count(["changed", "adminLogsChanged", "catalogChanged"])
+bridge.setAdminLogsSearch("error")
+check("the search of the server logs announces the logs screen only", (len(lists["changed"]), len(lists["adminLogsChanged"]), len(lists["catalogChanged"])), (0, 1, 0))
+bridge.setCatalogDof(6)
+check("the filter of the catalog announces the catalog only", (len(lists["changed"]), len(lists["adminLogsChanged"]), len(lists["catalogChanged"])), (0, 1, 1))
+bridge.changed.emit()
+check("a general change reaches both", (len(lists["adminLogsChanged"]), len(lists["catalogChanged"])), (2, 2))
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
