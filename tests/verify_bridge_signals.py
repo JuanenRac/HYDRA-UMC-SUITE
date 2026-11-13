@@ -69,5 +69,31 @@ group.clear()
 check("the clock job is the one-second job of the admin screen", (job.name, job.interval()), ("admin_clients_clock", 1000))
 check("nothing was emitted by looking at the job", (len(general), len(group)), (0, 0))
 
+# --- the reservations of the Robot Control screen, the health of the ecosystem and the Flasher ---------------------------------
+from hydra_suite.models import HydraState
+
+check("a reservation property notifies the signal of the access clock", notify_of("selectedRobotMode"), "_accessChanged")
+check("a health property notifies the signal of the health clock", notify_of("ecoHealthStatus"), "_ecoHealthChanged")
+check("a Flasher property notifies the signal of the Flasher", notify_of("flasherTier"), "_flasherChanged")
+
+
+def count(signal_names):
+    seen = {}
+    for name in signal_names:
+        seen[name] = []
+        getattr(bridge, name).connect(lambda n=name: seen[n].append(1))
+    return seen
+
+
+seen = count(["changed", "_accessChanged", "_ecoHealthChanged", "_flasherChanged"])
+bridge._access_tick_timer._callback()
+check("the access clock announces its own signal only", (len(seen["changed"]), len(seen["_accessChanged"]), len(seen["_flasherChanged"])), (0, 1, 0))
+bridge._eco_health_tick._callback()
+check("the health clock announces its own signal only", (len(seen["changed"]), len(seen["_ecoHealthChanged"]), len(seen["_flasherChanged"])), (0, 1, 0))
+bridge._on_flasher_state_changed(HydraState({}))
+check("a state change of the server reaches the Flasher without a general change", (len(seen["changed"]), len(seen["_flasherChanged"])), (0, 1))
+bridge.changed.emit()
+check("a general change reaches all of them", (len(seen["_accessChanged"]), len(seen["_ecoHealthChanged"]), len(seen["_flasherChanged"])), (2, 2, 2))
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
