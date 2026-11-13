@@ -274,7 +274,7 @@ def safe_mode(loop):
         return results["r"]
 
     conn.set_robot_enabled = refused
-    for code, key in (("enable_not_allowed", "MSG_ACCESS_ENABLE_NOT_ALLOWED"), ("admin_required", "MSG_ACCESS_ADMIN_REQUIRED"), ("robot_disabled", "MSG_ACCESS_ROBOT_DISABLED")):
+    for code, key in (("enable_not_allowed", "MSG_ACCESS_ENABLE_NOT_ALLOWED"), ("admin_required", "MSG_ACCESS_ADMIN_REQUIRED"), ("robot_disabled", "MSG_ACCESS_ROBOT_DISABLED"), ("server_read_only", "MSG_ACCESS_SERVER_READ_ONLY")):
         results["r"] = AccessResult(False, 403, code, "x")
         bridge.disableSelectedRobot()
         pump(loop)
