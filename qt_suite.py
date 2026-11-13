@@ -345,6 +345,9 @@ class SuiteQtBridge(QObject):
     # settings, the audit record, the identity of the server and the local and global settings by role. The safety form of the screen listens
     # to it from QML.
     securityChanged = Signal()
+    # The ecosystem screens: telemetry, the tier plan of the data lake, the services, the map and the AI family status. The telemetry chart
+    # listens to it from QML.
+    ecosystemChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -385,6 +388,7 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self.kbsChanged)
         self.changed.connect(self.overviewChanged)
         self.changed.connect(self.securityChanged)
+        self.changed.connect(self.ecosystemChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -2407,7 +2411,7 @@ class SuiteQtBridge(QObject):
 
     # -- Map of the ecosystem ------------------------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=ecosystemChanged)
     def mapView(self) -> dict[str, object]:
         """What the Map screen shows; every part already carries the sentences in the language of the interface."""
         projects = ecosystem_map.parse_projects(self._es_projects)
@@ -2433,19 +2437,19 @@ class SuiteQtBridge(QObject):
         key = "all" if key == self._map_filter else key
         if key in ecosystem_map.FILTERS and key != self._map_filter:
             self._map_filter = key
-            self.changed.emit()
+            self.ecosystemChanged.emit()
 
     @Slot(str)
     def setMapSearch(self, text: str) -> None:
         self._map_search = text
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(bool)
     def setMapEvidence(self, show: bool) -> None:
         """The switch that adds to each tile what the project has been tried on; kept in the configuration file, off until turned on."""
         self._map_evidence = bool(show)
         save_config({"mapShowEvidence": self._map_evidence})
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot()
     def refreshMap(self) -> None:
@@ -3149,15 +3153,15 @@ class SuiteQtBridge(QObject):
 
     # -- AI Family Status --------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def aiFamilyStatusText(self) -> str:
         return self._ai_family_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def aiFamilyRefreshing(self) -> bool:
         return self._ai_family_refreshing
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def aiFamilyGroups(self) -> list[dict[str, object]]:
         groups: list[dict[str, object]] = []
         for family, device_key, device_label in AI_FAMILIES:
@@ -3191,28 +3195,28 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._ai_family_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._ai_family_refreshing = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.fetch_ecosystem_status()
         finally:
             self._ai_family_refreshing = False
         if result is None:
             self._ai_family_status_text = _("MSG_ES_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict) or not body.get("available"):
             self._ai_family_status_text = _("MSG_ES_UNAVAILABLE")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._ai_family_status_text = ""
         families = {f for f, _dev, _label in AI_FAMILIES}
         self._ai_family_projects = [p for p in (body.get("projects") or []) if p.get("family") in families]
         self._ai_family_ai_hailo = conn.state.ai_hailo
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     # -- Admin Clients -----------------------------------------------------
 
@@ -4550,27 +4554,27 @@ class SuiteQtBridge(QObject):
 
     # -- Ecosystem Services --------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def esStatusText(self) -> str:
         return self._es_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def esRefreshing(self) -> bool:
         return self._es_refreshing
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def esFamilyFilter(self) -> str:
         return self._es_family_filter or ""
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=ecosystemChanged)
     def esFamilies(self) -> list[str]:
         return sorted({p.get("family") for p in self._es_projects if p.get("family")})
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def esShowStats(self) -> bool:
         return len(self._es_projects) > 0
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=ecosystemChanged)
     def esStats(self) -> dict[str, int]:
         return {
             "total": len(self._es_projects),
@@ -4582,7 +4586,7 @@ class SuiteQtBridge(QObject):
             "na": sum(1 for p in self._es_projects if _health(p) == "slate"),
         }
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def esGroups(self) -> list[dict[str, object]]:
         needle = self._es_search.strip().lower()
         filtered = [
@@ -4634,41 +4638,41 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._es_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._es_refreshing = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.fetch_ecosystem_status()
         finally:
             self._es_refreshing = False
         if result is None:
             self._es_status_text = _("MSG_ES_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict):
             self._es_status_text = _("MSG_ES_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         if not body.get("available"):
             self._es_status_text = _("MSG_ES_UNAVAILABLE")
             self._es_projects = []
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._es_projects = body.get("projects") or []
         self._es_status_text = _("LBL_ES_SCANNED_AT", time=body.get("scannedAt") or "-")
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(str)
     def setEsFamilyFilter(self, family: str) -> None:
         self._es_family_filter = family or None
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(str)
     def setEsSearch(self, text: str) -> None:
         self._es_search = text
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(str, str)
     def runEsServiceAction(self, unit: str, action: str) -> None:
@@ -4680,20 +4684,20 @@ class SuiteQtBridge(QObject):
             return
         self._es_actioning_unit = unit
         self._es_action_error = None
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.control_service(unit, action)
         finally:
             self._es_actioning_unit = None
         if result is None:
             self._es_action_error = (unit, _("MSG_SERVICES_ACTION_ERROR"))
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status != 200:
             message = body.get("error") if isinstance(body, dict) else None
             self._es_action_error = (unit, message or f"HTTP {status}")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         await self._refresh_ecosystem_services()
 
@@ -4705,7 +4709,7 @@ class SuiteQtBridge(QObject):
 
     planStructureChanged = Signal()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planVisible(self) -> bool:
         conn = self._controller.active_connection
         return conn is not None and conn.role == "admin"
@@ -4714,75 +4718,75 @@ class SuiteQtBridge(QObject):
     def planStructure(self) -> list[int]:
         return list(range(len(self._plan_rows)))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planLoaded(self) -> bool:
         return self._plan_state is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planFailureText(self) -> str:
         return self._plan_failure
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planNoticeText(self) -> str:
         return self._plan_notice
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planEffectsText(self) -> str:
         return self._plan_effects_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planBusy(self) -> bool:
         return self._plan_busy
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planConfirming(self) -> bool:
         return self._plan_confirming
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planConfirmText(self) -> str:
         return _("PLAN_CONFIRM_DELETE_MESSAGE") if self._plan_turning_delete_on() else _("PLAN_CONFIRM_MESSAGE")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planDeleteOn(self) -> bool:
         return self._plan_delete
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planAllowDelete(self) -> bool:
         return bool(self._plan_state and self._plan_state["allowDelete"])
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planFineEnabled(self) -> bool:
         return not self._plan_state or self._plan_state["fineRollups"]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planModeText(self) -> str:
         if not self._plan_state:
             return ""
         return _("PLAN_MODE_DELETE") if self._plan_state["mode"] == "delete" else _("PLAN_MODE_DRYRUN")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planKnownKindsText(self) -> str:
         kinds = self._plan_state["knownKinds"] if self._plan_state else []
         return _("PLAN_KNOWN_KINDS", kinds=", ".join(kinds)) if kinds else ""
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=ecosystemChanged)
     def planIssueLines(self) -> list[str]:
         return [self._plan_issue_line(i) for i in self._plan_issues()]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planIssueSummary(self) -> str:
         count = len(self._plan_issues())
         return _("PLAN_INVALID_COUNT", count=count) if count else _("PLAN_VALID")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planValid(self) -> bool:
         return self._plan_state is not None and not self._plan_issues()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planCanSave(self) -> bool:
         return self.planValid and self._plan_changed() and not self._plan_busy
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=ecosystemChanged)
     def planAuditLines(self) -> list[str]:
         if not self._plan_state:
             return []
@@ -4836,7 +4840,7 @@ class SuiteQtBridge(QObject):
     def _plan_touch(self) -> None:
         self._plan_notice = ""
         self._plan_effects_text = ""
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot()
     def loadDownsamplePlan(self) -> None:
@@ -4847,7 +4851,7 @@ class SuiteQtBridge(QObject):
         if conn is None or conn.role != "admin":
             return
         self._plan_busy = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.fetch_downsample_plan()
         finally:
@@ -4867,7 +4871,7 @@ class SuiteQtBridge(QObject):
                 kind = downsample_failure(status, body) if status != 200 else "malformed"
                 self._plan_failure = self._plan_failure_text(kind, status, downsample_failure_details(body))
         self.planStructureChanged.emit()
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(int, str, str)
     def setPlanCell(self, row: int, key: str, value: str) -> None:
@@ -4906,7 +4910,7 @@ class SuiteQtBridge(QObject):
     @Slot()
     def cancelSaveDownsamplePlan(self) -> None:
         self._plan_confirming = False
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot()
     def confirmSaveDownsamplePlan(self) -> None:
@@ -4920,7 +4924,7 @@ class SuiteQtBridge(QObject):
             return
         self._plan_busy = True
         self._plan_notice = ""
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         body = {
             "plan": draft_to_downsample_plan(self._plan_rows, self._plan_delete),
             "expectedHash": state["hash"],
@@ -4932,7 +4936,7 @@ class SuiteQtBridge(QObject):
             self._plan_busy = False
         if result is None:
             self._plan_failure = self._plan_failure_text("network")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, answer = result
         effects = read_downsample_effects(answer) if status == 200 else None
@@ -4940,7 +4944,7 @@ class SuiteQtBridge(QObject):
             kind = downsample_failure(status, answer) if status != 200 else "malformed"
             self._plan_failure = self._plan_failure_text(kind, status, downsample_failure_details(answer))
             self._plan_effects_text = ""
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._plan_failure = ""
         if preview:
@@ -4949,19 +4953,19 @@ class SuiteQtBridge(QObject):
                 lines.append(_("PLAN_EFFECTS", raw=effects["raw"], rollups=effects["rollups"], fine=effects["fine"]))
             self._plan_effects_text = "\n".join(lines)
             self._plan_confirming = then_confirm
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         await self._load_downsample_plan()
         self._plan_notice = _("PLAN_SAVED") if effects["saved"] else _("PLAN_UNCHANGED")
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     # -- Ecosystem Telemetry -------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def telemetryStatusText(self) -> str:
         return self._tel_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def telemetryRunning(self) -> bool:
         return self._tel_running
 
@@ -4973,23 +4977,23 @@ class SuiteQtBridge(QObject):
     def telemetryRangePresets(self) -> list[dict[str, object]]:
         return [{"label": label, "ms": ms} for label, ms in _RANGE_PRESETS]
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def telemetryShowStats(self) -> bool:
         return bool(self._tel_stats)
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=ecosystemChanged)
     def telemetryStats(self) -> dict[str, str]:
         return self._tel_stats
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def telemetryChartMode(self) -> str:
         return self._tel_chart_mode
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def telemetryLinePoints(self) -> list[dict[str, float]]:
         return self._tel_line_points
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def telemetryBars(self) -> list[dict[str, object]]:
         return self._tel_bars
 
@@ -5007,7 +5011,7 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._tel_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         is_aggregate = mode == "aggregate"
         params: dict[str, str] = {}
@@ -5023,7 +5027,7 @@ class SuiteQtBridge(QObject):
             params["end"] = end
 
         self._tel_running = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             if is_aggregate:
                 if not (kind and field and start and end):
@@ -5036,22 +5040,22 @@ class SuiteQtBridge(QObject):
                 result = await conn.fetch_telemetry_query(params)
         finally:
             self._tel_running = False
-            self.changed.emit()
+            self.ecosystemChanged.emit()
 
         if result is None:
             self._tel_status_text = _("MSG_TELEMETRY_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status == 503 and isinstance(body, dict) and body.get("available") is False:
             self._tel_status_text = _("MSG_TELEMETRY_NOT_CONFIGURED")
             self._render_empty_telemetry_chart()
             self._update_telemetry_stats([])
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         if status != 200 or not isinstance(body, list):
             self._tel_status_text = _("MSG_TELEMETRY_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
 
         self._tel_status_text = "" if body else _("MSG_TELEMETRY_NO_DATA")
@@ -5061,7 +5065,7 @@ class SuiteQtBridge(QObject):
         else:
             self._render_telemetry_line_chart(body)
             self._update_telemetry_stats([float(p.get("value", 0)) for p in body])
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     def _render_empty_telemetry_chart(self) -> None:
         self._tel_chart_mode = "empty"
