@@ -23,7 +23,13 @@ MQTT_MODES = ("off", "state", "commands")
 BRIDGE_OPTION_TEXT = {
     "droids.globalStop": "LBL_SECURITY_BRIDGES_OPT_DROIDS_GLOBAL_STOP",
     "droids.cutOnGlobalStop": "LBL_SECURITY_BRIDGES_OPT_DROIDS_CUT",
+    "droids.confirmationRequired": "LBL_SECURITY_BRIDGES_OPT_DROIDS_CONFIRM",
+    "droids.returnHomeAlways": "LBL_SECURITY_BRIDGES_OPT_DROIDS_HOME",
     "uav.missionUploadEnabled": "LBL_SECURITY_BRIDGES_OPT_UAV_MISSION",
+    "uav.envelopeRequired": "LBL_SECURITY_BRIDGES_OPT_UAV_ENVELOPE",
+    "uav.confirmationRequired": "LBL_SECURITY_BRIDGES_OPT_UAV_CONFIRM",
+    "uav.chainInFlight": "LBL_SECURITY_BRIDGES_OPT_UAV_CHAIN",
+    "uav.uploadGeofence": "LBL_SECURITY_BRIDGES_OPT_UAV_FENCE",
     "amr.publishState": "LBL_SECURITY_BRIDGES_OPT_AMR_STATE",
     "amr.publishOpcua": "LBL_SECURITY_BRIDGES_OPT_AMR_OPCUA",
     "amr.zoneInterlock": "LBL_SECURITY_BRIDGES_OPT_AMR_INTERLOCK",
