@@ -193,6 +193,27 @@ def live_sim():
     check("sim: damaged configuration", (access.ModeState.from_config(None).modes, access.ModeState.from_config({"robotModes": {"x": "sim", "s#1": "fast", "s#2": "sim"}}).modes), ({}, {"s#2": "sim"}))
 
 
+def listen_only_servers():
+    state = access.ListenOnlyState()
+    check("listen only servers: none by default", (state.servers, state.applies("a:1"), state.blocks("jog", "a:1")), (set(), False, False))
+    state.set_server("a:1", True)
+    check("listen only servers: the listed server is read-only and another is not", [state.blocks("jog", "a:1"), state.blocks("jog", "b:2"), state.blocks("jog")], [True, False, False])
+    check("listen only servers: STOP and the safe-mode disable still go to the listed server", [state.blocks(c, "a:1") for c in ("stop", "disable")], [False, False])
+    state.set(True)
+    check("listen only servers: the general switch covers every server", [state.blocks("jog", "b:2"), state.applies(None)], [True, True])
+    state.set(False)
+    restored = access.ListenOnlyState.from_config(state.to_config())
+    check("listen only servers: kept and restored", (restored.servers, restored.enabled), ({"a:1"}, False))
+    bad = {"listenOnlyServers": ["ok:1", 3, "", " x", "y" * 201, None, "ok:1"]}
+    check("listen only servers: damaged entries are dropped", access.ListenOnlyState.from_config(bad).servers, {"ok:1"})
+    check("listen only servers: a damaged list leaves none", [access.ListenOnlyState.from_config(c).servers for c in ({"listenOnlyServers": "a:1"}, {"listenOnlyServers": {}}, None)], [set()] * 3)
+    many = {"listenOnlyServers": [f"h{i}:1" for i in range(access.MAX_LISTEN_ONLY_SERVERS + 20)]}
+    check("listen only servers: the list is bounded", len(access.ListenOnlyState.from_config(many).servers), access.MAX_LISTEN_ONLY_SERVERS)
+    state.set_server("a:1", False)
+    state.set_server("  bad", True)
+    check("listen only servers: switched off, and a bad name is not added", state.servers, set())
+
+
 def listen_only():
     state = access.ListenOnlyState()
     check("listen only: off by default and blocks nothing", (state.enabled, state.blocks("jog"), state.blocks("play")), (False, False, False))
@@ -240,6 +261,7 @@ def main():
     warnings()
     live_sim()
     listen_only()
+    listen_only_servers()
     joints()
     print("FAILURES:", failures)
     return 1 if failures else 0

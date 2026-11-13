@@ -174,6 +174,22 @@ async def run(port):
     check("listen only: STOP and the safe-mode disable still go out", [b["command"] for p, b in commands()], ["stop", "disable"])
     access.LISTEN_ONLY.set(False)
 
+    # --- listen only for this server alone ---
+    scope = f"{conn.info.host}:{conn.info.port}"
+    access.LISTEN_ONLY.set_server(scope, True)
+    messages.clear()
+    reset()
+    await conn.send_command(1, "jog", {"axis": "x", "amount": 1})
+    check("listen only (this server): a command is not sent and is said", (commands(), len(messages)), ([], 1))
+    await conn.send_command(1, "stop", {})
+    check("listen only (this server): STOP still goes out", [b["command"] for p, b in commands()], ["stop"])
+    access.LISTEN_ONLY.set_server(scope, False)
+    access.LISTEN_ONLY.set_server("elsewhere:1", True)
+    reset()
+    await conn.send_command(1, "jog", {"axis": "x", "amount": 1})
+    check("listen only (another server): this one is not affected", [b["command"] for p, b in commands()], ["jog"])
+    access.LISTEN_ONLY.servers.clear()
+
     # --- a jog above the limit of its model ---
     conn.safety = access.parse_safety_limits({"limits": {"jog": {"default": {"maxAmount": 100, "maxAbsolute": 1000}, "models": {"parol6": {"maxAmount": 20}}}}})
     reset()

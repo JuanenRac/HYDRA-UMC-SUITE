@@ -1002,8 +1002,16 @@ ApplicationWindow {
                             palette.windowText: window.muted
                             onToggled: suiteBackend.setListenOnly(checked)
                         }
+                        CheckBox {
+                            objectName: "listenOnlyServerCheck"
+                            text: suiteBackend.uiText("ACCESS_LISTEN_ONLY_SERVER")
+                            checked: suiteBackend.listenOnlyServer
+                            enabled: suiteBackend.canSetListenOnlyServer
+                            palette.windowText: window.muted
+                            onToggled: suiteBackend.setListenOnlyServer(checked)
+                        }
                         Text {
-                            visible: suiteBackend.listenOnly
+                            visible: suiteBackend.listenOnly || suiteBackend.listenOnlyServer
                             text: suiteBackend.uiText("ACCESS_LISTEN_ONLY_NOTICE")
                             color: window.amber
                             font.bold: true

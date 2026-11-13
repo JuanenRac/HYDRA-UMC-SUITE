@@ -604,6 +604,7 @@ ACCESS_LIST_EMPTY=予約されているロボットはありません。
 ACCESS_DEFAULT_SIM=未選択のロボットを Sim モードで開始する
 ACCESS_LISTEN_ONLY=リッスン専用: STOP 以外のコマンドを送信しない
 ACCESS_LISTEN_ONLY_NOTICE=リッスン専用: コマンドは無効です。STOP は引き続き使えます
+ACCESS_LISTEN_ONLY_SERVER=このサーバーはリッスン専用: STOP 以外のコマンドを送信しない
 MSG_ACCESS_CLAIM_OTHER_ACCOUNT={what}は拒否されました: ロボットは別のアカウントが予約しています。{detail}
 MSG_ACCESS_CLAIM_OTHER_CONTROLLER={what}は拒否されました: ロボットは、あなたのアカウントが別のウィンドウまたは端末から予約しています。そちらを使うか、そこで予約を解除してください。{detail}
 MSG_ACCESS_CLAIM_CONTROLLER_REQUIRED={what}は拒否されました: 予約にはコントローラが指定されていますが、この要求には指定がありませんでした。{detail}

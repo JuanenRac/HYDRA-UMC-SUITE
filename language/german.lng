@@ -605,6 +605,7 @@ ACCESS_LIST_EMPTY=Kein Roboter ist reserviert.
 ACCESS_DEFAULT_SIM=Roboter, für die ich nichts gewählt habe, im Sim-Modus starten
 ACCESS_LISTEN_ONLY=Nur zuhören: außer STOP keinen Befehl senden
 ACCESS_LISTEN_ONLY_NOTICE=Nur zuhören: Befehle sind deaktiviert, STOP funktioniert weiterhin
+ACCESS_LISTEN_ONLY_SERVER=Nur zuhören für diesen Server: ihm außer STOP keinen Befehl senden
 MSG_ACCESS_CLAIM_OTHER_ACCOUNT={what} abgelehnt: Der Roboter ist von einem anderen Konto reserviert. {detail}
 MSG_ACCESS_CLAIM_OTHER_CONTROLLER={what} abgelehnt: Der Roboter ist von Ihrem Konto in einem anderen Fenster oder auf einem anderen Gerät reserviert. Verwenden Sie jenes oder geben Sie die Reservierung dort frei. {detail}
 MSG_ACCESS_CLAIM_CONTROLLER_REQUIRED={what} abgelehnt: Die Reservierung nennt einen Controller und diese Anfrage nannte keinen. {detail}

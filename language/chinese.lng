@@ -604,6 +604,7 @@ ACCESS_LIST_EMPTY=没有被预留的机器人。
 ACCESS_DEFAULT_SIM=未选择的机器人默认使用 Sim 模式
 ACCESS_LISTEN_ONLY=仅监听：除 STOP 外不发送任何命令
 ACCESS_LISTEN_ONLY_NOTICE=仅监听：命令已禁用，STOP 仍然可用
+ACCESS_LISTEN_ONLY_SERVER=此服务器仅监听：除 STOP 外不向其发送任何命令
 MSG_ACCESS_CLAIM_OTHER_ACCOUNT={what}被拒绝：机器人已被其他账户预留。{detail}
 MSG_ACCESS_CLAIM_OTHER_CONTROLLER={what}被拒绝：机器人已由您的账户在另一个窗口或设备上预留。请使用那一个，或在那里释放预留。{detail}
 MSG_ACCESS_CLAIM_CONTROLLER_REQUIRED={what}被拒绝：预留已指明控制器，而此请求未指明。{detail}

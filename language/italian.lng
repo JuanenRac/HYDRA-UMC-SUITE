@@ -605,6 +605,7 @@ ACCESS_LIST_EMPTY=Nessun robot è riservato.
 ACCESS_DEFAULT_SIM=Avvia in modalità Sim i robot che non ho scelto
 ACCESS_LISTEN_ONLY=Solo ascolto: non inviare comandi tranne STOP
 ACCESS_LISTEN_ONLY_NOTICE=Solo ascolto: i comandi sono disattivati, STOP continua a funzionare
+ACCESS_LISTEN_ONLY_SERVER=Solo ascolto per questo server: non inviargli comandi tranne STOP
 MSG_ACCESS_CLAIM_OTHER_ACCOUNT={what} rifiutata: il robot è riservato da un altro account. {detail}
 MSG_ACCESS_CLAIM_OTHER_CONTROLLER={what} rifiutata: il robot è riservato dal tuo account da un'altra finestra o dispositivo. Usa quello, o rilascia lì la prenotazione. {detail}
 MSG_ACCESS_CLAIM_CONTROLLER_REQUIRED={what} rifiutata: la prenotazione indica un controller e questa richiesta non ne indicava nessuno. {detail}
