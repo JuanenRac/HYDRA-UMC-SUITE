@@ -3811,7 +3811,7 @@ ApplicationWindow {
                     Component.onCompleted: currentIndex = indexOfValue(suiteBackend.xySelectedRobotId)
                     Connections {
                         target: suiteBackend
-                        function onChanged() {
+                        function onXyTableChanged() {
                             var idx = xyRobotCombo.indexOfValue(suiteBackend.xySelectedRobotId)
                             if (idx !== xyRobotCombo.currentIndex) xyRobotCombo.currentIndex = idx
                         }
@@ -4077,7 +4077,7 @@ ApplicationWindow {
                     Component.onCompleted: currentIndex = indexOfValue(suiteBackend.rackSelectedRobotId)
                     Connections {
                         target: suiteBackend
-                        function onChanged() {
+                        function onRackChanged() {
                             var idx = rackRobotCombo.indexOfValue(suiteBackend.rackSelectedRobotId)
                             if (idx !== rackRobotCombo.currentIndex) rackRobotCombo.currentIndex = idx
                         }
@@ -4128,7 +4128,7 @@ ApplicationWindow {
                 onVisibleChanged: if (visible) suiteBackend.refreshVacuumPreview()
                 Connections {
                     target: suiteBackend
-                    function onChanged() { if (suiteBackend.activePanel === "rack") suiteBackend.refreshVacuumPreview() }
+                    function onRackChanged() { if (suiteBackend.activePanel === "rack") suiteBackend.refreshVacuumPreview() }
                 }
                 Image {
                     anchors.fill: parent
@@ -4570,7 +4570,7 @@ ApplicationWindow {
                     Component.onCompleted: currentIndex = indexOfValue(suiteBackend.pnpSelectedRobotId)
                     Connections {
                         target: suiteBackend
-                        function onChanged() {
+                        function onPnpChanged() {
                             var idx = pnpRobotCombo.indexOfValue(suiteBackend.pnpSelectedRobotId)
                             if (idx !== pnpRobotCombo.currentIndex) pnpRobotCombo.currentIndex = idx
                         }
@@ -4611,7 +4611,7 @@ ApplicationWindow {
                     Component.onCompleted: suiteBackend.refreshVacuumPreview()
                     Connections {
                         target: suiteBackend
-                        function onChanged() { if (suiteBackend.activePanel === "pick_and_place") suiteBackend.refreshVacuumPreview() }
+                        function onPnpChanged() { if (suiteBackend.activePanel === "pick_and_place") suiteBackend.refreshVacuumPreview() }
                     }
                     Image {
                         anchors.fill: parent

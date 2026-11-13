@@ -329,6 +329,11 @@ class SuiteQtBridge(QObject):
     _accessChanged = Signal()
     _ecoHealthChanged = Signal()
     _flasherChanged = Signal()
+    # The Rack Manager, Pick and Place and XY Table screens: public names, because the robot pickers and the preview of the vacuum table
+    # of the screens listen to them from QML.
+    rackChanged = Signal()
+    pnpChanged = Signal()
+    xyTableChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -360,6 +365,9 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self._accessChanged)
         self.changed.connect(self._ecoHealthChanged)
         self.changed.connect(self._flasherChanged)
+        self.changed.connect(self.rackChanged)
+        self.changed.connect(self.pnpChanged)
+        self.changed.connect(self.xyTableChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -5098,7 +5106,7 @@ class SuiteQtBridge(QObject):
         self._xy_robots_cache = robots
         if self._xy_selected_robot_id not in {r.id for r in robots}:
             self._xy_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.xyTableChanged.emit()
 
     def _xy_selected_robot(self) -> RobotView | None:
         for r in self._xy_robots_cache:
@@ -5106,11 +5114,11 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=xyTableChanged)
     def xyRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._xy_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=xyTableChanged)
     def xySelectedRobotId(self) -> str:
         return self._xy_selected_robot_id or ""
 
@@ -5120,48 +5128,48 @@ class SuiteQtBridge(QObject):
             self._xy_selected_robot_id = robot_id or None
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyHasRobot(self) -> bool:
         return self._xy_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyHasTable(self) -> bool:
         robot = self._xy_selected_robot()
         return robot is not None and robot.has_xy_table
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyCanReset(self) -> bool:
         return self.xyHasRobot and self.xyHasTable
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyTableControlsEnabled(self) -> bool:
         """The jog and size controls need a stored table: right after the table is enabled there is only the flag,
         and Reset writes the default table that makes them work."""
         robot = self._xy_selected_robot()
         return robot is not None and robot.has_xy_table and robot.xy_table is not None
 
-    @Property(int, notify=changed)
+    @Property(int, notify=xyTableChanged)
     def xyWidth(self) -> int:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
         size = table["tableSize"] if table else {}
         return int(size.get("width", _XY_DISPLAY_DEFAULT_SIZE_MM))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=xyTableChanged)
     def xyLength(self) -> int:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
         size = table["tableSize"] if table else {}
         return int(size.get("length", _XY_DISPLAY_DEFAULT_SIZE_MM))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=xyTableChanged)
     def xyPosX(self) -> str:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
         pos = table["pos"] if table else {"x": 0, "y": 0}
         return f"{float(pos.get('x', 0)):.2f}"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=xyTableChanged)
     def xyPosY(self) -> str:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
@@ -5307,7 +5315,7 @@ class SuiteQtBridge(QObject):
         self._rack_robots_cache = robots
         if self._rack_selected_robot_id not in {r.id for r in robots}:
             self._rack_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.rackChanged.emit()
 
     def _rack_selected_robot(self) -> RobotView | None:
         for r in self._rack_robots_cache:
@@ -5315,11 +5323,11 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=rackChanged)
     def rackRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._rack_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=rackChanged)
     def rackSelectedRobotId(self) -> str:
         return self._rack_selected_robot_id or ""
 
@@ -5329,11 +5337,11 @@ class SuiteQtBridge(QObject):
             self._rack_selected_robot_id = robot_id or None
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=rackChanged)
     def rackHasRobot(self) -> bool:
         return self._rack_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=rackChanged)
     def rackEnabled(self) -> bool:
         robot = self._rack_selected_robot()
         return robot is not None and bool(robot.rack_system.get("enabled"))
@@ -5346,7 +5354,7 @@ class SuiteQtBridge(QObject):
     def rackTypeLabels(self) -> list[str]:
         return [_("LBL_DISABLED"), _("LBL_INPUT_RACK"), _("LBL_OUTPUT_RACK")]
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=rackChanged)
     def rackData(self) -> list[dict[str, object]]:
         robot = self._rack_selected_robot()
         if robot is None or not robot.rack_system.get("enabled"):
@@ -5500,7 +5508,7 @@ class SuiteQtBridge(QObject):
         self._pnp_robots_cache = robots
         if self._pnp_selected_robot_id not in {r.id for r in robots}:
             self._pnp_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.pnpChanged.emit()
 
     def _pnp_selected_robot(self) -> RobotView | None:
         for r in self._pnp_robots_cache:
@@ -5508,11 +5516,11 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=pnpChanged)
     def pnpRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._pnp_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=pnpChanged)
     def pnpSelectedRobotId(self) -> str:
         return self._pnp_selected_robot_id or ""
 
@@ -5526,11 +5534,11 @@ class SuiteQtBridge(QObject):
     def pnpMachineOptions(self) -> list[dict[str, str]]:
         return [{"key": key, "label": MACHINE_LABELS[key]} for key in MACHINE_TYPES]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=pnpChanged)
     def pnpMachineType(self) -> str:
         return self._pnp_machine_type
 
-    @Property(str, notify=changed)
+    @Property(str, notify=pnpChanged)
     def pnpMachineLabel(self) -> str:
         return MACHINE_LABELS.get(self._pnp_machine_type, self._pnp_machine_type)
 
@@ -5540,20 +5548,20 @@ class SuiteQtBridge(QObject):
             self._pnp_machine_type = machine_type
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=pnpChanged)
     def pnpHasRobot(self) -> bool:
         return self._pnp_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=pnpChanged)
     def pnpEnabled(self) -> bool:
         robot = self._pnp_selected_robot()
         return robot is not None and robot.module_enabled(self._pnp_machine_type)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=pnpChanged)
     def pnpCanReset(self) -> bool:
         return self.pnpHasRobot and self.pnpEnabled
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=pnpChanged)
     def pnpAxisData(self) -> list[dict[str, object]]:
         """One row per PNP_AXES entry, spec + current value fused - same
         real fixed hardware bounds as PNP_AXES of
