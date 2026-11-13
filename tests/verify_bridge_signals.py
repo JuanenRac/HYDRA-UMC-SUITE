@@ -137,5 +137,16 @@ check("the metrics are shown", (bridge.overviewCpu, bridge.overviewUptime), ("12
 bridge.changed.emit()
 check("a general change reaches both", (len(more["kbsChanged"]), len(more["overviewChanged"])), (2, 3))
 
+# --- settings and security ----------------------------------------------------------------------------------------------------
+for prop in ("safetyIsAdmin", "usersIsAdmin", "adminServerStatusText"):
+    if meta.indexOfProperty(prop) >= 0:
+        check(f"{prop} notifies securityChanged", notify_of(prop), "securityChanged")
+
+security = count(["changed", "securityChanged"])
+bridge.setAuditType("all")
+check("choosing the kind of the audit record announces the security group only", (len(security["changed"]), len(security["securityChanged"])), (0, 1))
+bridge.changed.emit()
+check("a general change reaches the security group", len(security["securityChanged"]), 2)
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)

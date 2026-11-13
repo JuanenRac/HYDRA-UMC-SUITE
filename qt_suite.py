@@ -341,6 +341,10 @@ class SuiteQtBridge(QObject):
     # The Kinematic Brain Stage and Overview screens.
     kbsChanged = Signal()
     overviewChanged = Signal()
+    # Settings and security: the safety limits, the options of the Server Admin screen, the two-step sign-in, the user accounts, the server
+    # settings, the audit record, the identity of the server and the local and global settings by role. The safety form of the screen listens
+    # to it from QML.
+    securityChanged = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
@@ -380,6 +384,7 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self.testerChanged)
         self.changed.connect(self.kbsChanged)
         self.changed.connect(self.overviewChanged)
+        self.changed.connect(self.securityChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -1556,34 +1561,34 @@ class SuiteQtBridge(QObject):
 
     # -- Local and global settings by role -------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def canEditSettings(self) -> bool:
         """Whether the account of the active server may change the global settings. Without a server there is nothing to refuse."""
         conn = self._controller.active_connection
         return conn is None or conn.may_edit_settings
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def settingsLocked(self) -> bool:
         """True on a screen that changes global settings (modules, racks, cameras, models of the catalog...) for an account that may not."""
         return self._active_key in _SETTINGS_PANELS and not self.canEditSettings
 
     # -- Safety limits (administrators) ----------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def safetyIsAdmin(self) -> bool:
         conn = self._controller.active_connection
         return conn is not None and conn.is_admin
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def safetyHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def safetyForm(self) -> dict[str, object]:
         conn = self._controller.active_connection
         return access.form_from_limits(conn.safety.limits if conn is not None else access.SafetyLimits())
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def safetyHard(self) -> dict[str, object]:
         conn = self._controller.active_connection
         hard = conn.safety.hard if conn is not None else access.HardLimits()
@@ -1597,15 +1602,15 @@ class SuiteQtBridge(QObject):
             "auditMotionMaxS": hard.audit_motion_max_s,
         }
 
-    @Property(int, notify=changed)
+    @Property(int, notify=securityChanged)
     def safetyVersion(self) -> int:
         return self._safety_version
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def safetyMessage(self) -> str:
         return self._safety_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def safetyError(self) -> str:
         return self._safety_error
 
@@ -1621,14 +1626,14 @@ class SuiteQtBridge(QObject):
         self._safety_error = ""
         if conn is None or not conn.is_admin:
             self._safety_error = _("MSG_ADMIN_ONLY")
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         # From QML the form arrives as a JavaScript value; from Python (a check) as a dict.
         values = form.toVariant() if hasattr(form, "toVariant") else form
         built = access.build_patch(dict(values), conn.safety.hard)
         if not built["ok"]:
             self._safety_error = _(f"MSG_SAFETY_PROBLEM_{str(built['problem']).upper()}", field=built.get("field", ""))
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._save_safety(conn, built["patch"]))
 
@@ -1667,31 +1672,31 @@ class SuiteQtBridge(QObject):
 
     # -- Audit record (administrators) -------------------------------------------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def auditIsAdmin(self) -> bool:
         return self.safetyIsAdmin
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def auditHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def auditRows(self) -> list[dict[str, object]]:
         return self._audit_rows
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def auditChain(self) -> list[dict[str, object]]:
         return self._audit_chain
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditMessage(self) -> str:
         return self._audit_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditError(self) -> str:
         return self._audit_error
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def auditBusy(self) -> bool:
         return self._audit_busy
 
@@ -1703,21 +1708,21 @@ class SuiteQtBridge(QObject):
     def auditLimits(self) -> list[int]:
         return list(audit_record.LIMITS)
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def auditRobotOptions(self) -> list[dict[str, str]]:
         return [{"value": "", "label": _("AUDIT_ALL_ROBOTS")}] + [
             {"value": str(robot_id), "label": name} for robot_id, name in self._audit_robot_names().items()
         ]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditType(self) -> str:
         return self._audit_type
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditRobot(self) -> str:
         return self._audit_robot
 
-    @Property(int, notify=changed)
+    @Property(int, notify=securityChanged)
     def auditLimit(self) -> int:
         return self._audit_limit
 
@@ -1746,20 +1751,20 @@ class SuiteQtBridge(QObject):
     @Slot(str)
     def setAuditType(self, kind: str) -> None:
         self._audit_type = kind
-        self.changed.emit()
+        self.securityChanged.emit()
         asyncio.ensure_future(self._refresh_audit(False))
 
     @Slot(str)
     def setAuditRobot(self, robot_id: str) -> None:
         self._audit_robot = robot_id
-        self.changed.emit()
+        self.securityChanged.emit()
         asyncio.ensure_future(self._refresh_audit(False))
 
     @Slot(int)
     def setAuditLimit(self, limit: int) -> None:
         if limit in audit_record.LIMITS:
             self._audit_limit = limit
-            self.changed.emit()
+            self.securityChanged.emit()
             asyncio.ensure_future(self._refresh_audit(False))
 
     @Slot()
@@ -1907,15 +1912,15 @@ class SuiteQtBridge(QObject):
 
     # -- User accounts (administrators only) -------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def usersIsAdmin(self) -> bool:
         return self.safetyIsAdmin
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def usersHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def usersRows(self) -> list[dict[str, object]]:
         return self._users_rows
 
@@ -1923,15 +1928,15 @@ class SuiteQtBridge(QObject):
     def usersRoleOptions(self) -> list[dict[str, str]]:
         return users_panel.role_options()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def usersMessage(self) -> str:
         return self._users_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def usersError(self) -> str:
         return self._users_error
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def usersBusy(self) -> bool:
         return self._users_busy
 
@@ -1952,10 +1957,10 @@ class SuiteQtBridge(QObject):
             self._users_error = ""
         if conn is None:
             self._users_rows = []
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         self._users_busy = True
-        self.changed.emit()
+        self.securityChanged.emit()
         try:
             result = await conn.fetch_users()
             if not result.ok:
@@ -1965,14 +1970,14 @@ class SuiteQtBridge(QObject):
             self._users_rows = users_panel.rows(users_panel.parse_users(result.body), conn.info.username or "")
         finally:
             self._users_busy = False
-            self.changed.emit()
+            self.securityChanged.emit()
 
     @Slot(str, str, str)
     def createUser(self, username: str, password: str, role: str) -> None:
         self._users_error = users_panel.check_new(username, password)
         self._users_message = ""
         if self._users_error or self._users_conn() is None:
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._users_write("create", username.strip(), password, role if role in users_panel.ROLES else users_panel.DEFAULT_ROLE))
 
@@ -1982,7 +1987,7 @@ class SuiteQtBridge(QObject):
         role = role if role in users_panel.ROLES else ""
         self._users_error = users_panel.check_change(username, new_username, password, role)
         if self._users_error or self._users_conn() is None:
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._users_write("update", username, password, role, new_username))
 
@@ -1992,7 +1997,7 @@ class SuiteQtBridge(QObject):
         self._users_message = ""
         if not username or self._users_conn() is None:
             self._users_error = _("USERS_ERR_SELECT_ACCOUNT") if not username else ""
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._users_write("delete", username))
 
@@ -2001,7 +2006,7 @@ class SuiteQtBridge(QObject):
         if conn is None:
             return
         self._users_busy = True
-        self.changed.emit()
+        self.securityChanged.emit()
         try:
             if action == "create":
                 result = await conn.create_user(username, password, role)
@@ -2024,35 +2029,35 @@ class SuiteQtBridge(QObject):
 
     # -- Two-step sign-in of the signed-in account (Server Admin) -------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpStep(self) -> str:
         return self._totp_step
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpStatusText(self) -> str:
         return _("TOTP_STATUS_ON", count=self._totp_left) if self._totp_step == "on" else _("TOTP_STATUS_OFF")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpKey(self) -> str:
         return totp_panel.grouped_key(self._totp_key) if self._totp_key else ""
 
-    @Property("QVariant", notify=changed)
+    @Property("QVariant", notify=securityChanged)
     def totpQr(self) -> dict[str, object]:
         return self._totp_qr
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def totpRecovery(self) -> list[str]:
         return self._totp_recovery
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpError(self) -> str:
         return self._totp_error
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpMessage(self) -> str:
         return self._totp_message
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def totpBusy(self) -> bool:
         return self._totp_busy
 
@@ -2064,7 +2069,7 @@ class SuiteQtBridge(QObject):
         conn = self._totp_conn()
         if conn is None:
             self._totp_step = "none"
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         if self._totp_step in ("enrolling", "recovery"):
             return
@@ -2076,7 +2081,7 @@ class SuiteQtBridge(QObject):
         else:
             self._totp_step = "on" if parsed[0] else "off"
             self._totp_left = parsed[1]
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot()
     def refreshTotp(self) -> None:
@@ -2092,7 +2097,7 @@ class SuiteQtBridge(QObject):
         if conn is None or not password:
             return
         self._totp_busy, self._totp_error, self._totp_message = True, "", ""
-        self.changed.emit()
+        self.securityChanged.emit()
         status, body, retry = await conn.totp_call("POST", "/api/totp/begin", {"password": password})
         self._totp_busy = False
         enrolment = totp_panel.parse_enrolment(body) if status == 200 else None
@@ -2102,7 +2107,7 @@ class SuiteQtBridge(QObject):
             self._totp_key = enrolment[0]
             self._totp_qr = totp_panel.qr_view(enrolment[1])
             self._totp_step = "enrolling"
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot(str)
     def confirmTotp(self, code: str) -> None:
@@ -2113,7 +2118,7 @@ class SuiteQtBridge(QObject):
         if conn is None or not code.strip():
             return
         self._totp_busy, self._totp_error = True, ""
-        self.changed.emit()
+        self.securityChanged.emit()
         status, body, retry = await conn.totp_call("POST", "/api/totp/confirm", {"code": totp_panel.normalize_code(code)})
         self._totp_busy = False
         codes = totp_panel.parse_recovery_codes(body) if status == 200 else None
@@ -2122,13 +2127,13 @@ class SuiteQtBridge(QObject):
         else:
             self._totp_key, self._totp_recovery, self._totp_step = "", codes, "recovery"
             self._totp_qr = {"tooLong": False, "path": "", "size": 0, "modules": []}
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot()
     def cancelTotp(self) -> None:
         self._totp_key, self._totp_error, self._totp_step = "", "", "off"
         self._totp_qr = {"tooLong": False, "path": "", "size": 0, "modules": []}
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot()
     def finishTotp(self) -> None:
@@ -2142,7 +2147,7 @@ class SuiteQtBridge(QObject):
         if self._totp_key:
             QGuiApplication.clipboard().setText(self._totp_key)
             self._totp_message = _("TOTP_COPIED")
-            self.changed.emit()
+            self.securityChanged.emit()
 
     @Slot(str, str)
     def disableTotp(self, password: str, code: str) -> None:
@@ -2153,7 +2158,7 @@ class SuiteQtBridge(QObject):
         if conn is None or not password or not code.strip():
             return
         self._totp_busy, self._totp_error, self._totp_message = True, "", ""
-        self.changed.emit()
+        self.securityChanged.emit()
         status, body, retry = await conn.totp_call("POST", "/api/totp/disable", {"password": password, "code": totp_panel.normalize_code(code)})
         self._totp_busy = False
         if status == 200:
@@ -2162,7 +2167,7 @@ class SuiteQtBridge(QObject):
             await self._refresh_totp()
             return
         self._totp_error = totp_panel.failure_text(status or 0, body, retry)
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot(str)
     def resetUserTotp(self, username: str) -> None:
@@ -2177,7 +2182,7 @@ class SuiteQtBridge(QObject):
             self._users_message, self._users_error = _("TOTP_RESET_DONE", username=username), ""
         else:
             self._users_message, self._users_error = "", _("TOTP_RESET_ERROR")
-        self.changed.emit()
+        self.securityChanged.emit()
 
     # -- Robots Catalog -------------------------------------------------------------
 
@@ -3407,45 +3412,45 @@ class SuiteQtBridge(QObject):
 
     # -- Admin Server ------------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerStatusText(self) -> str:
         return self._admin_server_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def adminServerInfoVisible(self) -> bool:
         return bool(self._admin_server_info)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerProduct(self) -> str:
         return str(self._admin_server_info.get("product") or "-")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerVersion(self) -> str:
         version = self._admin_server_info.get("appVersion")
         return f"v{version}" if version else "-"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerUptime(self) -> str:
         return _format_uptime(self._admin_server_info.get("uptimeSeconds"))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerControllerCount(self) -> str:
         return str(self._admin_server_info.get("controllerCount", "-"))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerRobotCount(self) -> str:
         return str(self._admin_server_info.get("robotCount", "-"))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerHost(self) -> str:
         return str(self._admin_server_info.get("hostname") or "-")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerPortLabel(self) -> str:
         port = self._admin_server_current_port if self._admin_server_current_port is not None else "..."
         return _("LBL_ADMIN_SERVER_PORT_CURRENT", port=port)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerPendingPortText(self) -> str:
         return self._admin_server_pending_port_text
 
@@ -3604,7 +3609,7 @@ class SuiteQtBridge(QObject):
         self._service_identity_error = service_identity.status_for(result)
         self._service_identity = service_identity.parse_status(result[1]) if result is not None and not self._service_identity_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def serviceIdentityView(self) -> dict:
         view = service_identity.view(self._service_identity)
         view["message"] = self._service_identity_message
@@ -3635,7 +3640,7 @@ class SuiteQtBridge(QObject):
             self._service_identity_error = ""
             await self._refresh_service_identity(conn)
             self._service_identity_message = _("SERVICEID_SAVED") + ((" " + _("SERVICEID_OFF_WARNING")) if not wanted else "")
-        self.changed.emit()
+        self.securityChanged.emit()
 
     # -- Switch of the loaded-model reports of DETECTION-HEF (administrators) ------------------
 
@@ -3924,7 +3929,7 @@ class SuiteQtBridge(QObject):
 
     # -- Access options of the Server Admin screen -----------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def securityView(self) -> dict:
         return server_security.view(self._security_state)
 
@@ -3940,15 +3945,15 @@ class SuiteQtBridge(QObject):
     def securityMqttModes(self) -> list[dict[str, str]]:
         return server_security.mqtt_mode_options()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def securityMessage(self) -> str:
         return self._security_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def securityError(self) -> str:
         return self._security_error
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def securityWarning(self) -> str:
         return self._security_warning
 
