@@ -320,6 +320,8 @@ class SuiteQtBridge(QObject):
     changed = Signal()
     _logsChanged = Signal()
     _trajectoryChanged = Signal()
+    # The clients list of the Admin Clients screen: the one-second clock that keeps its "connected for" texts fresh reaches only this, not every property of the bridge.
+    _adminClientsChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
     workScaleOffered = Signal(str, str, str)
     # Own dedicated signal (not the shared `changed` above) - a live MJPEG
@@ -443,7 +445,7 @@ class SuiteQtBridge(QObject):
         self._scheduler_timer.timeout.connect(self._scheduler.tick)
         self._scheduler_timer.start()
         self._admin_clients_timer = self._scheduler.add("admin_clients", _ADMIN_CLIENTS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_admin_clients()))
-        self._admin_clients_tick_timer = self._scheduler.add("admin_clients_clock", 1000, self.changed.emit)
+        self._admin_clients_tick_timer = self._scheduler.add("admin_clients_clock", 1000, self._adminClientsChanged.emit)
         controller.active_connection_changed.connect(lambda _cid: asyncio.ensure_future(self._refresh_admin_clients()))
         controller.connection_login_changed.connect(lambda _cid, _ok, _detail: asyncio.ensure_future(self._refresh_admin_clients()))
         asyncio.ensure_future(self._refresh_admin_clients())
@@ -3192,7 +3194,7 @@ class SuiteQtBridge(QObject):
     def adminClientsAdminCount(self) -> int:
         return sum(1 for c in self._admin_clients if c.get("role") == "admin")
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_adminClientsChanged)
     def adminClientsRows(self) -> list[dict[str, object]]:
         sorted_clients = sorted(
             self._admin_clients,
@@ -3247,31 +3249,36 @@ class SuiteQtBridge(QObject):
             self._connection_status_text = _("CONNECTIONS_LOAD_ERROR")
         await self._refresh_admin_clients_list()
 
+    def _emit_admin_clients_changed(self) -> None:
+        """New data for the Admin Clients screen: everything that reads it, and the rows that show how long each client has been connected."""
+        self.changed.emit()
+        self._adminClientsChanged.emit()
+
     async def _refresh_admin_clients_list(self) -> None:
         conn = self._controller.active_connection
         if conn is None:
             self._admin_clients_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
             self._admin_clients = []
-            self.changed.emit()
+            self._emit_admin_clients_changed()
             return
         if not conn.is_admin:
             self._admin_clients_status_text = _("MSG_ADMIN_ONLY")
             self._admin_clients = []
-            self.changed.emit()
+            self._emit_admin_clients_changed()
             return
         result = await conn.fetch_admin_clients()
         if result is None:
             self._admin_clients_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self._emit_admin_clients_changed()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict):
             self._admin_clients_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self._emit_admin_clients_changed()
             return
         self._admin_clients = body.get("clients") or []
         self._admin_clients_status_text = _("LBL_CLIENTS_REFRESH_NOTE", seconds=_ADMIN_CLIENTS_POLL_MS // 1000)
-        self.changed.emit()
+        self._emit_admin_clients_changed()
 
     # -- Admin Logs --------------------------------------------------------
 
