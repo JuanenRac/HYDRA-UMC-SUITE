@@ -50,7 +50,7 @@ def notify_of(name: str) -> str:
 
 for name in GROUP:
     check(f"{name} notifies the signal of the connection lists", notify_of(name), "_adminClientsChanged")
-check("a property of another screen still notifies the general signal", notify_of("securityWarning"), "changed")
+check("a property of another screen still notifies the general signal", notify_of("activePanel"), "changed")
 
 general, group = [], []
 bridge.changed.connect(lambda: general.append(1))
