@@ -331,7 +331,7 @@ ApplicationWindow {
                 }
             }
             RowLayout {
-                Text { text: suiteBackend.uiText("LBL_PASSWORD"); color: window.muted; Layout.preferredWidth: 90 }
+                Text { text: suiteBackend.uiText("COMMON_PASSWORD"); color: window.muted; Layout.preferredWidth: 90 }
                 TextField {
                     id: credentialsPasswordField
                     Layout.fillWidth: true
@@ -455,7 +455,7 @@ ApplicationWindow {
             spacing: 14
             Text { text: window.pendingConfirmBody; color: window.textPrimary; wrapMode: Text.WordWrap; Layout.preferredWidth: 380 }
             Button {
-                text: window.pendingConfirmLabel !== "" ? window.pendingConfirmLabel : suiteBackend.uiText("BTN_SAVE")
+                text: window.pendingConfirmLabel !== "" ? window.pendingConfirmLabel : suiteBackend.uiText("COMMON_SAVE")
                 Layout.fillWidth: true
                 onClicked: { confirmDialog.close(); if (window.pendingConfirmAction) window.pendingConfirmAction() }
             }
@@ -533,7 +533,7 @@ ApplicationWindow {
                 text: "×"
                 implicitWidth: 30
                 implicitHeight: 30
-                Accessible.name: suiteBackend.uiText("BTN_CLOSE")
+                Accessible.name: suiteBackend.uiText("COMMON_CLOSE")
                 onClicked: suiteBackend.dismissNotice()
             }
         }
@@ -731,7 +731,7 @@ ApplicationWindow {
                 }
                 TextField {
                     id: passField
-                    placeholderText: suiteBackend.uiText("LBL_PASSWORD")
+                    placeholderText: suiteBackend.uiText("COMMON_PASSWORD")
                     echoMode: TextInput.Password
                     color: window.textPrimary
                     Layout.preferredWidth: 110
@@ -764,7 +764,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Text { text: suiteBackend.uiText("COL_SERVER"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 200 }
                 Text { text: suiteBackend.uiText("COL_HOST"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 180 }
-                Text { text: suiteBackend.uiText("COL_ROBOTS"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 80 }
+                Text { text: suiteBackend.uiText("COMMON_ROBOTS"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 80 }
                 Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
             }
             ListView {
@@ -953,7 +953,7 @@ ApplicationWindow {
                             objectName: "safeModeDisableButton"
                             visible: suiteBackend.selectedRobotSafeMode.canDisable === true
                             enabled: !suiteBackend.accessBusy
-                            text: suiteBackend.uiText("ACCESS_DISABLE")
+                            text: suiteBackend.uiText("COMMON_DISABLE")
                             ToolTip.visible: hovered
                             ToolTip.text: suiteBackend.uiText("ACCESS_DISABLE_HINT")
                             onClicked: suiteBackend.disableSelectedRobot()
@@ -962,14 +962,14 @@ ApplicationWindow {
                             objectName: "safeModeEnableButton"
                             visible: suiteBackend.selectedRobotSafeMode.canEnable === true
                             enabled: !suiteBackend.accessBusy
-                            text: suiteBackend.uiText("ACCESS_ENABLE")
+                            text: suiteBackend.uiText("COMMON_ENABLE")
                             ToolTip.visible: hovered
                             ToolTip.text: suiteBackend.uiText("ACCESS_ENABLE_HINT")
                             onClicked: window.requestConfirm(
-                                suiteBackend.uiText("ACCESS_ENABLE"),
+                                suiteBackend.uiText("COMMON_ENABLE"),
                                 suiteBackend.uiText("ACCESS_CONFIRM_ENABLE"),
                                 function() { suiteBackend.enableSelectedRobot() },
-                                suiteBackend.uiText("ACCESS_ENABLE"))
+                                suiteBackend.uiText("COMMON_ENABLE"))
                         }
                         Button {
                             objectName: "claimsListButton"
@@ -1125,12 +1125,12 @@ ApplicationWindow {
                     RowLayout {
                         spacing: 8
                         Button { objectName: "playButton"; text: suiteBackend.uiText("BTN_PLAYBACK_PLAY"); enabled: suiteBackend.selectedRobotTransport.canPlay; onClicked: suiteBackend.extras.requestPlay() }
-                        Button { objectName: "pauseButton"; text: suiteBackend.selectedRobotTransport.paused ? suiteBackend.uiText("BTN_PLAYBACK_CONTINUE") : suiteBackend.uiText("BTN_PLAYBACK_PAUSE"); enabled: suiteBackend.selectedRobotTransport.canPause; onClicked: suiteBackend.pauseSelectedRobot() }
+                        Button { objectName: "pauseButton"; text: suiteBackend.selectedRobotTransport.paused ? suiteBackend.uiText("BTN_PLAYBACK_CONTINUE") : suiteBackend.uiText("COMMON_PAUSE"); enabled: suiteBackend.selectedRobotTransport.canPause; onClicked: suiteBackend.pauseSelectedRobot() }
                         Button { objectName: "stopButton"; text: suiteBackend.uiText("BTN_PLAYBACK_STOP"); enabled: suiteBackend.selectedRobotTransport.canStop; onClicked: suiteBackend.stopSelectedRobot() }
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        Text { text: suiteBackend.uiText("LBL_SPEED"); color: window.muted; Layout.preferredWidth: 90 }
+                        Text { text: suiteBackend.uiText("COMMON_SPEED"); color: window.muted; Layout.preferredWidth: 90 }
                         Slider { Layout.fillWidth: true; from: 10; to: 500; value: suiteBackend.selectedRobotSpeed; enabled: suiteBackend.canControlRobot; onMoved: suiteBackend.setRobotSpeed(Math.round(value)) }
                         Text { text: suiteBackend.selectedRobotSpeed + "%"; color: window.textPrimary; Layout.preferredWidth: 45 }
                     }
@@ -1698,8 +1698,8 @@ ApplicationWindow {
                         }
                     }
                 }
-                Button { text: suiteBackend.uiText("BTN_CLEAR"); onClicked: suiteBackend.clearAdminLogs() }
-                Button { text: suiteBackend.adminLogsLive ? suiteBackend.uiText("BTN_PAUSE") : suiteBackend.uiText("BTN_RESUME"); onClicked: suiteBackend.toggleAdminLogsLive() }
+                Button { text: suiteBackend.uiText("COMMON_CLEAR"); onClicked: suiteBackend.clearAdminLogs() }
+                Button { text: suiteBackend.adminLogsLive ? suiteBackend.uiText("COMMON_PAUSE") : suiteBackend.uiText("BTN_RESUME"); onClicked: suiteBackend.toggleAdminLogsLive() }
             }
             Text { text: suiteBackend.adminLogsStatusText; color: window.muted; font.pixelSize: window.fs(11) }
             RowLayout {
@@ -1785,12 +1785,12 @@ ApplicationWindow {
                         }
                         ColumnLayout {
                             spacing: 1
-                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_CONTROLLERS"); color: window.muted; font.pixelSize: window.fs(8) }
+                            Text { text: suiteBackend.uiText("COMMON_CONTROLLERS"); color: window.muted; font.pixelSize: window.fs(8) }
                             Text { text: suiteBackend.adminServerControllerCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: window.fs(11) }
                         }
                         ColumnLayout {
                             spacing: 1
-                            Text { text: suiteBackend.uiText("LBL_ADMIN_SERVER_STAT_ROBOTS"); color: window.muted; font.pixelSize: window.fs(8) }
+                            Text { text: suiteBackend.uiText("COMMON_ROBOTS"); color: window.muted; font.pixelSize: window.fs(8) }
                             Text { text: suiteBackend.adminServerRobotCount; color: window.textPrimary; font.family: "Cascadia Mono"; font.bold: true; font.pixelSize: window.fs(11) }
                         }
                         ColumnLayout {
@@ -1812,7 +1812,7 @@ ApplicationWindow {
                     Layout.preferredWidth: 100
                     background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                 }
-                Button { text: suiteBackend.uiText("BTN_SAVE"); onClicked: suiteBackend.saveAdminServerPort(portField.text) }
+                Button { text: suiteBackend.uiText("COMMON_SAVE"); onClicked: suiteBackend.saveAdminServerPort(portField.text) }
             }
             Text {
                 text: suiteBackend.uiText("MSG_ADMIN_SERVER_PORT_NOTE")
@@ -1904,7 +1904,7 @@ ApplicationWindow {
                     }
                     RowLayout {
                         spacing: 8
-                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("BTN_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: suiteBackend.saveTlsOptions(tlsBox.checked, tlsCertField.text, tlsKeyField.text) }
+                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("COMMON_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: suiteBackend.saveTlsOptions(tlsBox.checked, tlsCertField.text, tlsKeyField.text) }
                         Text { text: suiteBackend.securityView.tlsSource; color: "#556070"; font.pixelSize: window.fs(9) }
                     }
                     Text { text: suiteBackend.uiText("LBL_SECURITY_TLS_FINGERPRINT") + ": " + suiteBackend.securityView.tlsFingerprint; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
@@ -2008,7 +2008,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_MQTT_PASSWORDS"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityMqttSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             onClicked: {
                                 var mode = mqttModeCombo.currentValue
                                 var url = mqttUrlField.text, prefix = mqttPrefixField.text, user = mqttUserField.text, commandUser = mqttCommandUserField.text
@@ -2048,7 +2048,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_VOICE_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityVoiceSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !(suiteBackend.securityView.voiceHeardLocked && suiteBackend.securityView.voiceConfidenceLocked)
                             onClicked: {
                                 var heard = voiceHeardBox.checked, confidence = voiceConfidenceField.text
@@ -2076,7 +2076,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_ROBOTS_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityRobotsSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.robotsAllowEnableLocked
                             onClicked: {
                                 var allow = robotsAllowEnableBox.checked
@@ -2120,7 +2120,7 @@ ApplicationWindow {
                             spacing: 6
                             Button {
                                 objectName: "securityAuthSave"
-                                text: suiteBackend.uiText("BTN_SAVE")
+                                text: suiteBackend.uiText("COMMON_SAVE")
                                 enabled: !(suiteBackend.securityView.authAlgorithmLocked && suiteBackend.securityView.authAcceptHs256Locked)
                                 onClicked: {
                                     var algorithm = authAlgorithmCombo.currentValue
@@ -2156,7 +2156,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_HEALTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityHealthSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.healthOpenLocked
                             onClicked: {
                                 var open = healthOpenBox.checked
@@ -2216,7 +2216,7 @@ ApplicationWindow {
                         }
                         Button {
                             objectName: "securitySafetySave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: (!suiteBackend.securityView.safetyPublishStopLocked || suiteBackend.securityView.safetyFramAvailable === true || suiteBackend.securityView.safetyEstopWatchAvailable === true) && suiteBackend.estopWatchTextValid(safetyEstopWatchField.text)
                             onClicked: {
                                 var publish = safetyPublishBox.checked
@@ -2306,7 +2306,7 @@ ApplicationWindow {
                         }
                         Button {
                             objectName: "securityJdSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             onClicked: {
                                 var relay = jdRelayBox.checked, map = jdMapField.text, allow = jdAllowBox.checked, timeout = jdTimeoutField.text
                                 var execEnabled = jdExecEnabledBox.checked, execLive = jdExecLiveBox.checked
@@ -2415,7 +2415,7 @@ ApplicationWindow {
                         }
                         Button {
                             objectName: "securityBridgesSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             onClicked: {
                                 var values = {}
                                 for (var i = 0; i < bridgesRepeater.count; i++) {
@@ -2447,7 +2447,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_TRUSTED_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityTrustedNetworksSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.trustedNetworksEnabledLocked
                             onClicked: suiteBackend.saveTrustedNetworksOptions(trustedNetworksBox.checked)
                         }
@@ -2479,7 +2479,7 @@ ApplicationWindow {
                         Button {
                             objectName: "hubGateSave"
                             visible: suiteBackend.hubGateView.available === true
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: hubGateBox.checked !== (suiteBackend.hubGateView.allow === true) && (hubGateBox.checked ? suiteBackend.hubGateView.canTurnOn === true : suiteBackend.hubGateView.canTurnOff === true)
                             onClicked: {
                                 var wanted = hubGateBox.checked
@@ -2517,7 +2517,7 @@ ApplicationWindow {
                         Button {
                             objectName: "plannerIdentitySave"
                             visible: suiteBackend.plannerIdentityView.available === true
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: plannerIdentityBox.checked !== (suiteBackend.plannerIdentityView.require === true) && suiteBackend.plannerIdentityView.canChange === true
                             onClicked: {
                                 var wanted = plannerIdentityBox.checked
@@ -2552,7 +2552,7 @@ ApplicationWindow {
                         Button {
                             objectName: "serviceIdentitySave"
                             visible: suiteBackend.serviceIdentityView.available === true
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: serviceIdentityBox.checked !== (suiteBackend.serviceIdentityView.enabled === true) && suiteBackend.serviceIdentityView.locked !== true
                             onClicked: {
                                 var wanted = serviceIdentityBox.checked
@@ -2592,7 +2592,7 @@ ApplicationWindow {
                         Text { visible: suiteBackend.detectionHefView.message !== ""; text: suiteBackend.detectionHefView.message; color: "#4cc38a"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "detectionHefSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: detectionHefBox.checked !== (suiteBackend.detectionHefView.enabled === true) && suiteBackend.detectionHefView.locked !== true
                             onClicked: {
                                 var wanted = detectionHefBox.checked
@@ -2639,7 +2639,7 @@ ApplicationWindow {
                         Text { visible: suiteBackend.liveActivityView.message !== ""; text: suiteBackend.liveActivityView.message; color: "#4cc38a"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "liveActivitySave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: suiteBackend.liveActivityView.locked !== true && (liveActivityBox.checked !== (suiteBackend.liveActivityView.enabled === true) || parent.wantedLevel !== suiteBackend.liveActivityView.level)
                             onClicked: {
                                 var on = liveActivityBox.checked
@@ -2726,7 +2726,7 @@ ApplicationWindow {
                         Button {
                             objectName: "hilBridgeSave"
                             visible: suiteBackend.hilBridgeView.available === true
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: hilBridgeBox.checked !== (suiteBackend.hilBridgeView.require === true) && hilBridgeBlocked.reason === ""
                             onClicked: {
                                 var wanted = hilBridgeBox.checked
@@ -2764,7 +2764,7 @@ ApplicationWindow {
                                     spacing: 8
                                     Button {
                                         objectName: "opsProposalApprove"
-                                        text: suiteBackend.uiText("OPSPROP_APPROVE")
+                                        text: suiteBackend.uiText("COMMON_APPROVE")
                                         onClicked: {
                                             var id = incidentId
                                             window.requestConfirm(suiteBackend.uiText("OPSPROP_CONFIRM_TITLE"), suiteBackend.opsProposalConfirmMessage(id), function() { suiteBackend.decideOpsProposal(id, "approved") })
@@ -2796,7 +2796,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_NODEHEALTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityNodeHealthSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.nodeHealthEnabledLocked
                             onClicked: suiteBackend.saveNodeHealthOptions(nodeHealthBox.checked)
                         }
@@ -2818,7 +2818,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_ECOHEALTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityEcosystemHealthSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.ecosystemHealthEnabledLocked
                             onClicked: suiteBackend.saveEcosystemHealthOptions(ecosystemHealthBox.checked)
                         }
@@ -2840,7 +2840,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_TWINRELAY_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityTwinRelaySave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.twinRelayEnabledLocked
                             onClicked: suiteBackend.saveTwinRelayOptions(twinRelayBox.checked)
                         }
@@ -2862,7 +2862,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_RUL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityRulSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.rulEnabledLocked
                             onClicked: suiteBackend.saveRulOptions(rulBox.checked)
                         }
@@ -2884,7 +2884,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_PRODUCTION_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityProductionSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.productionRdpLocked
                             onClicked: {
                                 var on = productionRdpBox.checked
@@ -2941,7 +2941,7 @@ ApplicationWindow {
                         Text { visible: suiteBackend.securityView.ingestRestart !== ""; text: suiteBackend.securityView.ingestRestart; color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityIngestSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: suiteBackend.ingestKeysFileAcceptable(ingestSection.ingestWanted, ingestKeysField.text)
                             onClicked: {
                                 var wanted = ingestSection.ingestWanted
@@ -2997,7 +2997,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_CONNECTIONS_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityConnectionsSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.connectionsRecordLocked
                             onClicked: {
                                 var record = connectionsRecordBox.checked
@@ -3052,7 +3052,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_EXPOSURE_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityExposureSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !(suiteBackend.securityView.exposureCameraOpenLocked && suiteBackend.securityView.exposureWsQueryTokenLocked && suiteBackend.securityView.exposureLogRedactionLocked && suiteBackend.securityView.exposureVoiceSignatureLocked)
                             onClicked: {
                                 var camera = exposureCameraBox.checked, ws = exposureWsBox.checked, log = exposureLogBox.checked, voice = exposureVoiceBox.checked
@@ -3089,7 +3089,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_INSTALL_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityInstallSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !(suiteBackend.securityView.installCameraCredentialsViaEnvLocked && suiteBackend.securityView.installNewInstallTlsLocked)
                             onClicked: {
                                 var camera = installCameraBox.checked, tls = installTlsBox.checked
@@ -3129,7 +3129,7 @@ ApplicationWindow {
                         Text { text: suiteBackend.uiText("LBL_SECURITY_MAVLINK_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button {
                             objectName: "securityMavlinkSave"
-                            text: suiteBackend.uiText("BTN_SAVE")
+                            text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !(suiteBackend.securityView.mavlinkKeyLocked && suiteBackend.securityView.mavlinkUnsignedLocked)
                             onClicked: {
                                 var key = mavlinkKeyField.text, unsigned = mavlinkUnsignedBox.checked
@@ -3183,7 +3183,7 @@ ApplicationWindow {
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
-                        Button { objectName: "firmwareSigningKeyFileSave"; text: suiteBackend.uiText("BTN_SAVE"); onClicked: suiteBackend.setFirmwareSigningKeyFile(firmwareKeyFileField.text) }
+                        Button { objectName: "firmwareSigningKeyFileSave"; text: suiteBackend.uiText("COMMON_SAVE"); onClicked: suiteBackend.setFirmwareSigningKeyFile(firmwareKeyFileField.text) }
                     }
                     Text { objectName: "firmwareSigningKeyStatus"; text: suiteBackend.firmwareSigningView.keyStatus; color: suiteBackend.firmwareSigningView.keyOk === true ? window.green : window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10); font.bold: true }
                     Text { visible: suiteBackend.firmwareSigningView.fingerprint !== ""; text: suiteBackend.uiText("LBL_FW_SIG_FINGERPRINT"); color: window.textPrimary; font.pixelSize: window.fs(10) }
@@ -3338,7 +3338,7 @@ ApplicationWindow {
                             }
                         }
                         Text { visible: suiteBackend.totpQr.tooLong === true; text: suiteBackend.uiText("TOTP_QR_TOO_LONG"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
-                        Text { text: suiteBackend.uiText("TOTP_KEY"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("COMMON_KEY"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         Text { objectName: "totpKeyText"; text: suiteBackend.totpKey; color: window.cyan; font.family: "Cascadia Mono"; font.pixelSize: window.fs(13); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Button { text: suiteBackend.uiText("TOTP_COPY"); onClicked: suiteBackend.copyTotpKey() }
                         Text { text: suiteBackend.uiText("TOTP_CODE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
@@ -3358,7 +3358,7 @@ ApplicationWindow {
                                 enabled: !suiteBackend.totpBusy && totpCodeField.text !== ""
                                 onClicked: { suiteBackend.confirmTotp(totpCodeField.text); totpCodeField.text = "" }
                             }
-                            Button { text: suiteBackend.uiText("TOTP_CANCEL"); onClicked: suiteBackend.cancelTotp() }
+                            Button { text: suiteBackend.uiText("COMMON_CANCEL"); onClicked: suiteBackend.cancelTotp() }
                         }
                     }
 
@@ -4220,11 +4220,11 @@ ApplicationWindow {
                             columns: 2
                             columnSpacing: 12
                             rowSpacing: 4
-                            Text { text: suiteBackend.uiText("LBL_NAME"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("COMMON_NAME"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewName; color: window.textPrimary; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.uiText("LBL_IP"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewIp; color: window.textPrimary; font.pixelSize: window.fs(10) }
-                            Text { text: suiteBackend.uiText("LBL_ROBOTS"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("COMMON_ROBOTS"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewRobotCount; color: window.textPrimary; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.uiText("LBL_ONLINE"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewOnlineCount; color: window.textPrimary; font.pixelSize: window.fs(10) }
@@ -4245,9 +4245,9 @@ ApplicationWindow {
                             rowSpacing: 4
                             Text { text: suiteBackend.uiText("LBL_CPU_LOAD"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewCpu; color: window.textPrimary; font.pixelSize: window.fs(10) }
-                            Text { text: suiteBackend.uiText("LBL_MEMORY"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("COMMON_MEMORY"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewMem; color: window.textPrimary; font.pixelSize: window.fs(10) }
-                            Text { text: suiteBackend.uiText("LBL_TEMP"); color: window.muted; font.pixelSize: window.fs(10) }
+                            Text { text: suiteBackend.uiText("COMMON_TEMPERATURE"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewTemp; color: window.textPrimary; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.uiText("LBL_UPTIME"); color: window.muted; font.pixelSize: window.fs(10) }
                             Text { text: suiteBackend.overviewUptime; color: window.textPrimary; font.pixelSize: window.fs(10) }
@@ -4259,9 +4259,9 @@ ApplicationWindow {
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: window.panelBorder }
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("COL_ROBOT"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                Text { text: suiteBackend.uiText("COMMON_ROBOT"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
                 Text { text: suiteBackend.uiText("COL_MODEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.fillWidth: true }
-                Text { text: suiteBackend.uiText("COL_ROLE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 120 }
+                Text { text: suiteBackend.uiText("COMMON_ROLE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 120 }
                 Text { text: suiteBackend.uiText("COL_STATUS"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 210 }
                 Text { text: suiteBackend.uiText("COL_SPEED_ACCEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
             }
@@ -4379,7 +4379,7 @@ ApplicationWindow {
             }
             Button {
                 objectName: "previewCancel"
-                text: suiteBackend.uiText("TRJ_CANCEL")
+                text: suiteBackend.uiText("COMMON_CANCEL")
                 DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
             }
         }
@@ -4444,7 +4444,7 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     Text { text: suiteBackend.uiText("SWARM_COL_SERVER"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
-                    Text { text: suiteBackend.uiText("SWARM_COL_ROBOT"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("COMMON_ROBOT"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
                     Text { text: suiteBackend.uiText("SWARM_COL_MODEL"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
                     Text { text: suiteBackend.uiText("SWARM_COL_SOURCE"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
                     Text { text: suiteBackend.uiText("SWARM_COL_PLAYBACK"); color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
@@ -4562,7 +4562,7 @@ ApplicationWindow {
                     onTextChanged: suiteBackend.setLogSearchFilter(text)
                 }
                 Button {
-                    text: suiteBackend.uiText("BTN_CLEAR_LOGS")
+                    text: suiteBackend.uiText("COMMON_CLEAR")
                     onClicked: suiteBackend.clearLogs()
                 }
             }
@@ -5722,7 +5722,7 @@ ApplicationWindow {
                         }
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Text { text: suiteBackend.uiText("LBL_IP_PASSWORD"); color: window.muted; font.pixelSize: window.fs(9) }
+                            Text { text: suiteBackend.uiText("COMMON_PASSWORD"); color: window.muted; font.pixelSize: window.fs(9) }
                             TextField {
                                 id: ipPassField
                                 Layout.fillWidth: true
@@ -5926,7 +5926,7 @@ ApplicationWindow {
                             visible: suiteBackend.cameraMediaHasSelection && suiteBackend.cameraMediaIsRecording
                             spacing: 6
                             Button {
-                                text: suiteBackend.cameraMediaPlaying ? suiteBackend.uiText("CAMERA_MEDIA_PAUSE") : suiteBackend.uiText("CAMERA_MEDIA_PLAY")
+                                text: suiteBackend.cameraMediaPlaying ? suiteBackend.uiText("COMMON_PAUSE") : suiteBackend.uiText("CAMERA_MEDIA_PLAY")
                                 onClicked: suiteBackend.toggleCameraMediaPlay()
                             }
                             Button {
@@ -5956,7 +5956,7 @@ ApplicationWindow {
                                 onClicked: cameraMediaSaveDialog.open()
                             }
                             Button {
-                                text: suiteBackend.uiText("CAMERA_MEDIA_DELETE")
+                                text: suiteBackend.uiText("COMMON_DELETE")
                                 onClicked: cameraMediaDeleteConfirm.open()
                             }
                         }
@@ -6428,7 +6428,7 @@ ApplicationWindow {
                         anchors.margins: 8
                         spacing: 4
                         RowLayout {
-                            Text { text: suiteBackend.uiText("LBL_COL_TIME"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
+                            Text { text: suiteBackend.uiText("COMMON_TIME"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
                             Text { text: suiteBackend.uiText("LBL_COL_ID"); color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
                             Text { text: "DLC"; color: window.muted; font.pixelSize: window.fs(9); Layout.preferredWidth: 40 }
                             Text { text: suiteBackend.uiText("LBL_COL_DATA"); color: window.muted; font.pixelSize: window.fs(9); Layout.fillWidth: true }
@@ -7396,7 +7396,7 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 10
-                            Text { text: suiteBackend.uiText("LBL_SUPERVISOR_TEMP_TREND"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
+                            Text { text: suiteBackend.uiText("COMMON_TEMPERATURE"); color: window.muted; font.pixelSize: window.fs(9); font.bold: true }
                             LineChart {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
@@ -7798,13 +7798,13 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 8
                     Text { text: suiteBackend.uiText("AUDIT_COL_SEQ"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 40 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_TIME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_TYPE"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("COMMON_TIME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                    Text { text: suiteBackend.uiText("COMMON_TYPE"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
                     Text { text: suiteBackend.uiText("AUDIT_COL_OUTCOME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_ACCOUNT"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("COMMON_ACCOUNT"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
                     Text { text: suiteBackend.uiText("AUDIT_COL_CONTROLLER"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
                     Text { text: suiteBackend.uiText("AUDIT_COL_ADDRESS"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 100 }
-                    Text { text: suiteBackend.uiText("AUDIT_COL_ROBOT"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
+                    Text { text: suiteBackend.uiText("COMMON_ROBOT"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 90 }
                     Text { text: suiteBackend.uiText("AUDIT_COL_DETAIL"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                 }
                 ListView {
@@ -7912,7 +7912,7 @@ ApplicationWindow {
                         }
                         Button {
                             objectName: "usersDeleteButton"
-                            text: suiteBackend.uiText("USERS_DELETE")
+                            text: suiteBackend.uiText("COMMON_DELETE")
                             enabled: !suiteBackend.usersBusy
                             onClicked: { usersDeleteDialog.target = modelData.username; usersDeleteDialog.open() }
                         }
@@ -7948,7 +7948,7 @@ ApplicationWindow {
                             objectName: "usersChangePassword"
                             Layout.fillWidth: true
                             echoMode: TextInput.Password
-                            placeholderText: suiteBackend.uiText("USERS_NEW_PASSWORD")
+                            placeholderText: suiteBackend.uiText("COMMON_PASSWORD")
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
@@ -7988,7 +7988,7 @@ ApplicationWindow {
                             objectName: "usersNewPassword"
                             Layout.fillWidth: true
                             echoMode: TextInput.Password
-                            placeholderText: suiteBackend.uiText("USERS_NEW_PASSWORD")
+                            placeholderText: suiteBackend.uiText("COMMON_PASSWORD")
                             color: window.textPrimary
                             background: Rectangle { radius: 8; color: window.panelAlt; border.width: 1; border.color: window.panelBorder }
                         }
@@ -8050,7 +8050,7 @@ ApplicationWindow {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 8
-                    Text { text: suiteBackend.uiText("MODELS_COL_NAME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 200 }
+                    Text { text: suiteBackend.uiText("COMMON_NAME"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 200 }
                     Text { text: suiteBackend.uiText("MODELS_COL_CATEGORY"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 140 }
                     Text { text: suiteBackend.uiText("MODELS_COL_DATE"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 150 }
                     Text { text: suiteBackend.uiText("MODELS_COL_ATTRIBUTION"); color: "#556070"; font.bold: true; font.pixelSize: window.fs(10); Layout.fillWidth: true }

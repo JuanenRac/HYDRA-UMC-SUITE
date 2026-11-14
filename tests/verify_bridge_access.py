@@ -402,7 +402,7 @@ def catalog_and_supervisor(loop):
     view = bridge.supervisorView
     check("supervisor: live", (bridge.supervisorStatus, bridge.supervisorLive), ("", _("LBL_SUPERVISOR_LIVE")))
     tiles = {t["label"]: t for t in view["tiles"]}
-    check("supervisor: tiles", (tiles[_("LBL_SUPERVISOR_CPU")]["value"], tiles[_("LBL_SUPERVISOR_MEMORY")]["value"], tiles[_("LBL_SUPERVISOR_DISK")]["value"], tiles[_("LBL_SUPERVISOR_CPU_TEMP")]["value"], tiles[_("LBL_SUPERVISOR_RP1_TEMP")]["value"]), ("42%", "25%", "50%", "56°C", "N/A"))
+    check("supervisor: tiles", (tiles[_("LBL_SUPERVISOR_CPU")]["value"], tiles[_("COMMON_MEMORY")]["value"], tiles[_("LBL_SUPERVISOR_DISK")]["value"], tiles[_("LBL_SUPERVISOR_CPU_TEMP")]["value"], tiles[_("LBL_SUPERVISOR_RP1_TEMP")]["value"]), ("42%", "25%", "50%", "56°C", "N/A"))
     check("supervisor: per-core bars and frequency", ([c["percent"] for c in view["cores"]], view["cores"][1]["frequency"], view["cores"][0]["frequency"]), ([10, 90, 55, 20], "", "1500 MHz"))
     check("supervisor: states of the three links", (view["wifi"], view["bluetooth"], view["ethernet"]), ("on", "off", "unknown"))
     check("supervisor: a window of samples for the charts", (len(view["cpuSeries"]), view["hasMemory"], view["hasTemps"], view["hasTraffic"]), (2, True, True, True))

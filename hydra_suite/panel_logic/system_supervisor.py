@@ -104,7 +104,7 @@ def build_view(history: list[dict]) -> dict:
 
     tiles = [
         _tile("LBL_SUPERVISOR_CPU", f"{overall:.0f}%" if isinstance(overall, (int, float)) else "-", f"{core_count} {_('LBL_SUPERVISOR_CORES')}" if core_count else ""),
-        _tile("LBL_SUPERVISOR_MEMORY", f"{mem_percent:.0f}%" if mem_percent is not None else "N/A", f"{format_bytes(memory['usedBytes'])} / {format_bytes(memory['totalBytes'])}" if memory else ""),
+        _tile("COMMON_MEMORY", f"{mem_percent:.0f}%" if mem_percent is not None else "N/A", f"{format_bytes(memory['usedBytes'])} / {format_bytes(memory['totalBytes'])}" if memory else ""),
         _tile("LBL_SUPERVISOR_DISK", f"{disk_percent:.0f}%" if disk_percent is not None else "N/A", f"{format_bytes(disk['usedBytes'])} / {format_bytes(disk['totalBytes'])}" if disk else ""),
         _tile("LBL_SUPERVISOR_CPU_TEMP", f"{cpu_temp:.0f}°C" if isinstance(cpu_temp, (int, float)) else "N/A"),
         _tile("LBL_SUPERVISOR_RP1_TEMP", f"{rp1_temp:.0f}°C" if isinstance(rp1_temp, (int, float)) else "N/A"),
