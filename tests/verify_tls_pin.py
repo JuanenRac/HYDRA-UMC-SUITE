@@ -151,7 +151,9 @@ try:
     context = tls_pin.verify_for(on, "127.0.0.1", server_a.port)
     check("with the switch on and a pin the context trusts the pinned certificate", isinstance(context, ssl.SSLContext), True)
     check("a connection to the pinned certificate succeeds", connects(context, server_a.port), True)
-    check("the default checks refuse a self-signed certificate", connects(ssl.create_default_context(), server_a.port), False)
+    default_context = ssl.create_default_context()
+    default_context.minimum_version = ssl.TLSVersion.TLSv1_2
+    check("the default checks refuse a self-signed certificate", connects(default_context, server_a.port), False)
 
     # the same address now shows another certificate: refused
     swapped = {"tlsPinning": tls_pin.pin_entry(on, "127.0.0.1", server_b.port, pem_a)}
