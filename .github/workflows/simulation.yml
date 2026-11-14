@@ -1,0 +1,102 @@
+# =============================================================================
+# HYDRA-UMC-SUITE - Simulation bench and coverage report
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# Runs the real network client, sign-in and panels' logic against fake servers only (no robot, no real HYDRA-UMC-SERVER, no network beyond
+# this machine): answers that lie, a server that is read-only, a stream that breaks, a link that drops. A second job runs every verifier
+# under coverage and prints the coverage of the program. It runs on every push and pull request and by hand.
+# =============================================================================
+name: Simulation bench
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulation:
+    name: Program against fake servers
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install system libraries for headless Qt (offscreen platform)
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+      - name: Install the dependencies
+        run: pip install -r requirements.txt
+      - name: Fetch and verify the 3D meshes
+        run: python -m hydra_suite.mesh_pack ensure --source download
+      - name: Run the verifiers that talk to a fake server
+        env:
+          QT_QPA_PLATFORM: offscreen
+        shell: bash
+        run: |
+          failed=0
+          for script in \
+            tests/verify_hostile_server_answers.py \
+            tests/verify_session_and_errors.py \
+            tests/verify_session_module.py \
+            tests/verify_access_network.py \
+            tests/verify_bridge_access.py \
+            tests/verify_client_header.py \
+            tests/verify_conditional_audit.py \
+            tests/verify_damaged_panel_data_and_downloads.py \
+            tests/verify_live_updates.py \
+            tests/verify_mjpeg_stream.py \
+            tests/verify_stop_all.py \
+            tests/verify_totp.py \
+            tests/verify_discovery.py \
+            tests/verify_update_check_and_signature_vectors.py; do
+            echo "--- $script"
+            python "$script" || { echo "SIMULATION_BENCH=FAIL $script"; failed=1; }
+          done
+          if [ "$failed" -ne 0 ]; then exit 1; fi
+          echo "SIMULATION_BENCH=PASS"
+
+  coverage:
+    name: Coverage of the program
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install system libraries for headless Qt (offscreen platform)
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1 libgl1 libxkbcommon0 libdbus-1-3 libfontconfig1
+      - name: Install the dependencies
+        run: pip install -r requirements.txt coverage==7.17.0
+      - name: Fetch and verify the 3D meshes
+        run: python -m hydra_suite.mesh_pack ensure --source download
+      - name: Run every verifier under coverage
+        env:
+          QT_QPA_PLATFORM: offscreen
+        shell: bash
+        run: |
+          for script in tests/verify_*.py verify_qt_suite_shell.py; do
+            python -m coverage run -p --source=hydra_suite "$script" > /dev/null 2>&1 || echo "FAILED $script"
+          done
+          python -m coverage combine
+          python -m coverage report --skip-covered | tail -60
+          python -m coverage report | tail -3
