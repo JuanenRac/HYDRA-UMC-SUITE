@@ -352,6 +352,11 @@ class SuiteQtBridge(QObject):
     adminLogsChanged = Signal()
     catalogChanged = Signal()
     _logsChanged = Signal()
+    # The server list and the setup screens, and the switches and read-only states of the Server Admin screen (hub gate, plan identity, model reports,
+    # Live Activity, twin feed, URTC arms, HIL bridge, watchdog proposals, access options, developer nodes). Their properties notify these, and
+    # `changed` forwards to them.
+    serversChanged = Signal()
+    adminSwitchesChanged = Signal()
     _trajectoryChanged = Signal()
     # A Work with points out of reach that could be loaded scaled: title, message and the label of the button.
     workScaleOffered = Signal(str, str, str)
@@ -380,6 +385,8 @@ class SuiteQtBridge(QObject):
         super().__init__()
         self.changed.connect(self._adminClientsChanged)  # a general change still updates the connection lists
         self.changed.connect(self._accessChanged)
+        self.changed.connect(self.serversChanged)
+        self.changed.connect(self.adminSwitchesChanged)
         self.changed.connect(self._ecoHealthChanged)
         self.changed.connect(self.flasherChanged)
         self.changed.connect(self.rackChanged)
@@ -1058,7 +1065,7 @@ class SuiteQtBridge(QObject):
 
     # -- Servers ---------------------------------------------------------
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=serversChanged)
     def serverRows(self) -> list[dict[str, object]]:
         rows: list[dict[str, object]] = []
         active_id = self._controller._active_id  # the same field panel_logic/server_browser.py reads
@@ -1081,11 +1088,11 @@ class SuiteQtBridge(QObject):
             })
         return rows
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=serversChanged)
     def serverScanning(self) -> bool:
         return self._scanning
 
-    @Property(str, notify=changed)
+    @Property(str, notify=serversChanged)
     def serverScanStatus(self) -> str:
         return self._scan_status_text
 
@@ -1098,11 +1105,11 @@ class SuiteQtBridge(QObject):
 
     def _on_server_status(self, conn_id: str, status: str) -> None:
         self._server_statuses[conn_id] = status
-        self.changed.emit()
+        self.serversChanged.emit()
 
     def _on_server_login(self, conn_id: str, ok: bool, detail: str) -> None:
         self._server_login[conn_id] = (ok, detail)
-        self.changed.emit()
+        self.serversChanged.emit()
 
     @Slot()
     def scanServers(self) -> None:
@@ -1110,7 +1117,7 @@ class SuiteQtBridge(QObject):
             return
         self._scanning = True
         self._scan_status_text = _("STATUS_SCANNING")
-        self.changed.emit()
+        self.serversChanged.emit()
         asyncio.ensure_future(self._run_server_scan())
 
     async def _run_server_scan(self) -> None:
@@ -1124,11 +1131,11 @@ class SuiteQtBridge(QObject):
                 found += 1
                 self._controller.add_server(info)
                 self._scan_status_text = _("STATUS_SCANNING_PROGRESS", found=found)
-                self.changed.emit()
+                self.serversChanged.emit()
         finally:
             self._scanning = False
             self._scan_status_text = _("STATUS_SCAN_COMPLETE", found=found) if found else _("STATUS_SCAN_COMPLETE_NONE")
-            self.changed.emit()
+            self.serversChanged.emit()
 
     @Slot(str, int, str, str, bool)
     def addManualServer(self, host: str, port: int, username: str, password: str, remember: bool) -> None:
@@ -2476,7 +2483,7 @@ class SuiteQtBridge(QObject):
 
     # -- Setup screens -----------------------------------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=serversChanged)
     def setupView(self) -> dict[str, object]:
         """What the active Setup screen shows; every part already carries the sentences in the language of the interface."""
         conn = self._controller.active_connection
@@ -2515,12 +2522,12 @@ class SuiteQtBridge(QObject):
             self._audit_rows, self._connection_status_text or self._audit_error,
         )
 
-    @Property(float, notify=changed)
+    @Property(float, notify=serversChanged)
     def uiScaleFactor(self) -> float:
         """What every text size of the interface is multiplied by (the scale chosen in the Preferences)."""
         return preferences.scale_factor(self._ui_scale)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=serversChanged)
     def setupBusy(self) -> bool:
         return self._setup_busy
 
@@ -2542,7 +2549,7 @@ class SuiteQtBridge(QObject):
         if self._active_key != "setup_help":
             return
         self._help_search = help_levels.clean_search(text)
-        self.changed.emit()
+        self.serversChanged.emit()
 
     @Slot(str, bool)
     def setupToggle(self, toggle_id: str, checked: bool) -> None:
@@ -3522,7 +3529,7 @@ class SuiteQtBridge(QObject):
         self._hub_gate_error = connector_hub_gate.status_for(result)
         self._hub_gate = connector_hub_gate.parse_settings(result[1]) if result is not None and not self._hub_gate_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def hubGateView(self) -> dict:
         view = connector_hub_gate.view(self._hub_gate)
         view["message"] = self._hub_gate_message
@@ -3553,7 +3560,7 @@ class SuiteQtBridge(QObject):
             self._hub_gate_error = ""
             self._hub_gate = connector_hub_gate.parse_settings(result[1])  # type: ignore[index]
             self._hub_gate_message = _("HUBGATE_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Switch of the identity of the approval of a plan (administrators) ---------------
 
@@ -3570,7 +3577,7 @@ class SuiteQtBridge(QObject):
         self._planner_identity_error = planner_identity.status_for(result)
         self._planner_identity = planner_identity.parse_settings(result[1]) if result is not None and not self._planner_identity_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def plannerIdentityView(self) -> dict:
         view = planner_identity.view(self._planner_identity)
         view["message"] = self._planner_identity_message
@@ -3601,7 +3608,7 @@ class SuiteQtBridge(QObject):
             self._planner_identity_error = ""
             self._planner_identity = planner_identity.parse_settings(result[1])  # type: ignore[index]
             self._planner_identity_message = _("PLANNERID_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Identity of the server in its calls to the services (administrators) ----------------
 
@@ -3653,7 +3660,7 @@ class SuiteQtBridge(QObject):
 
     # -- Switch of the loaded-model reports of DETECTION-HEF (administrators) ------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def detectionHefView(self) -> dict:
         view = detection_hef.view(self._detection_hef)
         view["message"] = self._detection_hef_message
@@ -3688,11 +3695,11 @@ class SuiteQtBridge(QObject):
             self._detection_hef_error = ""
             self._detection_hef = {"enabled": wanted, "locked": False}
             self._detection_hef_message = _("DETHEF_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Live Activity on the lock screen (administrators) -------------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def liveActivityView(self) -> dict:
         view = live_activity.view(self._live_activity)
         view["message"] = self._live_activity_message
@@ -3733,11 +3740,11 @@ class SuiteQtBridge(QObject):
             self._live_activity_error = ""
             self._live_activity = dict(state, enabled=change.get("enabled", state["enabled"]), level=change.get("level", state["level"]))
             self._live_activity_message = _("LIVEACT_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Live state of the twin through the server (any signed-in account, read only) ---------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def twinFeedView(self) -> dict:
         return twin_feed.view(self._twin_watching, self._twin_link, self._twin_state)
 
@@ -3747,7 +3754,7 @@ class SuiteQtBridge(QObject):
         save_config(twin_feed.config_update(self._twin_watching))
         self._twin_state = twin_feed.empty_state()
         self._restart_twin_feed()
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     def _restart_twin_feed(self) -> None:
         task, self._twin_task = self._twin_task, None
@@ -3764,11 +3771,11 @@ class SuiteQtBridge(QObject):
         if frame is None:
             return
         self._twin_state = twin_feed.apply_frame(self._twin_state, frame)
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     def _on_twin_open(self) -> None:
         self._twin_link = "live"
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     async def _run_twin_feed(self) -> None:
         while self._twin_watching:
@@ -3777,7 +3784,7 @@ class SuiteQtBridge(QObject):
                 await asyncio.sleep(twin_feed.RECONNECT_S)
                 continue
             self._twin_link = "connecting"
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             try:
                 code = await conn.watch_twin_feed(self._on_twin_frame, self._on_twin_open)
             except asyncio.CancelledError:
@@ -3787,7 +3794,7 @@ class SuiteQtBridge(QObject):
                 code = None
             end = twin_feed.end_for_close_code(code)
             self._twin_link = end
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             if not twin_feed.retries(end):
                 return
             await asyncio.sleep(twin_feed.RECONNECT_S)
@@ -3803,7 +3810,7 @@ class SuiteQtBridge(QObject):
         self._tool_arms_error = tool_arms.status_for(result)
         self._tool_arms = tool_arms.parse_report(result[1]) if result is not None and not self._tool_arms_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def toolArmsView(self) -> dict:
         view = tool_arms.view(self._tool_arms)
         view["error"] = self._tool_arms_error
@@ -3835,7 +3842,7 @@ class SuiteQtBridge(QObject):
         self._hil_bridge_error = hil_bridge.status_for(result)
         self._hil_bridge = hil_bridge.parse_settings(result[1]) if result is not None and not self._hil_bridge_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def hilBridgeView(self) -> dict:
         view = hil_bridge.view(self._hil_bridge)
         view["message"] = self._hil_bridge_message
@@ -3875,7 +3882,7 @@ class SuiteQtBridge(QObject):
             self._hil_bridge_error = ""
             self._hil_bridge = hil_bridge.parse_settings(result[1])  # type: ignore[index]
             self._hil_bridge_message = _("HILBRIDGE_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Proposals of the node watchdog that wait for a person (administrators) ---------------
 
@@ -3892,7 +3899,7 @@ class SuiteQtBridge(QObject):
         self._ops_proposals_error = ops_proposals.status_for(result)
         self._ops_proposals = ops_proposals.parse_lists(result[1]) if result is not None and not self._ops_proposals_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def opsProposalsView(self) -> dict:
         view = ops_proposals.view(self._ops_proposals)
         view["message"] = self._ops_proposals_message
@@ -3914,7 +3921,7 @@ class SuiteQtBridge(QObject):
             return
         self._ops_proposals_message = ""
         await self._refresh_ops_proposals(conn)
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     @Slot(str, str)
     def decideOpsProposal(self, incident_id: str, decision: str) -> None:
@@ -3934,7 +3941,7 @@ class SuiteQtBridge(QObject):
             self._ops_proposals_error = problem
         else:
             self._ops_proposals_message = _("OPSPROP_APPROVED" if decision == "approved" else "OPSPROP_REJECTED", id=incident_id)
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Access options of the Server Admin screen -----------------------------------
 
@@ -4206,7 +4213,7 @@ class SuiteQtBridge(QObject):
         self._developer_nodes_problem = developer_node_status.status_for(result)
         self._developer_nodes = developer_node_status.parse_status(result[1]) if result is not None and not self._developer_nodes_problem else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def developerNodesView(self) -> dict:
         return developer_node_status.view(self._developer_nodes, self._developer_nodes_problem)
 
@@ -4527,19 +4534,19 @@ class SuiteQtBridge(QObject):
             port = int(text)
         except ValueError:
             self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_INVALID")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         if not (1 <= port <= 65535):
             self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_INVALID")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         result = await conn.save_admin_server_port(port)
         if result is None or result[0] != 200:
             self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     @Slot()
     def restartAdminServer(self) -> None:
@@ -4552,10 +4559,10 @@ class SuiteQtBridge(QObject):
         result = await conn.restart_server()
         if result is None or result[0] != 200:
             self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         self._admin_server_status_text = _("MSG_ADMIN_SERVER_RESTART_REQUESTED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Ecosystem Services --------------------------------------------------
 
