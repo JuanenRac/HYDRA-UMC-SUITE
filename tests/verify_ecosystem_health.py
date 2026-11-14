@@ -532,8 +532,13 @@ def self_update_screen(loop, port):
 
     def ask_and_confirm(action="apply", component="server"):
         SelfUpdateSim.reads = 0
-        bridge.requestSelfUpdate(action, component)
-        bridge.confirmSelfUpdate()
+
+        async def go():  # the slots start their tasks inside the running loop, as they do in the program
+            bridge.requestSelfUpdate(action, component)
+            bridge.confirmSelfUpdate()
+            await asyncio.sleep(0.05)
+
+        loop.run_until_complete(go())
 
     SelfUpdateSim.status, SelfUpdateSim.body, SelfUpdateSim.posted = 200, SU_STATUS, []
     read()
@@ -587,7 +592,12 @@ def self_update_screen(loop, port):
     view = bridge.selfUpdateView["job"]
     check("updates screen: after the limit of silence it says so and is not stuck", (silent, view["gaveUp"], view["waiting"], view["running"]), (True, _("SELFUPD_GAVE_UP"), "", True))
     SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("failed", error="rolled_back", detail="unit did not answer"))]
-    bridge.lookAgainSelfUpdate()
+
+    async def look_again():
+        bridge.lookAgainSelfUpdate()
+        await asyncio.sleep(0.05)
+
+    loop.run_until_complete(look_again())
     wait_until(lambda: bridge._su_job is not None and bridge._su_job["state"] == "failed" and bridge._su_following is None)
     view = bridge.selfUpdateView["job"]
     check("updates screen: looking again finds the failure and says why and what was put back", (view["failed"], view["detail"], view["gaveUp"]), (_("SELFUPD_ERR_ROLLED_BACK"), "unit did not answer", ""))
