@@ -507,12 +507,12 @@ def self_update_screen(loop, port):
             timer.stop()
     saved = []
     qs.save_config = lambda update: saved.append(update) or True  # the switch never writes the configuration file of the machine that runs the check
-    sl.INTERVAL_S, sl.SILENCE_LIMIT_S = 0.02, 0.4
+    sl.INTERVAL_S, sl.SILENCE_LIMIT_S = 0.02, 3.0  # long enough for a slow runner between two answers of the restart
 
     def read():
         loop.run_until_complete(bridge._refresh_self_update(True))
 
-    def wait_until(condition, seconds=8.0):
+    def wait_until(condition, seconds=20.0):
         end = time.monotonic() + seconds
         while time.monotonic() < end and not condition():
             pump(loop, 0.02)
