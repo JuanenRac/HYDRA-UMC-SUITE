@@ -7733,12 +7733,12 @@ class SuiteQtBridge(QObject):
             self._flasher_push_log(key, f"{_('LBL_FLASH_HARDWARE_FAILED')}: {line['reason'] or _('FLASHER_PROGRESS_ERROR')}", "error")
         elif line["log"]:
             self._flasher_push_log(key, label, "info")
-        self.changed.emit()
+        self.flasherChanged.emit()
 
     async def _run_flash(self, key: str, target: CanOtaTarget, file: dict) -> None:
         self._flasher_flashing[key] = True
         self._flasher_push_log(key, f"{_('LBL_FLASH_START')}: {file['name']} - {hop_description(target)}")
-        self.changed.emit()
+        self.flasherChanged.emit()
         try:
             if self._flasher_is_hardware:
                 resolved = resolve_hardware_target(target)
@@ -7746,7 +7746,7 @@ class SuiteQtBridge(QObject):
                     self._flasher_push_log(key, _("LBL_HARDWARE_TARGET_UNREACHABLE"), "error")
                     return
                 self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_CONNECTING"), "percent": 0}
-                self.changed.emit()
+                self.flasherChanged.emit()
                 refusal = flash_preflight(
                     file.get("hardware_id"), file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"),
                     self._flasher_allow_downgrade.get(key, False), self._flasher_erase_fram.get(key, False),
@@ -7811,7 +7811,7 @@ class SuiteQtBridge(QObject):
                 last_phase = progress.phase
                 suffix = f" ({progress.pages_sent}/{progress.pages_total})" if progress.pages_total > 1 and progress.phase == "transferring" else ""
                 self._flasher_progress[key] = {"label": f"{_(f'FLASHER_PROGRESS_{progress.phase.upper()}')}{suffix} - {progress.percent}%", "percent": progress.percent}
-                self.changed.emit()
+                self.flasherChanged.emit()
                 if progress.phase == "transferring" and progress.pages_sent % 5 != 0 and progress.pages_sent != progress.pages_total:
                     continue
                 self._flasher_push_log(key, f"{_(f'FLASHER_PROGRESS_{progress.phase.upper()}')} ({progress.pages_sent}/{progress.pages_total})", "error" if progress.phase == "error" else "info")
@@ -7820,7 +7820,7 @@ class SuiteQtBridge(QObject):
                 self._flasher_apply_patch(key, {"firmwareVersion": file["name"].removesuffix(".bin")})
         finally:
             self._flasher_flashing[key] = False
-            self.changed.emit()
+            self.flasherChanged.emit()
 
     # -- Tester --------------------------------------------------------------
 
@@ -8186,7 +8186,7 @@ class SuiteQtBridge(QObject):
         try:
             async for frame in mock_bus_monitor(target):
                 self._tester_frames[key] = [*self._tester_frames[key][-99:], frame]
-                self.changed.emit()
+                self.testerChanged.emit()
         except asyncio.CancelledError:
             return
 
