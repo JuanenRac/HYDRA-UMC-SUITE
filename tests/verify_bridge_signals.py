@@ -208,7 +208,11 @@ async def fake_monitor(_target):
 real_monitor = qs.mock_bus_monitor
 qs.mock_bus_monitor = fake_monitor
 try:
-    loop.run_until_complete(bridge._run_tester_monitor(tester_key, None))
+    # driven by hand: the fake monitor never waits, so the coroutine finishes in one step and no other task of the event loop gets to run
+    try:
+        bridge._run_tester_monitor(tester_key, None).send(None)
+    except StopIteration:
+        pass
 finally:
     qs.mock_bus_monitor = real_monitor
 check("every frame of the bus monitor announces the Tester only", (len(live["changed"]), len(live["testerChanged"])), (0, 3))
