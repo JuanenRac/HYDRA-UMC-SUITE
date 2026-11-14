@@ -220,5 +220,20 @@ check("the frames were kept", bridge._tester_frames[tester_key], [0, 1, 2])
 bridge.changed.emit()
 check("a general change reaches both", (len(live["flasherChanged"]), len(live["testerChanged"])), (2, 4))
 
+# --- the Works of the selected robot and its recorded trajectory ---------------------------------------------------------------------------
+for prop in ("workFiles", "trajectoryPoints"):
+    check(f"{prop} notifies the signal of the trajectory", notify_of(prop), "_trajectoryChanged")
+
+recorded = count(["changed", "_trajectoryChanged"])
+bridge.recordTrajectoryPoint()
+check("recording a point with no robot selected announces nothing", (len(recorded["changed"]), len(recorded["_trajectoryChanged"])), (0, 0))
+bridge._trajectory_points = [{"_time": "00:00:00", **{name: 0.0 for name in qs.JOINT_NAMES}} for _ in range(2)]
+bridge.deleteTrajectoryPoint(0)
+check("deleting a recorded point announces the trajectory only", (len(recorded["changed"]), len(recorded["_trajectoryChanged"])), (0, 1))
+check("the point was deleted", len(bridge._trajectory_points), 1)
+bridge.deleteTrajectoryPoint(5)
+check("deleting a point that does not exist announces nothing", (len(recorded["changed"]), len(recorded["_trajectoryChanged"])), (0, 1))
+check("the rows of the trajectory follow the recorded points", len(bridge.trajectoryPoints), 1)
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
