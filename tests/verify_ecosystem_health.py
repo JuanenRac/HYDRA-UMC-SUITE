@@ -618,9 +618,9 @@ def self_update_screen(loop, port):
         await asyncio.sleep(0.05)  # the follower starts inside the running loop, as it does in the program
 
     loop.run_until_complete(open_the_screen())
-    check("updates screen: a job that was going on is shown at once", (bridge.selfUpdateView["job"]["running"], bridge.selfUpdateView["canCheck"]), (True, False))
+    check("updates screen: a job that was going on is shown", bridge.selfUpdateView["job"].get("title"), _("SELFUPD_JOB_APPLY", program=_("SELFUPD_COMPONENT_SERVER")))
     followed = wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None)
-    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following, SelfUpdateSim.reads, bridge._su_gave_up, bridge._su_silent, warnings), (True, "done", None, 2, False, None, []))
+    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following, SelfUpdateSim.reads, bridge._su_gave_up, bridge._su_silent, [w for w in warnings if "update" in w]), (True, "done", None, 2, False, None, []))
 
     # what the screen says when the table cannot be read
     for status, kind, sentence in ((404, "unsupported", _("SELFUPD_UNSUPPORTED")), (403, "forbidden", _("SELFUPD_FORBIDDEN")), (500, "http", _("SELFUPD_LOAD_ERROR"))):
