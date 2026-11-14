@@ -28,6 +28,7 @@ TOPICS: tuple[tuple[str, str, int], ...] = (
     ("SECURITY", "advanced", 3),
     ("PUSH", "advanced", 3),
     ("SELFUPDATE", "advanced", 3),
+    ("FLEETUPDATE", "advanced", 3),
     ("TOOLARMS", "advanced", 3),
     ("IDENTITY", "technical", 3),
     ("DETECTIONHEF", "technical", 3),

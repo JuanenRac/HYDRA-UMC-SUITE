@@ -96,6 +96,7 @@ from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import tours as tours_logic
 from hydra_suite.panel_logic import self_update as self_update_logic
+from hydra_suite.panel_logic import fleet_update as fleet_update_logic
 from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
@@ -333,6 +334,8 @@ class SuiteQtBridge(QObject):
     tourChanged = Signal()
     # The section "HYDRA-UMC updates" of the Updates screen: the table, the job and the confirmation have a signal of their own.
     selfUpdateChanged = Signal()
+    # The part "every program installed on this machine" of the Updates screen has a signal of its own, too.
+    fleetUpdateChanged = Signal()
     flasherChanged = Signal()
     # The Rack Manager, Pick and Place and XY Table screens: public names, because the robot pickers and the preview of the vacuum table
     # of the screens listen to them from QML.
@@ -578,6 +581,18 @@ class SuiteQtBridge(QObject):
         self._su_following: str | None = None
         self._su_conn = None  # the connection the table on screen was read from
         controller.active_connection_changed.connect(self._on_self_update_connection_changed)
+        # The update of every program installed on the device (GET /api/admin/fleet-update); it uses the switch above, so applying is off until it is turned on
+        self._fu_status: dict | None = None
+        self._fu_failure = ""
+        self._fu_looking = False
+        self._fu_silent: int | None = None
+        self._fu_gave_up = False
+        self._fu_pending: dict | None = None
+        self._fu_message = ""
+        self._fu_following: int | None = None  # the token of the follower that is asking for the progress (None: none)
+        self._fu_serial = 0
+        self._fu_conn = None  # the connection the table on screen was read from
+        controller.active_connection_changed.connect(self._on_fleet_update_connection_changed)
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -932,6 +947,7 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_map())
             elif key == "updates":
                 asyncio.ensure_future(self._refresh_self_update(False))
+                asyncio.ensure_future(self._refresh_fleet_update())
             elif key in setup_screens.SCREEN_KEYS:
                 self._setup_allow_rotation = False
                 self._setup_notice = ""
@@ -2646,7 +2662,9 @@ class SuiteQtBridge(QObject):
             self._set_notice(_("MSG_EXTRAS_NOT_SAVED"), "warn")
         if not self._su_apply_on:
             self._su_pending = None
+            self._fu_pending = None
         self.selfUpdateChanged.emit()
+        self.fleetUpdateChanged.emit()
 
     @Slot()
     def refreshSelfUpdate(self) -> None:
@@ -2781,6 +2799,177 @@ class SuiteQtBridge(QObject):
         if kind == "ended":
             await self._refresh_self_update(True)
         self.selfUpdateChanged.emit()
+
+    # -- Update of every program installed on the device (the same switch as above: off until it is turned on) ---------------------------------
+
+    @Property("QVariantMap", notify=fleetUpdateChanged)
+    def fleetUpdateView(self) -> dict[str, object]:
+        """The part "every program installed on this machine" of the Updates screen: the table, the confirmation and the run."""
+        return fleet_update_logic.view(
+            self._fu_status, self._fu_failure, self._su_apply_on, self._fu_silent, self._fu_gave_up, self._fu_pending, self._fu_message, self._fu_looking,
+        )
+
+    @Slot()
+    def lookFleetUpdate(self) -> None:
+        """The device looks at its programs and at the newest releases (nothing is changed)."""
+        asyncio.ensure_future(self._look_fleet_update())
+
+    @Slot()
+    def requestFleetUpdateAll(self) -> None:
+        """Asks for the confirmation of the update of every program the look marks to update; nothing is sent until confirmFleetUpdate."""
+        report = self._fu_status["report"] if self._fu_status is not None else None
+        self._request_fleet_update("apply", [row["name"] for row in fleet_update_logic.updatable(report)])
+
+    @Slot(str)
+    def requestFleetTakeUp(self, name: str) -> None:
+        """Asks for the confirmation of taking up one program again from its first step."""
+        self._request_fleet_update("resume", [name])
+
+    def _request_fleet_update(self, action: str, names: list[str]) -> None:
+        self._fu_message = ""
+        allowed = fleet_update_logic.may_start(action, names, self._su_apply_on, self._fu_status, self._fu_looking) is not None
+        self._fu_pending = {"action": action, "names": list(names)} if allowed else None
+        self.fleetUpdateChanged.emit()
+
+    @Slot()
+    def cancelFleetUpdate(self) -> None:
+        self._fu_pending = None
+        self.fleetUpdateChanged.emit()
+
+    @Slot()
+    def confirmFleetUpdate(self) -> None:
+        asyncio.ensure_future(self._start_fleet_update())
+
+    @Slot()
+    def lookAgainFleetUpdate(self) -> None:
+        """After a long silence: ask again for the run that was going on."""
+        self._fu_following = None
+        asyncio.ensure_future(self._refresh_fleet_update())
+
+    def _on_fleet_update_connection_changed(self, _conn_id: str) -> None:
+        # another server: nothing of the old one stays on screen and its run is no longer followed (a signal about the same server changes nothing)
+        if self._controller.active_connection is not None and self._controller.active_connection is self._fu_conn:
+            return
+        self._fu_conn = None
+        self._fu_status, self._fu_failure, self._fu_silent, self._fu_looking = None, "", None, False
+        self._fu_pending, self._fu_message, self._fu_following, self._fu_gave_up = None, "", None, False
+        if self._active_key == "updates":
+            asyncio.ensure_future(self._refresh_fleet_update())
+        self.fleetUpdateChanged.emit()
+
+    async def _refresh_fleet_update(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._fu_status, self._fu_failure = None, "no_server"
+            self.fleetUpdateChanged.emit()
+            return
+        self._fu_conn = conn
+        try:
+            kind, status = fleet_update_logic.classify_read(await conn.fetch_fleet_update())
+        except Exception as error:  # a damaged answer must not stop the screen
+            logger.warning("reading the update of the installed programs failed: %s", error)
+            kind, status = "malformed", None
+        if self._controller.active_connection is not conn:
+            return  # another server was chosen meanwhile
+        if status is None:
+            self._fu_status, self._fu_failure = None, kind
+        else:
+            self._fu_status, self._fu_failure, self._fu_gave_up, self._fu_silent = status, "", False, None
+            if fleet_update_logic.running(status):
+                asyncio.ensure_future(self._follow_fleet_update())
+        self.fleetUpdateChanged.emit()
+
+    async def _look_fleet_update(self) -> None:
+        conn = self._controller.active_connection
+        if conn is None or self._fu_status is None or self._fu_looking or fleet_update_logic.running(self._fu_status):
+            return
+        self._fu_looking, self._fu_message = True, ""
+        self.fleetUpdateChanged.emit()
+        try:
+            kind, status = fleet_update_logic.classify_start(await conn.plan_fleet_update())
+        except Exception as error:
+            logger.warning("the look at the installed programs failed: %s", error)
+            kind, status = "network", None
+        self._fu_looking = False
+        if self._controller.active_connection is not conn:
+            return
+        if kind == "ok" and status is not None:
+            self._fu_status, self._fu_failure = status, ""
+        else:
+            self._fu_message = fleet_update_logic.start_failure_text(kind)
+        self.fleetUpdateChanged.emit()
+
+    async def _start_fleet_update(self) -> None:
+        pending, conn = self._fu_pending, self._controller.active_connection
+        self._fu_pending, self._fu_message = None, ""
+        if pending is None or conn is None:
+            self.fleetUpdateChanged.emit()
+            return
+        # asked again here: the switches or the table may have changed since the question was shown
+        if fleet_update_logic.may_start(pending["action"], pending["names"], self._su_apply_on, self._fu_status, self._fu_looking) is None:
+            self.fleetUpdateChanged.emit()
+            return
+        try:
+            if pending["action"] == "resume":
+                answer = await conn.resume_fleet_update(pending["names"][0])
+            else:
+                answer = await conn.start_fleet_update(pending["names"])
+            kind, status = fleet_update_logic.classify_start(answer)
+        except Exception as error:
+            logger.warning("starting the update of the installed programs failed: %s", error)
+            kind, status = "network", None
+        if self._controller.active_connection is not conn:
+            return
+        if kind != "ok" or status is None:
+            self._fu_message = fleet_update_logic.start_failure_text(kind)
+        else:
+            self._fu_status, self._fu_silent, self._fu_gave_up = status, None, False
+            asyncio.ensure_future(self._follow_fleet_update())
+        self.fleetUpdateChanged.emit()
+
+    async def _follow_fleet_update(self) -> None:
+        """Follows the run to its end; the server restarts at the end of its own update, so a failed look is only a reason to wait."""
+        if self._fu_following is not None:
+            return
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        self._fu_serial += 1
+        token = self._fu_following = self._fu_serial
+        self._fu_gave_up = False
+
+        async def read() -> tuple[str, dict | None]:
+            try:
+                return fleet_update_logic.classify_run_read(await conn.fetch_fleet_update())
+            except Exception as error:  # nothing says the run failed
+                logger.warning("reading the progress of the update failed: %s", error)
+                return "wait", None
+
+        def on_status(status: dict) -> None:
+            self._fu_status, self._fu_silent = status, None
+            self.fleetUpdateChanged.emit()
+
+        def on_waiting(seconds: int) -> None:
+            self._fu_silent = seconds
+            self.fleetUpdateChanged.emit()
+
+        kind = "error"
+        try:
+            kind, _value = await fleet_update_logic.follow_run(read, on_status, on_waiting, cancelled=lambda: self._fu_following != token)
+        except Exception as error:  # the follower must never die and leave the screen waiting for ever
+            logger.warning("following the update of the installed programs failed: %s", error)
+        finally:
+            # whatever ended it, a follower that is gone must not block the next one
+            current = self._fu_following == token
+            if current:
+                self._fu_following = None
+        if not current:
+            return
+        if kind in ("silent", "error"):
+            self._fu_gave_up = True
+        else:
+            self._fu_silent = None
+        self.fleetUpdateChanged.emit()
 
     @Property(float, notify=serversChanged)
     def uiScaleFactor(self) -> float:
