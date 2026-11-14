@@ -14,6 +14,9 @@
 #   - the section "HYDRA-UMC updates" of the Updates screen (GET /api/admin/self-update): the table of the programs against their newest signed release,
 #     a state that is not known shown as not known, applying off until the switch is on and the server allows it, the confirmation, the job followed through
 #     a restart of the server (a cut connection, a 502), the long silence, each way the start or the read can fail
+#   - the part of the same screen for every program installed on the device (GET /api/admin/fleet-update and the look, the update and the taking up again): the progress
+#     file read defensively (an action, a state or a step that is not known is shown as not known), the buttons behind both switches, the confirmation that names
+#     the programs and their versions, the run followed through a restart of the server, the long silence, each way the request can fail and listen-only mode
 # Run headless: QT_QPA_PLATFORM=offscreen.
 # =============================================================================
 import asyncio
@@ -30,6 +33,7 @@ import qasync
 from PySide6.QtGui import QGuiApplication
 
 import qt_suite as qs
+from hydra_suite import access
 from hydra_suite.app import SuiteController
 from hydra_suite.i18n import _
 from hydra_suite.models import ServerInfo
@@ -94,6 +98,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith("/api/admin/self-update/"):
             SelfUpdateSim.post(self)
             return
+        if self.path.startswith("/api/admin/fleet-update/"):
+            FleetUpdateSim.post(self)
+            return
         self.send_response(404)
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -101,6 +108,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/api/admin/self-update"):
             SelfUpdateSim.get(self)
+            return
+        if self.path.split("?")[0] == "/api/admin/fleet-update":
+            FleetUpdateSim.get(self)
             return
         if self.path != "/api/ecosystem/health":
             self.send_response(404)
@@ -649,6 +659,417 @@ def self_update_screen(loop, port):
     read()
     check("updates screen: no server selected", (bridge.selfUpdateView["failure"], bridge.selfUpdateView["rows"]), (_("LBL_ES_NO_ACTIVE_SERVER"), []))
 
+# ---- the update of every program installed on the device (GET /api/admin/fleet-update and its POSTs): the reading, the buttons, the follower and the screen
+
+
+class FleetUpdateSim:
+    """The routes of /api/admin/fleet-update of a simulated server: the table (or the answers of the progress in order, the last one staying; None cuts the connection)
+    and the answers of the three POSTs."""
+
+    status = 200
+    body: dict = {}
+    answers: list = []
+    reads = 0
+    posted: list = []
+    starts: dict = {}
+
+    @staticmethod
+    def send(handler, status, body):
+        raw = json.dumps(body).encode()
+        handler.send_response(status)
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+
+    @classmethod
+    def get(cls, handler):
+        if cls.answers:
+            answer = cls.answers[min(cls.reads, len(cls.answers) - 1)]
+            cls.reads += 1
+            if answer is None:
+                handler.connection.close()
+                return
+            cls.send(handler, *answer)
+        else:
+            cls.send(handler, cls.status, cls.body)
+
+    @classmethod
+    def post(cls, handler):
+        length = int(handler.headers.get("Content-Length") or 0)
+        cls.posted.append((handler.path, json.loads(handler.rfile.read(length) or b"{}")))
+        cls.send(handler, *cls.starts.get(handler.path.rsplit("/", 1)[1], (404, {})))
+
+
+def fl_row(name, **more):
+    return {"name": name, "kind": "svc", "repo": f"JuanenRac/HYDRA-UMC-{name.upper()}", "installed": "1.0.0", "latest": "1.1.0", "action": "update", "reason": "", "state": "waiting",
+            "step": "", "substep": "", "substeps": 0, "detail": "", "error": "", "order": 0, "elapsedS": 0, "freeMb": None, "needMb": None, "unitRestored": None, "log": [], **more}
+
+
+def fl_report(state="planned", rows=None, **more):
+    rows = rows if rows is not None else [
+        fl_row("brain"), fl_row("server"), fl_row("studio", kind="frontend"), fl_row("camera", action="current", installed="1.1.0"),
+        fl_row("vision", state="failed", error="build_failed", detail="make: error"), fl_row("odd", action="teleport", state="melted"),
+    ]
+    return {"schema": "hydra-fleet-update/1", "id": "r1", "mode": "plan", "state": state, "startedAt": "2026-01-01T12:00:00Z", "updatedAt": "2026-01-01T12:00:00Z", "error": "",
+            "stoppedAt": "", "requireSignedTags": True, "disk": {"rootFreeMb": 9000, "workspaceFreeMb": 8000}, "services": rows, **more}
+
+
+def fl_status(report="default", apply_enabled=True, busy=False):
+    return {"applyEnabled": apply_enabled, "busy": busy, "report": fl_report() if report == "default" else report}
+
+
+def fl_running(step="building", **more):
+    return fl_status(fl_report("running", [fl_row("brain", state="done"), fl_row("server", state="running", step=step, elapsedS=40), fl_row("vision")], mode="run", **more), busy=True)
+
+
+def fl_done():
+    return fl_status(fl_report("done", [fl_row("brain", state="done", step="done"), fl_row("server", state="done", step="done"), fl_row("vision", state="done", step="done")], mode="run"))
+
+
+def fleet_update_logic(loop):
+    fl = __import__("hydra_suite.panel_logic.fleet_update", fromlist=["x"])
+    status = fl.parse_status(fl_status())
+    report = status["report"]
+    row = {r["name"]: r for r in report["services"]}
+    check("fleet: the six programs are read, a damaged entry is dropped", [r["name"] for r in report["services"]], ["brain", "server", "studio", "camera", "vision", "odd"])
+    check("fleet: an entry with a name the server would not accept is dropped", [r["name"] for r in fl.parse_report({"services": [fl_row("ok"), fl_row("Bad Name"), fl_row("../x"), fl_row(""), "junk", None, {"state": "waiting"}], "state": "planned"})["services"]], ["ok"])
+    check("fleet: an action and a state it does not know are shown as not known", (row["odd"]["action"], row["odd"]["state"]), ("unknown", "unknown"))
+    check("fleet: a state of the run it does not know is not known", fl.parse_report({"services": [], "state": "paused"})["state"], "unknown")
+    check("fleet: what is not that file is refused", [fl.parse_report(x) for x in (None, [], {}, {"services": "x"}, "text", 3)], [None] * 6)
+    check("fleet: the answer needs a report key, and a null report is a look not made yet", [fl.parse_status(x) is not None for x in (None, [], {}, {"report": 5}, {"report": None}, {"report": {}}, {"report": fl_report()})],
+          [False, False, False, False, True, False, True])
+    check("fleet: both switches are on only when the server says exactly true", [fl.parse_status({"report": None, "applyEnabled": v})["applyEnabled"] for v in (True, False, 1, "true", None)], [True, False, False, False, False])
+    check("fleet: a number that is not a size is not a size", [fl.parse_row(fl_row("a", freeMb=v, elapsedS=v))["freeMb"] for v in (-1, "9", True, None, float("inf"), 12.7)], [None, None, None, None, None, 12])
+    check("fleet: the answers of the table are classified", [fl.classify_read(r)[0] for r in ((200, fl_status()), (200, {"x": 1}), (404, None), (403, {}), (401, {}), (500, {}), None)],
+          ["ok", "malformed", "unsupported", "forbidden", "forbidden", "http", "network"])
+    check("fleet: the answers to a look or a start are classified", [fl.classify_start(r)[0] for r in ((200, fl_status()), (202, fl_status()), (200, {}), (404, {}), (403, {}), (423, {}), (409, {}), (400, {}), (502, {}), None)],
+          ["ok", "ok", "refused", "disabled", "forbidden", "forbidden", "busy", "refused", "refused", "network"])
+    check("fleet: a cut connection, a 502 or a body that is not the file mean wait, never failed; only a refused session stops",
+          [fl.classify_run_read(r)[0] for r in (None, (502, None), (504, {}), (404, {}), (200, {}), (200, {"report": 3}), (200, fl_status()), (403, {}), (401, {}))],
+          ["wait", "wait", "wait", "wait", "wait", "wait", "status", "stop", "stop"])
+    check("fleet: a run is going on only when the file says running", [fl.running(fl.parse_status(fl_status(fl_report(s)))) for s in ("planned", "running", "done", "interrupted", "failed", "paused")], [False, True, False, False, False, False])
+    check("fleet: the programs to update are the ones marked, not the frontend, not one done or not known", [r["name"] for r in fl.updatable(report)], ["brain", "server", "vision"])
+    check("fleet: nothing is offered during a run or when the run is not known", (fl.updatable(fl.parse_report(fl_running()["report"])), fl.updatable(fl.parse_report(fl_report("paused")))), ([], []))
+    check("fleet: only a program in a state that can be taken up is resumable", [(n, fl.resumable(r)) for n, r in row.items()],
+          [("brain", False), ("server", False), ("studio", False), ("camera", False), ("vision", True), ("odd", False)])
+    check("fleet: the progress follows the steps and a step that is not known claims nothing", [fl.step_progress(fl_row_state) for fl_row_state in (
+        fl.parse_row(fl_row("a", state="running", step="disk")), fl.parse_row(fl_row("a", state="running", step="building")), fl.parse_row(fl_row("a", state="running", step="verifying")),
+        fl.parse_row(fl_row("a", state="running", step="teleporting")), fl.parse_row(fl_row("a", state="done")))], [0.0, 0.5, 5 / 6, 0.0, 1.0])
+    low = lambda root, work, **kw: fl.disk_low_for_server(fl.parse_report(fl_report(rows=[fl_row("server", **kw)], disk={"rootFreeMb": root, "workspaceFreeMb": work})))  # noqa: E731
+    check("fleet: too little disk for the server is told by the smaller of the two readings; a reading that is not known says nothing",
+          (low(900, 9000), low(9000, 900), low(9000, 9000), low(None, None), low(None, 900), low(900, 9000, action="current")), (True, True, False, False, True, False))
+    # the buttons: both switches, no look or run going on, a program marked to update, a program in a state that can be taken up
+    expect = {
+        (True, "apply", ("brain",)): True, (True, "apply", ("brain", "server", "vision")): True, (True, "apply", ("studio",)): False, (True, "apply", ("camera",)): False,
+        (True, "apply", ("odd",)): False, (True, "apply", ("ghost",)): False, (True, "apply", ("brain", "brain")): False, (True, "apply", ()): False, (True, "apply", ("../etc",)): False,
+        (True, "resume", ("vision",)): True, (True, "resume", ("brain",)): False, (True, "resume", ("vision", "brain")): False, (False, "apply", ("brain",)): False,
+        (False, "resume", ("vision",)): False, (True, "delete", ("brain",)): False,
+    }
+    got = {key: fl.may_start(key[1], list(key[2]), key[0], status) is not None for key in expect}
+    check("fleet: the switch, the plan and the state decide what may start", got, expect)
+    check("fleet: a server with applying off, a look or run going on, and a busy screen allow nothing",
+          [fl.may_start("apply", ["brain"], True, s, b) for s, b in (({**status, "applyEnabled": False}, False), ({**status, "busy": True}, False), (fl.parse_status(fl_running()), False), (status, True), (None, False), ({**status, "report": None}, False))], [None] * 6)
+    off = fl.view(status, "", False, None, False, None, "", False)
+    on = fl.view(status, "", True, None, False, None, "", False)
+    check("fleet: with the switch off no button is on and the mode says check only", ([r["canTakeUp"] for r in off["rows"]], off["canUpdateAll"], off["mode"]), ([False] * 6, False, _("SELFUPD_MODE_CHECK_ONLY")))
+    check("fleet: with both switches on the buttons follow the table", ([r["name"] for r in on["rows"] if r["canTakeUp"]], on["canUpdateAll"], on["todo"], on["mode"]), (["vision"], True, ["brain", "server", "vision"], _("FLEETUPD_MODE_APPLY")))
+    server_off = fl.view(fl.parse_status(fl_status(apply_enabled=False)), "", True, None, False, None, "", False)
+    check("fleet: the server with applying off wins over the switch", (server_off["canUpdateAll"], server_off["mode"]), (False, _("SELFUPD_MODE_SERVER_OFF")))
+    odd = next(r for r in on["rows"] if r["name"] == "odd")
+    check("fleet: a program whose action and state are not known says not known twice and is not offered", (odd["actionLabel"], odd["progressText"], odd["tone"], odd["canTakeUp"]), (_("SELFUPD_STATE_UNKNOWN"), _("SELFUPD_STATE_UNKNOWN"), "unknown", False))
+    unknown_run = fl.view(fl.parse_status(fl_status(fl_report("paused"))), "", True, None, False, None, "", False)
+    check("fleet: a run state that is not known says not known and offers nothing", (unknown_run["runText"], unknown_run["canUpdateAll"]), (_("SELFUPD_STATE_UNKNOWN"), False))
+    ask_all = fl.view(status, "", True, None, False, {"action": "apply", "names": ["brain", "server", "vision"]}, "", False)["confirm"]
+    check("fleet: the confirmation names every program with its two versions and says the server restarts",
+          ask_all, _("FLEETUPD_CONFIRM_BODY", count=3, programs="brain (1.0.0 -> 1.1.0), server (1.0.0 -> 1.1.0), vision (1.0.0 -> 1.1.0)") + " " + _("FLEETUPD_CONFIRM_SERVER"))
+    check("fleet: without the server in the list the confirmation does not talk about its restart", fl.view(status, "", True, None, False, {"action": "apply", "names": ["brain"]}, "", False)["confirm"],
+          _("FLEETUPD_CONFIRM_BODY", count=1, programs="brain (1.0.0 -> 1.1.0)"))
+    check("fleet: the confirmation of taking a program up names it and its versions", fl.view(status, "", True, None, False, {"action": "resume", "names": ["vision"]}, "", False)["confirm"],
+          _("FLEETUPD_CONFIRM_RESUME", program="vision", versions="1.0.0 -> 1.1.0"))
+    check("fleet: a confirmation for what is no longer in the table shows nothing", [fl.view(status, "", True, None, False, p, "", False)["confirm"] for p in (
+        {"action": "apply", "names": ["ghost"]}, {"action": "resume", "names": ["brain"]}, {"action": "delete", "names": ["brain"]}, None)], [""] * 4)
+    done_row = fl.parse_row(fl_row("a", state="done", step="done"))
+    check("fleet: a program done says done in the common word", (fl.progress_text(done_row), fl.step_label("done")), (_("COMMON_DONE"), _("COMMON_DONE")))
+    running_row = fl.parse_row(fl_row("a", state="running", step="building", substep="2/5", substeps=5, elapsedS=40))
+    check("fleet: a program in its steps says the step, the sub-step and the time", fl.progress_text(running_row), _("FLEETUPD_STEP_BUILDING") + " (2/5) - 40 s")
+    check("fleet: a reason has its sentence with the numbers and a code it does not know has the general sentence",
+          (fl.error_text(fl.parse_row(fl_row("a", error="low_disk", freeMb=300, needMb=2500))), fl.error_text(fl.parse_row(fl_row("a", error="from_a_newer_device"))), fl.error_text(fl.parse_row(fl_row("a", error="low_disk")))),
+          (_("FLEETUPD_ERR_LOW_DISK", free=300, need=2500), _("FLEETUPD_ERR_UNEXPECTED"), _("FLEETUPD_ERR_LOW_DISK", free="?", need="?")))
+    check("fleet: every reason, step, action, state and run state has a sentence", [k for k in (
+        [f"FLEETUPD_ERR_{x.upper()}" for x in fl.ERRORS] + [f"FLEETUPD_REASON_{x.upper()}" for x in fl.REASONS] + [f"FLEETUPD_STEP_{x.upper()}" for x in fl.STEPS if x != "done"]
+        + [f"FLEETUPD_ACTION_{x.upper()}" for x in fl.ROW_ACTIONS] + [f"FLEETUPD_STATE_{x.upper()}" for x in fl.ROW_STATES if x != "done"] + [f"FLEETUPD_RUN_{x.upper()}" for x in fl.RUN_STATES if x not in ("failed", "blocked", "done")]
+        + ["FLEETUPD_RUN_DONE", "FLEETUPD_RUN_FAILED", "FLEETUPD_RUN_BLOCKED", "FLEETUPD_START_BUSY"]) if _(k) == k], [])
+    keys = ["FLEETUPD_" + k for k in ("TITLE", "INTRO", "UNSUPPORTED", "LOOK", "LOOKING", "NO_PLAN", "COL_LATEST", "COL_ACTION", "COL_PROGRESS", "DISK_LINE", "DISK_LOW", "UPDATE_ALL", "RESUME", "CONFIRM_TITLE",
+                                           "CONFIRM_BODY", "CONFIRM_RESUME", "CONFIRM_SERVER", "MODE_APPLY", "UNIT_NOT_RESTORED", "WAITING", "GAVE_UP")] + ["HELP_FLEETUPDATE_Q", "HELP_FLEETUPDATE_S1", "HELP_FLEETUPDATE_S2", "HELP_FLEETUPDATE_S3"]
+    check("fleet: every sentence of the part exists", [k for k in keys if _(k) == k], [])
+    check("fleet: the start failures have their sentences, the busy one its own", [fl.start_failure_text(k) for k in fl.START_FAILURES] == [_("SELFUPD_START_DISABLED"), _("SELFUPD_START_FORBIDDEN"), _("FLEETUPD_START_BUSY"), _("SELFUPD_START_REFUSED"), _("SELFUPD_START_NETWORK")], True)
+    check("fleet: the read failures have their sentences", [fl.read_failure_text(k) for k in ("unsupported", "forbidden", "no_server", "http")], [_("FLEETUPD_UNSUPPORTED"), _("SELFUPD_FORBIDDEN"), _("LBL_ES_NO_ACTIVE_SERVER"), _("SELFUPD_LOAD_ERROR")])
+    waiting = fl.view(fl.parse_status(fl_running()), "", True, 12, False, None, "", False)
+    check("fleet: the screen says it waits, how long, and offers nothing while the run goes on", (waiting["waiting"], waiting["running"], waiting["canUpdateAll"], waiting["canLook"]), (_("FLEETUPD_WAITING", seconds=12), True, False, False))
+    gave = fl.view(fl.parse_status(fl_running()), "", True, 300, True, None, "", False)
+    check("fleet: after the limit of silence it says so and stops saying it waits", (gave["gaveUp"], gave["waiting"]), (_("FLEETUPD_GAVE_UP"), ""))
+    stopped = fl.view(fl.parse_status(fl_status(fl_report("failed", [fl_row("brain", state="done"), fl_row("server", state="rolled_back", error="not_healthy", unitRestored=False)], stoppedAt="server"))), "", True, None, False, None, "", False)
+    srv = next(r for r in stopped["rows"] if r["name"] == "server")
+    check("fleet: a run that stopped says where, the program put back says why, and a unit not restored is said", (stopped["runText"], srv["progressText"], srv["unitWarning"], srv["canTakeUp"]),
+          (_("FLEETUPD_RUN_FAILED", name="server"), _("FLEETUPD_ERR_NOT_HEALTHY"), _("FLEETUPD_UNIT_NOT_RESTORED"), True))
+    check("fleet: a run that was cut says so", fl.view(fl.parse_status(fl_status(fl_report("interrupted"))), "", True, None, False, None, "", False)["interrupted"], _("FLEETUPD_RUN_INTERRUPTED"))
+
+    # the follower, with a clock that only moves when it sleeps: through a restart (a cut, a 502), to the end, to the limit of silence, stopped
+    def scripted(answers):
+        left = list(answers)
+
+        async def read():
+            return left.pop(0) if len(left) > 1 else left[0]
+
+        return read
+
+    def clock():
+        state = {"t": 0.0}
+
+        async def sleep(seconds):
+            state["t"] += seconds
+
+        return (lambda: state["t"]), sleep
+
+    async def follow(answers, **options):
+        now, sleep = clock()
+        seen, waits = [], []
+        end = await fl.follow_run(scripted(answers), seen.append, waits.append, now=now, sleep=sleep, **options)
+        return end, [s["report"]["state"] for s in seen], waits
+
+    st = lambda s: ("status", fl.parse_status(fl_status(fl_report(s))))  # noqa: E731
+    end, seen, waits = loop.run_until_complete(follow([st("running"), ("wait", None), ("wait", None), st("running"), ("wait", None), st("done")], interval=1.0, silence_limit=100.0))
+    check("fleet follower: it keeps asking through the restart and ends with the file that stops running", (end[0], end[1]["report"]["state"], seen, waits), ("ended", "done", ["running", "running", "done"], [1, 2, 1]))
+    end, seen, waits = loop.run_until_complete(follow([st("running"), st("failed")], interval=1.0))
+    check("fleet follower: a failure the file reports is a result, not a silence", (end[0], end[1]["report"]["state"], waits), ("ended", "failed", []))
+    end, seen, waits = loop.run_until_complete(follow([st("running"), st("interrupted")], interval=1.0))
+    check("fleet follower: a run the server tells as cut ends the follower", (end[0], end[1]["report"]["state"]), ("ended", "interrupted"))
+    end, seen, waits = loop.run_until_complete(follow([("wait", None)], silence_limit=10.0, interval=1.0))
+    check("fleet follower: it gives up only after the limit of silence, counted from the first look", (end, waits[-1], len(waits)), (("silent", 10), 10, 11))
+    end, seen, waits = loop.run_until_complete(follow([st("running"), ("wait", None)], silence_limit=5.0, interval=1.0))
+    check("fleet follower: the silence is counted from the last answer", (end[0], seen, waits[0]), ("silent", ["running"], 1))
+    end, seen, waits = loop.run_until_complete(follow([("stop", None)]))
+    check("fleet follower: a refused session stops it", end, ("stopped", "forbidden"))
+    state = {"n": 0}
+
+    def cancelled():
+        state["n"] += 1
+        return state["n"] > 3
+
+    end, seen, waits = loop.run_until_complete(follow([("wait", None)], cancelled=cancelled))
+    check("fleet follower: it stops when it is cancelled", end, ("stopped", "cancelled"))
+
+
+def fleet_update_screen(loop, port):
+    fl = __import__("hydra_suite.panel_logic.fleet_update", fromlist=["x"])
+    controller = SuiteController()
+    bridge = qs.SuiteQtBridge(controller)
+    conn = HydraConnection(ServerInfo(host="127.0.0.1", port=port, username="ana", password="pw"))
+    conn._token = "tok"
+    conn.login_ok = True
+    conn.role = "admin"
+    controller.connections["s"] = conn
+    controller._active_id = "s"
+    for timers in bridge._poller_gates().values():
+        for timer in timers:
+            timer.stop()
+    saved = []
+    qs.save_config = lambda update: saved.append(update) or True  # the switch never writes the configuration file of the machine that runs the check
+    fl.INTERVAL_S, fl.SILENCE_LIMIT_S = 0.02, 3.0  # long enough for a slow runner between two answers of the restart
+
+    def read():
+        loop.run_until_complete(bridge._refresh_fleet_update())
+
+    def wait_until(condition, seconds=20.0):
+        end = time.monotonic() + seconds
+        while time.monotonic() < end and not condition():
+            pump(loop, 0.02)
+        return condition()
+
+    async def look_again():
+        bridge.lookAgainFleetUpdate()
+        await asyncio.sleep(0.05)
+
+    def look():
+        async def go():  # the slot starts its task inside the running loop, as it does in the program
+            bridge.lookFleetUpdate()
+            await asyncio.sleep(0.05)
+
+        loop.run_until_complete(go())
+
+    def finish(condition):
+        """Waits for the end of a run; a follower that stopped (the loop of the check can step a task outside its run) is taken up again with Look again, as a person would."""
+        for _attempt in range(4):
+            if wait_until(lambda: condition() or bridge._fu_gave_up):
+                if condition():
+                    return True
+                loop.run_until_complete(look_again())
+        return condition()
+
+    def view():
+        return bridge.fleetUpdateView
+
+    def row_view(name):
+        return next((r for r in view()["rows"] if r["name"] == name), None)
+
+    def ask_and_confirm(ask):
+        FleetUpdateSim.reads = 0
+
+        async def go():  # the slots start their tasks inside the running loop, as they do in the program
+            ask()
+            bridge.confirmFleetUpdate()
+            await asyncio.sleep(0.05)
+
+        loop.run_until_complete(go())
+
+    def ended(state):
+        return bridge._fu_following is None and bridge._fu_status is not None and bridge._fu_status["report"] is not None and bridge._fu_status["report"]["state"] == state
+
+    FleetUpdateSim.status, FleetUpdateSim.body, FleetUpdateSim.answers, FleetUpdateSim.posted, FleetUpdateSim.starts = 200, fl_status(), [], [], {}
+    read()
+    check("fleet screen: the six programs, nothing failed, the switch is off", ([r["name"] for r in view()["rows"]], view()["failure"], view()["loaded"]), (["brain", "server", "studio", "camera", "vision", "odd"], "", True))
+    check("fleet screen: with the switch off no button is on and the mode says check only", ([r["canTakeUp"] for r in view()["rows"]], view()["canUpdateAll"], view()["mode"]), ([False] * 6, False, _("SELFUPD_MODE_CHECK_ONLY")))
+    check("fleet screen: the disk line, the failed program with its reason, and the one that is not known", (view()["disk"], row_view("vision")["progressText"], row_view("odd")["tone"]),
+          (_("FLEETUPD_DISK_LINE", root=9000, workspace=8000), _("FLEETUPD_ERR_BUILD_FAILED"), "unknown"))
+    bridge.requestFleetUpdateAll()
+    bridge.requestFleetTakeUp("vision")
+    check("fleet screen: asking with the switch off asks nothing", view()["confirm"], "")
+    bridge.setSelfUpdateApply(True)
+    check("fleet screen: the switch is kept in the configuration and turns the buttons on", (saved[-1], view()["canUpdateAll"], [r["name"] for r in view()["rows"] if r["canTakeUp"]]), ({"self_update_apply": True}, True, ["vision"]))
+    bridge.requestFleetUpdateAll()
+    check("fleet screen: the confirmation names every program with its two versions", view()["confirm"],
+          _("FLEETUPD_CONFIRM_BODY", count=3, programs="brain (1.0.0 -> 1.1.0), server (1.0.0 -> 1.1.0), vision (1.0.0 -> 1.1.0)") + " " + _("FLEETUPD_CONFIRM_SERVER"))
+    bridge.cancelFleetUpdate()
+    pump(loop)
+    check("fleet screen: cancelling sends nothing", (view()["confirm"], FleetUpdateSim.posted), ("", []))
+    bridge.requestFleetTakeUp("brain")
+    check("fleet screen: a program that cannot be taken up cannot be asked for", view()["confirm"], "")
+    bridge.requestFleetTakeUp("vision")
+    check("fleet screen: taking a program up asks first, naming it and its versions", view()["confirm"], _("FLEETUPD_CONFIRM_RESUME", program="vision", versions="1.0.0 -> 1.1.0"))
+    bridge.setSelfUpdateApply(False)
+    check("fleet screen: turning the switch off drops a confirmation that waits", (view()["confirm"], view()["canUpdateAll"]), ("", False))
+    bridge.setSelfUpdateApply(True)
+
+    # an update through a restart of the server: a cut connection and a 502 between the answers
+    FleetUpdateSim.starts = {"apply": (200, fl_running("disk"))}
+    FleetUpdateSim.answers = [(200, fl_running("building")), None, (502, {}), (200, fl_running("installing")), None, (200, fl_done())]
+    ask_and_confirm(bridge.requestFleetUpdateAll)
+    finished = finish(lambda: ended("done"))
+    check("fleet screen: the confirmation travels with the request", FleetUpdateSim.posted, [("/api/admin/fleet-update/apply", {"services": ["brain", "server", "vision"], "confirm": True})])
+    check("fleet screen: the run ends done through the restart", (finished, view()["runText"], view()["waiting"], view()["gaveUp"], bridge._fu_failure), (True, _("FLEETUPD_RUN_DONE"), "", "", ""))
+    check("fleet screen: every program done and nothing left to update", ([(r["name"], r["state"], r["tone"]) for r in view()["rows"]], view()["canUpdateAll"]), ([("brain", "done", "good"), ("server", "done", "good"), ("vision", "done", "good")], False))
+
+    # a long silence: it says so and offers to look again, which finds the result
+    FleetUpdateSim.answers, FleetUpdateSim.body, FleetUpdateSim.posted = [], fl_status(), []
+    read()
+    FleetUpdateSim.starts = {"apply": (200, fl_running("installing"))}
+    real_read = conn.fetch_fleet_update
+
+    async def no_answer():
+        return None  # the server does not answer at all, as while it restarts
+
+    conn.fetch_fleet_update = no_answer
+    fl.SILENCE_LIMIT_S = 0.4
+    ask_and_confirm(bridge.requestFleetUpdateAll)
+    silent = wait_until(lambda: bridge._fu_gave_up)
+    conn.fetch_fleet_update = real_read
+    fl.SILENCE_LIMIT_S = 3.0
+    check("fleet screen: after the limit of silence it says so, is not stuck and does not claim the run failed", (silent, view()["gaveUp"], view()["waiting"], view()["running"], view()["runText"]), (True, _("FLEETUPD_GAVE_UP"), "", True, _("FLEETUPD_RUN_RUNNING")))
+    FleetUpdateSim.reads, FleetUpdateSim.answers = 0, [(200, fl_done())]
+    loop.run_until_complete(look_again())
+    wait_until(lambda: ended("done"))
+    check("fleet screen: looking again finds the result", (view()["runText"], view()["gaveUp"]), (_("FLEETUPD_RUN_DONE"), ""))
+
+    # taking one program up again
+    FleetUpdateSim.answers, FleetUpdateSim.body, FleetUpdateSim.posted = [], fl_status(), []
+    read()
+    FleetUpdateSim.starts = {"resume": (200, fl_running("disk"))}
+    FleetUpdateSim.answers = [(200, fl_done())]
+    ask_and_confirm(lambda: bridge.requestFleetTakeUp("vision"))
+    finish(lambda: ended("done"))
+    check("fleet screen: taking up sends the program and the confirmation", FleetUpdateSim.posted, [("/api/admin/fleet-update/resume", {"service": "vision", "confirm": True})])
+
+    # why it could not start
+    FleetUpdateSim.answers, FleetUpdateSim.body = [], fl_status()
+    for code, body, reason in ((409, {}, "busy"), (404, {}, "disabled"), (403, {}, "forbidden"), (423, {}, "forbidden"), (500, {}, "refused"), (200, {"x": 1}, "refused")):
+        FleetUpdateSim.starts = {"apply": (code, body)}
+        FleetUpdateSim.posted = []
+        read()
+        ask_and_confirm(bridge.requestFleetUpdateAll)
+        wait_until(lambda: view()["message"] != "")
+        check(f"fleet screen: a {code} on start says {reason}", (view()["message"], len(FleetUpdateSim.posted), view()["running"]), (fl.start_failure_text(reason), 1, False))
+        bridge.requestFleetUpdateAll()
+        check(f"fleet screen: asking again clears the old message ({code})", view()["message"], "")
+        bridge.cancelFleetUpdate()
+
+    # a look: it shows the new table, and says why it could not be made
+    FleetUpdateSim.posted = []
+    FleetUpdateSim.starts = {"plan": (200, fl_status(fl_report(rows=[fl_row("brain"), fl_row("newcomer")])))}
+    look()
+    wait_until(lambda: row_view("newcomer") is not None)
+    check("fleet screen: the look shows the new table and sends an empty body", ([r["name"] for r in view()["rows"]], FleetUpdateSim.posted), (["brain", "newcomer"], [("/api/admin/fleet-update/plan", {})]))
+    for code, reason in ((502, "refused"), (404, "disabled"), (423, "forbidden")):
+        FleetUpdateSim.starts = {"plan": (code, {})}
+        look()
+        wait_until(lambda: view()["message"] != "" and not bridge._fu_looking)
+        check(f"fleet screen: a look answered with {code} says {reason}", (view()["message"], bridge._fu_looking), (fl.start_failure_text(reason), False))
+        bridge._fu_message = ""
+
+    # a server that has applying off, or is busy, wins over the switch of this program
+    for label, body in (("applying off", fl_status(apply_enabled=False)), ("busy", fl_status(busy=True))):
+        FleetUpdateSim.body = body
+        read()
+        check(f"fleet screen: a server with {label} allows nothing, whatever this program says", (view()["canUpdateAll"], [r["canTakeUp"] for r in view()["rows"]].count(True)), (False, 0))
+    FleetUpdateSim.body = fl_status(apply_enabled=False)
+    read()
+    check("fleet screen: the mode says the server has applying off", view()["mode"], _("SELFUPD_MODE_SERVER_OFF"))
+
+    # a run that was cut: the server tells it as interrupted and the program in its steps can be taken up again
+    FleetUpdateSim.body = fl_status(fl_report("interrupted", [fl_row("brain", state="done"), fl_row("server", state="interrupted", step="building", error="interrupted")]))
+    read()
+    check("fleet screen: a cut run is told, not followed, and its program can be taken up", (view()["interrupted"], view()["running"], bridge._fu_following, row_view("server")["canTakeUp"], row_view("server")["progressText"]),
+          (_("FLEETUPD_RUN_INTERRUPTED"), False, None, True, _("FLEETUPD_ERR_INTERRUPTED")))
+
+    # a run that was going on when the screen was opened is picked up
+    FleetUpdateSim.reads, FleetUpdateSim.answers = 0, [(200, fl_running("building")), (200, fl_done())]
+
+    async def open_the_screen():
+        await bridge._refresh_fleet_update()
+        await asyncio.sleep(0.05)  # the follower starts inside the running loop, as it does in the program
+
+    FleetUpdateSim.body = fl_running("building")
+    loop.run_until_complete(open_the_screen())
+    followed = finish(lambda: ended("done"))
+    check("fleet screen: a run that was going on is picked up and followed to its end", (followed, view()["runText"]), (True, _("FLEETUPD_RUN_DONE")))
+
+    # listen-only mode refuses every one of the three before it leaves the program
+    FleetUpdateSim.answers, FleetUpdateSim.posted = [], []
+    access.LISTEN_ONLY.set(True)
+    try:
+        refused = [fl.classify_start(loop.run_until_complete(call))[0] for call in (conn.plan_fleet_update(), conn.start_fleet_update(["brain"]), conn.resume_fleet_update("vision"))]
+        read_ok = fl.classify_read(loop.run_until_complete(conn.fetch_fleet_update()))[0]
+    finally:
+        access.LISTEN_ONLY.set(False)
+    check("fleet screen: listen-only mode refuses the look, the update and the taking up before they leave the program, and still reads", (refused, FleetUpdateSim.posted, read_ok), (["forbidden"] * 3, [], "ok"))
+
+    # what the screen says when the table cannot be read
+    FleetUpdateSim.answers = []
+    for code, kind, sentence in ((404, "unsupported", _("FLEETUPD_UNSUPPORTED")), (403, "forbidden", _("SELFUPD_FORBIDDEN")), (500, "http", _("SELFUPD_LOAD_ERROR"))):
+        FleetUpdateSim.status, FleetUpdateSim.body = code, {}
+        read()
+        check(f"fleet screen: a {code} says {kind} and shows no program", (view()["failure"], view()["rows"], view()["loaded"]), (sentence, [], False))
+    FleetUpdateSim.status, FleetUpdateSim.body = 200, {"report": "x"}
+    read()
+    check("fleet screen: an answer that is not the table says it could not be read", (view()["failure"], view()["rows"]), (_("SELFUPD_LOAD_ERROR"), []))
+    FleetUpdateSim.body = fl_status()
+    bridge._fu_status = None
+    bridge.navigatePanel("updates")
+    check("fleet screen: opening the screen reads the table", wait_until(lambda: view()["loaded"]), True)
+    controller._active_id = None
+    read()
+    check("fleet screen: no server selected", (view()["failure"], view()["rows"]), (_("LBL_ES_NO_ACTIVE_SERVER"), []))
+    controller._active_id = "s"
+
 
 def main():
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
@@ -661,6 +1082,8 @@ def main():
     switch(loop)
     self_update_logic(loop)
     self_update_screen(loop, server.server_address[1])
+    fleet_update_logic(loop)
+    fleet_update_screen(loop, server.server_address[1])
     server.shutdown()
     print("FAILURES:", failures)
     return 1 if failures else 0

@@ -1,5 +1,9 @@
 [
   "/api/admin/clients",
+  "/api/admin/fleet-update",
+  "/api/admin/fleet-update/apply",
+  "/api/admin/fleet-update/plan",
+  "/api/admin/fleet-update/resume",
   "/api/admin/jwt-keys",
   "/api/admin/jwt-keys/rotate",
   "/api/admin/logs",

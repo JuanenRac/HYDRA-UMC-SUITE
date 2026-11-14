@@ -4537,6 +4537,7 @@ ApplicationWindow {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             property var su: suiteBackend.selfUpdateView
+            property var fu: suiteBackend.fleetUpdateView
             function markColour(mark) {
                 if (mark === "done") return "#4fd08a"
                 if (mark === "now") return window.cyan
@@ -4717,6 +4718,102 @@ ApplicationWindow {
                         }
                         Text { visible: (updatesRoot.su.job.log || "") !== ""; text: updatesRoot.su.job.log || ""; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                     }
+                }
+
+                // -- Every program installed on the machine. The same switch as above: it only looks until the switch is turned on (off by default). --
+                Rectangle { Layout.fillWidth: true; Layout.topMargin: 6; Layout.preferredHeight: 1; color: window.panelBorder }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { objectName: "fleetUpdateTitle"; text: updatesRoot.fu.title || ""; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(14); Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                    Button {
+                        objectName: "fleetUpdateLook"
+                        text: updatesRoot.fu.lookLabel || ""
+                        enabled: updatesRoot.fu.canLook === true
+                        onClicked: suiteBackend.lookFleetUpdate()
+                    }
+                    Button {
+                        objectName: "fleetUpdateAll"
+                        text: updatesRoot.fu.updateAllLabel || ""
+                        enabled: updatesRoot.fu.canUpdateAll === true
+                        onClicked: suiteBackend.requestFleetUpdateAll()
+                    }
+                }
+                Text { text: updatesRoot.fu.intro || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "fleetUpdateFailure"; visible: (updatesRoot.fu.failure || "") !== ""; text: updatesRoot.fu.failure || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "fleetUpdateRun"; visible: (updatesRoot.fu.runText || "") !== ""; text: updatesRoot.fu.runText || ""; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Repeater {
+                    model: updatesRoot.fu.rows || []
+                    delegate: Card {
+                        required property var modelData
+                        objectName: "fleetUpdateRow_" + modelData.name
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: fleetUpdateRowColumn.implicitHeight + 20
+                        ColumnLayout {
+                            id: fleetUpdateRowColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 10
+                            spacing: 4
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text { text: modelData.name; color: window.cyan; font.bold: true; font.family: "Cascadia Mono"; font.pixelSize: window.fs(12); Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { objectName: "fleetUpdateAction_" + modelData.name; text: modelData.actionLabel; color: modelData.action === "update" ? window.amber : modelData.action === "current" ? "#4fd08a" : "#7f8ea1"; font.pixelSize: window.fs(11) }
+                            }
+                            Text {
+                                text: (updatesRoot.fu.columns[1] || "") + ": " + modelData.installed + "    " + (updatesRoot.fu.columns[2] || "") + ": " + modelData.latest
+                                color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            }
+                            Text { visible: modelData.reason !== ""; text: modelData.reason; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { objectName: "fleetUpdateProgress_" + modelData.name; visible: modelData.showsProgress === true; text: modelData.progressText; color: modelData.tone === "bad" ? "#ee6b80" : modelData.tone === "good" ? "#4fd08a" : modelData.tone === "unknown" ? window.amber : window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Rectangle {
+                                visible: modelData.showsProgress === true
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 4
+                                radius: 2
+                                color: "#1a2433"
+                                Rectangle { width: parent.width * modelData.progress; height: parent.height; radius: 2; color: window.cyan }
+                            }
+                            Text { visible: modelData.detail !== ""; text: modelData.detail; color: "#7f8ea1"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                            Text { objectName: "fleetUpdateUnit_" + modelData.name; visible: modelData.unitWarning !== ""; text: modelData.unitWarning; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Button { objectName: "fleetUpdateTakeUp_" + modelData.name; visible: modelData.canTakeUp === true; text: updatesRoot.fu.takeUpLabel || ""; onClicked: suiteBackend.requestFleetTakeUp(modelData.name) }
+                        }
+                    }
+                }
+                Text { objectName: "fleetUpdateDisk"; visible: (updatesRoot.fu.disk || "") !== ""; text: updatesRoot.fu.disk || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "fleetUpdateDiskLow"; visible: (updatesRoot.fu.diskLow || "") !== ""; text: updatesRoot.fu.diskLow || ""; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "fleetUpdateMode"; visible: (updatesRoot.fu.mode || "") !== ""; text: updatesRoot.fu.mode || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Card {
+                    objectName: "fleetUpdateConfirm"
+                    visible: (updatesRoot.fu.confirm || "") !== ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: fleetUpdateConfirmColumn.implicitHeight + 20
+                    border.color: window.amber
+                    ColumnLayout {
+                        id: fleetUpdateConfirmColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 10
+                        spacing: 6
+                        Text { text: updatesRoot.fu.confirmTitle || ""; color: window.amber; font.bold: true; font.pixelSize: window.fs(12) }
+                        Text { objectName: "fleetUpdateConfirmText"; text: updatesRoot.fu.confirm || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            spacing: 8
+                            Button { objectName: "fleetUpdateConfirmYes"; text: updatesRoot.fu.confirmYes || ""; onClicked: suiteBackend.confirmFleetUpdate() }
+                            Button { objectName: "fleetUpdateConfirmNo"; text: updatesRoot.fu.confirmNo || ""; onClicked: suiteBackend.cancelFleetUpdate() }
+                        }
+                    }
+                }
+                Text { objectName: "fleetUpdateMessage"; visible: (updatesRoot.fu.message || "") !== ""; text: updatesRoot.fu.message || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "fleetUpdateInterrupted"; visible: (updatesRoot.fu.interrupted || "") !== ""; text: updatesRoot.fu.interrupted || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "fleetUpdateWaiting"; visible: (updatesRoot.fu.waiting || "") !== ""; text: updatesRoot.fu.waiting || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                RowLayout {
+                    visible: (updatesRoot.fu.gaveUp || "") !== ""
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text { objectName: "fleetUpdateGaveUp"; text: updatesRoot.fu.gaveUp || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    Button { objectName: "fleetUpdateLookAgain"; text: updatesRoot.fu.lookAgain || ""; onClicked: suiteBackend.lookAgainFleetUpdate() }
                 }
             }
         }

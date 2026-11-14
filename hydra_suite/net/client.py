@@ -749,6 +749,27 @@ class HydraConnection(QObject):
         safe_id = urllib.parse.quote(str(job_id), safe="")
         return await self._status_and_body("GET", f"/api/admin/self-update/jobs/{safe_id}", timeout=5.0)
 
+    async def fetch_fleet_update(self) -> tuple[int, object] | None:
+        """GET /api/admin/fleet-update (administrator): the progress file of the update of every program installed on the device, with whether applying is allowed.
+        404 until an administrator switches on the look at the newest versions in Server Admin. The status counts even when the body is not JSON (a 502 while the
+        server restarts), so the follower can tell waiting from failing; a short timeout keeps it asking."""
+        return await self._status_and_body("GET", "/api/admin/fleet-update", timeout=5.0)
+
+    async def plan_fleet_update(self) -> tuple[int, object] | None:
+        """POST /api/admin/fleet-update/plan (administrator): the device looks at its programs and at the newest releases; nothing is changed. It can take minutes.
+        Listen-only mode refuses it before it leaves the program."""
+        return await self._status_and_body("POST", "/api/admin/fleet-update/plan", json={}, timeout=330.0)
+
+    async def start_fleet_update(self, names: list[str]) -> tuple[int, object] | None:
+        """POST /api/admin/fleet-update/apply (administrator) for the programs named, with the confirmation the person gave. 404 when the server has applying
+        switched off, 409 when another look or run is going on or there is nothing to update. Listen-only mode refuses it before it leaves the program."""
+        return await self._status_and_body("POST", "/api/admin/fleet-update/apply", json={"services": list(names), "confirm": True}, timeout=30.0)
+
+    async def resume_fleet_update(self, name: str) -> tuple[int, object] | None:
+        """POST /api/admin/fleet-update/resume (administrator): takes up one program whose step was cut or that failed, from its first step, with the
+        confirmation the person gave. Same answers as the start."""
+        return await self._status_and_body("POST", "/api/admin/fleet-update/resume", json={"service": str(name), "confirm": True}, timeout=30.0)
+
     async def relay_request(self, service: str, method: str, path: str, json_body: dict | None = None) -> tuple[int, object] | None:
         """One of the few requests of the Planning screen through the relay of the server (/api/ai/<service><path>): the dry run of a plan, the
         estimates of the job dispatcher, the remaining useful life and a read of the window statistics of the data lake. Anything else is
