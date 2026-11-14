@@ -365,6 +365,8 @@ class SuiteQtBridge(QObject):
     # read by dozens of unrelated Properties across every other panel;
     # firing it that often would re-evaluate all of them for no reason.
     _camerasChanged = Signal()
+    # The camera cards (their configuration, discovery and state): a state tick of the server and every edit of a card announce this one, and `changed` forwards to it.
+    cameraCardsChanged = Signal()
     # Same real reasoning as _camerasChanged above - a live 3D render can
     # update every real joint tick.
     _viewportChanged = Signal()
@@ -401,6 +403,7 @@ class SuiteQtBridge(QObject):
         self.changed.connect(self.ecosystemChanged)
         self.changed.connect(self.adminLogsChanged)
         self.changed.connect(self.catalogChanged)
+        self.changed.connect(self.cameraCardsChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -6565,7 +6568,7 @@ class SuiteQtBridge(QObject):
                 self._ensure_camera_stream(camera.id)
             else:
                 self._stop_camera_stream(camera.id)
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     def _camera_stream_url(self, camera_id: int) -> str | None:
         conn = self._controller.active_connection
@@ -6637,7 +6640,7 @@ class SuiteQtBridge(QObject):
         label = _(label_keys[state]) if state in label_keys else state.upper()
         return f"● {label}", color
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=cameraCardsChanged)
     def cameraRobotOptions(self) -> list[dict[str, str]]:
         state = self._controller.active_state
         active = state.active_controller if state else None
@@ -6646,7 +6649,7 @@ class SuiteQtBridge(QObject):
         options += [{"id": str(r.id), "label": f"{r.model} (A{r.id})"} for r in robots]
         return options
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=cameraCardsChanged)
     def camerasData(self) -> list[dict[str, object]]:
         state = self._controller.active_state
         active = state.active_controller if state else None
@@ -6733,7 +6736,7 @@ class SuiteQtBridge(QObject):
             self._ensure_camera_stream(camera_id)
         else:
             self._stop_camera_stream(camera_id)
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
         self._camerasChanged.emit()
 
     @Slot(int, str)
@@ -6759,7 +6762,7 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         if camera.connected:
             self._ensure_camera_stream(camera_id)
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str, "QVariant")
     def setCameraField(self, camera_id: int, field: str, value) -> None:
@@ -6775,7 +6778,7 @@ class SuiteQtBridge(QObject):
             return
         setter(value)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str)
     def setCameraSourceType(self, camera_id: int, value: str) -> None:
@@ -6789,7 +6792,7 @@ class SuiteQtBridge(QObject):
             if current_type != new_type:
                 camera.set_camera_type(new_type)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str)
     def setCameraAssignedRobot(self, camera_id: int, robot_id: str) -> None:
@@ -6798,7 +6801,7 @@ class SuiteQtBridge(QObject):
             return
         camera.set_assigned_robot_id(int(robot_id) if robot_id else None)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, int, str)
     def setCameraExtraPath(self, camera_id: int, index: int, value: str) -> None:
@@ -6818,7 +6821,7 @@ class SuiteQtBridge(QObject):
         if index == active_index:
             camera.set_rtsp_path(value)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int)
     def discoverUsbDevices(self, camera_id: int) -> None:
@@ -6828,29 +6831,29 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._camera_discovery_status[camera_id] = (_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         self._camera_usb_devices[camera_id] = []
         self._camera_discovery_status[camera_id] = (_("LBL_DISCOVERING"), "#8a97a6")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
         self._camera_discovery_tasks[camera_id] = asyncio.ensure_future(self._run_discover_usb(camera_id, conn))
 
     async def _run_discover_usb(self, camera_id: int, conn: HydraConnection) -> None:
         result = await conn.discover_usb_devices()
         if result is None:
             self._camera_discovery_status[camera_id] = (_("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         status, body = result
         devices = body.get("devices") if status == 200 and isinstance(body, dict) else None
         if status != 200 or not isinstance(devices, list):
             message = body.get("error") if isinstance(body, dict) else None
             self._camera_discovery_status[camera_id] = (str(message) if message else _("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         if not devices:
             self._camera_discovery_status[camera_id] = (_("MSG_NO_USB_DEVICES_FOUND"), "#f59e0b")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         options = []
         for device in devices:
@@ -6864,7 +6867,7 @@ class SuiteQtBridge(QObject):
             options.append({"label": label, "value": index})
         self._camera_usb_devices[camera_id] = options
         self._camera_discovery_status[camera_id] = ("", "#8a97a6")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, int)
     def pickUsbDevice(self, camera_id: int, index: int) -> None:
@@ -6877,7 +6880,7 @@ class SuiteQtBridge(QObject):
         value = str(index) if sys.platform == "win32" else f"/dev/video{index}"
         camera.set_hardware_source(value)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str, int, str, str)
     def discoverRtspPath(self, camera_id: int, host: str, port: int, username: str, password: str) -> None:
@@ -6887,14 +6890,14 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._camera_discovery_status[camera_id] = (_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         if not host.strip():
             self._camera_discovery_status[camera_id] = (_("LBL_IP_HOST"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         self._camera_discovery_status[camera_id] = (_("LBL_DISCOVERING"), "#8a97a6")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
         self._camera_discovery_tasks[camera_id] = asyncio.ensure_future(
             self._run_discover_rtsp(camera_id, conn, host, port, username, password)
         )
@@ -6903,7 +6906,7 @@ class SuiteQtBridge(QObject):
         result = await conn.discover_rtsp_path(host, port, username, password)
         if result is None:
             self._camera_discovery_status[camera_id] = (_("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         status, body = result
         found_paths = body.get("paths") if isinstance(body, dict) else None
@@ -6915,17 +6918,17 @@ class SuiteQtBridge(QObject):
             camera.set_camera_type(ip_stream_labels(paths)[0])
             self._controller.push_active_state()
             self._camera_discovery_status[camera_id] = (_("MSG_RTSP_PATH_FOUND") + f": {', '.join(paths)}", "#10b981")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         if status == 200 and isinstance(body, dict):
             tried = body.get("triedPaths")
             suffix = f" ({', '.join(str(t) for t in tried)})" if isinstance(tried, list) and tried else ""
             self._camera_discovery_status[camera_id] = (_("MSG_RTSP_PATH_NOT_FOUND") + suffix, "#f59e0b")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         message = body.get("error") if isinstance(body, dict) else None
         self._camera_discovery_status[camera_id] = (str(message) if message else _("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, int, int, int)
     def sendCameraPtz(self, camera_id: int, pan: int, tilt: int, zoom: int) -> None:
@@ -6939,16 +6942,16 @@ class SuiteQtBridge(QObject):
         result = await conn.send_ptz(camera_id, camera.ip_host, camera.ip_username, camera.ip_password, pan, tilt, zoom)
         if result is None:
             self._camera_ptz_error[camera_id] = _("MSG_PTZ_FAILED")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         status, body = result
         if status == 200 and isinstance(body, dict) and body.get("ok") is True:
             self._camera_ptz_error.pop(camera_id, None)
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         error = body.get("error") if isinstance(body, dict) else None
         self._camera_ptz_error[camera_id] = str(error) if error else _("MSG_PTZ_FAILED")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     async def _poll_camera_status(self) -> None:
         conn = self._controller.active_connection
