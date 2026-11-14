@@ -235,5 +235,20 @@ bridge.deleteTrajectoryPoint(5)
 check("deleting a point that does not exist announces nothing", (len(recorded["changed"]), len(recorded["_trajectoryChanged"])), (0, 1))
 check("the rows of the trajectory follow the recorded points", len(bridge.trajectoryPoints), 1)
 
+# --- the camera cards ------------------------------------------------------------------------------------------------------------------------
+from types import SimpleNamespace
+
+for prop in ("camerasData", "cameraRobotOptions"):
+    check(f"{prop} notifies the signal of the camera cards", notify_of(prop), "cameraCardsChanged")
+check("the frames of the cameras keep their own signal", notify_of("cameraFrameVersions"), "_camerasChanged")
+
+cards = count(["changed", "cameraCardsChanged", "_camerasChanged", "flasherChanged"])
+bridge._on_cameras_state_changed(SimpleNamespace(active_controller=None))
+check("a state tick of the server announces the camera cards only", (len(cards["changed"]), len(cards["cameraCardsChanged"]), len(cards["_camerasChanged"]), len(cards["flasherChanged"])), (0, 1, 0, 0))
+bridge.setCameraField(99, "name", "x")
+check("an edit of a camera that does not exist announces nothing", (len(cards["changed"]), len(cards["cameraCardsChanged"])), (0, 1))
+bridge.changed.emit()
+check("a general change reaches the camera cards", len(cards["cameraCardsChanged"]), 2)
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
