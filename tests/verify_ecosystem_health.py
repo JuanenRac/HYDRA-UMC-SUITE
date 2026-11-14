@@ -554,9 +554,9 @@ def self_update_screen(loop, port):
     SelfUpdateSim.start = (202, su_job(state="checking"))
     SelfUpdateSim.jobs = [(200, su_job("downloading")), None, (502, {}), (200, su_job("restarting")), None, (200, su_job("done"))]
     ask_and_confirm()
-    ended = wait_until(lambda: bridge._su_following is None and bridge._su_job is not None and bridge._su_job["state"] == "done" and server_row()["state"] == "current")
+    ended = wait_until(lambda: bridge._su_following is None and bridge._su_job is not None and bridge._su_job["state"] == "done" and (server_row() or {}).get("state") == "current")
     check("updates screen: the confirmation travels with the request", SelfUpdateSim.posted, [("/api/admin/self-update/apply", {"component": "server", "confirm": True})])
-    check("updates screen: the job ends done through the restart and the table is read again", (ended, bridge.selfUpdateView["job"].get("done")), (True, _("SELFUPD_DONE_APPLY", version="1.1.0")))
+    check("updates screen: the job ends done through the restart and the table is read again", (ended, bridge.selfUpdateView["job"].get("done"), bridge._su_failure), (True, _("SELFUPD_DONE_APPLY", version="1.1.0"), ""))
     check("updates screen: every step is done and nothing is said to wait any more", ({s["mark"] for s in bridge.selfUpdateView["job"]["steps"]}, bridge.selfUpdateView["job"]["waiting"]), ({"done"}, ""))
     check("updates screen: an update that has been done cannot be done again", server_row()["canUpdate"], False)
 

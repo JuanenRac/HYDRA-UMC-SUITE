@@ -576,6 +576,7 @@ class SuiteQtBridge(QObject):
         self._su_pending: dict | None = None
         self._su_message = ""
         self._su_following: str | None = None
+        self._su_conn = None  # the connection the table on screen was read from
         controller.active_connection_changed.connect(self._on_self_update_connection_changed)
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
@@ -2676,7 +2677,10 @@ class SuiteQtBridge(QObject):
             asyncio.ensure_future(self._follow_self_update(self._su_job["id"]))
 
     def _on_self_update_connection_changed(self, _conn_id: str) -> None:
-        # another server: nothing of the old one stays on screen and its job is no longer followed
+        # another server: nothing of the old one stays on screen and its job is no longer followed (a signal about the same server changes nothing)
+        if self._controller.active_connection is not None and self._controller.active_connection is self._su_conn:
+            return
+        self._su_conn = None
         self._su_status, self._su_failure, self._su_job, self._su_silent = None, "", None, None
         self._su_pending, self._su_message, self._su_following, self._su_gave_up = None, "", None, False
         if self._active_key == "updates":
@@ -2690,6 +2694,7 @@ class SuiteQtBridge(QObject):
             self.selfUpdateChanged.emit()
             return
         self._su_busy = True
+        self._su_conn = conn
         self.selfUpdateChanged.emit()
         try:
             kind, status = self_update_logic.classify_read(await conn.fetch_self_update(refresh))
