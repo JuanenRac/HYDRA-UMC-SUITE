@@ -17,6 +17,16 @@ from hydra_suite.panel_logic import help_levels
 SCALES = (85, 100, 115, 130, 150)
 DEFAULT_SCALE = 100
 CONFIG_KEY = "ui_scale"
+TOURS_KEY = "tours"
+
+
+def tours_from_config(config: object) -> bool:
+    """Whether the guided tours are offered (the preference "Offer the guided tours"): off unless the configuration says exactly true."""
+    return isinstance(config, dict) and config.get(TOURS_KEY) is True
+
+
+def config_update_tours(on: bool) -> dict:
+    return {TOURS_KEY: bool(on)}
 
 
 def scale_from_config(config: object) -> int:
@@ -48,10 +58,12 @@ def parse_choice(choice: object) -> tuple[str, str] | None:
         return group, value
     if group == "level" and value in help_levels.LEVELS:
         return group, value
+    if group == "tours" and value in ("on", "off"):
+        return group, value
     return None
 
 
-def view(percent: int, level: str, empty_view: dict) -> dict:
+def view(percent: int, level: str, empty_view: dict, tours_on: bool = False) -> dict:
     """What the screen shows."""
     percent = percent if percent in SCALES else DEFAULT_SCALE
     level = level if level in help_levels.LEVELS else "all"
@@ -66,6 +78,11 @@ def view(percent: int, level: str, empty_view: dict) -> dict:
             "title": _("PREFS_LEVEL_TITLE"),
             "hint": _("PREFS_LEVEL_HINT"),
             "parts": [{"id": f"level:{item}", "label": _("HELP_LEVEL_" + item.upper()), "selected": item == level} for item in help_levels.LEVELS],
+        },
+        {
+            "title": _("PREFS_TOURS_TITLE"),
+            "hint": _("PREFS_TOURS_HINT"),
+            "parts": [{"id": "tours:on", "label": _("COMMON_YES"), "selected": tours_on}, {"id": "tours:off", "label": _("COMMON_NO"), "selected": not tours_on}],
         },
     ]
     result["note"] = _("PREFS_NOTE")
