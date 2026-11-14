@@ -2761,11 +2761,19 @@ class SuiteQtBridge(QObject):
             self._su_silent = seconds
             self.selfUpdateChanged.emit()
 
-        kind, _value = await self_update_logic.follow_job(job_id, read, on_job, on_waiting, cancelled=lambda: self._su_following != job_id)
-        if self._su_following != job_id:
+        kind = "error"
+        try:
+            kind, _value = await self_update_logic.follow_job(job_id, read, on_job, on_waiting, cancelled=lambda: self._su_following != job_id)
+        except Exception as error:  # the follower must never die and leave the screen waiting for ever
+            logger.warning("following the job of an update failed: %s", error)
+        finally:
+            # whatever ended it, a follower that is gone must not block the next one
+            current = self._su_following == job_id
+            if current:
+                self._su_following = None
+        if not current:
             return
-        self._su_following = None
-        if kind == "silent":
+        if kind in ("silent", "error"):
             self._su_gave_up = True
             self.selfUpdateChanged.emit()
             return
