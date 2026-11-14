@@ -4376,21 +4376,41 @@ class SuiteQtBridge(QObject):
         if patch is not None:
             asyncio.ensure_future(self._save_security(patch))
 
-    @Slot(bool, str, bool, str, result=bool)
-    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str) -> bool:
+    @staticmethod
+    def _executor_switches(current: dict, exec_enabled: bool, exec_live: bool) -> dict:
+        """The executor switches to send: none for a server without them, and only those that the environment does not lock."""
+        executor = current.get("executor")
+        if not executor:
+            return {}
+        return {
+            "executor_enabled": None if server_security.is_locked(executor["enabled"]["source"]) else bool(exec_enabled),
+            "executor_live": None if server_security.is_locked(executor["live"]["source"]) else bool(exec_live),
+        }
+
+    @Slot(bool, str, bool, str, bool, bool, result=bool)
+    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> bool:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return False
         current = state["jobDispatcher"]
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text)
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live))
         return patch is not None and server_security.job_dispatcher_needs_confirmation(current, patch)
 
-    @Slot(bool, str, bool, str)
-    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str) -> None:
+    @Slot(bool, str, bool, str, bool, bool, result=bool)
+    def jobExecutorGoesLive(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> bool:
+        state = self._security_state
+        if state is None or not state.get("jobDispatcher"):
+            return False
+        current = state["jobDispatcher"]
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live))
+        return patch is not None and server_security.job_executor_goes_live(current, patch)
+
+    @Slot(bool, str, bool, str, bool, bool)
+    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> None:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text)
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(state["jobDispatcher"], exec_enabled, exec_live))
         if patch is None:
             self._security_message = ""
             self._security_warning = ""

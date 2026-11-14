@@ -337,5 +337,23 @@ check("no node yet is told, and no answer shows only the problem", (dev.view({"n
 for key in ("DEVNODE_TITLE", "DEVNODE_DESC", "DEVNODE_REFRESH", "DEVNODE_VERIFY", "DEVNODE_CHAIN_OK", "DEVNODE_CHAIN_BROKEN", "DEVNODE_NONE", "DEVNODE_OFF", "DEVNODE_LOAD_ERROR", "DEVNODE_FORBIDDEN", "DEVNODE_RECEIVED", "DEVNODE_ENTRY"):
     check(f"sentence {key} exists", _(key) != key, True)
 
+# ---- the switches of the executor of the assigned jobs
+EXEC = {"enabled": {"value": False, "source": "default"}, "live": {"value": False, "source": "default"}, "appliesOnRestart": False}
+ex_state = sec.parse_state({**GOOD, "jobDispatcher": {**JD, "executor": EXEC}})["jobDispatcher"]
+check("reads the switches of the executor with their source", (ex_state["executor"]["enabled"], ex_state["executor"]["live"]), ({"value": False, "source": "default"}, {"value": False, "source": "default"}))
+check("a server without them, or with damaged ones, shows no executor", (jd_state["jobDispatcher"]["executor"], sec.parse_state({**GOOD, "jobDispatcher": {**JD, "executor": {**EXEC, "live": {"value": "no", "source": "default"}}}})["jobDispatcher"]["executor"], sec.parse_state({**GOOD, "jobDispatcher": {**JD, "executor": 5}})["jobDispatcher"]["executor"]), (None, None, None))
+ev = sec.view(sec.parse_state({**GOOD, "jobDispatcher": {**JD, "executor": {**EXEC, "enabled": {"value": True, "source": "env"}, "appliesOnRestart": True}}}))
+check("the view of the executor", (ev["jdExecAvailable"], ev["jdExecEnabled"], ev["jdExecEnabledLocked"], ev["jdExecLive"], ev["jdExecLiveLocked"], ev["jdExecEnabledSource"].endswith(_("SECURITY_RESTART_NOTE"))), (True, True, True, False, False, True))
+check("a server without the executor hides it", sec.view(jd_state_full := sec.parse_state({**GOOD, "jobDispatcher": JD}))["jdExecAvailable"], False)
+check("the request carries only the switches it is given", (sec.job_dispatcher_patch(False, "", False, False, "30"), sec.job_dispatcher_patch(False, "", False, False, "30", executor_enabled=True, executor_live=False), sec.job_dispatcher_patch(False, "", False, False, "30", executor_live=True)),
+      ({"jobDispatcher": {"stopRelay": {"enabled": False, "robotMap": {}}}}, {"jobDispatcher": {"stopRelay": {"enabled": False, "robotMap": {}}, "executor": {"enabled": True, "live": False}}}, {"jobDispatcher": {"stopRelay": {"enabled": False, "robotMap": {}}, "executor": {"live": True}}}))
+live_patch = sec.job_dispatcher_patch(False, "", False, False, "30", executor_enabled=True, executor_live=True)
+dry_patch = sec.job_dispatcher_patch(False, "", False, False, "30", executor_enabled=True, executor_live=False)
+check("going live asks first, a dry run does not", (sec.job_executor_goes_live(ex_state, live_patch), sec.job_dispatcher_needs_confirmation(ex_state, live_patch), sec.job_executor_goes_live(ex_state, dry_patch), sec.job_dispatcher_needs_confirmation(ex_state, dry_patch)), (True, True, False, False))
+already = sec.parse_state({**GOOD, "jobDispatcher": {**JD, "executor": {**EXEC, "live": {"value": True, "source": "config"}}}})["jobDispatcher"]
+check("already live asks nothing", sec.job_executor_goes_live(already, live_patch), False)
+check("knows the two warnings of the executor", (sec.known_warning(["job_executor_on"]) == _("SECURITY_JD_WARNING_EXEC"), sec.known_warning(["job_executor_live"]) == _("SECURITY_JD_WARNING_EXEC_LIVE")), (True, True))
+check("every sentence of the executor exists", all(_(k) != k for k in ("LBL_SECURITY_JD_EXEC_TITLE", "LBL_SECURITY_JD_EXEC_ENABLED", "LBL_SECURITY_JD_EXEC_ENABLED_HELP", "LBL_SECURITY_JD_EXEC_LIVE", "LBL_SECURITY_JD_EXEC_LIVE_HELP", "MSG_SECURITY_JD_EXEC_CONFIRM", "SECURITY_JD_WARNING_EXEC", "SECURITY_JD_WARNING_EXEC_LIVE")), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

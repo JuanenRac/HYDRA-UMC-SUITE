@@ -2255,6 +2255,29 @@ ApplicationWindow {
                             text: suiteBackend.securityView.jdMapText
                         }
                         Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.securityView.jdExecAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_JD_EXEC_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        CheckBox {
+                            id: jdExecEnabledBox
+                            objectName: "securityJdExecEnabledBox"
+                            visible: suiteBackend.securityView.jdExecAvailable === true
+                            text: suiteBackend.uiText("LBL_SECURITY_JD_EXEC_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.jdExecEnabledLocked
+                            checked: suiteBackend.securityView.jdExecEnabled === true
+                        }
+                        Text { visible: suiteBackend.securityView.jdExecAvailable === true; text: suiteBackend.securityView.jdExecEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { visible: suiteBackend.securityView.jdExecAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_JD_EXEC_ENABLED_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: jdExecLiveBox
+                            objectName: "securityJdExecLiveBox"
+                            visible: suiteBackend.securityView.jdExecAvailable === true
+                            text: suiteBackend.uiText("LBL_SECURITY_JD_EXEC_LIVE")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.jdExecLiveLocked
+                            checked: suiteBackend.securityView.jdExecLive === true
+                        }
+                        Text { visible: suiteBackend.securityView.jdExecAvailable === true; text: suiteBackend.securityView.jdExecLiveSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { visible: suiteBackend.securityView.jdExecAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_JD_EXEC_LIVE_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text { text: suiteBackend.uiText("LBL_SECURITY_JD_REPLAN"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: jdAllowBox
@@ -2286,10 +2309,11 @@ ApplicationWindow {
                             text: suiteBackend.uiText("BTN_SAVE")
                             onClicked: {
                                 var relay = jdRelayBox.checked, map = jdMapField.text, allow = jdAllowBox.checked, timeout = jdTimeoutField.text
-                                if (suiteBackend.jobDispatcherNeedsConfirmation(relay, map, allow, timeout))
-                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_JD"), suiteBackend.uiText("MSG_SECURITY_JD_CONFIRM"), function() { suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout) })
+                                var execEnabled = jdExecEnabledBox.checked, execLive = jdExecLiveBox.checked
+                                if (suiteBackend.jobDispatcherNeedsConfirmation(relay, map, allow, timeout, execEnabled, execLive))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_JD"), suiteBackend.uiText(suiteBackend.jobExecutorGoesLive(relay, map, allow, timeout, execEnabled, execLive) ? "MSG_SECURITY_JD_EXEC_CONFIRM" : "MSG_SECURITY_JD_CONFIRM"), function() { suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout, execEnabled, execLive) })
                                 else
-                                    suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout)
+                                    suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout, execEnabled, execLive)
                             }
                         }
                     }
