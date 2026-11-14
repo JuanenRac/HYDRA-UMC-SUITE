@@ -4528,48 +4528,196 @@ ApplicationWindow {
 
     Component {
         id: updatesComponent
-        ColumnLayout {
+        Flickable {
+            id: updatesRoot
             width: contentLoader.width
-            spacing: 10
-            RowLayout {
-                Layout.fillWidth: true
-                Text { text: suiteBackend.uiText("HEADING_UPDATES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
-                Item { Layout.fillWidth: true }
-                CheckBox {
-                    objectName: "updatesSwitch"
-                    text: suiteBackend.uiText("UPD_SWITCH")
-                    palette.windowText: window.textPrimary
-                    checked: suiteBackend.extras.updatesEnabled
-                    onToggled: suiteBackend.extras.setUpdatesEnabled(checked)
-                }
+            height: contentLoader.height
+            contentWidth: width
+            contentHeight: updatesColumn.implicitHeight + 12
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            property var su: suiteBackend.selfUpdateView
+            function markColour(mark) {
+                if (mark === "done") return "#4fd08a"
+                if (mark === "now") return window.cyan
+                if (mark === "failed") return "#ee6b80"
+                return "#556070"
             }
-            Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
-            Button {
-                objectName: "updatesCheck"
-                visible: suiteBackend.extras.updatesEnabled
-                enabled: !suiteBackend.extras.updateBusy
-                text: suiteBackend.extras.updateBusy ? suiteBackend.uiText("UPD_CHECKING") : suiteBackend.uiText("UPD_CHECK")
-                onClicked: suiteBackend.extras.checkUpdates()
-            }
-            Repeater {
-                model: suiteBackend.extras.updateResult.rows || []
-                delegate: Card {
-                    required property var modelData
+            ColumnLayout {
+                id: updatesColumn
+                width: updatesRoot.width - 14
+                spacing: 10
+                RowLayout {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 74
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 3
-                        Text { text: modelData.title; color: modelData.bad ? window.amber : window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
-                        Text { text: suiteBackend.uiText("UPD_INSTALLED") + ": " + modelData.installed + "    " + suiteBackend.uiText("UPD_LATEST") + ": " + modelData.latest + "    " + modelData.state; color: window.textPrimary; font.pixelSize: window.fs(11) }
-                        Text { visible: modelData.api !== ""; text: modelData.api; color: modelData.bad ? window.amber : window.muted; font.pixelSize: window.fs(10) }
+                    Text { text: suiteBackend.uiText("HEADING_UPDATES"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
+                    Item { Layout.fillWidth: true }
+                    CheckBox {
+                        objectName: "updatesSwitch"
+                        text: suiteBackend.uiText("UPD_SWITCH")
+                        palette.windowText: window.textPrimary
+                        checked: suiteBackend.extras.updatesEnabled
+                        onToggled: suiteBackend.extras.setUpdatesEnabled(checked)
                     }
                 }
-            }
-            Repeater {
-                model: suiteBackend.extras.updateResult.errors || []
-                delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Button {
+                    objectName: "updatesCheck"
+                    visible: suiteBackend.extras.updatesEnabled
+                    enabled: !suiteBackend.extras.updateBusy
+                    text: suiteBackend.extras.updateBusy ? suiteBackend.uiText("UPD_CHECKING") : suiteBackend.uiText("UPD_CHECK")
+                    onClicked: suiteBackend.extras.checkUpdates()
+                }
+                Repeater {
+                    model: suiteBackend.extras.updateResult.rows || []
+                    delegate: Card {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 74
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 3
+                            Text { text: modelData.title; color: modelData.bad ? window.amber : window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                            Text { text: suiteBackend.uiText("UPD_INSTALLED") + ": " + modelData.installed + "    " + suiteBackend.uiText("UPD_LATEST") + ": " + modelData.latest + "    " + modelData.state; color: window.textPrimary; font.pixelSize: window.fs(11) }
+                            Text { visible: modelData.api !== ""; text: modelData.api; color: modelData.bad ? window.amber : window.muted; font.pixelSize: window.fs(10) }
+                        }
+                    }
+                }
+                Repeater {
+                    model: suiteBackend.extras.updateResult.errors || []
+                    delegate: Text { required property var modelData; text: modelData; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                }
+
+                // -- The programs of the machine against their newest signed release. It only looks until the switch is turned on (off by default). --
+                Rectangle { Layout.fillWidth: true; Layout.topMargin: 6; Layout.preferredHeight: 1; color: window.panelBorder }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { objectName: "selfUpdateTitle"; text: updatesRoot.su.title || ""; color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(14); Layout.fillWidth: true; wrapMode: Text.WordWrap }
+                    Button {
+                        objectName: "selfUpdateCheck"
+                        text: updatesRoot.su.checkLabel || ""
+                        enabled: updatesRoot.su.canCheck === true
+                        onClicked: suiteBackend.refreshSelfUpdate()
+                    }
+                }
+                Text { text: updatesRoot.su.intro || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                CheckBox {
+                    objectName: "selfUpdateSwitch"
+                    text: updatesRoot.su.switchText || ""
+                    palette.windowText: window.textPrimary
+                    checked: updatesRoot.su.applyOn === true
+                    onToggled: suiteBackend.setSelfUpdateApply(checked)
+                }
+                Text { text: updatesRoot.su.switchHint || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Text { objectName: "selfUpdateFailure"; visible: (updatesRoot.su.failure || "") !== ""; text: updatesRoot.su.failure || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Repeater {
+                    model: updatesRoot.su.rows || []
+                    delegate: Card {
+                        required property var modelData
+                        objectName: "selfUpdateRow_" + modelData.id
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: selfUpdateRowColumn.implicitHeight + 20
+                        ColumnLayout {
+                            id: selfUpdateRowColumn
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 10
+                            spacing: 4
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text { text: modelData.title; color: window.cyan; font.bold: true; font.pixelSize: window.fs(12) }
+                                Text { text: modelData.repo; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { objectName: "selfUpdateState_" + modelData.id; text: modelData.stateLabel; color: modelData.state === "behind" ? window.amber : modelData.state === "current" ? "#4fd08a" : "#7f8ea1"; font.pixelSize: window.fs(11) }
+                            }
+                            Text {
+                                text: (updatesRoot.su.columns[1] || "") + ": " + modelData.installed + "    " + (updatesRoot.su.columns[2] || "") + ": " + modelData.previous + "    " + (updatesRoot.su.columns[3] || "") + ": " + modelData.latest
+                                color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
+                            }
+                            Text { visible: modelData.note !== ""; text: modelData.note; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            RowLayout {
+                                spacing: 8
+                                Button { objectName: "selfUpdateApply_" + modelData.id; text: updatesRoot.su.updateLabel || ""; enabled: modelData.canUpdate === true; onClicked: suiteBackend.requestSelfUpdate("apply", modelData.id) }
+                                Button { objectName: "selfUpdateRollback_" + modelData.id; text: updatesRoot.su.goBackLabel || ""; enabled: modelData.canGoBack === true; onClicked: suiteBackend.requestSelfUpdate("rollback", modelData.id) }
+                            }
+                        }
+                    }
+                }
+                Text { objectName: "selfUpdateMode"; visible: (updatesRoot.su.mode || "") !== ""; text: updatesRoot.su.mode || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Card {
+                    objectName: "selfUpdateConfirm"
+                    visible: (updatesRoot.su.confirm || "") !== ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: selfUpdateConfirmColumn.implicitHeight + 20
+                    border.color: window.amber
+                    ColumnLayout {
+                        id: selfUpdateConfirmColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 10
+                        spacing: 6
+                        Text { text: updatesRoot.su.confirmTitle || ""; color: window.amber; font.bold: true; font.pixelSize: window.fs(12) }
+                        Text { objectName: "selfUpdateConfirmText"; text: updatesRoot.su.confirm || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: updatesRoot.su.confirmNote || ""; color: "#556070"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            spacing: 8
+                            Button { objectName: "selfUpdateConfirmYes"; text: updatesRoot.su.confirmYes || ""; onClicked: suiteBackend.confirmSelfUpdate() }
+                            Button { objectName: "selfUpdateConfirmNo"; text: updatesRoot.su.confirmNo || ""; onClicked: suiteBackend.cancelSelfUpdate() }
+                        }
+                    }
+                }
+                Text { objectName: "selfUpdateMessage"; visible: (updatesRoot.su.message || "") !== ""; text: updatesRoot.su.message || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Card {
+                    objectName: "selfUpdateJob"
+                    visible: (updatesRoot.su.job.title || "") !== ""
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: selfUpdateJobColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: selfUpdateJobColumn
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 10
+                        spacing: 6
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: updatesRoot.su.job.title || ""; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(12) }
+                            Text { text: updatesRoot.su.job.versions || ""; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10) }
+                        }
+                        Flow {
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Repeater {
+                                model: updatesRoot.su.job.steps || []
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    objectName: "selfUpdateStep_" + modelData.step
+                                    property string mark: modelData.mark
+                                    implicitWidth: stepText.implicitWidth + 16
+                                    implicitHeight: stepText.implicitHeight + 8
+                                    radius: 6
+                                    color: "transparent"
+                                    border.width: 1
+                                    border.color: updatesRoot.markColour(modelData.mark)
+                                    Text { id: stepText; anchors.centerIn: parent; text: modelData.label; color: updatesRoot.markColour(modelData.mark); font.pixelSize: window.fs(10) }
+                                }
+                            }
+                        }
+                        Text { objectName: "selfUpdateDone"; visible: (updatesRoot.su.job.done || "") !== ""; text: updatesRoot.su.job.done || ""; color: "#4fd08a"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { objectName: "selfUpdateFailed"; visible: (updatesRoot.su.job.failed || "") !== ""; text: updatesRoot.su.job.failed || ""; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: (updatesRoot.su.job.detail || "") !== ""; text: updatesRoot.su.job.detail || ""; color: "#7f8ea1"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { objectName: "selfUpdateWaiting"; visible: (updatesRoot.su.job.waiting || "") !== ""; text: updatesRoot.su.job.waiting || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        RowLayout {
+                            visible: (updatesRoot.su.job.gaveUp || "") !== ""
+                            Layout.fillWidth: true
+                            spacing: 8
+                            Text { objectName: "selfUpdateGaveUp"; text: updatesRoot.su.job.gaveUp || ""; color: window.amber; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Button { objectName: "selfUpdateLookAgain"; text: updatesRoot.su.job.lookAgain || ""; onClicked: suiteBackend.lookAgainSelfUpdate() }
+                        }
+                        Text { visible: (updatesRoot.su.job.log || "") !== ""; text: updatesRoot.su.job.log || ""; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    }
+                }
             }
         }
     }

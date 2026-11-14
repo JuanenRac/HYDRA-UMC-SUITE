@@ -27,6 +27,7 @@ TOPICS: tuple[tuple[str, str, int], ...] = (
     ("HISTORY", "basic", 3),
     ("SECURITY", "advanced", 3),
     ("PUSH", "advanced", 3),
+    ("SELFUPDATE", "advanced", 3),
     ("TOOLARMS", "advanced", 3),
     ("IDENTITY", "technical", 3),
     ("DETECTIONHEF", "technical", 3),
@@ -67,6 +68,7 @@ def screen_names() -> dict[str, str]:
         "notifications": _("DOCK_SETUP_NOTIFICATIONS"),
         "history": _("DOCK_SETUP_HISTORY"),
         "admin": _("DOCK_ADMIN_SERVER"),
+        "selfupdate": _("DOCK_UPDATES"),
     }
 
 
