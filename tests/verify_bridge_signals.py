@@ -183,5 +183,42 @@ check("the live feed of the twin announces the switches only", (len(lists2["chan
 bridge.changed.emit()
 check("a general change reaches both", (len(lists2["serversChanged"]), len(lists2["adminSwitchesChanged"])), (2, 2))
 
+# --- the live lines of a flash and the frames of the bus monitor: the busiest emitters of the Flasher and the Tester ---------------------------------
+from hydra_suite.panel_logic.flasher import PROGRESS_PHASES
+
+flasher_key = next(iter(qs._FLASHER_TIERS))
+bridge._flasher_flashing[flasher_key] = True
+bridge._flasher_is_hardware = True
+live = count(["changed", "flasherChanged", "testerChanged"])
+bridge._flasher_on_progress(flasher_key, {"phase": next(p for p in PROGRESS_PHASES if p != "error"), "percent": 40})
+check("a live line of a flash announces the Flasher only", (len(live["changed"]), len(live["flasherChanged"]), len(live["testerChanged"])), (0, 1, 0))
+check("the progress of the flash was kept", bridge._flasher_progress[flasher_key]["percent"], 40)
+bridge._flasher_flashing[flasher_key] = False
+bridge._flasher_on_progress(flasher_key, {"phase": "connecting", "percent": 90})
+check("a line that arrives when no flash is running announces nothing", (len(live["changed"]), len(live["flasherChanged"])), (0, 1))
+
+tester_key = next(iter(qs._TESTER_TIERS))
+
+
+async def fake_monitor(_target):
+    for number in range(3):
+        yield number
+
+
+real_monitor = qs.mock_bus_monitor
+qs.mock_bus_monitor = fake_monitor
+try:
+    # driven by hand: the fake monitor never waits, so the coroutine finishes in one step and no other task of the event loop gets to run
+    try:
+        bridge._run_tester_monitor(tester_key, None).send(None)
+    except StopIteration:
+        pass
+finally:
+    qs.mock_bus_monitor = real_monitor
+check("every frame of the bus monitor announces the Tester only", (len(live["changed"]), len(live["testerChanged"])), (0, 3))
+check("the frames were kept", bridge._tester_frames[tester_key], [0, 1, 2])
+bridge.changed.emit()
+check("a general change reaches both", (len(live["flasherChanged"]), len(live["testerChanged"])), (2, 4))
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
