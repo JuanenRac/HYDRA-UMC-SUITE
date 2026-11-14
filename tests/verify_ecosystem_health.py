@@ -605,7 +605,8 @@ def self_update_screen(loop, port):
     read()
     SelfUpdateSim.body = SU_STATUS  # by the time the table is read again at the end of the job, the server no longer reports it as going on
     check("updates screen: a job that was going on is shown at once", (bridge.selfUpdateView["job"]["running"], bridge.selfUpdateView["canCheck"]), (True, False))
-    check("updates screen: it is followed to its end", wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None), True)
+    followed = wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None)
+    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following, SelfUpdateSim.reads, bridge._su_gave_up, bridge._su_silent), (True, "done", None, 2, False, None))
 
     # what the screen says when the table cannot be read
     for status, kind, sentence in ((404, "unsupported", _("SELFUPD_UNSUPPORTED")), (403, "forbidden", _("SELFUPD_FORBIDDEN")), (500, "http", _("SELFUPD_LOAD_ERROR"))):
