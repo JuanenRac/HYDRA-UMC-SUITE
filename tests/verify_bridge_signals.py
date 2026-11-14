@@ -170,5 +170,18 @@ check("the filter of the catalog announces the catalog only", (len(lists["change
 bridge.changed.emit()
 check("a general change reaches both", (len(lists["adminLogsChanged"]), len(lists["catalogChanged"])), (2, 2))
 
+# --- the server list and the setup screens, and the switches of the Server Admin screen -------------------------------------------
+for prop, signal in (("serverRows", "serversChanged"), ("setupBusy", "serversChanged"), ("hubGateView", "adminSwitchesChanged"), ("twinFeedView", "adminSwitchesChanged"),
+                     ("developerNodesView", "adminSwitchesChanged")):
+    check(f"{prop} notifies {signal}", notify_of(prop), signal)
+
+lists2 = count(["changed", "serversChanged", "adminSwitchesChanged"])
+bridge._on_server_status("local", "online")
+check("the status of a server announces the server list only", (len(lists2["changed"]), len(lists2["serversChanged"]), len(lists2["adminSwitchesChanged"])), (0, 1, 0))
+bridge._on_twin_open()
+check("the live feed of the twin announces the switches only", (len(lists2["changed"]), len(lists2["serversChanged"]), len(lists2["adminSwitchesChanged"])), (0, 1, 1))
+bridge.changed.emit()
+check("a general change reaches both", (len(lists2["serversChanged"]), len(lists2["adminSwitchesChanged"])), (2, 2))
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)
