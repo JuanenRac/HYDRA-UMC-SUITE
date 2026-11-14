@@ -595,6 +595,7 @@ def self_update_screen(loop, port):
     SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("applying")), (200, su_job("done"))]
     SelfUpdateSim.body = {**SU_STATUS, "job": su_job("applying")}
     read()
+    SelfUpdateSim.body = SU_STATUS  # by the time the table is read again at the end of the job, the server no longer reports it as going on
     check("updates screen: a job that was going on is shown at once", (bridge.selfUpdateView["job"]["running"], bridge.selfUpdateView["canCheck"]), (True, False))
     check("updates screen: it is followed to its end", wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None), True)
 
