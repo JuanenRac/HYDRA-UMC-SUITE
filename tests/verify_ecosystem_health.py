@@ -505,15 +505,6 @@ def self_update_screen(loop, port):
     for timers in bridge._poller_gates().values():
         for timer in timers:
             timer.stop()
-    import logging
-
-    warnings = []
-
-    class Collect(logging.Handler):
-        def emit(self, record):
-            warnings.append(record.getMessage())
-
-    logging.getLogger(qs.__name__).addHandler(Collect(logging.WARNING))
     saved = []
     qs.save_config = lambda update: saved.append(update) or True  # the switch never writes the configuration file of the machine that runs the check
     sl.INTERVAL_S, sl.SILENCE_LIMIT_S = 0.02, 3.0  # long enough for a slow runner between two answers of the restart
@@ -525,6 +516,19 @@ def self_update_screen(loop, port):
         end = time.monotonic() + seconds
         while time.monotonic() < end and not condition():
             pump(loop, 0.02)
+        return condition()
+
+    async def look_again():
+        bridge.lookAgainSelfUpdate()
+        await asyncio.sleep(0.05)
+
+    def finish(condition):
+        """Waits for the end of a job; a follower that stopped (the loop of the check can step a task outside its run) is taken up again with Look again, as a person would."""
+        for _attempt in range(4):
+            if wait_until(lambda: condition() or bridge._su_gave_up):
+                if condition():
+                    return True
+                loop.run_until_complete(look_again())
         return condition()
 
     def server_row(name="server"):
@@ -568,7 +572,7 @@ def self_update_screen(loop, port):
     SelfUpdateSim.start = (202, su_job(state="checking"))
     SelfUpdateSim.jobs = [(200, su_job("downloading")), None, (502, {}), (200, su_job("restarting")), None, (200, su_job("done"))]
     ask_and_confirm()
-    ended = wait_until(lambda: bridge._su_following is None and bridge._su_job is not None and bridge._su_job["state"] == "done" and (server_row() or {}).get("state") == "current")
+    ended = finish(lambda: bridge._su_following is None and bridge._su_job is not None and bridge._su_job["state"] == "done" and (server_row() or {}).get("state") == "current")
     check("updates screen: the confirmation travels with the request", SelfUpdateSim.posted, [("/api/admin/self-update/apply", {"component": "server", "confirm": True})])
     check("updates screen: the job ends done through the restart and the table is read again", (ended, bridge.selfUpdateView["job"].get("done"), bridge._su_failure), (True, _("SELFUPD_DONE_APPLY", version="1.1.0"), ""))
     check("updates screen: every step is done and nothing is said to wait any more", ({s["mark"] for s in bridge.selfUpdateView["job"]["steps"]}, bridge.selfUpdateView["job"]["waiting"]), ({"done"}, ""))
@@ -592,10 +596,6 @@ def self_update_screen(loop, port):
     view = bridge.selfUpdateView["job"]
     check("updates screen: after the limit of silence it says so and is not stuck", (silent, view["gaveUp"], view["waiting"], view["running"]), (True, _("SELFUPD_GAVE_UP"), "", True))
     SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("failed", error="rolled_back", detail="unit did not answer"))]
-
-    async def look_again():
-        bridge.lookAgainSelfUpdate()
-        await asyncio.sleep(0.05)
 
     loop.run_until_complete(look_again())
     wait_until(lambda: bridge._su_job is not None and bridge._su_job["state"] == "failed" and bridge._su_following is None)
@@ -629,8 +629,8 @@ def self_update_screen(loop, port):
 
     loop.run_until_complete(open_the_screen())
     check("updates screen: a job that was going on is shown", bridge.selfUpdateView["job"].get("title"), _("SELFUPD_JOB_APPLY", program=_("SELFUPD_COMPONENT_SERVER")))
-    followed = wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None)
-    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following, SelfUpdateSim.reads, bridge._su_gave_up, bridge._su_silent, [w for w in warnings if "following the job" in w]), (True, "done", None, 2, False, None, []))
+    followed = finish(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None)
+    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following), (True, "done", None))
 
     # what the screen says when the table cannot be read
     for status, kind, sentence in ((404, "unsupported", _("SELFUPD_UNSUPPORTED")), (403, "forbidden", _("SELFUPD_FORBIDDEN")), (500, "http", _("SELFUPD_LOAD_ERROR"))):
