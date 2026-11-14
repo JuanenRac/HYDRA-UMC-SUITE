@@ -21,7 +21,7 @@ MIN_PASSWORD_LENGTH = 8
 def role_label(role: str) -> str:
     if role == "viewer":
         return _("USERS_ROLE_VIEWER")
-    return _("USERS_ROLE_ADMIN") if role == "admin" else _("USERS_ROLE_OPERATOR")
+    return _("COMMON_ADMINISTRATOR") if role == "admin" else _("COMMON_OPERATOR")
 
 
 def role_options() -> list[dict[str, str]]:

@@ -71,6 +71,7 @@ from hydra_suite.credentials import CredentialStore, keyring_backend
 from hydra_suite.diagnostics import build_bundle
 from hydra_suite.i18n import AVAILABLE_LANGUAGES, CONFIG_FILE_PATH, _, current_language, load_config, save_config
 from hydra_suite import firmware_signature, reach
+from hydra_suite.net import tls_pin
 from hydra_suite import i18n as i18n_module
 from hydra_suite.joint_limits import joint_range_deg
 from hydra_suite.models import (
@@ -93,7 +94,8 @@ from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import flasher as flasher_logic
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
+from hydra_suite.panel_logic import tours as tours_logic
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -318,7 +320,45 @@ class SuiteQtBridge(QObject):
     (their Property/Slot layer over an unmodified real backend)."""
 
     changed = Signal()
+    # The connection lists of the admin screens ("5m ago" durations advance every second while one is on view). Their properties
+    # notify this signal, and `changed` forwards to it (see __init__), so whatever still announces a general change updates them;
+    # the one-second clock announces only this one, so the other ~300 properties are not evaluated for a clock tick.
+    _adminClientsChanged = Signal()
+    # Same idea for the reservations and arming of the Robot Control screen (a one-second clock), the health of the ecosystem (a
+    # one-second clock) and the Flasher (every state change of the server): their properties notify these, `changed` forwards
+    # to them, and their own clocks and handlers announce only them.
+    _accessChanged = Signal()
+    _ecoHealthChanged = Signal()
+    tourChanged = Signal()
+    flasherChanged = Signal()
+    # The Rack Manager, Pick and Place and XY Table screens: public names, because the robot pickers and the preview of the vacuum table
+    # of the screens listen to them from QML.
+    rackChanged = Signal()
+    pnpChanged = Signal()
+    xyTableChanged = Signal()
+    # The Module Config, ATC Tools and Tester screens, with the same reasoning: their pickers and canvases listen to them from QML.
+    moduleChanged = Signal()
+    atcChanged = Signal()
+    testerChanged = Signal()
+    # The Kinematic Brain Stage and Overview screens.
+    kbsChanged = Signal()
+    overviewChanged = Signal()
+    # Settings and security: the safety limits, the options of the Server Admin screen, the two-step sign-in, the user accounts, the server
+    # settings, the audit record, the identity of the server and the local and global settings by role. The safety form of the screen listens
+    # to it from QML.
+    securityChanged = Signal()
+    # The ecosystem screens: telemetry, the tier plan of the data lake, the services, the map and the AI family status. The telemetry chart
+    # listens to it from QML.
+    ecosystemChanged = Signal()
+    # The server logs screen, and the robots catalog with the models submitted to it.
+    adminLogsChanged = Signal()
+    catalogChanged = Signal()
     _logsChanged = Signal()
+    # The server list and the setup screens, and the switches and read-only states of the Server Admin screen (hub gate, plan identity, model reports,
+    # Live Activity, twin feed, URTC arms, HIL bridge, watchdog proposals, access options, developer nodes). Their properties notify these, and
+    # `changed` forwards to them.
+    serversChanged = Signal()
+    adminSwitchesChanged = Signal()
     _trajectoryChanged = Signal()
     # The clients list of the Admin Clients screen: the one-second clock that keeps its "connected for" texts fresh reaches only this, not every property of the bridge.
     _adminClientsChanged = Signal()
@@ -329,6 +369,8 @@ class SuiteQtBridge(QObject):
     # read by dozens of unrelated Properties across every other panel;
     # firing it that often would re-evaluate all of them for no reason.
     _camerasChanged = Signal()
+    # The camera cards (their configuration, discovery and state): a state tick of the server and every edit of a card announce this one, and `changed` forwards to it.
+    cameraCardsChanged = Signal()
     # Same real reasoning as _camerasChanged above - a live 3D render can
     # update every real joint tick.
     _viewportChanged = Signal()
@@ -347,6 +389,25 @@ class SuiteQtBridge(QObject):
         catalog_frame_provider: "ViewportFrameProvider | None" = None,
     ) -> None:
         super().__init__()
+        self.changed.connect(self._adminClientsChanged)  # a general change still updates the connection lists
+        self.changed.connect(self._accessChanged)
+        self.changed.connect(self.serversChanged)
+        self.changed.connect(self.adminSwitchesChanged)
+        self.changed.connect(self._ecoHealthChanged)
+        self.changed.connect(self.flasherChanged)
+        self.changed.connect(self.rackChanged)
+        self.changed.connect(self.pnpChanged)
+        self.changed.connect(self.xyTableChanged)
+        self.changed.connect(self.moduleChanged)
+        self.changed.connect(self.atcChanged)
+        self.changed.connect(self.testerChanged)
+        self.changed.connect(self.kbsChanged)
+        self.changed.connect(self.overviewChanged)
+        self.changed.connect(self.securityChanged)
+        self.changed.connect(self.ecosystemChanged)
+        self.changed.connect(self.adminLogsChanged)
+        self.changed.connect(self.catalogChanged)
+        self.changed.connect(self.cameraCardsChanged)
         self._controller = controller
         self._credentials = credential_store
         self._catalog_frame_provider = catalog_frame_provider
@@ -500,6 +561,9 @@ class SuiteQtBridge(QObject):
         self._help_level = help_levels.level_from_config(load_config())  # the level of the Help, kept in the configuration file
         self._help_search = ""
         self._ui_scale = preferences.scale_from_config(load_config())  # the scale of the interface in percent, kept in the configuration file
+        self._tours_on = preferences.tours_from_config(load_config())  # whether the guided tours are offered (off by default)
+        self._tour_id = ""  # the tour that is open ("" : none) and its step
+        self._tour_index = 0
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -696,7 +760,7 @@ class SuiteQtBridge(QObject):
         # the limits are read from the server every 10 seconds while the Robot Control screen is open. --
         self._access_busy = False
         self._access_robot_timer = self._scheduler.add("access_robot", _ACCESS_POLL_MS, lambda: asyncio.ensure_future(self._refresh_access(poll=True)))
-        self._access_tick_timer = self._scheduler.add("access_clock", 1000, self.changed.emit)
+        self._access_tick_timer = self._scheduler.add("access_clock", 1000, self._accessChanged.emit)
 
         # -- Safety limits (administrators): the form is edited in QML; this keeps what the server holds. --
         self._safety_message = ""
@@ -766,8 +830,9 @@ class SuiteQtBridge(QObject):
         self._eco_health: dict | None = None
         self._eco_health_filter = "all"
         self._eco_health_status = ""
+        self._node_health: list[tuple[str, dict | None]] = []  # the eight slots of the panel of the controller boards (GET /api/ecosystem/node-health)
         self._eco_health_timer = self._scheduler.add("ecosystem_health", ecosystem_health.POLL_MS, lambda: asyncio.ensure_future(self._refresh_eco_health()))
-        self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self.changed.emit)
+        self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self._ecoHealthChanged.emit)
         controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
         # -- Map of the ecosystem: the projects of GET /api/ecosystem/status (shared with the services screen) plus the drift of the health; read only. --
         self._map_filter = "all"
@@ -1011,7 +1076,7 @@ class SuiteQtBridge(QObject):
 
     # -- Servers ---------------------------------------------------------
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=serversChanged)
     def serverRows(self) -> list[dict[str, object]]:
         rows: list[dict[str, object]] = []
         active_id = self._controller._active_id  # the same field panel_logic/server_browser.py reads
@@ -1034,11 +1099,11 @@ class SuiteQtBridge(QObject):
             })
         return rows
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=serversChanged)
     def serverScanning(self) -> bool:
         return self._scanning
 
-    @Property(str, notify=changed)
+    @Property(str, notify=serversChanged)
     def serverScanStatus(self) -> str:
         return self._scan_status_text
 
@@ -1051,11 +1116,11 @@ class SuiteQtBridge(QObject):
 
     def _on_server_status(self, conn_id: str, status: str) -> None:
         self._server_statuses[conn_id] = status
-        self.changed.emit()
+        self.serversChanged.emit()
 
     def _on_server_login(self, conn_id: str, ok: bool, detail: str) -> None:
         self._server_login[conn_id] = (ok, detail)
-        self.changed.emit()
+        self.serversChanged.emit()
 
     @Slot()
     def scanServers(self) -> None:
@@ -1063,7 +1128,7 @@ class SuiteQtBridge(QObject):
             return
         self._scanning = True
         self._scan_status_text = _("STATUS_SCANNING")
-        self.changed.emit()
+        self.serversChanged.emit()
         asyncio.ensure_future(self._run_server_scan())
 
     async def _run_server_scan(self) -> None:
@@ -1077,11 +1142,11 @@ class SuiteQtBridge(QObject):
                 found += 1
                 self._controller.add_server(info)
                 self._scan_status_text = _("STATUS_SCANNING_PROGRESS", found=found)
-                self.changed.emit()
+                self.serversChanged.emit()
         finally:
             self._scanning = False
             self._scan_status_text = _("STATUS_SCAN_COMPLETE", found=found) if found else _("STATUS_SCAN_COMPLETE_NONE")
-            self.changed.emit()
+            self.serversChanged.emit()
 
     @Slot(str, int, str, str, bool)
     def addManualServer(self, host: str, port: int, username: str, password: str, remember: bool) -> None:
@@ -1295,11 +1360,11 @@ class SuiteQtBridge(QObject):
     def controllerId(self) -> str:
         return access.get_controller_id()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def accessBusy(self) -> bool:
         return self._access_busy
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_accessChanged)
     def selectedRobotMode(self) -> str:
         conn, robot_id = self._access_target()
         if conn is None or robot_id is None:
@@ -1315,17 +1380,17 @@ class SuiteQtBridge(QObject):
         save_config(access.MODES.to_config())
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def listenOnly(self) -> bool:
         return access.LISTEN_ONLY.enabled
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def listenOnlyServer(self) -> bool:
         """Whether listen only holds for the server of the selected robot by its own switch (not by the general one)."""
         conn, _robot_id = self._access_target()
         return conn is not None and self._scope(conn) in access.LISTEN_ONLY.servers
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def canSetListenOnlyServer(self) -> bool:
         conn, _robot_id = self._access_target()
         return conn is not None and not access.LISTEN_ONLY.enabled
@@ -1345,7 +1410,7 @@ class SuiteQtBridge(QObject):
         save_config(access.LISTEN_ONLY.to_config())
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def defaultRobotModeSim(self) -> bool:
         return access.MODES.default_mode == "sim"
 
@@ -1369,7 +1434,7 @@ class SuiteQtBridge(QObject):
     def _clock(seconds: int | None) -> str:
         return "" if seconds is None else f"{seconds // 60}:{seconds % 60:02d}"
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=_accessChanged)
     def selectedRobotAccess(self) -> dict[str, object]:
         """Where the selected robot stands for this program, the sentence that says it, and which buttons apply."""
         conn, robot_id = self._access_target()
@@ -1390,7 +1455,7 @@ class SuiteQtBridge(QObject):
             "canTakeOver": signed_in and standing in ("other-controller", "other-account") and conn is not None and conn.is_admin,
         }
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_accessChanged)
     def claimsRows(self) -> list[dict[str, object]]:
         conn = self._controller.active_connection
         if conn is None:
@@ -1408,7 +1473,7 @@ class SuiteQtBridge(QObject):
             for claim in conn.claims
         ]
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=_accessChanged)
     def selectedRobotSafeMode(self) -> dict[str, object]:
         """Whether the selected robot is in safe mode and which of the two buttons applies: anyone signed in can
         disable a robot (like a stop); only an administrator is offered the enable."""
@@ -1435,12 +1500,12 @@ class SuiteQtBridge(QObject):
         if conn is not None and robot_id is not None and conn.is_admin:
             asyncio.ensure_future(self._run_access(_("ACCESS_WHAT_ENABLE"), lambda: conn.set_robot_enabled(robot_id, True)))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_accessChanged)
     def jogArmRequired(self) -> bool:
         conn = self._controller.active_connection
         return conn is not None and conn.safety.limits.arm_required
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=_accessChanged)
     def selectedRobotArm(self) -> dict[str, object]:
         conn, robot_id = self._access_target()
         until = conn.jog_armed_until.get(robot_id) if conn is not None and robot_id is not None else None
@@ -1523,34 +1588,34 @@ class SuiteQtBridge(QObject):
 
     # -- Local and global settings by role -------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def canEditSettings(self) -> bool:
         """Whether the account of the active server may change the global settings. Without a server there is nothing to refuse."""
         conn = self._controller.active_connection
         return conn is None or conn.may_edit_settings
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def settingsLocked(self) -> bool:
         """True on a screen that changes global settings (modules, racks, cameras, models of the catalog...) for an account that may not."""
         return self._active_key in _SETTINGS_PANELS and not self.canEditSettings
 
     # -- Safety limits (administrators) ----------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def safetyIsAdmin(self) -> bool:
         conn = self._controller.active_connection
         return conn is not None and conn.is_admin
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def safetyHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def safetyForm(self) -> dict[str, object]:
         conn = self._controller.active_connection
         return access.form_from_limits(conn.safety.limits if conn is not None else access.SafetyLimits())
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def safetyHard(self) -> dict[str, object]:
         conn = self._controller.active_connection
         hard = conn.safety.hard if conn is not None else access.HardLimits()
@@ -1564,15 +1629,15 @@ class SuiteQtBridge(QObject):
             "auditMotionMaxS": hard.audit_motion_max_s,
         }
 
-    @Property(int, notify=changed)
+    @Property(int, notify=securityChanged)
     def safetyVersion(self) -> int:
         return self._safety_version
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def safetyMessage(self) -> str:
         return self._safety_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def safetyError(self) -> str:
         return self._safety_error
 
@@ -1588,14 +1653,14 @@ class SuiteQtBridge(QObject):
         self._safety_error = ""
         if conn is None or not conn.is_admin:
             self._safety_error = _("MSG_ADMIN_ONLY")
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         # From QML the form arrives as a JavaScript value; from Python (a check) as a dict.
         values = form.toVariant() if hasattr(form, "toVariant") else form
         built = access.build_patch(dict(values), conn.safety.hard)
         if not built["ok"]:
             self._safety_error = _(f"MSG_SAFETY_PROBLEM_{str(built['problem']).upper()}", field=built.get("field", ""))
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._save_safety(conn, built["patch"]))
 
@@ -1634,31 +1699,31 @@ class SuiteQtBridge(QObject):
 
     # -- Audit record (administrators) -------------------------------------------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def auditIsAdmin(self) -> bool:
         return self.safetyIsAdmin
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def auditHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def auditRows(self) -> list[dict[str, object]]:
         return self._audit_rows
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def auditChain(self) -> list[dict[str, object]]:
         return self._audit_chain
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditMessage(self) -> str:
         return self._audit_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditError(self) -> str:
         return self._audit_error
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def auditBusy(self) -> bool:
         return self._audit_busy
 
@@ -1670,21 +1735,21 @@ class SuiteQtBridge(QObject):
     def auditLimits(self) -> list[int]:
         return list(audit_record.LIMITS)
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def auditRobotOptions(self) -> list[dict[str, str]]:
         return [{"value": "", "label": _("AUDIT_ALL_ROBOTS")}] + [
             {"value": str(robot_id), "label": name} for robot_id, name in self._audit_robot_names().items()
         ]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditType(self) -> str:
         return self._audit_type
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def auditRobot(self) -> str:
         return self._audit_robot
 
-    @Property(int, notify=changed)
+    @Property(int, notify=securityChanged)
     def auditLimit(self) -> int:
         return self._audit_limit
 
@@ -1713,20 +1778,20 @@ class SuiteQtBridge(QObject):
     @Slot(str)
     def setAuditType(self, kind: str) -> None:
         self._audit_type = kind
-        self.changed.emit()
+        self.securityChanged.emit()
         asyncio.ensure_future(self._refresh_audit(False))
 
     @Slot(str)
     def setAuditRobot(self, robot_id: str) -> None:
         self._audit_robot = robot_id
-        self.changed.emit()
+        self.securityChanged.emit()
         asyncio.ensure_future(self._refresh_audit(False))
 
     @Slot(int)
     def setAuditLimit(self, limit: int) -> None:
         if limit in audit_record.LIMITS:
             self._audit_limit = limit
-            self.changed.emit()
+            self.securityChanged.emit()
             asyncio.ensure_future(self._refresh_audit(False))
 
     @Slot()
@@ -1792,23 +1857,23 @@ class SuiteQtBridge(QObject):
 
     # -- Submitted models -----------------------------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=catalogChanged)
     def modelsHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=catalogChanged)
     def modelsRows(self) -> list[dict[str, str]]:
         return self._models_rows
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def modelsMessage(self) -> str:
         return self._models_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def modelsError(self) -> str:
         return self._models_error
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=catalogChanged)
     def modelsBusy(self) -> bool:
         return self._models_busy
 
@@ -1823,10 +1888,10 @@ class SuiteQtBridge(QObject):
         if conn is None or conn.login_ok is not True:
             self._models_rows = []
             self._models_list = []
-            self.changed.emit()
+            self.catalogChanged.emit()
             return
         self._models_busy = True
-        self.changed.emit()
+        self.catalogChanged.emit()
         try:
             result = await conn.fetch_submitted_models()
             status = 0 if result is None else result[0]
@@ -1839,7 +1904,7 @@ class SuiteQtBridge(QObject):
             self._models_rows = submitted_models.rows(self._models_list)
         finally:
             self._models_busy = False
-            self.changed.emit()
+            self.catalogChanged.emit()
 
     @Slot(str, str, str)
     def saveModelUrdf(self, category: str, slug: str, path: str) -> None:
@@ -1858,7 +1923,7 @@ class SuiteQtBridge(QObject):
         xml = submitted_models.urdf_text(answer)
         if xml is None:
             self._models_error = _("MODELS_SAVE_FAILED", name=name)
-            self.changed.emit()
+            self.catalogChanged.emit()
             return
         local_path = QUrl(path).toLocalFile() or path
         if not local_path.lower().endswith(".urdf"):
@@ -1870,19 +1935,19 @@ class SuiteQtBridge(QObject):
             self._models_error = _("MODELS_SAVE_WRITE_FAILED", error=error)
         else:
             self._models_message = _("MODELS_SAVED", path=local_path)
-        self.changed.emit()
+        self.catalogChanged.emit()
 
     # -- User accounts (administrators only) -------------------------------------------
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def usersIsAdmin(self) -> bool:
         return self.safetyIsAdmin
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def usersHasServer(self) -> bool:
         return self._controller.active_connection is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def usersRows(self) -> list[dict[str, object]]:
         return self._users_rows
 
@@ -1890,15 +1955,15 @@ class SuiteQtBridge(QObject):
     def usersRoleOptions(self) -> list[dict[str, str]]:
         return users_panel.role_options()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def usersMessage(self) -> str:
         return self._users_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def usersError(self) -> str:
         return self._users_error
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def usersBusy(self) -> bool:
         return self._users_busy
 
@@ -1919,10 +1984,10 @@ class SuiteQtBridge(QObject):
             self._users_error = ""
         if conn is None:
             self._users_rows = []
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         self._users_busy = True
-        self.changed.emit()
+        self.securityChanged.emit()
         try:
             result = await conn.fetch_users()
             if not result.ok:
@@ -1932,14 +1997,14 @@ class SuiteQtBridge(QObject):
             self._users_rows = users_panel.rows(users_panel.parse_users(result.body), conn.info.username or "")
         finally:
             self._users_busy = False
-            self.changed.emit()
+            self.securityChanged.emit()
 
     @Slot(str, str, str)
     def createUser(self, username: str, password: str, role: str) -> None:
         self._users_error = users_panel.check_new(username, password)
         self._users_message = ""
         if self._users_error or self._users_conn() is None:
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._users_write("create", username.strip(), password, role if role in users_panel.ROLES else users_panel.DEFAULT_ROLE))
 
@@ -1949,7 +2014,7 @@ class SuiteQtBridge(QObject):
         role = role if role in users_panel.ROLES else ""
         self._users_error = users_panel.check_change(username, new_username, password, role)
         if self._users_error or self._users_conn() is None:
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._users_write("update", username, password, role, new_username))
 
@@ -1959,7 +2024,7 @@ class SuiteQtBridge(QObject):
         self._users_message = ""
         if not username or self._users_conn() is None:
             self._users_error = _("USERS_ERR_SELECT_ACCOUNT") if not username else ""
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         asyncio.ensure_future(self._users_write("delete", username))
 
@@ -1968,7 +2033,7 @@ class SuiteQtBridge(QObject):
         if conn is None:
             return
         self._users_busy = True
-        self.changed.emit()
+        self.securityChanged.emit()
         try:
             if action == "create":
                 result = await conn.create_user(username, password, role)
@@ -1991,35 +2056,35 @@ class SuiteQtBridge(QObject):
 
     # -- Two-step sign-in of the signed-in account (Server Admin) -------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpStep(self) -> str:
         return self._totp_step
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpStatusText(self) -> str:
         return _("TOTP_STATUS_ON", count=self._totp_left) if self._totp_step == "on" else _("TOTP_STATUS_OFF")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpKey(self) -> str:
         return totp_panel.grouped_key(self._totp_key) if self._totp_key else ""
 
-    @Property("QVariant", notify=changed)
+    @Property("QVariant", notify=securityChanged)
     def totpQr(self) -> dict[str, object]:
         return self._totp_qr
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=securityChanged)
     def totpRecovery(self) -> list[str]:
         return self._totp_recovery
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpError(self) -> str:
         return self._totp_error
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def totpMessage(self) -> str:
         return self._totp_message
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def totpBusy(self) -> bool:
         return self._totp_busy
 
@@ -2031,7 +2096,7 @@ class SuiteQtBridge(QObject):
         conn = self._totp_conn()
         if conn is None:
             self._totp_step = "none"
-            self.changed.emit()
+            self.securityChanged.emit()
             return
         if self._totp_step in ("enrolling", "recovery"):
             return
@@ -2043,7 +2108,7 @@ class SuiteQtBridge(QObject):
         else:
             self._totp_step = "on" if parsed[0] else "off"
             self._totp_left = parsed[1]
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot()
     def refreshTotp(self) -> None:
@@ -2059,7 +2124,7 @@ class SuiteQtBridge(QObject):
         if conn is None or not password:
             return
         self._totp_busy, self._totp_error, self._totp_message = True, "", ""
-        self.changed.emit()
+        self.securityChanged.emit()
         status, body, retry = await conn.totp_call("POST", "/api/totp/begin", {"password": password})
         self._totp_busy = False
         enrolment = totp_panel.parse_enrolment(body) if status == 200 else None
@@ -2069,7 +2134,7 @@ class SuiteQtBridge(QObject):
             self._totp_key = enrolment[0]
             self._totp_qr = totp_panel.qr_view(enrolment[1])
             self._totp_step = "enrolling"
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot(str)
     def confirmTotp(self, code: str) -> None:
@@ -2080,7 +2145,7 @@ class SuiteQtBridge(QObject):
         if conn is None or not code.strip():
             return
         self._totp_busy, self._totp_error = True, ""
-        self.changed.emit()
+        self.securityChanged.emit()
         status, body, retry = await conn.totp_call("POST", "/api/totp/confirm", {"code": totp_panel.normalize_code(code)})
         self._totp_busy = False
         codes = totp_panel.parse_recovery_codes(body) if status == 200 else None
@@ -2089,13 +2154,13 @@ class SuiteQtBridge(QObject):
         else:
             self._totp_key, self._totp_recovery, self._totp_step = "", codes, "recovery"
             self._totp_qr = {"tooLong": False, "path": "", "size": 0, "modules": []}
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot()
     def cancelTotp(self) -> None:
         self._totp_key, self._totp_error, self._totp_step = "", "", "off"
         self._totp_qr = {"tooLong": False, "path": "", "size": 0, "modules": []}
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot()
     def finishTotp(self) -> None:
@@ -2109,7 +2174,7 @@ class SuiteQtBridge(QObject):
         if self._totp_key:
             QGuiApplication.clipboard().setText(self._totp_key)
             self._totp_message = _("TOTP_COPIED")
-            self.changed.emit()
+            self.securityChanged.emit()
 
     @Slot(str, str)
     def disableTotp(self, password: str, code: str) -> None:
@@ -2120,7 +2185,7 @@ class SuiteQtBridge(QObject):
         if conn is None or not password or not code.strip():
             return
         self._totp_busy, self._totp_error, self._totp_message = True, "", ""
-        self.changed.emit()
+        self.securityChanged.emit()
         status, body, retry = await conn.totp_call("POST", "/api/totp/disable", {"password": password, "code": totp_panel.normalize_code(code)})
         self._totp_busy = False
         if status == 200:
@@ -2129,7 +2194,7 @@ class SuiteQtBridge(QObject):
             await self._refresh_totp()
             return
         self._totp_error = totp_panel.failure_text(status or 0, body, retry)
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot(str)
     def resetUserTotp(self, username: str) -> None:
@@ -2144,7 +2209,7 @@ class SuiteQtBridge(QObject):
             self._users_message, self._users_error = _("TOTP_RESET_DONE", username=username), ""
         else:
             self._users_message, self._users_error = "", _("TOTP_RESET_ERROR")
-        self.changed.emit()
+        self.securityChanged.emit()
 
     # -- Robots Catalog -------------------------------------------------------------
 
@@ -2154,19 +2219,19 @@ class SuiteQtBridge(QObject):
             {"value": m, "label": m} for m in sorted(set(ROBOT_MANUFACTURERS.values()))
         ]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def catalogManufacturer(self) -> str:
         return self._catalog_manufacturer
 
-    @Property(int, notify=changed)
+    @Property(int, notify=catalogChanged)
     def catalogDof(self) -> int:
         return self._catalog_dof
 
-    @Property(str, notify=changed)
+    @Property(str, notify=catalogChanged)
     def catalogSelected(self) -> str:
         return self._catalog_selected
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=catalogChanged)
     def catalogRows(self) -> list[dict[str, object]]:
         state = self._controller.active_state
         models = REAL_ROBOT_MODELS
@@ -2187,19 +2252,19 @@ class SuiteQtBridge(QObject):
     @Slot(str)
     def setCatalogManufacturer(self, value: str) -> None:
         self._catalog_manufacturer = value or "__all__"
-        self.changed.emit()
+        self.catalogChanged.emit()
 
     @Slot(int)
     def setCatalogDof(self, value: int) -> None:
         self._catalog_dof = value if value in (5, 6) else 0
-        self.changed.emit()
+        self.catalogChanged.emit()
 
     @Slot(str)
     def selectCatalogModel(self, model: str) -> None:
         if model in REAL_ROBOT_MODELS:
             self._catalog_selected = model
             self.refreshCatalogPreview()
-            self.changed.emit()
+            self.catalogChanged.emit()
 
     @Slot(str, bool)
     def setCatalogModelEnabled(self, model: str, enabled: bool) -> None:
@@ -2303,36 +2368,49 @@ class SuiteQtBridge(QObject):
 
     # -- Ecosystem health ----------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_ecoHealthChanged)
     def ecoHealthStatus(self) -> str:
         return self._eco_health_status
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_ecoHealthChanged)
     def ecoHealthLoaded(self) -> bool:
         return self._eco_health is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_ecoHealthChanged)
     def ecoHealthUnavailable(self) -> bool:
         return self._eco_health is not None and not self._eco_health["available"]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_ecoHealthChanged)
     def ecoHealthEmpty(self) -> str:
         """The sentence for an empty list: no service at all, or none that matches the filter."""
         if self._eco_health is None or self._eco_health["services"] and self.ecoHealthCards:
             return ""
         return _("ECOHEALTH_NO_SERVICES") if not self._eco_health["services"] else _("ECOHEALTH_NO_MATCH")
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_ecoHealthChanged)
     def ecoHealthFilters(self) -> list[dict[str, object]]:
         return ecosystem_health.filter_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_ecoHealthChanged)
     def ecoHealthNotices(self) -> list[dict[str, object]]:
         return ecosystem_health.notice_rows(self._eco_health) if self._eco_health else []
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_ecoHealthChanged)
     def ecoHealthCards(self) -> list[dict[str, object]]:
         return ecosystem_health.card_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
+
+    @Property("QVariantList", notify=_ecoHealthChanged)
+    def nodeHealthRows(self) -> list[dict[str, object]]:
+        """The controller boards as the brain heard them; empty (the panel is not shown) when the server does not offer the route."""
+        return node_health.rows(self._node_health)
+
+    @Property(str, notify=_ecoHealthChanged)
+    def nodeHealthTitle(self) -> str:
+        return _("NODEHEALTH_TITLE")
+
+    @Property(str, notify=_ecoHealthChanged)
+    def nodeHealthHelp(self) -> str:
+        return _("NODEHEALTH_HELP")
 
     @Slot(str)
     def setEcoHealthFilter(self, key: str) -> None:
@@ -2347,6 +2425,7 @@ class SuiteQtBridge(QObject):
     def _on_eco_health_connection_changed(self, _conn_id: str) -> None:
         # another server: nothing of the old one stays on screen
         self._eco_health, self._eco_health_status = None, ""
+        self._node_health = []
         if self._active_key == "ecosystem_health":
             asyncio.ensure_future(self._refresh_eco_health())
 
@@ -2365,11 +2444,21 @@ class SuiteQtBridge(QObject):
             logger.warning("reading the health of the ecosystem failed: %s", error)
             problem = _("ECOHEALTH_LOAD_ERROR")
         self._eco_health_status = problem
+        await self._refresh_node_health(conn)
         self.changed.emit()
+
+    async def _refresh_node_health(self, conn) -> None:
+        """The eight slots, one request each; any failure leaves the panel out of the way, never the screen of the health of the services."""
+        try:
+            answers = await asyncio.gather(*(conn.fetch_node_health(slot) for slot in node_health.SLOTS), return_exceptions=True)
+            self._node_health = [node_health.classify(None if isinstance(answer, BaseException) else answer, slot) for slot, answer in zip(node_health.SLOTS, answers)]
+        except Exception as error:  # a damaged answer must not stop the screen
+            logger.warning("reading the health of the controller boards failed: %s", error)
+            self._node_health = []
 
     # -- Map of the ecosystem ------------------------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=ecosystemChanged)
     def mapView(self) -> dict[str, object]:
         """What the Map screen shows; every part already carries the sentences in the language of the interface."""
         projects = ecosystem_map.parse_projects(self._es_projects)
@@ -2395,19 +2484,19 @@ class SuiteQtBridge(QObject):
         key = "all" if key == self._map_filter else key
         if key in ecosystem_map.FILTERS and key != self._map_filter:
             self._map_filter = key
-            self.changed.emit()
+            self.ecosystemChanged.emit()
 
     @Slot(str)
     def setMapSearch(self, text: str) -> None:
         self._map_search = text
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(bool)
     def setMapEvidence(self, show: bool) -> None:
         """The switch that adds to each tile what the project has been tried on; kept in the configuration file, off until turned on."""
         self._map_evidence = bool(show)
         save_config({"mapShowEvidence": self._map_evidence})
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot()
     def refreshMap(self) -> None:
@@ -2429,7 +2518,7 @@ class SuiteQtBridge(QObject):
 
     # -- Setup screens -----------------------------------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=serversChanged)
     def setupView(self) -> dict[str, object]:
         """What the active Setup screen shows; every part already carries the sentences in the language of the interface."""
         conn = self._controller.active_connection
@@ -2438,7 +2527,7 @@ class SuiteQtBridge(QObject):
             return {}
         if key == "setup_preferences":
             # personal preferences need no server
-            return preferences.view(self._ui_scale, self._help_level, setup_screens.empty_view("PREFS_TITLE", "PREFS_INTRO"))
+            return preferences.view(self._ui_scale, self._help_level, setup_screens.empty_view("PREFS_TITLE", "PREFS_INTRO"), self._tours_on)
         if key == "setup_help":
             # the guides need no server
             return help_levels.view(self._help_level, self._help_search, setup_screens.empty_view("HELP_TITLE", "HELP_INTRO"))
@@ -2468,12 +2557,68 @@ class SuiteQtBridge(QObject):
             self._audit_rows, self._connection_status_text or self._audit_error,
         )
 
-    @Property(float, notify=changed)
+    # -- Guided tours (off until "Offer the guided tours" is turned on in the Preferences) ---------------------------------------------------
+
+    @Property(bool, notify=tourChanged)
+    def toursEnabled(self) -> bool:
+        return self._tours_on
+
+    @Property("QVariantMap", notify=tourChanged)
+    def tourView(self) -> dict[str, object]:
+        """The card of the open tour; empty when no tour is open."""
+        return tours_logic.card(self._tour_id, self._tour_index) if self._tour_id and self._tours_on else {}
+
+    @Property(str, notify=tourChanged)
+    def welcomeTourLabel(self) -> str:
+        return tours_logic.start_label("welcome")
+
+    @Property(str, notify=tourChanged)
+    def screenTourLabel(self) -> str:
+        return tours_logic.start_label("health")
+
+    @Slot(str)
+    def startTour(self, tour_id: str) -> None:
+        if self._tours_on and tour_id in tours_logic.TOURS:
+            self._tour_id, self._tour_index = tour_id, 0
+            self.tourChanged.emit()
+
+    @Slot()
+    def tourNext(self) -> None:
+        if not self._tour_id:
+            return
+        if self._tour_index >= tours_logic.TOURS[self._tour_id] - 1:
+            self._tour_id = ""
+        else:
+            self._tour_index += 1
+        self.tourChanged.emit()
+
+    @Slot()
+    def tourBack(self) -> None:
+        if self._tour_id and self._tour_index > 0:
+            self._tour_index -= 1
+            self.tourChanged.emit()
+
+    @Slot()
+    def tourClose(self) -> None:
+        if self._tour_id:
+            self._tour_id = ""
+            self.tourChanged.emit()
+
+    @Slot()
+    def tourNever(self) -> None:
+        """Do not offer tours again: the preference goes off and the open tour closes."""
+        self._tours_on = False
+        self._tour_id = ""
+        save_config(preferences.config_update_tours(False))
+        self.tourChanged.emit()
+        self.changed.emit()
+
+    @Property(float, notify=serversChanged)
     def uiScaleFactor(self) -> float:
         """What every text size of the interface is multiplied by (the scale chosen in the Preferences)."""
         return preferences.scale_factor(self._ui_scale)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=serversChanged)
     def setupBusy(self) -> bool:
         return self._setup_busy
 
@@ -2495,7 +2640,7 @@ class SuiteQtBridge(QObject):
         if self._active_key != "setup_help":
             return
         self._help_search = help_levels.clean_search(text)
-        self.changed.emit()
+        self.serversChanged.emit()
 
     @Slot(str, bool)
     def setupToggle(self, toggle_id: str, checked: bool) -> None:
@@ -2513,7 +2658,13 @@ class SuiteQtBridge(QObject):
             if choice is None:
                 return
             group, value = choice
-            if group == "scale":
+            if group == "tours":
+                self._tours_on = value == "on"
+                save_config(preferences.config_update_tours(self._tours_on))
+                if not self._tours_on and self._tour_id:
+                    self._tour_id = ""  # turning the tours off closes a tour that is open
+                self.tourChanged.emit()
+            elif group == "scale":
                 self._ui_scale = int(value)
                 save_config(preferences.config_update_scale(self._ui_scale))
             else:
@@ -3111,15 +3262,15 @@ class SuiteQtBridge(QObject):
 
     # -- AI Family Status --------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def aiFamilyStatusText(self) -> str:
         return self._ai_family_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def aiFamilyRefreshing(self) -> bool:
         return self._ai_family_refreshing
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def aiFamilyGroups(self) -> list[dict[str, object]]:
         groups: list[dict[str, object]] = []
         for family, device_key, device_label in AI_FAMILIES:
@@ -3153,44 +3304,44 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._ai_family_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._ai_family_refreshing = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.fetch_ecosystem_status()
         finally:
             self._ai_family_refreshing = False
         if result is None:
             self._ai_family_status_text = _("MSG_ES_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict) or not body.get("available"):
             self._ai_family_status_text = _("MSG_ES_UNAVAILABLE")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._ai_family_status_text = ""
         families = {f for f, _dev, _label in AI_FAMILIES}
         self._ai_family_projects = [p for p in (body.get("projects") or []) if p.get("family") in families]
         self._ai_family_ai_hailo = conn.state.ai_hailo
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     # -- Admin Clients -----------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_adminClientsChanged)
     def adminClientsStatusText(self) -> str:
         return self._admin_clients_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=_adminClientsChanged)
     def adminClientsShowStats(self) -> bool:
         return len(self._admin_clients) > 0
 
-    @Property(int, notify=changed)
+    @Property(int, notify=_adminClientsChanged)
     def adminClientsConnectedCount(self) -> int:
         return len(self._admin_clients)
 
-    @Property(int, notify=changed)
+    @Property(int, notify=_adminClientsChanged)
     def adminClientsAdminCount(self) -> int:
         return sum(1 for c in self._admin_clients if c.get("role") == "admin")
 
@@ -3214,15 +3365,15 @@ class SuiteQtBridge(QObject):
 
     # -- Connection history (any signed-in account) --------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=_adminClientsChanged)
     def connectionHistoryStatus(self) -> str:
         return self._connection_status_text
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_adminClientsChanged)
     def connectionClientRows(self) -> list[dict[str, object]]:
         return connection_history.client_rows(self._connection_clients)
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=_adminClientsChanged)
     def connectionEventRows(self) -> list[dict[str, object]]:
         return connection_history.event_rows(self._connection_events)
 
@@ -3282,19 +3433,19 @@ class SuiteQtBridge(QObject):
 
     # -- Admin Logs --------------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=adminLogsChanged)
     def adminLogsStatusText(self) -> str:
         return self._admin_logs_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=adminLogsChanged)
     def adminLogsLive(self) -> bool:
         return self._admin_logs_live
 
-    @Property(str, notify=changed)
+    @Property(str, notify=adminLogsChanged)
     def adminLogsTagFilter(self) -> str:
         return self._admin_logs_tag_filter or ""
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=adminLogsChanged)
     def adminLogsTags(self) -> list[str]:
         return sorted({tag for line in self._admin_logs_all_lines if (tag := _extract_tag(line))})
 
@@ -3312,7 +3463,7 @@ class SuiteQtBridge(QObject):
             return self._admin_logs_all_lines
         return self._admin_logs_all_lines[idx + 1:]
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=adminLogsChanged)
     def adminLogsLines(self) -> list[str]:
         displayed = self._admin_logs_displayed_lines()
         needle = self._admin_logs_search.strip().lower()
@@ -3328,7 +3479,7 @@ class SuiteQtBridge(QObject):
     @Slot()
     def toggleAdminLogsLive(self) -> None:
         self._admin_logs_live = not self._admin_logs_live
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     @Slot()
     def clearAdminLogs(self) -> None:
@@ -3338,17 +3489,17 @@ class SuiteQtBridge(QObject):
         else:
             self._admin_logs_cleared_anchor = None
             self._admin_logs_cleared_at_empty = True
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     @Slot(str)
     def setAdminLogsTagFilter(self, tag: str) -> None:
         self._admin_logs_tag_filter = tag or None
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     @Slot(str)
     def setAdminLogsSearch(self, text: str) -> None:
         self._admin_logs_search = text
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     async def _refresh_admin_logs(self) -> None:
         if not self._admin_logs_live:
@@ -3356,68 +3507,68 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._admin_logs_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         if not conn.is_admin:
             self._admin_logs_status_text = _("MSG_ADMIN_ONLY")
             self._admin_logs_all_lines = []
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         result = await conn.fetch_admin_logs(_ADMIN_LOGS_LINES)
         if result is None:
             self._admin_logs_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict):
             self._admin_logs_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminLogsChanged.emit()
             return
         self._admin_logs_all_lines = body.get("lines") or []
         self._admin_logs_status_text = _("LBL_LOGS_FOOTER_LIVE", lines=_ADMIN_LOGS_LINES, seconds=_ADMIN_LOGS_POLL_MS // 1000)
-        self.changed.emit()
+        self.adminLogsChanged.emit()
 
     # -- Admin Server ------------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerStatusText(self) -> str:
         return self._admin_server_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=securityChanged)
     def adminServerInfoVisible(self) -> bool:
         return bool(self._admin_server_info)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerProduct(self) -> str:
         return str(self._admin_server_info.get("product") or "-")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerVersion(self) -> str:
         version = self._admin_server_info.get("appVersion")
         return f"v{version}" if version else "-"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerUptime(self) -> str:
         return _format_uptime(self._admin_server_info.get("uptimeSeconds"))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerControllerCount(self) -> str:
         return str(self._admin_server_info.get("controllerCount", "-"))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerRobotCount(self) -> str:
         return str(self._admin_server_info.get("robotCount", "-"))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerHost(self) -> str:
         return str(self._admin_server_info.get("hostname") or "-")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerPortLabel(self) -> str:
         port = self._admin_server_current_port if self._admin_server_current_port is not None else "..."
         return _("LBL_ADMIN_SERVER_PORT_CURRENT", port=port)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def adminServerPendingPortText(self) -> str:
         return self._admin_server_pending_port_text
 
@@ -3480,7 +3631,7 @@ class SuiteQtBridge(QObject):
         self._hub_gate_error = connector_hub_gate.status_for(result)
         self._hub_gate = connector_hub_gate.parse_settings(result[1]) if result is not None and not self._hub_gate_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def hubGateView(self) -> dict:
         view = connector_hub_gate.view(self._hub_gate)
         view["message"] = self._hub_gate_message
@@ -3510,8 +3661,8 @@ class SuiteQtBridge(QObject):
         else:
             self._hub_gate_error = ""
             self._hub_gate = connector_hub_gate.parse_settings(result[1])  # type: ignore[index]
-            self._hub_gate_message = _("HUBGATE_SAVED")
-        self.changed.emit()
+            self._hub_gate_message = _("COMMON_SAVED")
+        self.adminSwitchesChanged.emit()
 
     # -- Switch of the identity of the approval of a plan (administrators) ---------------
 
@@ -3528,7 +3679,7 @@ class SuiteQtBridge(QObject):
         self._planner_identity_error = planner_identity.status_for(result)
         self._planner_identity = planner_identity.parse_settings(result[1]) if result is not None and not self._planner_identity_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def plannerIdentityView(self) -> dict:
         view = planner_identity.view(self._planner_identity)
         view["message"] = self._planner_identity_message
@@ -3558,8 +3709,8 @@ class SuiteQtBridge(QObject):
         else:
             self._planner_identity_error = ""
             self._planner_identity = planner_identity.parse_settings(result[1])  # type: ignore[index]
-            self._planner_identity_message = _("PLANNERID_SAVED")
-        self.changed.emit()
+            self._planner_identity_message = _("COMMON_SAVED")
+        self.adminSwitchesChanged.emit()
 
     # -- Identity of the server in its calls to the services (administrators) ----------------
 
@@ -3576,7 +3727,7 @@ class SuiteQtBridge(QObject):
         self._service_identity_error = service_identity.status_for(result)
         self._service_identity = service_identity.parse_status(result[1]) if result is not None and not self._service_identity_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def serviceIdentityView(self) -> dict:
         view = service_identity.view(self._service_identity)
         view["message"] = self._service_identity_message
@@ -3607,11 +3758,11 @@ class SuiteQtBridge(QObject):
             self._service_identity_error = ""
             await self._refresh_service_identity(conn)
             self._service_identity_message = _("SERVICEID_SAVED") + ((" " + _("SERVICEID_OFF_WARNING")) if not wanted else "")
-        self.changed.emit()
+        self.securityChanged.emit()
 
     # -- Switch of the loaded-model reports of DETECTION-HEF (administrators) ------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def detectionHefView(self) -> dict:
         view = detection_hef.view(self._detection_hef)
         view["message"] = self._detection_hef_message
@@ -3646,11 +3797,11 @@ class SuiteQtBridge(QObject):
             self._detection_hef_error = ""
             self._detection_hef = {"enabled": wanted, "locked": False}
             self._detection_hef_message = _("DETHEF_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Live Activity on the lock screen (administrators) -------------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def liveActivityView(self) -> dict:
         view = live_activity.view(self._live_activity)
         view["message"] = self._live_activity_message
@@ -3691,11 +3842,11 @@ class SuiteQtBridge(QObject):
             self._live_activity_error = ""
             self._live_activity = dict(state, enabled=change.get("enabled", state["enabled"]), level=change.get("level", state["level"]))
             self._live_activity_message = _("LIVEACT_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Live state of the twin through the server (any signed-in account, read only) ---------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def twinFeedView(self) -> dict:
         return twin_feed.view(self._twin_watching, self._twin_link, self._twin_state)
 
@@ -3705,7 +3856,7 @@ class SuiteQtBridge(QObject):
         save_config(twin_feed.config_update(self._twin_watching))
         self._twin_state = twin_feed.empty_state()
         self._restart_twin_feed()
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     def _restart_twin_feed(self) -> None:
         task, self._twin_task = self._twin_task, None
@@ -3722,11 +3873,11 @@ class SuiteQtBridge(QObject):
         if frame is None:
             return
         self._twin_state = twin_feed.apply_frame(self._twin_state, frame)
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     def _on_twin_open(self) -> None:
         self._twin_link = "live"
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     async def _run_twin_feed(self) -> None:
         while self._twin_watching:
@@ -3735,7 +3886,7 @@ class SuiteQtBridge(QObject):
                 await asyncio.sleep(twin_feed.RECONNECT_S)
                 continue
             self._twin_link = "connecting"
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             try:
                 code = await conn.watch_twin_feed(self._on_twin_frame, self._on_twin_open)
             except asyncio.CancelledError:
@@ -3745,7 +3896,7 @@ class SuiteQtBridge(QObject):
                 code = None
             end = twin_feed.end_for_close_code(code)
             self._twin_link = end
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             if not twin_feed.retries(end):
                 return
             await asyncio.sleep(twin_feed.RECONNECT_S)
@@ -3761,7 +3912,7 @@ class SuiteQtBridge(QObject):
         self._tool_arms_error = tool_arms.status_for(result)
         self._tool_arms = tool_arms.parse_report(result[1]) if result is not None and not self._tool_arms_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def toolArmsView(self) -> dict:
         view = tool_arms.view(self._tool_arms)
         view["error"] = self._tool_arms_error
@@ -3793,7 +3944,7 @@ class SuiteQtBridge(QObject):
         self._hil_bridge_error = hil_bridge.status_for(result)
         self._hil_bridge = hil_bridge.parse_settings(result[1]) if result is not None and not self._hil_bridge_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def hilBridgeView(self) -> dict:
         view = hil_bridge.view(self._hil_bridge)
         view["message"] = self._hil_bridge_message
@@ -3833,7 +3984,7 @@ class SuiteQtBridge(QObject):
             self._hil_bridge_error = ""
             self._hil_bridge = hil_bridge.parse_settings(result[1])  # type: ignore[index]
             self._hil_bridge_message = _("HILBRIDGE_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Proposals of the node watchdog that wait for a person (administrators) ---------------
 
@@ -3850,7 +4001,7 @@ class SuiteQtBridge(QObject):
         self._ops_proposals_error = ops_proposals.status_for(result)
         self._ops_proposals = ops_proposals.parse_lists(result[1]) if result is not None and not self._ops_proposals_error else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def opsProposalsView(self) -> dict:
         view = ops_proposals.view(self._ops_proposals)
         view["message"] = self._ops_proposals_message
@@ -3872,7 +4023,7 @@ class SuiteQtBridge(QObject):
             return
         self._ops_proposals_message = ""
         await self._refresh_ops_proposals(conn)
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     @Slot(str, str)
     def decideOpsProposal(self, incident_id: str, decision: str) -> None:
@@ -3892,11 +4043,11 @@ class SuiteQtBridge(QObject):
             self._ops_proposals_error = problem
         else:
             self._ops_proposals_message = _("OPSPROP_APPROVED" if decision == "approved" else "OPSPROP_REJECTED", id=incident_id)
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Access options of the Server Admin screen -----------------------------------
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def securityView(self) -> dict:
         return server_security.view(self._security_state)
 
@@ -3912,15 +4063,15 @@ class SuiteQtBridge(QObject):
     def securityMqttModes(self) -> list[dict[str, str]]:
         return server_security.mqtt_mode_options()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def securityMessage(self) -> str:
         return self._security_message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def securityError(self) -> str:
         return self._security_error
 
-    @Property(str, notify=changed)
+    @Property(str, notify=securityChanged)
     def securityWarning(self) -> str:
         return self._security_warning
 
@@ -3968,6 +4119,64 @@ class SuiteQtBridge(QObject):
         else:
             self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=i18n_module.CONFIG_FILE_PATH), "warn")
         self.changed.emit()
+
+    # --- pinning of the certificate of a server (configuration file; off unless the person turns it on) ---
+
+    @Property("QVariantMap", notify=changed)
+    def tlsPinningView(self) -> dict:
+        enabled, pins = tls_pin.read_settings(load_config())
+        return {
+            "enabled": enabled,
+            "servers": [{"address": address, "fingerprint": entry["fingerprint"]} for address, entry in sorted(pins.items())],
+            "configFile": str(CONFIG_FILE_PATH),
+        }
+
+    def _save_tls_pinning(self, section: dict) -> None:
+        if save_config({tls_pin.CONFIG_KEY: section}):
+            self._set_notice(_("TLS_PIN_SAVED"), "info")
+        else:
+            self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=CONFIG_FILE_PATH), "warn")
+        self.changed.emit()
+
+    @Slot(bool)
+    def setTlsPinningEnabled(self, enabled: bool) -> None:
+        self._save_tls_pinning(tls_pin.with_enabled(load_config(), enabled))
+
+    @Slot(str, str)
+    def pinServerCertificate(self, address: str, fingerprint: str) -> None:
+        """Reads the certificate the server at `address` (host or host:port) shows and pins it; with a fingerprint typed, only if it matches."""
+        host, port = self._split_server_address(address)
+        if not host:
+            self._set_notice(_("TLS_PIN_BAD_ADDRESS"), "warn")
+            return
+        asyncio.ensure_future(self._pin_server_certificate(host, port, fingerprint.strip()))
+
+    async def _pin_server_certificate(self, host: str, port: int, fingerprint: str) -> None:
+        loop = asyncio.get_running_loop()
+        try:
+            pem, _shown = await loop.run_in_executor(None, tls_pin.fetch_certificate, host, port)
+            section = tls_pin.pin_entry(load_config(), host, port, pem, expected_fingerprint=fingerprint)
+        except tls_pin.PinError as error:
+            self._set_notice(_("TLS_PIN_FAILED", reason=str(error)), "warn")
+            return
+        self._save_tls_pinning(section)
+
+    @Slot(str)
+    def unpinServer(self, address: str) -> None:
+        host, port = self._split_server_address(address)
+        if not host:
+            self._set_notice(_("TLS_PIN_BAD_ADDRESS"), "warn")
+            return
+        self._save_tls_pinning(tls_pin.unpin_entry(load_config(), host, port))
+
+    @staticmethod
+    def _split_server_address(address: str) -> tuple[str, int]:
+        text = address.strip()
+        host, _sep, port_text = text.rpartition(":")
+        if not _sep or not port_text.isdigit():
+            host, port_text = text, "3000"
+        port = int(port_text)
+        return (host.strip(), port) if host.strip() and 0 < port < 65536 else ("", 0)
 
     @Slot(bool, result=bool)
     def infoAuthNeedsConfirmation(self, new_value: bool) -> bool:
@@ -4106,7 +4315,7 @@ class SuiteQtBridge(QObject):
         self._developer_nodes_problem = developer_node_status.status_for(result)
         self._developer_nodes = developer_node_status.parse_status(result[1]) if result is not None and not self._developer_nodes_problem else None
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=adminSwitchesChanged)
     def developerNodesView(self) -> dict:
         return developer_node_status.view(self._developer_nodes, self._developer_nodes_problem)
 
@@ -4213,6 +4422,13 @@ class SuiteQtBridge(QObject):
         asyncio.ensure_future(self._save_security(server_security.twin_relay_patch(enabled)))
 
     @Slot(bool)
+    def saveNodeHealthOptions(self, enabled: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("nodeHealth"):
+            return
+        asyncio.ensure_future(self._save_security(server_security.node_health_patch(enabled)))
+
+    @Slot(bool)
     def saveEcosystemHealthOptions(self, enabled: bool) -> None:
         state = self._security_state
         if state is None or not state.get("ecosystemHealth"):
@@ -4266,21 +4482,41 @@ class SuiteQtBridge(QObject):
         if patch is not None:
             asyncio.ensure_future(self._save_security(patch))
 
-    @Slot(bool, str, bool, str, result=bool)
-    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str) -> bool:
+    @staticmethod
+    def _executor_switches(current: dict, exec_enabled: bool, exec_live: bool) -> dict:
+        """The executor switches to send: none for a server without them, and only those that the environment does not lock."""
+        executor = current.get("executor")
+        if not executor:
+            return {}
+        return {
+            "executor_enabled": None if server_security.is_locked(executor["enabled"]["source"]) else bool(exec_enabled),
+            "executor_live": None if server_security.is_locked(executor["live"]["source"]) else bool(exec_live),
+        }
+
+    @Slot(bool, str, bool, str, bool, bool, result=bool)
+    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> bool:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return False
         current = state["jobDispatcher"]
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text)
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live))
         return patch is not None and server_security.job_dispatcher_needs_confirmation(current, patch)
 
-    @Slot(bool, str, bool, str)
-    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str) -> None:
+    @Slot(bool, str, bool, str, bool, bool, result=bool)
+    def jobExecutorGoesLive(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> bool:
+        state = self._security_state
+        if state is None or not state.get("jobDispatcher"):
+            return False
+        current = state["jobDispatcher"]
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live))
+        return patch is not None and server_security.job_executor_goes_live(current, patch)
+
+    @Slot(bool, str, bool, str, bool, bool)
+    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> None:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text)
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(state["jobDispatcher"], exec_enabled, exec_live))
         if patch is None:
             self._security_message = ""
             self._security_warning = ""
@@ -4388,7 +4624,7 @@ class SuiteQtBridge(QObject):
                 if state is not None:
                     self._security_state = state
                 self._security_warning = server_security.known_warning(body.get("warnings"))
-                self._security_message = _("SECURITY_SAVED")
+                self._security_message = _("COMMON_SAVED")
                 if self._dispatcher_reload_pending():
                     asyncio.ensure_future(self._follow_dispatcher_reload())
         self.changed.emit()
@@ -4427,19 +4663,19 @@ class SuiteQtBridge(QObject):
             port = int(text)
         except ValueError:
             self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_INVALID")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         if not (1 <= port <= 65535):
             self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_INVALID")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         result = await conn.save_admin_server_port(port)
         if result is None or result[0] != 200:
             self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         self._admin_server_status_text = _("MSG_ADMIN_SERVER_PORT_SAVED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     @Slot()
     def restartAdminServer(self) -> None:
@@ -4452,34 +4688,34 @@ class SuiteQtBridge(QObject):
         result = await conn.restart_server()
         if result is None or result[0] != 200:
             self._admin_server_status_text = _("MSG_ADMIN_LOAD_ERROR")
-            self.changed.emit()
+            self.adminSwitchesChanged.emit()
             return
         self._admin_server_status_text = _("MSG_ADMIN_SERVER_RESTART_REQUESTED")
-        self.changed.emit()
+        self.adminSwitchesChanged.emit()
 
     # -- Ecosystem Services --------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def esStatusText(self) -> str:
         return self._es_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def esRefreshing(self) -> bool:
         return self._es_refreshing
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def esFamilyFilter(self) -> str:
         return self._es_family_filter or ""
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=ecosystemChanged)
     def esFamilies(self) -> list[str]:
         return sorted({p.get("family") for p in self._es_projects if p.get("family")})
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def esShowStats(self) -> bool:
         return len(self._es_projects) > 0
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=ecosystemChanged)
     def esStats(self) -> dict[str, int]:
         return {
             "total": len(self._es_projects),
@@ -4491,7 +4727,7 @@ class SuiteQtBridge(QObject):
             "na": sum(1 for p in self._es_projects if _health(p) == "slate"),
         }
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def esGroups(self) -> list[dict[str, object]]:
         needle = self._es_search.strip().lower()
         filtered = [
@@ -4543,41 +4779,41 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._es_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._es_refreshing = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.fetch_ecosystem_status()
         finally:
             self._es_refreshing = False
         if result is None:
             self._es_status_text = _("MSG_ES_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status != 200 or not isinstance(body, dict):
             self._es_status_text = _("MSG_ES_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         if not body.get("available"):
             self._es_status_text = _("MSG_ES_UNAVAILABLE")
             self._es_projects = []
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._es_projects = body.get("projects") or []
         self._es_status_text = _("LBL_ES_SCANNED_AT", time=body.get("scannedAt") or "-")
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(str)
     def setEsFamilyFilter(self, family: str) -> None:
         self._es_family_filter = family or None
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(str)
     def setEsSearch(self, text: str) -> None:
         self._es_search = text
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(str, str)
     def runEsServiceAction(self, unit: str, action: str) -> None:
@@ -4589,20 +4825,20 @@ class SuiteQtBridge(QObject):
             return
         self._es_actioning_unit = unit
         self._es_action_error = None
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.control_service(unit, action)
         finally:
             self._es_actioning_unit = None
         if result is None:
             self._es_action_error = (unit, _("MSG_SERVICES_ACTION_ERROR"))
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status != 200:
             message = body.get("error") if isinstance(body, dict) else None
             self._es_action_error = (unit, message or f"HTTP {status}")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         await self._refresh_ecosystem_services()
 
@@ -4614,7 +4850,7 @@ class SuiteQtBridge(QObject):
 
     planStructureChanged = Signal()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planVisible(self) -> bool:
         conn = self._controller.active_connection
         return conn is not None and conn.role == "admin"
@@ -4623,75 +4859,75 @@ class SuiteQtBridge(QObject):
     def planStructure(self) -> list[int]:
         return list(range(len(self._plan_rows)))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planLoaded(self) -> bool:
         return self._plan_state is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planFailureText(self) -> str:
         return self._plan_failure
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planNoticeText(self) -> str:
         return self._plan_notice
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planEffectsText(self) -> str:
         return self._plan_effects_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planBusy(self) -> bool:
         return self._plan_busy
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planConfirming(self) -> bool:
         return self._plan_confirming
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planConfirmText(self) -> str:
         return _("PLAN_CONFIRM_DELETE_MESSAGE") if self._plan_turning_delete_on() else _("PLAN_CONFIRM_MESSAGE")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planDeleteOn(self) -> bool:
         return self._plan_delete
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planAllowDelete(self) -> bool:
         return bool(self._plan_state and self._plan_state["allowDelete"])
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planFineEnabled(self) -> bool:
         return not self._plan_state or self._plan_state["fineRollups"]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planModeText(self) -> str:
         if not self._plan_state:
             return ""
         return _("PLAN_MODE_DELETE") if self._plan_state["mode"] == "delete" else _("PLAN_MODE_DRYRUN")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planKnownKindsText(self) -> str:
         kinds = self._plan_state["knownKinds"] if self._plan_state else []
         return _("PLAN_KNOWN_KINDS", kinds=", ".join(kinds)) if kinds else ""
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=ecosystemChanged)
     def planIssueLines(self) -> list[str]:
         return [self._plan_issue_line(i) for i in self._plan_issues()]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def planIssueSummary(self) -> str:
         count = len(self._plan_issues())
         return _("PLAN_INVALID_COUNT", count=count) if count else _("PLAN_VALID")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planValid(self) -> bool:
         return self._plan_state is not None and not self._plan_issues()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def planCanSave(self) -> bool:
         return self.planValid and self._plan_changed() and not self._plan_busy
 
-    @Property("QStringList", notify=changed)
+    @Property("QStringList", notify=ecosystemChanged)
     def planAuditLines(self) -> list[str]:
         if not self._plan_state:
             return []
@@ -4745,7 +4981,7 @@ class SuiteQtBridge(QObject):
     def _plan_touch(self) -> None:
         self._plan_notice = ""
         self._plan_effects_text = ""
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot()
     def loadDownsamplePlan(self) -> None:
@@ -4756,7 +4992,7 @@ class SuiteQtBridge(QObject):
         if conn is None or conn.role != "admin":
             return
         self._plan_busy = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             result = await conn.fetch_downsample_plan()
         finally:
@@ -4776,7 +5012,7 @@ class SuiteQtBridge(QObject):
                 kind = downsample_failure(status, body) if status != 200 else "malformed"
                 self._plan_failure = self._plan_failure_text(kind, status, downsample_failure_details(body))
         self.planStructureChanged.emit()
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot(int, str, str)
     def setPlanCell(self, row: int, key: str, value: str) -> None:
@@ -4815,7 +5051,7 @@ class SuiteQtBridge(QObject):
     @Slot()
     def cancelSaveDownsamplePlan(self) -> None:
         self._plan_confirming = False
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     @Slot()
     def confirmSaveDownsamplePlan(self) -> None:
@@ -4829,7 +5065,7 @@ class SuiteQtBridge(QObject):
             return
         self._plan_busy = True
         self._plan_notice = ""
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         body = {
             "plan": draft_to_downsample_plan(self._plan_rows, self._plan_delete),
             "expectedHash": state["hash"],
@@ -4841,7 +5077,7 @@ class SuiteQtBridge(QObject):
             self._plan_busy = False
         if result is None:
             self._plan_failure = self._plan_failure_text("network")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, answer = result
         effects = read_downsample_effects(answer) if status == 200 else None
@@ -4849,7 +5085,7 @@ class SuiteQtBridge(QObject):
             kind = downsample_failure(status, answer) if status != 200 else "malformed"
             self._plan_failure = self._plan_failure_text(kind, status, downsample_failure_details(answer))
             self._plan_effects_text = ""
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         self._plan_failure = ""
         if preview:
@@ -4858,19 +5094,19 @@ class SuiteQtBridge(QObject):
                 lines.append(_("PLAN_EFFECTS", raw=effects["raw"], rollups=effects["rollups"], fine=effects["fine"]))
             self._plan_effects_text = "\n".join(lines)
             self._plan_confirming = then_confirm
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         await self._load_downsample_plan()
         self._plan_notice = _("PLAN_SAVED") if effects["saved"] else _("PLAN_UNCHANGED")
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     # -- Ecosystem Telemetry -------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def telemetryStatusText(self) -> str:
         return self._tel_status_text
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def telemetryRunning(self) -> bool:
         return self._tel_running
 
@@ -4882,23 +5118,23 @@ class SuiteQtBridge(QObject):
     def telemetryRangePresets(self) -> list[dict[str, object]]:
         return [{"label": label, "ms": ms} for label, ms in _RANGE_PRESETS]
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=ecosystemChanged)
     def telemetryShowStats(self) -> bool:
         return bool(self._tel_stats)
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=ecosystemChanged)
     def telemetryStats(self) -> dict[str, str]:
         return self._tel_stats
 
-    @Property(str, notify=changed)
+    @Property(str, notify=ecosystemChanged)
     def telemetryChartMode(self) -> str:
         return self._tel_chart_mode
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def telemetryLinePoints(self) -> list[dict[str, float]]:
         return self._tel_line_points
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=ecosystemChanged)
     def telemetryBars(self) -> list[dict[str, object]]:
         return self._tel_bars
 
@@ -4916,7 +5152,7 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._tel_status_text = _("LBL_ES_NO_ACTIVE_SERVER")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         is_aggregate = mode == "aggregate"
         params: dict[str, str] = {}
@@ -4932,7 +5168,7 @@ class SuiteQtBridge(QObject):
             params["end"] = end
 
         self._tel_running = True
-        self.changed.emit()
+        self.ecosystemChanged.emit()
         try:
             if is_aggregate:
                 if not (kind and field and start and end):
@@ -4945,22 +5181,22 @@ class SuiteQtBridge(QObject):
                 result = await conn.fetch_telemetry_query(params)
         finally:
             self._tel_running = False
-            self.changed.emit()
+            self.ecosystemChanged.emit()
 
         if result is None:
             self._tel_status_text = _("MSG_TELEMETRY_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         status, body = result
         if status == 503 and isinstance(body, dict) and body.get("available") is False:
             self._tel_status_text = _("MSG_TELEMETRY_NOT_CONFIGURED")
             self._render_empty_telemetry_chart()
             self._update_telemetry_stats([])
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
         if status != 200 or not isinstance(body, list):
             self._tel_status_text = _("MSG_TELEMETRY_LOAD_ERROR")
-            self.changed.emit()
+            self.ecosystemChanged.emit()
             return
 
         self._tel_status_text = "" if body else _("MSG_TELEMETRY_NO_DATA")
@@ -4970,7 +5206,7 @@ class SuiteQtBridge(QObject):
         else:
             self._render_telemetry_line_chart(body)
             self._update_telemetry_stats([float(p.get("value", 0)) for p in body])
-        self.changed.emit()
+        self.ecosystemChanged.emit()
 
     def _render_empty_telemetry_chart(self) -> None:
         self._tel_chart_mode = "empty"
@@ -5032,7 +5268,7 @@ class SuiteQtBridge(QObject):
         self._xy_robots_cache = robots
         if self._xy_selected_robot_id not in {r.id for r in robots}:
             self._xy_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.xyTableChanged.emit()
 
     def _xy_selected_robot(self) -> RobotView | None:
         for r in self._xy_robots_cache:
@@ -5040,11 +5276,11 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=xyTableChanged)
     def xyRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._xy_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=xyTableChanged)
     def xySelectedRobotId(self) -> str:
         return self._xy_selected_robot_id or ""
 
@@ -5054,48 +5290,48 @@ class SuiteQtBridge(QObject):
             self._xy_selected_robot_id = robot_id or None
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyHasRobot(self) -> bool:
         return self._xy_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyHasTable(self) -> bool:
         robot = self._xy_selected_robot()
         return robot is not None and robot.has_xy_table
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyCanReset(self) -> bool:
         return self.xyHasRobot and self.xyHasTable
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=xyTableChanged)
     def xyTableControlsEnabled(self) -> bool:
         """The jog and size controls need a stored table: right after the table is enabled there is only the flag,
         and Reset writes the default table that makes them work."""
         robot = self._xy_selected_robot()
         return robot is not None and robot.has_xy_table and robot.xy_table is not None
 
-    @Property(int, notify=changed)
+    @Property(int, notify=xyTableChanged)
     def xyWidth(self) -> int:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
         size = table["tableSize"] if table else {}
         return int(size.get("width", _XY_DISPLAY_DEFAULT_SIZE_MM))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=xyTableChanged)
     def xyLength(self) -> int:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
         size = table["tableSize"] if table else {}
         return int(size.get("length", _XY_DISPLAY_DEFAULT_SIZE_MM))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=xyTableChanged)
     def xyPosX(self) -> str:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
         pos = table["pos"] if table else {"x": 0, "y": 0}
         return f"{float(pos.get('x', 0)):.2f}"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=xyTableChanged)
     def xyPosY(self) -> str:
         robot = self._xy_selected_robot()
         table = robot.xy_table if robot is not None else None
@@ -5241,7 +5477,7 @@ class SuiteQtBridge(QObject):
         self._rack_robots_cache = robots
         if self._rack_selected_robot_id not in {r.id for r in robots}:
             self._rack_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.rackChanged.emit()
 
     def _rack_selected_robot(self) -> RobotView | None:
         for r in self._rack_robots_cache:
@@ -5249,11 +5485,11 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=rackChanged)
     def rackRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._rack_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=rackChanged)
     def rackSelectedRobotId(self) -> str:
         return self._rack_selected_robot_id or ""
 
@@ -5263,11 +5499,11 @@ class SuiteQtBridge(QObject):
             self._rack_selected_robot_id = robot_id or None
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=rackChanged)
     def rackHasRobot(self) -> bool:
         return self._rack_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=rackChanged)
     def rackEnabled(self) -> bool:
         robot = self._rack_selected_robot()
         return robot is not None and bool(robot.rack_system.get("enabled"))
@@ -5280,7 +5516,7 @@ class SuiteQtBridge(QObject):
     def rackTypeLabels(self) -> list[str]:
         return [_("LBL_DISABLED"), _("LBL_INPUT_RACK"), _("LBL_OUTPUT_RACK")]
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=rackChanged)
     def rackData(self) -> list[dict[str, object]]:
         robot = self._rack_selected_robot()
         if robot is None or not robot.rack_system.get("enabled"):
@@ -5434,7 +5670,7 @@ class SuiteQtBridge(QObject):
         self._pnp_robots_cache = robots
         if self._pnp_selected_robot_id not in {r.id for r in robots}:
             self._pnp_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.pnpChanged.emit()
 
     def _pnp_selected_robot(self) -> RobotView | None:
         for r in self._pnp_robots_cache:
@@ -5442,11 +5678,11 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=pnpChanged)
     def pnpRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.model} (A{r.id})"} for r in self._pnp_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=pnpChanged)
     def pnpSelectedRobotId(self) -> str:
         return self._pnp_selected_robot_id or ""
 
@@ -5460,11 +5696,11 @@ class SuiteQtBridge(QObject):
     def pnpMachineOptions(self) -> list[dict[str, str]]:
         return [{"key": key, "label": MACHINE_LABELS[key]} for key in MACHINE_TYPES]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=pnpChanged)
     def pnpMachineType(self) -> str:
         return self._pnp_machine_type
 
-    @Property(str, notify=changed)
+    @Property(str, notify=pnpChanged)
     def pnpMachineLabel(self) -> str:
         return MACHINE_LABELS.get(self._pnp_machine_type, self._pnp_machine_type)
 
@@ -5474,20 +5710,20 @@ class SuiteQtBridge(QObject):
             self._pnp_machine_type = machine_type
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=pnpChanged)
     def pnpHasRobot(self) -> bool:
         return self._pnp_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=pnpChanged)
     def pnpEnabled(self) -> bool:
         robot = self._pnp_selected_robot()
         return robot is not None and robot.module_enabled(self._pnp_machine_type)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=pnpChanged)
     def pnpCanReset(self) -> bool:
         return self.pnpHasRobot and self.pnpEnabled
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=pnpChanged)
     def pnpAxisData(self) -> list[dict[str, object]]:
         """One row per PNP_AXES entry, spec + current value fused - same
         real fixed hardware bounds as PNP_AXES of
@@ -5557,7 +5793,7 @@ class SuiteQtBridge(QObject):
 
     def _on_kbs_state_changed(self, state: HydraState) -> None:
         self._kbs_controller = state.active_controller
-        self.changed.emit()
+        self.kbsChanged.emit()
 
     def _kbs_stage(self) -> dict:
         """The stage of the controller with whatever the server left out (or sent as another type) read as the
@@ -5575,11 +5811,11 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsHasController(self) -> bool:
         return self._kbs_controller is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsAxisData(self) -> list[dict[str, str]]:
         xy = self._kbs_stage().get("xyTable", {})
         return [{"axis": axis, "label": axis.upper(), "value": f"{float(xy.get(axis, 0)):.2f}"} for axis in _KBS_AXIS_KEYS]
@@ -5603,15 +5839,15 @@ class SuiteQtBridge(QObject):
         xy[axis] = _clamp(next_value, 0, float(bound))
         self._kbs_patch({"xyTable": xy})
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTableWidth(self) -> int:
         return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("width", 0))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTableLength(self) -> int:
         return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("length", 0))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTableHeight(self) -> int:
         return int(self._kbs_stage().get("xyTable", {}).get("tableSize", {}).get("height", 0))
 
@@ -5625,15 +5861,15 @@ class SuiteQtBridge(QObject):
         stage["xyTable"]["tableSize"][field] = _clamp(value, lo, hi)
         self._kbs_patch({"xyTable": stage["xyTable"]})
 
-    @Property(str, notify=changed)
+    @Property(str, notify=kbsChanged)
     def kbsTherm1(self) -> str:
         return f"{float(self._kbs_stage().get('heatedBed', {}).get('currentTemp1', 0)):.1f}°C"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=kbsChanged)
     def kbsTherm2(self) -> str:
         return f"{float(self._kbs_stage().get('heatedBed', {}).get('currentTemp2', 0)):.1f}°C"
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsTargetTemp(self) -> int:
         return int(self._kbs_stage().get("heatedBed", {}).get("targetTemp", 0))
 
@@ -5645,7 +5881,7 @@ class SuiteQtBridge(QObject):
         bed["targetTemp"] = access.clamp_bed_target(value, self._bed_ceiling())
         self._kbs_patch({"heatedBed": bed})
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsSsrOn(self) -> bool:
         return bool(self._kbs_stage().get("heatedBed", {}).get("ssrActive"))
 
@@ -5657,15 +5893,15 @@ class SuiteQtBridge(QObject):
         bed["ssrActive"] = not bed.get("ssrActive")
         self._kbs_patch({"heatedBed": bed})
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsAtcIndex(self) -> int:
         return int(self._kbs_stage().get("atcRevolver", {}).get("currentIndex", 0)) + 1
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsToolCount(self) -> int:
         return int(self._kbs_stage().get("atcRevolver", {}).get("toolCount", 6))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsHomed(self) -> bool:
         return bool(self._kbs_stage().get("atcRevolver", {}).get("homed"))
 
@@ -5692,15 +5928,15 @@ class SuiteQtBridge(QObject):
         atc["toolCount"] = _clamp(value, 2, 16)
         self._kbs_patch({"atcRevolver": atc})
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsConveyorInstalled(self) -> bool:
         return bool(self._kbs_stage().get("conveyor", {}).get("installed"))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=kbsChanged)
     def kbsConveyorRunning(self) -> bool:
         return bool(self._kbs_stage().get("conveyor", {}).get("running"))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=kbsChanged)
     def kbsConveyorSpeed(self) -> int:
         return int(self._kbs_stage().get("conveyor", {}).get("speedPercent", 0))
 
@@ -5728,7 +5964,7 @@ class SuiteQtBridge(QObject):
         conveyor["speedPercent"] = value
         self._kbs_patch({"conveyor": conveyor})
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsEndstopData(self) -> list[dict[str, object]]:
         endstops = self._kbs_stage().get("endstops", {})
         return [{"key": key, "label": label, "active": bool(endstops.get(key))} for key, label in ENDSTOP_ENTRIES]
@@ -5742,15 +5978,15 @@ class SuiteQtBridge(QObject):
         group[index] = not group[index]
         self._kbs_patch({group_key: group})
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsFans(self) -> list[bool]:
         return list(self._kbs_stage().get("fans", []))
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsPumps(self) -> list[bool]:
         return list(self._kbs_stage().get("pumps", []))
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=kbsChanged)
     def kbsValves(self) -> list[bool]:
         return list(self._kbs_stage().get("valves", []))
 
@@ -5776,7 +6012,7 @@ class SuiteQtBridge(QObject):
             self._module_robots_cache[key] = robots
             if self._module_selected_robot_id[key] not in ids:
                 self._module_selected_robot_id[key] = robots[0].id if robots else None
-        self.changed.emit()
+        self.moduleChanged.emit()
 
     def _active_module_key(self) -> str | None:
         return self._active_key if self._active_key in _MODULE_CONFIGS else None
@@ -5788,12 +6024,12 @@ class SuiteQtBridge(QObject):
                 return r
         return None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=moduleChanged)
     def moduleRobotOptions(self) -> list[dict[str, str]]:
         key = self._active_module_key()
         return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._module_robots_cache.get(key, [])] if key else []
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleSelectedRobotId(self) -> str:
         key = self._active_module_key()
         return (self._module_selected_robot_id.get(key) or "") if key else ""
@@ -5805,27 +6041,27 @@ class SuiteQtBridge(QObject):
             self._module_selected_robot_id[key] = robot_id or None
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleHeadingKey(self) -> str:
         key = self._active_module_key()
         return str(_MODULE_CONFIGS[key]["heading"]) if key else ""
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleMachineName(self) -> str:
         key = self._active_module_key()
         return str(_MODULE_CONFIGS[key]["machine"]) if key else ""
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleExtraKind(self) -> str:
         key = self._active_module_key()
         return str(_MODULE_CONFIGS[key]["extra"]) if key else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleHasRobot(self) -> bool:
         key = self._active_module_key()
         return key is not None and self._module_selected_robot(key) is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleEnabled(self) -> bool:
         key = self._active_module_key()
         if key is None:
@@ -5847,11 +6083,11 @@ class SuiteQtBridge(QObject):
         size = robot.module(_MODULE_CONFIGS[key]["module_key"]).get("size") or {}
         return int(size.get(field, DEFAULT_SIZE_MM))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleWidth(self) -> int:
         return self._module_size_field("width")
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleLength(self) -> int:
         return self._module_size_field("length")
 
@@ -5963,19 +6199,19 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
 
     # Heated Bed's own extra fields.
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleTargetTemp(self) -> int:
         return int(self._module_extra_value("targetTemp", _HB_DEFAULT_TARGET_TEMP_C))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleSsrOn(self) -> bool:
         return bool(self._module_extra_value("ssrActive", False))
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleTherm1(self) -> str:
         return f"{float(self._module_extra_value('currentTemp1', _HB_DEFAULT_AMBIENT_TEMP_C)):.1f} °C"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def moduleTherm2(self) -> str:
         return f"{float(self._module_extra_value('currentTemp2', _HB_DEFAULT_AMBIENT_TEMP_C)):.1f} °C"
 
@@ -5983,7 +6219,7 @@ class SuiteQtBridge(QObject):
     def setModuleTargetTemp(self, value: int) -> None:
         self._set_module_extra_field("targetTemp", access.clamp_bed_target(value, self.moduleBedCeiling))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def moduleBedCeiling(self) -> int:
         """The hottest target the server allows for the model of the robot whose heated bed is open."""
         conn = self._controller.active_connection
@@ -5993,7 +6229,7 @@ class SuiteQtBridge(QObject):
             return int(access.SafetyLimits().bed_default_c)
         return int(access.bed_max_for(conn.safety.limits, robot.model if robot is not None else None))
 
-    @Property(int, notify=changed)
+    @Property(int, notify=moduleChanged)
     def kbsBedCeiling(self) -> int:
         """The hottest target the server allows any model: the Kinematic Brain Stage has no single robot."""
         return int(self._bed_ceiling())
@@ -6007,7 +6243,7 @@ class SuiteQtBridge(QObject):
     def heatedModelOptions(self):
         return [{"id": m["id"], "label": m["label"]} for m in HEATED_BED_MODELS]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def heatedModelId(self):
         return heated_bed_model(self._module_extra_value("modelId", None))["id"]
 
@@ -6026,7 +6262,7 @@ class SuiteQtBridge(QObject):
     def vacuumModelOptions(self):
         return [{"id": model["id"], "label": model["label"]} for model in VACUUM_TABLE_MODELS]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=moduleChanged)
     def vacuumModelId(self):
         return vacuum_table_model(self._module_extra_value("modelId", None))["id"]
 
@@ -6136,11 +6372,11 @@ class SuiteQtBridge(QObject):
             self.refreshVacuumPreview()
 
     # Vacuum Table's own extra fields.
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def modulePumpOn(self) -> bool:
         return bool(self._module_extra_value("pumpActive", False))
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=moduleChanged)
     def moduleValveOn(self) -> bool:
         return bool(self._module_extra_value("valveActive", False))
 
@@ -6160,7 +6396,7 @@ class SuiteQtBridge(QObject):
         self._atc_robots_cache = robots
         if self._atc_selected_robot_id not in {r.id for r in robots}:
             self._atc_selected_robot_id = robots[0].id if robots else None
-        self.changed.emit()
+        self.atcChanged.emit()
 
     def _atc_selected_robot(self) -> RobotView | None:
         for r in self._atc_robots_cache:
@@ -6197,11 +6433,11 @@ class SuiteQtBridge(QObject):
         except (ValueError, TypeError):
             return 8
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=atcChanged)
     def atcRobotOptions(self) -> list[dict[str, str]]:
         return [{"id": r.id, "label": f"{r.id} — {r.model}"} for r in self._atc_robots_cache]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcSelectedRobotId(self) -> str:
         return self._atc_selected_robot_id or ""
 
@@ -6212,16 +6448,16 @@ class SuiteQtBridge(QObject):
             self._atc_editing_slot = None
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcHasRobot(self) -> bool:
         return self._atc_selected_robot() is not None
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcConfigured(self) -> bool:
         robot = self._atc_selected_robot()
         return robot is not None and robot.atc is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcType(self) -> str:
         return str(self._atc_config().get("type", "vertical_panel"))
 
@@ -6230,11 +6466,11 @@ class SuiteQtBridge(QObject):
         labels = {"vertical_panel": "LBL_ATC_VERTICAL", "horizontal_panel": "LBL_ATC_HORIZONTAL", "revolver": "LBL_ATC_REVOLVER"}
         return [{"key": k, "labelKey": labels[k]} for k in _ATC_TYPE_KEYS]
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcIsPanel(self) -> bool:
         return self.atcType in ("vertical_panel", "horizontal_panel")
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcPanelGrid(self) -> str:
         return str(self._atc_config().get("panelGrid", "2x2"))
 
@@ -6242,7 +6478,7 @@ class SuiteQtBridge(QObject):
     def atcPanelGridOptions(self) -> list[str]:
         return list(PANEL_GRIDS)
 
-    @Property(int, notify=changed)
+    @Property(int, notify=atcChanged)
     def atcRevolverSlots(self) -> int:
         return int(self._atc_config().get("revolverSlots", 8) or 8)
 
@@ -6250,16 +6486,16 @@ class SuiteQtBridge(QObject):
     def atcToolOptions(self) -> list[str]:
         return list(URTC_TOOLS)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcHasXyTable(self) -> bool:
         robot = self._atc_selected_robot()
         return bool(robot is not None and robot.has_xy_table)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcEditingSlotKey(self) -> str:
         return "" if self._atc_editing_slot is None else str(self._atc_editing_slot)
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=atcChanged)
     def atcSlotsData(self) -> list[dict[str, object]]:
         if not self.atcConfigured:
             return []  # matches _refresh_controls()'s own real early-return before any config exists
@@ -6282,12 +6518,12 @@ class SuiteQtBridge(QObject):
             })
         return result
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=atcChanged)
     def atcBasePos(self) -> list[dict[str, object]]:
         config = self._atc_config()
         return self._atc_pos_fields(config.get("revolverPos") or _default_pos(), self.atcHasXyTable)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=atcChanged)
     def atcBaseEditing(self) -> bool:
         return self._atc_editing_slot == "revolver"
 
@@ -6399,7 +6635,7 @@ class SuiteQtBridge(QObject):
         with open(local_path, "w", encoding="utf-8") as f:
             json.dump(self._atc_config(), f, indent=2)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=atcChanged)
     def atcLoadError(self) -> str:
         return self._atc_load_error
 
@@ -6458,7 +6694,7 @@ class SuiteQtBridge(QObject):
                 self._ensure_camera_stream(camera.id)
             else:
                 self._stop_camera_stream(camera.id)
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     def _camera_stream_url(self, camera_id: int) -> str | None:
         conn = self._controller.active_connection
@@ -6530,7 +6766,7 @@ class SuiteQtBridge(QObject):
         label = _(label_keys[state]) if state in label_keys else state.upper()
         return f"● {label}", color
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=cameraCardsChanged)
     def cameraRobotOptions(self) -> list[dict[str, str]]:
         state = self._controller.active_state
         active = state.active_controller if state else None
@@ -6539,7 +6775,7 @@ class SuiteQtBridge(QObject):
         options += [{"id": str(r.id), "label": f"{r.model} (A{r.id})"} for r in robots]
         return options
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=cameraCardsChanged)
     def camerasData(self) -> list[dict[str, object]]:
         state = self._controller.active_state
         active = state.active_controller if state else None
@@ -6626,7 +6862,7 @@ class SuiteQtBridge(QObject):
             self._ensure_camera_stream(camera_id)
         else:
             self._stop_camera_stream(camera_id)
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
         self._camerasChanged.emit()
 
     @Slot(int, str)
@@ -6652,7 +6888,7 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         if camera.connected:
             self._ensure_camera_stream(camera_id)
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str, "QVariant")
     def setCameraField(self, camera_id: int, field: str, value) -> None:
@@ -6668,7 +6904,7 @@ class SuiteQtBridge(QObject):
             return
         setter(value)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str)
     def setCameraSourceType(self, camera_id: int, value: str) -> None:
@@ -6682,7 +6918,7 @@ class SuiteQtBridge(QObject):
             if current_type != new_type:
                 camera.set_camera_type(new_type)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str)
     def setCameraAssignedRobot(self, camera_id: int, robot_id: str) -> None:
@@ -6691,7 +6927,7 @@ class SuiteQtBridge(QObject):
             return
         camera.set_assigned_robot_id(int(robot_id) if robot_id else None)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, int, str)
     def setCameraExtraPath(self, camera_id: int, index: int, value: str) -> None:
@@ -6711,7 +6947,7 @@ class SuiteQtBridge(QObject):
         if index == active_index:
             camera.set_rtsp_path(value)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int)
     def discoverUsbDevices(self, camera_id: int) -> None:
@@ -6721,29 +6957,29 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._camera_discovery_status[camera_id] = (_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         self._camera_usb_devices[camera_id] = []
         self._camera_discovery_status[camera_id] = (_("LBL_DISCOVERING"), "#8a97a6")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
         self._camera_discovery_tasks[camera_id] = asyncio.ensure_future(self._run_discover_usb(camera_id, conn))
 
     async def _run_discover_usb(self, camera_id: int, conn: HydraConnection) -> None:
         result = await conn.discover_usb_devices()
         if result is None:
             self._camera_discovery_status[camera_id] = (_("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         status, body = result
         devices = body.get("devices") if status == 200 and isinstance(body, dict) else None
         if status != 200 or not isinstance(devices, list):
             message = body.get("error") if isinstance(body, dict) else None
             self._camera_discovery_status[camera_id] = (str(message) if message else _("MSG_USB_DISCOVERY_FAILED"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         if not devices:
             self._camera_discovery_status[camera_id] = (_("MSG_NO_USB_DEVICES_FOUND"), "#f59e0b")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         options = []
         for device in devices:
@@ -6757,7 +6993,7 @@ class SuiteQtBridge(QObject):
             options.append({"label": label, "value": index})
         self._camera_usb_devices[camera_id] = options
         self._camera_discovery_status[camera_id] = ("", "#8a97a6")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, int)
     def pickUsbDevice(self, camera_id: int, index: int) -> None:
@@ -6770,7 +7006,7 @@ class SuiteQtBridge(QObject):
         value = str(index) if sys.platform == "win32" else f"/dev/video{index}"
         camera.set_hardware_source(value)
         self._controller.push_active_state()
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, str, int, str, str)
     def discoverRtspPath(self, camera_id: int, host: str, port: int, username: str, password: str) -> None:
@@ -6780,14 +7016,14 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         if conn is None:
             self._camera_discovery_status[camera_id] = (_("MSG_ADMIN_LOAD_ERROR"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         if not host.strip():
             self._camera_discovery_status[camera_id] = (_("LBL_IP_HOST"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         self._camera_discovery_status[camera_id] = (_("LBL_DISCOVERING"), "#8a97a6")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
         self._camera_discovery_tasks[camera_id] = asyncio.ensure_future(
             self._run_discover_rtsp(camera_id, conn, host, port, username, password)
         )
@@ -6796,7 +7032,7 @@ class SuiteQtBridge(QObject):
         result = await conn.discover_rtsp_path(host, port, username, password)
         if result is None:
             self._camera_discovery_status[camera_id] = (_("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         status, body = result
         found_paths = body.get("paths") if isinstance(body, dict) else None
@@ -6808,17 +7044,17 @@ class SuiteQtBridge(QObject):
             camera.set_camera_type(ip_stream_labels(paths)[0])
             self._controller.push_active_state()
             self._camera_discovery_status[camera_id] = (_("MSG_RTSP_PATH_FOUND") + f": {', '.join(paths)}", "#10b981")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         if status == 200 and isinstance(body, dict):
             tried = body.get("triedPaths")
             suffix = f" ({', '.join(str(t) for t in tried)})" if isinstance(tried, list) and tried else ""
             self._camera_discovery_status[camera_id] = (_("MSG_RTSP_PATH_NOT_FOUND") + suffix, "#f59e0b")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         message = body.get("error") if isinstance(body, dict) else None
         self._camera_discovery_status[camera_id] = (str(message) if message else _("MSG_RTSP_DISCOVERY_FAILED"), "#ef4444")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     @Slot(int, int, int, int)
     def sendCameraPtz(self, camera_id: int, pan: int, tilt: int, zoom: int) -> None:
@@ -6832,16 +7068,16 @@ class SuiteQtBridge(QObject):
         result = await conn.send_ptz(camera_id, camera.ip_host, camera.ip_username, camera.ip_password, pan, tilt, zoom)
         if result is None:
             self._camera_ptz_error[camera_id] = _("MSG_PTZ_FAILED")
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         status, body = result
         if status == 200 and isinstance(body, dict) and body.get("ok") is True:
             self._camera_ptz_error.pop(camera_id, None)
-            self.changed.emit()
+            self.cameraCardsChanged.emit()
             return
         error = body.get("error") if isinstance(body, dict) else None
         self._camera_ptz_error[camera_id] = str(error) if error else _("MSG_PTZ_FAILED")
-        self.changed.emit()
+        self.cameraCardsChanged.emit()
 
     async def _poll_camera_status(self) -> None:
         conn = self._controller.active_connection
@@ -7149,7 +7385,7 @@ class SuiteQtBridge(QObject):
             ids = {r.id for r in robots}
             if self._flasher_robot_id[key] not in ids:
                 self._flasher_robot_id[key] = robots[0].id if robots else None
-        self.changed.emit()
+        self.flasherChanged.emit()
 
     def _flasher_current_robot(self, key: str) -> RobotView | None:
         ctrl = self._flasher_controller.get(key)
@@ -7210,7 +7446,7 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherTierOptions(self) -> list[dict[str, object]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7227,7 +7463,7 @@ class SuiteQtBridge(QObject):
             result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
         return result
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherTier(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_tier.get(key, "") if key else ""
@@ -7241,12 +7477,12 @@ class SuiteQtBridge(QObject):
             self._flasher_fram_result[key] = ""
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherNeedsRobotSlot(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_tier[key] != "kinematicBrain"
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherRobotOptions(self) -> list[dict[str, str]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7259,7 +7495,7 @@ class SuiteQtBridge(QObject):
             result.append({"id": r.id, "label": f"{slot_label(i)} - {r.model}{unreachable}"})
         return result
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherSelectedRobotId(self) -> str:
         key = self._flasher_active_key()
         return (self._flasher_robot_id.get(key) or "") if key else ""
@@ -7271,7 +7507,7 @@ class SuiteQtBridge(QObject):
             self._flasher_robot_id[key] = robot_id or None
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherHopDescription(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7279,7 +7515,7 @@ class SuiteQtBridge(QObject):
         target = self._flasher_target(key)
         return hop_description(target) if target else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherUnreachable(self) -> bool:
         key = self._flasher_active_key()
         if key is None or not self._flasher_is_hardware:
@@ -7287,7 +7523,7 @@ class SuiteQtBridge(QObject):
         target = self._flasher_target(key)
         return target is not None and resolve_hardware_target(target) is None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherVersionLabel(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7297,7 +7533,7 @@ class SuiteQtBridge(QObject):
             return f"{_('LBL_CURRENT_VERSION')}: {board.get('firmwareVersion', '?')} ({_('LBL_BOOTLOADER')} {board.get('bootloaderVersion', '?')})"
         return _("LBL_NO_VERSION_KNOWN")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherQueryBusy(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_query_busy.get(key, False) if key else False
@@ -7339,7 +7575,7 @@ class SuiteQtBridge(QObject):
             patch["expansionBoardType"] = result.expansion_board_type
         self._flasher_apply_patch(key, patch)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherFileInfo(self) -> str:
         key = self._flasher_active_key()
         file = self._flasher_file.get(key) if key else None
@@ -7347,7 +7583,7 @@ class SuiteQtBridge(QObject):
             return _("LBL_NO_FILE")
         return f"{file['name']} - {len(file['bytes']) / 1024:.1f} KB - CRC32 0x{crc32(file['bytes']):08X}"
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherHasFile(self) -> bool:
         key = self._flasher_active_key()
         return bool(self._flasher_file.get(key)) if key else False
@@ -7367,12 +7603,12 @@ class SuiteQtBridge(QObject):
         self._flasher_push_log(key, f"{_('LBL_FILE_LOADED')}: {name} ({len(data)} bytes)")
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherGithubAvailable(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key]) is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherGithubButtonLabel(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7380,12 +7616,12 @@ class SuiteQtBridge(QObject):
         repo = GITHUB_FIRMWARE_REPO.get(self._flasher_tier[key])
         return f"{_('BTN_DOWNLOAD_GITHUB')} ({repo})" if repo else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherGithubBusy(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_gh_busy.get(key, False) if key else False
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherGithubAssets(self) -> list[dict[str, object]]:
         key = self._flasher_active_key()
         if key is None:
@@ -7451,7 +7687,7 @@ class SuiteQtBridge(QObject):
             self._flasher_push_log(key, f"{_('LBL_GITHUB_ERROR')}: {exc}", "error")
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherAllowDowngrade(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_allow_downgrade.get(key, False) if key else False
@@ -7462,7 +7698,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._flasher_allow_downgrade[key] = value
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherEraseFram(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_erase_fram.get(key, False) if key else False
@@ -7473,7 +7709,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._flasher_erase_fram[key] = value
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherEraseFramEnabled(self) -> bool:
         """The simulation honours the option as it always did; over the real bus it needs the announcement of the server and the kinematic brain as the target."""
         key = self._flasher_active_key()
@@ -7483,12 +7719,12 @@ class SuiteQtBridge(QObject):
             return True
         return self._flasher_fram_supported.get(key) is True and self._flasher_tier.get(key) == "kinematicBrain"
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherFramVisible(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_is_hardware and self._flasher_tier.get(key) == "kinematicBrain"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherFramNote(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7498,17 +7734,17 @@ class SuiteQtBridge(QObject):
             return _("LBL_FRAMOP_UNKNOWN")
         return "" if supported else _("LBL_FRAMOP_UNSUPPORTED")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherFramReady(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self._flasher_fram_supported.get(key) is True and not self._flasher_fram_busy.get(key, False) and not self._flasher_flashing.get(key, False)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherFramBusy(self) -> bool:
         key = self._flasher_active_key()
         return bool(key) and self._flasher_fram_busy.get(key, False)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherFramResult(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_fram_result.get(key, "") if key else ""
@@ -7561,17 +7797,17 @@ class SuiteQtBridge(QObject):
         self._flasher_push_log(key, text, "ok" if result.ok else "error")
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherFlashing(self) -> bool:
         key = self._flasher_active_key()
         return self._flasher_flashing.get(key, False) if key else False
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=flasherChanged)
     def flasherCanFlash(self) -> bool:
         key = self._flasher_active_key()
         return key is not None and self.flasherHasFile and not self._flasher_flashing.get(key, False) and not self.flasherUnreachable
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherConfirmMessage(self) -> str:
         key = self._flasher_active_key()
         if key is None:
@@ -7587,17 +7823,17 @@ class SuiteQtBridge(QObject):
             message += " " + _("MSG_CONFIRM_FLASH_ERASE")
         return message
 
-    @Property(str, notify=changed)
+    @Property(str, notify=flasherChanged)
     def flasherProgressLabel(self) -> str:
         key = self._flasher_active_key()
         return self._flasher_progress.get(key, {}).get("label", "") if key else ""
 
-    @Property(int, notify=changed)
+    @Property(int, notify=flasherChanged)
     def flasherProgressPercent(self) -> int:
         key = self._flasher_active_key()
         return self._flasher_progress.get(key, {}).get("percent", 0) if key else 0
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=flasherChanged)
     def flasherLog(self) -> list[dict[str, str]]:
         key = self._flasher_active_key()
         return self._flasher_log.get(key, []) if key else []
@@ -7626,12 +7862,12 @@ class SuiteQtBridge(QObject):
             self._flasher_push_log(key, f"{_('LBL_FLASH_HARDWARE_FAILED')}: {line['reason'] or _('FLASHER_PROGRESS_ERROR')}", "error")
         elif line["log"]:
             self._flasher_push_log(key, label, "info")
-        self.changed.emit()
+        self.flasherChanged.emit()
 
     async def _run_flash(self, key: str, target: CanOtaTarget, file: dict) -> None:
         self._flasher_flashing[key] = True
         self._flasher_push_log(key, f"{_('LBL_FLASH_START')}: {file['name']} - {hop_description(target)}")
-        self.changed.emit()
+        self.flasherChanged.emit()
         try:
             if self._flasher_is_hardware:
                 resolved = resolve_hardware_target(target)
@@ -7639,7 +7875,7 @@ class SuiteQtBridge(QObject):
                     self._flasher_push_log(key, _("LBL_HARDWARE_TARGET_UNREACHABLE"), "error")
                     return
                 self._flasher_progress[key] = {"label": _("FLASHER_PROGRESS_CONNECTING"), "percent": 0}
-                self.changed.emit()
+                self.flasherChanged.emit()
                 refusal = flash_preflight(
                     file.get("hardware_id"), file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"),
                     self._flasher_allow_downgrade.get(key, False), self._flasher_erase_fram.get(key, False),
@@ -7704,7 +7940,7 @@ class SuiteQtBridge(QObject):
                 last_phase = progress.phase
                 suffix = f" ({progress.pages_sent}/{progress.pages_total})" if progress.pages_total > 1 and progress.phase == "transferring" else ""
                 self._flasher_progress[key] = {"label": f"{_(f'FLASHER_PROGRESS_{progress.phase.upper()}')}{suffix} - {progress.percent}%", "percent": progress.percent}
-                self.changed.emit()
+                self.flasherChanged.emit()
                 if progress.phase == "transferring" and progress.pages_sent % 5 != 0 and progress.pages_sent != progress.pages_total:
                     continue
                 self._flasher_push_log(key, f"{_(f'FLASHER_PROGRESS_{progress.phase.upper()}')} ({progress.pages_sent}/{progress.pages_total})", "error" if progress.phase == "error" else "info")
@@ -7713,7 +7949,7 @@ class SuiteQtBridge(QObject):
                 self._flasher_apply_patch(key, {"firmwareVersion": file["name"].removesuffix(".bin")})
         finally:
             self._flasher_flashing[key] = False
-            self.changed.emit()
+            self.flasherChanged.emit()
 
     # -- Tester --------------------------------------------------------------
 
@@ -7729,7 +7965,8 @@ class SuiteQtBridge(QObject):
             ids = {r.id for r in robots}
             if self._tester_robot_id[key] not in ids:
                 self._tester_robot_id[key] = robots[0].id if robots else None
-        self.changed.emit()
+        self.testerChanged.emit()
+        self.flasherChanged.emit()
 
     def _tester_current_robot(self, key: str) -> RobotView | None:
         ctrl = self._tester_controller.get(key)
@@ -7783,7 +8020,7 @@ class SuiteQtBridge(QObject):
         self._tester_frames[key] = []
         self.changed.emit()
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerTierOptions(self) -> list[dict[str, object]]:
         key = self._tester_active_key()
         if key is None:
@@ -7800,7 +8037,7 @@ class SuiteQtBridge(QObject):
             result.append({"key": t, "label": f"{_(_TIER_LABEL_KEYS[t])} ({chip_name_for(t)})", "enabled": enabled})
         return result
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerTier(self) -> str:
         key = self._tester_active_key()
         return self._tester_tier.get(key, "") if key else ""
@@ -7812,12 +8049,12 @@ class SuiteQtBridge(QObject):
             self._tester_tier[key] = tier
             self._tester_reset_for_new_target(key)
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerNeedsRobotSlot(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] != "kinematicBrain"
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerRobotOptions(self) -> list[dict[str, str]]:
         key = self._tester_active_key()
         if key is None:
@@ -7826,7 +8063,7 @@ class SuiteQtBridge(QObject):
         robots = ctrl.robots if ctrl is not None else []
         return [{"id": r.id, "label": f"{slot_label(i)} - {r.model}"} for i, r in enumerate(robots)]
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerSelectedRobotId(self) -> str:
         key = self._tester_active_key()
         return (self._tester_robot_id.get(key) or "") if key else ""
@@ -7838,7 +8075,7 @@ class SuiteQtBridge(QObject):
             self._tester_robot_id[key] = robot_id or None
             self._tester_reset_for_new_target(key)
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerHopDescription(self) -> str:
         key = self._tester_active_key()
         if key is None:
@@ -7846,16 +8083,16 @@ class SuiteQtBridge(QObject):
         target = self._tester_target(key)
         return hop_description(target) if target else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerSimulatedNoteVisible(self) -> bool:
         return self._flasher_is_hardware
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerQueryEnabled(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_target(key) is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerVersionLabel(self) -> str:
         key = self._tester_active_key()
         if key is None:
@@ -7903,22 +8140,22 @@ class SuiteQtBridge(QObject):
         self._controller.push_active_state()
         self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerShowGlobal(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] == "urtcHead"
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerShowFram(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] in ("controllerBoard", "urtcHead")
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerShowTelemetry(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_tier[key] == "urtcHead" and self._tester_current_robot(key) is not None
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerStatusColor(self) -> str:
         key = self._tester_active_key()
         return self._tester_status_color.get(key, "#00ff66") if key else "#00ff66"
@@ -7930,7 +8167,7 @@ class SuiteQtBridge(QObject):
             self._tester_status_color[key] = color
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerRingOn(self) -> bool:
         key = self._tester_active_key()
         return self._tester_ring_on.get(key, False) if key else False
@@ -7942,7 +8179,7 @@ class SuiteQtBridge(QObject):
             self._tester_ring_on[key] = not self._tester_ring_on[key]
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerOledMode(self) -> str:
         key = self._tester_active_key()
         return self._tester_oled_mode.get(key, "standard") if key else "standard"
@@ -7953,7 +8190,7 @@ class SuiteQtBridge(QObject):
         if key is not None:
             self._tester_oled_mode[key] = mode
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerExpansionLabel(self) -> str:
         key = self._tester_active_key()
         if key is None:
@@ -7966,7 +8203,7 @@ class SuiteQtBridge(QObject):
         label = _("LBL_EXPANSION_NONE") if expansion_type == 0 else f"#{expansion_type}" + (f" ({_(_TIER_LABEL_KEYS['urtcExpansion'])})" if expansion_available else "")
         return f"{_('LBL_EXPANSION_BOARD')}: {label}"
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerFramStateLabel(self) -> str:
         key = self._tester_active_key()
         state = self._tester_fram_state.get(key) if key else None
@@ -7992,24 +8229,24 @@ class SuiteQtBridge(QObject):
             self._tester_fram_state[key] = False
             self.changed.emit()
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerTelemetryTitle(self) -> str:
         key = self._tester_active_key()
         robot = self._tester_current_robot(key) if key else None
         return f"{_('LBL_TOOL_TELEMETRY')} - {robot.tool}" if robot is not None else ""
 
-    @Property(str, notify=changed)
+    @Property(str, notify=testerChanged)
     def testerTelemetryLabel(self) -> str:
         key = self._tester_active_key()
         robot = self._tester_current_robot(key) if key else None
         return _(f"LBL_TELEMETRY_{_category_for(robot.tool).upper()}") if robot is not None else ""
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerTesting(self) -> bool:
         key = self._tester_active_key()
         return self._tester_testing.get(key, False) if key else False
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerSelfTestSteps(self) -> list[dict[str, object]]:
         key = self._tester_active_key()
         return self._tester_self_test_steps.get(key, []) if key else []
@@ -8039,12 +8276,12 @@ class SuiteQtBridge(QObject):
             self._tester_testing[key] = False
             self.changed.emit()
 
-    @Property(bool, notify=changed)
+    @Property(bool, notify=testerChanged)
     def testerMonitorRunning(self) -> bool:
         key = self._tester_active_key()
         return key is not None and self._tester_monitor_task.get(key) is not None
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=testerChanged)
     def testerFrames(self) -> list[dict[str, object]]:
         key = self._tester_active_key()
         frames = self._tester_frames.get(key, []) if key else []
@@ -8078,7 +8315,7 @@ class SuiteQtBridge(QObject):
         try:
             async for frame in mock_bus_monitor(target):
                 self._tester_frames[key] = [*self._tester_frames[key][-99:], frame]
-                self.changed.emit()
+                self.testerChanged.emit()
         except asyncio.CancelledError:
             return
 
@@ -8201,39 +8438,39 @@ class SuiteQtBridge(QObject):
 
     # -- Overview --------------------------------------------------------
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewName(self) -> str:
         return self._overview_name
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewIp(self) -> str:
         return self._overview_ip
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewRobotCount(self) -> str:
         return self._overview_robot_count
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewOnlineCount(self) -> str:
         return self._overview_online_count
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewCpu(self) -> str:
         return self._overview_cpu
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewMem(self) -> str:
         return self._overview_mem
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewTemp(self) -> str:
         return self._overview_temp
 
-    @Property(str, notify=changed)
+    @Property(str, notify=overviewChanged)
     def overviewUptime(self) -> str:
         return self._overview_uptime
 
-    @Property("QVariantList", notify=changed)
+    @Property("QVariantList", notify=overviewChanged)
     def overviewRobots(self) -> list[dict[str, object]]:
         return self._overview_robots
 
@@ -8252,7 +8489,7 @@ class SuiteQtBridge(QObject):
             self._overview_uptime = f"{hours}h {minutes}m"
         else:
             self._overview_uptime = "-"
-        self.changed.emit()
+        self.overviewChanged.emit()
 
     def _on_overview_state_changed(self, state: HydraState) -> None:
         active = state.active_controller
@@ -8262,7 +8499,7 @@ class SuiteQtBridge(QObject):
             self._overview_robot_count = "-"
             self._overview_online_count = "-"
             self._overview_robots = []
-            self.changed.emit()
+            self.overviewChanged.emit()
             return
         robots = active.robots
         online = sum(1 for r in robots if r.online)
@@ -8282,7 +8519,7 @@ class SuiteQtBridge(QObject):
             }
             for r in robots
         ]
-        self.changed.emit()
+        self.overviewChanged.emit()
 
 
 def run_qtquick() -> int:

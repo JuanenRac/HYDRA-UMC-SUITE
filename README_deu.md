@@ -19,14 +19,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Language-Python%203.12-3776AB.svg" alt="Language">
   <img src="https://img.shields.io/badge/Framework-PySide6-41CD52.svg" alt="Framework">
   <img src="https://img.shields.io/badge/Graphics-OpenGL-5586A4.svg" alt="Graphics">
-  <img src="https://img.shields.io/badge/Tests-72%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-74%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.8.0.6-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** die Netzwerkerkennung (gleichzeitiger Subnetz-Scan + echtes mDNS/Bonjour, `hydra_suite/net/discovery.py`), die Live-REST+WebSocket-Verbindung und Schwarm-Unterstützung (`hydra_suite/net/client.py`, `hydra_suite/app.py`), die echte Vorwärtskinematik der 3D-Ansicht für alle 24 echten Robotermodelle plus einen primitiven "Generic"-Fallback (`hydra_suite/render/`, numerisch bitgenau gegen HYDRA-UMC STUDIOs eigene TypeScript-FK verifiziert), alle 11 von 11 Werkzeug-Konfigurationspanels, das CAN-OTA/SPI-OTA-Flashen und das echte MJPEG-Kamera-Rendering sind real und getestet - 72 Offline-Verify-/Smoke-Skripte unter `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), alle bestanden. Die Oberfläche ist ausschließlich Qt Quick (`qt_suite.py`): alle 46 Panels der Navigation sind echter, funktionierender Code, einschließlich der 3D-Ansicht über einen eigenen `OffscreenRobotRenderer`; das klassische Fenster wurde entfernt. Was ausdrücklich NOCH NICHT erledigt ist, gemäß der eigenen Ehrlichkeitskonvention dieses Repos: die URTC-Tool-Head-/Advanced-Expansion-Stufen des CAN-OTA haben noch keinen echten Hardware-Relay-Tunnel; und die Schwarmansicht, der kombinierte Modus (`combinedWith`), der Wegbetrachter und die Versionsprüfung wurden nur gegen simulierte Server und eine lokale Testseite ausprobiert, nie gegen einen echten Controller, einen echten Roboter oder das Live-Repository. Das Panel Trajektorie exportiert/importiert jetzt über das echte `WORKS/*.json`-Format von HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<Ordner>/index.json`) - ein hier aufgezeichneter Punkt ist ein echter, in beiden Apps abspielbarer Work. Siehe [`docs/ROADMAP.md`](docs/ROADMAP.md) für die vollständige, punktweise Aufschlüsselung von real gegenüber verschoben, die dieser Absatz zusammenfasst, und `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde.
+**Ehrlichkeitscheck - was heute wirklich läuft:** die Netzwerkerkennung (gleichzeitiger Subnetz-Scan + echtes mDNS/Bonjour, `hydra_suite/net/discovery.py`), die Live-REST+WebSocket-Verbindung und Schwarm-Unterstützung (`hydra_suite/net/client.py`, `hydra_suite/app.py`), die echte Vorwärtskinematik der 3D-Ansicht für alle 24 echten Robotermodelle plus einen primitiven "Generic"-Fallback (`hydra_suite/render/`, numerisch bitgenau gegen HYDRA-UMC STUDIOs eigene TypeScript-FK verifiziert), alle 11 von 11 Werkzeug-Konfigurationspanels, das CAN-OTA/SPI-OTA-Flashen und das echte MJPEG-Kamera-Rendering sind real und getestet - 74 Offline-Verify-/Smoke-Skripte unter `tests/` (`python tools/run_offline_verifiers.py`, headless Qt via `QT_QPA_PLATFORM=offscreen`), alle bestanden. Die Oberfläche ist ausschließlich Qt Quick (`qt_suite.py`): alle 46 Panels der Navigation sind echter, funktionierender Code, einschließlich der 3D-Ansicht über einen eigenen `OffscreenRobotRenderer`; das klassische Fenster wurde entfernt. Was ausdrücklich NOCH NICHT erledigt ist, gemäß der eigenen Ehrlichkeitskonvention dieses Repos: die URTC-Tool-Head-/Advanced-Expansion-Stufen des CAN-OTA haben noch keinen echten Hardware-Relay-Tunnel; und die Schwarmansicht, der kombinierte Modus (`combinedWith`), der Wegbetrachter und die Versionsprüfung wurden nur gegen simulierte Server und eine lokale Testseite ausprobiert, nie gegen einen echten Controller, einen echten Roboter oder das Live-Repository. Das Panel Trajektorie exportiert/importiert jetzt über das echte `WORKS/*.json`-Format von HYDRA-UMC STUDIO (`POST /api/upload-work`, `GET /<Ordner>/index.json`) - ein hier aufgezeichneter Punkt ist ein echter, in beiden Apps abspielbarer Work. Siehe [`docs/ROADMAP.md`](docs/ROADMAP.md) für die vollständige, punktweise Aufschlüsselung von real gegenüber verschoben, die dieser Absatz zusammenfasst, und `CHANGELOG.md` für genau das, was bisher ausgeliefert wurde.
 
 ---
 
@@ -40,7 +40,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.8.0.6` |
 | Reifegrad | Funktionsfähig |
-| Tests | 72 (`python tools/run_offline_verifiers.py`) |
+| Tests | 74 (`python tools/run_offline_verifiers.py`) |
 | Technik | Python 3.12 / PySide6 |
 | Ziel | Der PC der Person, die es benutzt |
 | Auf echter Hardware | Noch nicht: für diese Version ist kein Lauf auf echter Hardware vermerkt |
@@ -56,7 +56,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Bereich | Stand | Was das hier bedeutet |
 |---|---|---|
 | Software | 🟡 | Funktioniert für seinen Hauptzweck; die Ehrlichkeitsprüfung oben nennt, was noch fehlt |
-| Tests | 🟢 | 72 automatische Tests, bei jeder Änderung ausgeführt |
+| Tests | 🟢 | 74 automatische Tests, bei jeder Änderung ausgeführt |
 | Echte Hardware | 🔴 | Noch nicht: für diese Version ist kein Lauf auf echter Hardware vermerkt |
 | Schnittstelle und Protokolle | 🟡 | Die angebotenen Routen oder Nachrichten sind dokumentiert und mit einem Client getestet; noch nicht jeder Client hat sie benutzt |
 | Integration | 🟠 | Seine Nachrichten und Routen werden gegen die gemeinsamen Verträge des SDK geprüft; es lief noch nicht zusammen mit der echten Ausrüstung |
@@ -218,6 +218,9 @@ HYDRA-UMC SUITE hat eine einzige Oberfläche, geschrieben in Qt Quick (QML): ein
   eigens gebautes Panel. Heizbett und Vakuumtisch verwenden STL in `render/module_rig.py`. PnP, CNC und Laser verwenden `render/pnp_rig.py`: 7 bewegliche Meshes und 160 Einzelteile je unabhängigem Ordner. `OffscreenRobotRenderer` zeigt jede Baugruppe. Siehe [Maschinenmodelle](docs/MACHINE_ASSETS.md).
 - **🔑 Anmeldung in zwei Schritten** - **Ökosystem > Server Admin** hat eine Karte für das Konto, mit dem Sie angemeldet sind (aus, bis sein Besitzer sie einschaltet): ein QR-Code der otpauth-Adresse (hier von einem kleinen Kodierer gezeichnet, der dasselbe Symbol wie das Webprogramm erzeugt), der Schlüssel zum Abtippen mit Kopierknopf, der erste Code und die zehn einmaligen Wiederherstellungscodes, die einmal angezeigt werden. Der Dialog für die Serverzugangsdaten hat ein Feld für den Code eines Kontos, das ihn eingeschaltet hat (nur für diese eine Anmeldung im Speicher gehalten, nie gespeichert), und **Ökosystem > Benutzer** hat einen Knopf, der den zweiten Schritt eines Kontos entfernt, das Telefon und Wiederherstellungscodes verloren hat.
 - **Optionen des Job-Dispatchers in Server Admin** (nur Administratoren): der Schalter und die Roboterzuordnung der Zustellung der Stopp-Anfragen (`jobDispatcher.stopRelay.enabled` und `robotMap`) sowie die zwei Optionen der Neuplanung (`allowUnconfirmed`, `stopAckTimeoutSeconds`), die der Server in die Konfigurationsdatei des Dispatchers schreibt (es braucht `HYDRA_UMC_JOB_DISPATCHER_CONFIG`; der Dispatcher wird gebeten, die Datei neu zu lesen, und liest sie sonst beim nächsten Start). Das Einschalten der Zustellung oder das Weitergeben eines Jobs an einen anderen Roboter ohne bestätigten Stopp fragt zuerst nach einer Bestätigung.
+- **Ausführung der zugewiesenen Aufträge in der Server-Verwaltung:** zwei Schalter, beide aus, wie in STUDIO: die vom Job-Dispatcher den Robotern des Servers zugewiesenen Aufträge ausführen (ein Probelauf) und die Roboter wirklich bewegen (mit eigener Bestätigung).
+- **Controllerplatinen:** Die Ansicht zur Gesundheit des Ökosystems listet den letzten Gesundheitsrahmen, den das Gehirn von jeder der acht Controllerplatinen gehört hat, mit klaren Sätzen für eine nie gehörte Platine und für ein Gehirn, das nicht antwortet; das Panel und sein Schalter in der Server-Verwaltung sind standardmäßig aus.
+- **Geführte Touren:** aus, bis in den Einstellungen „Geführte Touren anbieten“ eingeschaltet wird; dann bietet das Anwendungsmenü die Geführte Tour an und die Ansicht zur Gesundheit des Ökosystems die Tour durch diese Ansicht (Karten mit Zurück, Weiter, Schließen und „Touren nicht mehr anbieten“).
 - **Planung und Betrieb** (Ökosystem): der Probelauf eines Plans (`POST /plan/simulate` des semantischen Planers; er führt nie etwas aus, und eine Antwort, die das behauptet, wird nicht angezeigt), die Schätzungen des Job-Dispatchers (wann jeder offene Job beginnen und enden sollte, mit Bereich), die Restnutzungsdauer einer Bewertungsreihe, ein Leser der Ausgabe von `train plan --json` des Updaters (aus einer Datei gelesen und nur angezeigt: von hier wird nichts installiert) und der Zustand der Fensterstatistiken des Data Lake. Sie laufen über das Relay des Servers (nur genau diese Anfragen), und eine Funktion, deren Dienst den Schalter aus hat, sagt das.
 
 ---
@@ -315,7 +318,7 @@ Die Version steht unter **Hilfe > Info**. Das Bauen mit `build_exe.bat` / `build
 
 ## 🧪 Tests
 
-72 automatische Tests laufen mit `python tools/run_offline_verifiers.py`. Jedes ist ein Prüfskript mit vielen Prüfungen, nicht eine einzelne Aussage; sie brauchen PySide6 und die übrigen Abhängigkeiten, laufen unter einer Qt-Plattform ohne Bildschirm und öffnen nie eine Verbindung zu einem echten Server oder Roboter.
+74 automatische Tests laufen mit `python tools/run_offline_verifiers.py`. Jedes ist ein Prüfskript mit vielen Prüfungen, nicht eine einzelne Aussage; sie brauchen PySide6 und die übrigen Abhängigkeiten, laufen unter einer Qt-Plattform ohne Bildschirm und öffnen nie eine Verbindung zu einem echten Server oder Roboter.
 
 Die CI führt `HYDRA_UMC_CI=1 python tools/ci_validate.py` aus; das prüft das Manifest, die Dokumente, die acht READMEs und die Bilder.
 

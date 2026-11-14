@@ -40,7 +40,7 @@ view = planner.view(settings)
 check("on by default in the view", (view["available"], view["require"], view["state"], view["kept"]), (True, True, _("PLANNERID_STATE_ON"), _("PLANNERID_KEPT_FILE")))
 check("memory-only is said", planner.view(dict(settings, persisted=False))["kept"], _("PLANNERID_KEPT_MEMORY"))
 check("no view without the planner, and no missing key", (planner.view(None)["available"], planner.view(None)["blocked"], planner.view(None)["state"]), (False, "", ""))
-for key in ("PLANNERID_TITLE", "PLANNERID_DESC", "PLANNERID_LABEL", "PLANNERID_CONFIRM_TITLE", "PLANNERID_CONFIRM_MESSAGE", "PLANNERID_SAVED", "PLANNERID_NEEDS_KEY"):
+for key in ("PLANNERID_TITLE", "PLANNERID_DESC", "PLANNERID_LABEL", "PLANNERID_CONFIRM_TITLE", "PLANNERID_CONFIRM_MESSAGE", "COMMON_SAVED", "PLANNERID_NEEDS_KEY"):
     check(f"sentence {key} exists", _(key) != key, True)
 
 print(f"FAILURES: {failures}")
