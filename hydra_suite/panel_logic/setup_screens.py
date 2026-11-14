@@ -265,7 +265,7 @@ def security_view(second_factor: bool | None, keys: dict | None, is_admin: bool,
         view["facts"] = [{"label": _("SETUP_SECURITY_ALGORITHM"), "value": keys["algorithm"] or "-"}]
         if current is not None:
             view["facts"].append({"label": _("SETUP_SECURITY_ACTIVE_KEY"), "value": current["kid"]})
-        view["headers"] = [_("SETUP_SECURITY_COL_KEY"), _("SETUP_SECURITY_COL_CREATED"), _("SETUP_SECURITY_COL_STATE")]
+        view["headers"] = [_("COMMON_KEY"), _("SETUP_SECURITY_COL_CREATED"), _("SETUP_SECURITY_COL_STATE")]
         view["rows"] = [
             [
                 key["kid"], date_text(key["createdAt"]),
@@ -414,13 +414,13 @@ def history_view(part: str, is_admin: bool, clients: list[dict], events: list[di
     part = part if part in parts else "connections"
     view["parts"] = [{"id": item, "label": _("SETUP_HISTORY_PART_" + item.upper()), "selected": item == part} for item in parts]
     if part == "connections":
-        view["headers"] = [_("SETUP_HISTORY_COL_WHO"), _("SETUP_HISTORY_COL_DETAIL"), _("SETUP_HISTORY_COL_SESSIONS"), _("SETUP_HISTORY_COL_LOGINS"), _("SETUP_HISTORY_COL_LAST_SEEN")]
+        view["headers"] = [_("COMMON_ACCOUNT"), _("SETUP_HISTORY_COL_DETAIL"), _("SETUP_HISTORY_COL_SESSIONS"), _("SETUP_HISTORY_COL_LOGINS"), _("SETUP_HISTORY_COL_LAST_SEEN")]
         view["rows"] = [[c["who"], c["detail"], c["sessions"], c["logins"], c["lastSeen"]] for c in clients]
         view["extraTitle"] = _("SETUP_HISTORY_EVENTS")
         view["extraHeaders"] = [_("SETUP_HISTORY_COL_EVENT"), _("SETUP_HISTORY_COL_WHEN")]
         view["extraRows"] = [[str(e["action"]) + str(e["detail"]), e["ago"]] for e in events]
     else:
-        view["headers"] = [_("SETUP_HISTORY_COL_TIME"), _("SETUP_HISTORY_COL_TYPE"), _("SETUP_HISTORY_COL_OUTCOME"), _("SETUP_HISTORY_COL_ACCOUNT"), _("SETUP_HISTORY_COL_ROBOT")]
+        view["headers"] = [_("COMMON_TIME"), _("COMMON_TYPE"), _("SETUP_HISTORY_COL_OUTCOME"), _("COMMON_ACCOUNT"), _("COMMON_ROBOT")]
         view["rows"] = [[a["time"], a["type"], a["outcome"], a["account"], a["robot"]] for a in audit]
     if not is_admin:
         view["note"] = _("SETUP_HISTORY_AUDIT_ADMIN_ONLY")

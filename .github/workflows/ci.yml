@@ -17,6 +17,7 @@ jobs:
   baseline:
     name: Validate project baseline
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -69,5 +70,5 @@ jobs:
         if: ${{ hashFiles('tests/test_rest_routes.py') != '' }}
         run: |
           mkdir -p "$RUNNER_TEMP/hydra-umc-sdk"
-          curl -fsSL --retry 3 https://github.com/JuanenRac/HYDRA-UMC-SDK/archive/refs/tags/v0.6.1.tar.gz | tar -xz --strip-components=1 -C "$RUNNER_TEMP/hydra-umc-sdk"
+          curl -fsSL --retry 3 https://github.com/JuanenRac/HYDRA-UMC-SDK/archive/0a42d4ebb91633e377eee331331bf8580d4389c0.tar.gz | tar -xz --strip-components=1 -C "$RUNNER_TEMP/hydra-umc-sdk"
           HYDRA_UMC_SDK_DIR="$RUNNER_TEMP/hydra-umc-sdk" python -m pytest tests/test_rest_routes.py -q

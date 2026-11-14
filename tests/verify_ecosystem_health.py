@@ -266,6 +266,9 @@ def switch(loop):
     check("bridges: a server that predates the signed settings shows no signing text", (bridges_state["bridges"]["signing"], bridges_view["bridgesSigning"]), ([], ""))
     check("bridges: the warning has its own sentence", sec.known_warning(["bridge_uav_missionUploadEnabled"]) == _("SECURITY_BRIDGES_WARNING") != "", True)
     check("bridges: every key of the view exists without a server", set(sec.view(None)) == set(bridges_view), True)
+    flight = ["droids.confirmationRequired", "droids.returnHomeAlways", "uav.envelopeRequired", "uav.confirmationRequired", "uav.chainInFlight", "uav.uploadGeofence"]
+    check("bridges: every flight policy switch has its own label", all(key in sec.BRIDGE_OPTION_TEXT and _(sec.BRIDGE_OPTION_TEXT[key]) not in ("", sec.BRIDGE_OPTION_TEXT[key]) for key in flight), True)
+    check("bridges: the flight policy labels are all different", len({sec.BRIDGE_OPTION_TEXT[key] for key in flight}), len(flight))
 
     rul_plain = sec.parse_state(base)
     check("rul: a server without the option shows no switch", (rul_plain["rul"], sec.view(rul_plain)["rulAvailable"]), (None, False))

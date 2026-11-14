@@ -40,9 +40,10 @@ from PySide6.QtCore import QObject, Signal
 from hydra_suite import __version__, access, command_sequence, robot_edits
 from hydra_suite.panel_logic import stop_state as stop_state_logic, submitted_models
 from hydra_suite.panel_logic.totp import normalize_code
-from hydra_suite.i18n import _
+from hydra_suite.i18n import _, load_config
 from hydra_suite.models import HydraState, RobotView, ServerInfo
 from hydra_suite.net.session import Session
+from hydra_suite.net import tls_pin
 
 logger = logging.getLogger(__name__)
 
@@ -448,7 +449,7 @@ class HydraConnection(QObject):
             self.login_changed.emit(False, detail)
             return False
         try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS, verify=self._tls_verify()) as client:
                 login_body = {"username": self.info.username, "password": self.info.password}
                 code_sent = bool(self.totp_code.strip())
                 if code_sent:
@@ -536,7 +537,7 @@ class HydraConnection(QObject):
                 return True  # another request already renewed it
             if self._refresh_token:
                 try:
-                    async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                    async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS, verify=self._tls_verify()) as client:
                         resp = await client.post(
                             f"{self.info.base_url}/api/refresh", json={"refreshToken": self._refresh_token}, timeout=5.0
                         )
@@ -563,12 +564,12 @@ class HydraConnection(QObject):
         # Listen only refuses every write but STOP and the session before it leaves the program.
         if access.LISTEN_ONLY.applies(f"{self.info.host}:{self.info.port}") and not access.listen_only_allows(method, path, kwargs.get("json")):
             return _listen_only_refusal(method, url)
-        async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+        async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS, verify=self._tls_verify()) as client:
             resp = await client.request(method, url, headers=request_headers, timeout=timeout, **kwargs)
         if used and (resp.status_code == 401 or (resp.status_code == 403 and _body_code(resp) in _RENEWABLE_TOKEN_CODES)):
             if await self._renew_session(used) and self._token:
                 request_headers["Authorization"] = f"Bearer {self._token}"
-                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS, verify=self._tls_verify()) as client:
                     resp = await client.request(method, url, headers=request_headers, timeout=timeout, **kwargs)
         return resp
 
@@ -705,6 +706,19 @@ class HydraConnection(QObject):
         except ValueError:
             return resp.status_code, None
 
+    async def fetch_node_health(self, slot: int) -> tuple[int, object] | None:
+        """GET /api/ecosystem/node-health?slot=N: the last health frame the brain heard from the controller board in a slot (an operator or an administrator;
+        404 until an administrator turns the option on in Server Admin). Read only. The status counts even when the body is not JSON: only a request that did
+        not get an answer at all returns None."""
+        try:
+            resp = await self._http("GET", "/api/ecosystem/node-health", params={"slot": int(slot)})
+        except httpx.HTTPError:
+            return None
+        try:
+            return resp.status_code, resp.json()
+        except ValueError:
+            return resp.status_code, None
+
     async def relay_request(self, service: str, method: str, path: str, json_body: dict | None = None) -> tuple[int, object] | None:
         """One of the few requests of the Planning screen through the relay of the server (/api/ai/<service><path>): the dry run of a plan, the
         estimates of the job dispatcher, the remaining useful life and a read of the window statistics of the data lake. Anything else is
@@ -792,6 +806,7 @@ class HydraConnection(QObject):
                 subprotocols=self.info.ws_subprotocols(token),
                 open_timeout=5.0,
                 max_size=TWIN_FEED_MAX_MESSAGE_BYTES,
+                **self._tls_ws_kwargs(),
             ) as ws:
                 if on_open is not None:
                     on_open()
@@ -980,7 +995,7 @@ class HydraConnection(QObject):
             for attempt in (0, 1):
                 used = self._token
                 headers = {"Authorization": f"Bearer {used}"} if used else {}
-                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+                async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS, verify=self._tls_verify()) as client:
                     async with client.stream("GET", url, headers=headers, timeout=timeout) as resp:
                         if attempt == 0 and used and (resp.status_code == 401 or (resp.status_code == 403 and _body_code(await _read_json_body(resp)) in _RENEWABLE_TOKEN_CODES)):
                             pass  # renew below, then repeat once
@@ -1496,7 +1511,7 @@ class HydraConnection(QObject):
         if access.LISTEN_ONLY.applies(f"{self.info.host}:{self.info.port}") and not access.listen_only_allows(method, path, body):
             return 423, {"error": "listen only", "code": "listen-only"}, None
         try:
-            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS) as client:
+            async with httpx.AsyncClient(headers=HYDRA_CLIENT_HEADERS, verify=self._tls_verify()) as client:
                 resp = await client.request(method, f"{self.info.base_url}{path}", headers=headers, json=body, timeout=5.0)
         except (httpx.HTTPError, OSError):
             return 0, None, None
@@ -1730,6 +1745,17 @@ class HydraConnection(QObject):
             self.status_changed.emit("disconnected")
             await asyncio.sleep(RECONNECT_DELAY_S)
 
+    def _tls_verify(self):
+        """`verify` for httpx: the default checks, or the pinned certificate of this server (net/tls_pin.py; off unless the person turns it on)."""
+        if not self.info.use_tls:
+            return True
+        return tls_pin.verify_for(load_config(), self.info.host, self.info.port)
+
+    def _tls_ws_kwargs(self) -> dict:
+        """The `ssl` argument of a secure WebSocket when this server has a pinned certificate; nothing for a plain one or an unpinned one."""
+        verify = self._tls_verify()
+        return {"ssl": verify} if self.info.use_tls and verify is not True else {}
+
     def _open_ws(self):
         token = self._token
         return websockets.connect(
@@ -1737,6 +1763,7 @@ class HydraConnection(QObject):
             subprotocols=self.info.ws_subprotocols(token),
             open_timeout=5.0,
             max_size=WS_MAX_MESSAGE_BYTES,
+            **self._tls_ws_kwargs(),
         )
 
     def _handle_message(self, raw: str | bytes) -> None:

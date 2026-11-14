@@ -23,7 +23,13 @@ MQTT_MODES = ("off", "state", "commands")
 BRIDGE_OPTION_TEXT = {
     "droids.globalStop": "LBL_SECURITY_BRIDGES_OPT_DROIDS_GLOBAL_STOP",
     "droids.cutOnGlobalStop": "LBL_SECURITY_BRIDGES_OPT_DROIDS_CUT",
+    "droids.confirmationRequired": "LBL_SECURITY_BRIDGES_OPT_DROIDS_CONFIRM",
+    "droids.returnHomeAlways": "LBL_SECURITY_BRIDGES_OPT_DROIDS_HOME",
     "uav.missionUploadEnabled": "LBL_SECURITY_BRIDGES_OPT_UAV_MISSION",
+    "uav.envelopeRequired": "LBL_SECURITY_BRIDGES_OPT_UAV_ENVELOPE",
+    "uav.confirmationRequired": "LBL_SECURITY_BRIDGES_OPT_UAV_CONFIRM",
+    "uav.chainInFlight": "LBL_SECURITY_BRIDGES_OPT_UAV_CHAIN",
+    "uav.uploadGeofence": "LBL_SECURITY_BRIDGES_OPT_UAV_FENCE",
     "amr.publishState": "LBL_SECURITY_BRIDGES_OPT_AMR_STATE",
     "amr.publishOpcua": "LBL_SECURITY_BRIDGES_OPT_AMR_OPCUA",
     "amr.zoneInterlock": "LBL_SECURITY_BRIDGES_OPT_AMR_INTERLOCK",
@@ -197,9 +203,16 @@ def _job_dispatcher(raw: object) -> dict | None:
         for dispatcher_id, number in raw_map.items():
             if isinstance(dispatcher_id, str) and isinstance(number, int) and not isinstance(number, bool):
                 robot_map[dispatcher_id] = number
+    executor = None
+    raw_executor = raw.get("executor")
+    if isinstance(raw_executor, dict):
+        exec_enabled, exec_live = _option(raw_executor.get("enabled"), bool), _option(raw_executor.get("live"), bool)
+        if exec_enabled is not None and exec_live is not None:
+            executor = {"enabled": exec_enabled, "live": exec_live, "appliesOnRestart": raw_executor.get("appliesOnRestart") is True}
     return {
         "relay": enabled,
         "robotMap": robot_map,
+        "executor": executor,
         "relayAppliesOnRestart": relay.get("appliesOnRestart") is True,
         "allow": allow,
         "timeout": timeout,
@@ -252,6 +265,7 @@ def parse_state(body: object) -> dict | None:
         "auth": None,
         "health": None,
         "ecosystemHealth": None,
+        "nodeHealth": None,
         "twinRelay": None,
         "trustedNetworks": None,
         "rul": None,
@@ -322,6 +336,11 @@ def parse_state(body: object) -> dict | None:
         enabled = _option(ecosystem_health.get("enabled"), bool)
         if enabled is not None:
             state["ecosystemHealth"] = {"enabled": enabled}
+    node_health = body.get("nodeHealth")
+    if isinstance(node_health, dict):
+        node_enabled = _option(node_health.get("enabled"), bool)
+        if node_enabled is not None:
+            state["nodeHealth"] = {"enabled": node_enabled}
     twin_relay = body.get("twinRelay")
     if isinstance(twin_relay, dict):
         relay_enabled = _option(twin_relay.get("enabled"), bool)
@@ -549,6 +568,12 @@ def trusted_networks_patch(enabled: bool) -> dict:
     return {"trustedNetworks": {"enabled": bool(enabled)}}
 
 
+def node_health_patch(enabled: bool) -> dict:
+    """The request body for the option that lets operators and administrators read GET /api/ecosystem/node-health (off by default). Turning it on never asks:
+    the route is read only and sends nothing to the boards."""
+    return {"nodeHealth": {"enabled": bool(enabled)}}
+
+
 def ecosystem_health_patch(enabled: bool) -> dict:
     """The request body for the option that lets operators and administrators read GET /api/ecosystem/health (off by default). Turning
     it on never asks: the route is read only and shows no port, address or unit to anyone but an administrator."""
@@ -593,12 +618,19 @@ def parse_timeout(text: str) -> float | None:
     return value if 0 < value <= MAX_STOP_ACK_TIMEOUT_SECONDS else None
 
 
-def job_dispatcher_patch(relay_enabled: bool, map_text: str, replan_editable: bool, allow_unconfirmed: bool, timeout_text: str) -> dict | None:
+def job_dispatcher_patch(relay_enabled: bool, map_text: str, replan_editable: bool, allow_unconfirmed: bool, timeout_text: str, *, executor_enabled: bool | None = None, executor_live: bool | None = None) -> dict | None:
     """The request body for the job dispatcher options; None when the robot map or the wait is not valid. The replanning part is left out when the server cannot write the file of the dispatcher."""
     robot_map = parse_robot_map_text(map_text)
     if robot_map is None:
         return None
     body: dict = {"stopRelay": {"enabled": bool(relay_enabled), "robotMap": robot_map}}
+    if executor_enabled is not None or executor_live is not None:
+        # only the switches that are not locked by the environment; `live` false is the dry run
+        body["executor"] = {}
+        if executor_enabled is not None:
+            body["executor"]["enabled"] = bool(executor_enabled)
+        if executor_live is not None:
+            body["executor"]["live"] = bool(executor_live)
     if replan_editable:
         seconds = parse_timeout(timeout_text)
         if seconds is None:
@@ -612,7 +644,14 @@ def job_dispatcher_needs_confirmation(current: dict, patch: dict) -> bool:
     new = patch["jobDispatcher"]
     relay_on = not current["relay"]["value"] and new["stopRelay"]["enabled"]
     unconfirmed = "replan" in new and not current["allow"]["value"] and new["replan"]["allowUnconfirmed"]
-    return bool(relay_on or unconfirmed)
+    return bool(relay_on or unconfirmed or job_executor_goes_live(current, patch))
+
+
+def job_executor_goes_live(current: dict, patch: dict) -> bool:
+    """Letting the executor of the assigned jobs move the robots by itself (it was off or a dry run) asks first, with its own words."""
+    executor = patch["jobDispatcher"].get("executor")
+    was_live = bool(current["executor"]["live"]["value"]) if current.get("executor") else False
+    return bool(executor and executor.get("live") is True and not was_live)
 
 
 def valid_estop_watch_ms(value: object) -> bool:
@@ -782,6 +821,10 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_INSTALL_TLS_WARNING")
     if "job_stop_relay_on" in warnings:
         sentence = _("SECURITY_JD_WARNING_RELAY")
+    if "job_executor_on" in warnings:
+        sentence = _("SECURITY_JD_WARNING_EXEC")
+    if "job_executor_live" in warnings:
+        sentence = _("SECURITY_JD_WARNING_EXEC_LIVE")
     if "replan_unconfirmed_allowed" in warnings:
         sentence = _("SECURITY_JD_WARNING_REPLAN")
     if "mavlink_unsigned_allowed" in warnings:
@@ -916,6 +959,7 @@ EMPTY_VIEW: dict = {
     "authAcceptHs256": True, "authAcceptHs256Locked": False, "authAcceptHs256Source": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
     "trustedNetworksAvailable": False, "trustedNetworksEnabled": False, "trustedNetworksEnabledLocked": False, "trustedNetworksEnabledSource": "",
+    "nodeHealthAvailable": False, "nodeHealthEnabled": False, "nodeHealthEnabledLocked": False, "nodeHealthEnabledSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
@@ -924,6 +968,7 @@ EMPTY_VIEW: dict = {
     "safetyEstopWatchAvailable": False, "safetyEstopWatchText": "", "safetyEstopWatchLocked": False, "safetyEstopWatchSource": "",
     "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
     "jdReplanEditable": False, "jdReplanNote": "",
+    "jdExecAvailable": False, "jdExecEnabled": False, "jdExecEnabledLocked": False, "jdExecEnabledSource": "", "jdExecLive": False, "jdExecLiveLocked": False, "jdExecLiveSource": "",
     "productionAvailable": False, "productionRdp": False, "productionRdpLocked": False, "productionRdpSource": "",
     "ingestAvailable": False, "ingestRows": [], "ingestKeysFile": "", "ingestKeysLocked": False, "ingestKeysSource": "", "ingestRestart": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
@@ -1048,6 +1093,16 @@ def view(state: dict | None) -> dict:
                 "healthOpenSource": source_text(health["open"]["source"]),
             }
         )
+    node_health = state.get("nodeHealth")
+    if node_health is not None:
+        out.update(
+            {
+                "nodeHealthAvailable": True,
+                "nodeHealthEnabled": node_health["enabled"]["value"],
+                "nodeHealthEnabledLocked": is_locked(node_health["enabled"]["source"]),
+                "nodeHealthEnabledSource": source_text(node_health["enabled"]["source"]),
+            }
+        )
     ecosystem_health = state.get("ecosystemHealth")
     if ecosystem_health is not None:
         out.update(
@@ -1159,6 +1214,13 @@ def view(state: dict | None) -> dict:
                 "jdTimeout": f"{job_dispatcher['timeout']['value']:g}",
                 "jdReplanEditable": job_dispatcher["editable"],
                 "jdReplanNote": _("LBL_SECURITY_JD_REPLAN_HELP") if job_dispatcher["editable"] else _("LBL_SECURITY_JD_NOT_EDITABLE"),
+                "jdExecAvailable": job_dispatcher.get("executor") is not None,
+                "jdExecEnabled": bool(job_dispatcher.get("executor") and job_dispatcher["executor"]["enabled"]["value"]),
+                "jdExecEnabledLocked": bool(job_dispatcher.get("executor") and is_locked(job_dispatcher["executor"]["enabled"]["source"])),
+                "jdExecEnabledSource": (source_text(job_dispatcher["executor"]["enabled"]["source"]) + (" " + _("SECURITY_RESTART_NOTE") if job_dispatcher["executor"]["appliesOnRestart"] else "")) if job_dispatcher.get("executor") else "",
+                "jdExecLive": bool(job_dispatcher.get("executor") and job_dispatcher["executor"]["live"]["value"]),
+                "jdExecLiveLocked": bool(job_dispatcher.get("executor") and is_locked(job_dispatcher["executor"]["live"]["source"])),
+                "jdExecLiveSource": source_text(job_dispatcher["executor"]["live"]["source"]) if job_dispatcher.get("executor") else "",
                 "jdReloadState": job_dispatcher["reload"],
                 "jdReloadText": "" if job_dispatcher["reload"] == "none" else _("LBL_JD_RELOAD") + ": " + _("LBL_JD_RELOAD_" + job_dispatcher["reload"].upper()),
             }
