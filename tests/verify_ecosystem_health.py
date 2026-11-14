@@ -11,12 +11,16 @@
 #   - a port, address or unit that a server sends to an administrator never reaches a card
 #   - a damaged entry is dropped, an unknown state is shown as unknown
 #   - the switch of the option in the security screen: read, locked by the environment, sent
+#   - the section "HYDRA-UMC updates" of the Updates screen (GET /api/admin/self-update): the table of the programs against their newest signed release,
+#     a state that is not known shown as not known, applying off until the switch is on and the server allows it, the confirmation, the job followed through
+#     a restart of the server (a cut connection, a 502), the long silence, each way the start or the read can fail
 # Run headless: QT_QPA_PLATFORM=offscreen.
 # =============================================================================
 import asyncio
 import json
 import sys
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -86,7 +90,18 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
+    def do_POST(self):
+        if self.path.startswith("/api/admin/self-update/"):
+            SelfUpdateSim.post(self)
+            return
+        self.send_response(404)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_GET(self):
+        if self.path.startswith("/api/admin/self-update"):
+            SelfUpdateSim.get(self)
+            return
         if self.path != "/api/ecosystem/health":
             self.send_response(404)
             self.send_header("Content-Length", "0")
@@ -305,6 +320,301 @@ def switch(loop):
     pump(loop)
     check("switch: turning it on sends the patch", sent, [{"ecosystemHealth": {"enabled": True}}])
 
+# ---- the updates of the programs of the machine (GET /api/admin/self-update): the reading, the job, the follower and the screen
+
+
+class SelfUpdateSim:
+    """The routes of /api/admin/self-update of a simulated server: the answer of the table, the answers of the job in order (the last one stays; None cuts the connection)."""
+
+    status = 200
+    body: dict = {}
+    jobs: list = []
+    reads = 0
+    posted: list = []
+    start: tuple = (202, {})
+
+    @staticmethod
+    def send(handler, status, body):
+        raw = json.dumps(body).encode()
+        handler.send_response(status)
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+
+    @classmethod
+    def get(cls, handler):
+        path = handler.path.split("?")[0]
+        if path == "/api/admin/self-update":
+            cls.send(handler, cls.status, cls.body)
+        elif path.startswith("/api/admin/self-update/jobs/"):
+            answer = cls.jobs[min(cls.reads, len(cls.jobs) - 1)] if cls.jobs else (404, {})
+            cls.reads += 1
+            if answer is None:
+                handler.connection.close()
+                return
+            cls.send(handler, *answer)
+        else:
+            cls.send(handler, 404, {})
+
+    @classmethod
+    def post(cls, handler):
+        length = int(handler.headers.get("Content-Length") or 0)
+        cls.posted.append((handler.path, json.loads(handler.rfile.read(length) or b"{}")))
+        cls.send(handler, *cls.start)
+
+
+def su_item(component, installed="1.0.0", previous=None, latest="1.1.0", state="behind", signed=True):
+    return {"id": component, "repo": f"JuanenRac/HYDRA-UMC-{component.upper()}", "installed": installed, "previous": previous, "latest": latest, "state": state, "signedPackage": signed}
+
+
+def su_job(state="downloading", **more):
+    return {"id": "j1", "action": "apply", "component": "server", "state": state, "fromVersion": "1.0.0", "targetVersion": "1.1.0", "error": None, "detail": "",
+            "log": [{"at": "2026-01-01T12:00:00Z", "step": "checking", "text": "looking"}], "by": "ana", **more}
+
+
+SU_STATUS = {"checkedAt": "2026-01-01T12:00:00Z", "owner": "JuanenRac", "rateLimited": False, "applyEnabled": True, "job": None,
+             "items": [su_item("server", previous="0.9.0"), su_item("studio", state="current", latest="1.0.0"), su_item("os-agent", state="weird", signed=False)]}
+
+
+def self_update_logic():
+    sl = __import__("hydra_suite.panel_logic.self_update", fromlist=["x"])
+    status = sl.parse_status(SU_STATUS)
+    check("updates: the three programs are read and a state that is not known is shown as not known", ([i["id"] for i in status["items"]], [i["state"] for i in status["items"]]),
+          (["server", "studio", "os-agent"], ["behind", "current", "unknown"]))
+    check("updates: what is not that answer is refused", [sl.parse_status(x) for x in (None, [], {}, {"items": "x"}, "text")], [None] * 5)
+    check("updates: a program this app does not know is dropped", [i["id"] for i in sl.parse_status({"items": [su_item("server"), {"id": "toaster"}, 3]})["items"]], ["server"])
+    check("updates: applying is on only when the server says exactly true", [sl.parse_status({"items": [], "applyEnabled": v})["applyEnabled"] for v in (True, False, 1, "true", None)], [True, False, False, False, False])
+    check("updates: a job needs an id, a program of the three and a step it knows", [sl.parse_job(j) is not None for j in (su_job(), {**su_job(), "id": ""}, {**su_job(), "component": "x"}, {**su_job(), "state": "x"}, None, [])],
+          [True, False, False, False, False, False])
+    check("updates: a log line with an unknown step is dropped", len(sl.parse_job(su_job(log=[{"step": "applying", "text": "a"}, {"step": "x", "text": "b"}, {"step": "done"}]))["log"]), 1)
+    check("updates: the answers of the table are classified", [sl.classify_read(r)[0] for r in ((200, SU_STATUS), (200, {"x": 1}), (404, None), (403, {}), (401, {}), (500, {}), None)],
+          ["ok", "malformed", "unsupported", "forbidden", "forbidden", "http", "network"])
+    check("updates: the answers to the start are classified", [sl.classify_start(r)[0] for r in ((202, su_job()), (200, su_job()), (202, {}), (404, {}), (403, {}), (423, {}), (409, {}), (500, {}), None)],
+          ["ok", "ok", "refused", "disabled", "forbidden", "forbidden", "busy", "refused", "network"])
+    check("updates: a cut connection, a 502 or a body that is not the job mean wait, never failed; only a refused session stops",
+          [sl.classify_job_read(r, "j1")[0] for r in (None, (502, None), (503, {}), (200, {}), (200, su_job()), (200, {**su_job(), "id": "other"}), (403, {}), (404, {}))],
+          ["wait", "wait", "wait", "wait", "job", "wait", "stop", "wait"])
+    check("updates: running and the line of progress", [(sl.running(sl.parse_job(su_job(state=s))), sl.progress_index(sl.parse_job(su_job(state=s)))) for s in ("checking", "applying", "done")],
+          [(True, 0), (True, 3), (False, 5)])
+    failed = sl.parse_job(su_job(state="failed", error="signature_invalid", log=[{"step": "checking", "text": "a"}, {"step": "verifying", "text": "b"}]))
+    check("updates: a failed job marks the step after the last one it reached", [m["mark"] for m in sl.step_marks(failed)], ["done", "done", "done", "failed", "next", "next"])
+    check("updates: a job that failed before the first step marks the first", [m["mark"] for m in sl.step_marks(sl.parse_job(su_job(state="failed", log=[])))][:2], ["failed", "next"])
+    check("updates: a finished job has every step done", {m["mark"] for m in sl.step_marks(sl.parse_job(su_job(state="done")))}, {"done"})
+    check("updates: a reason has its sentence and an unknown reason has the general one", (sl.failure_text("signature_invalid") != sl.failure_text(None), sl.failure_text("nonsense"), sl.failure_text(None)),
+          (True, _("SELFUPD_ERR_GENERIC"), _("SELFUPD_ERR_GENERIC")))
+    check("updates: every reason has a sentence of its own", all(_("SELFUPD_ERR_" + code.upper()) != "SELFUPD_ERR_" + code.upper() for code in sl.FAILURES), True)
+    check("updates: the switch is off unless the configuration says exactly true", [sl.apply_from_config(c) for c in ({}, {"self_update_apply": True}, {"self_update_apply": 1}, {"self_update_apply": "true"}, None)],
+          [False, True, False, False, False])
+    # the buttons: both switches, no job going on, a program that is behind with a signed package, an earlier release to go back to
+    expect = {
+        (True, "apply", "server"): "server", (True, "rollback", "server"): "server", (True, "apply", "studio"): None, (True, "rollback", "studio"): None,
+        (True, "apply", "os-agent"): None, (False, "apply", "server"): None, (False, "rollback", "server"): None, (True, "apply", "toaster"): None,
+    }
+    got = {key: (lambda item: item["id"] if item else None)(sl.may_start(key[1], key[2], key[0], status, None)) for key in expect}
+    check("updates: the switch, the state, the signed package and the earlier release decide what may start", got, expect)
+    check("updates: a server that has applying off allows nothing, and neither does a running job", (sl.may_start("apply", "server", True, {**status, "applyEnabled": False}, None), sl.may_start("apply", "server", True, status, sl.parse_job(su_job()))), (None, None))
+    check("updates: an action that is not one of the two starts nothing", sl.may_start("delete", "server", True, status, None), None)
+    rows = {r["id"]: r for r in sl.view(status, "", True, None, None, False, None, "", False)["rows"]}
+    check("updates: the table says what each button may do", [(r, rows[r]["canUpdate"], rows[r]["canGoBack"]) for r in rows], [("server", True, True), ("studio", False, False), ("os-agent", False, False)])
+    check("updates: a program that is behind without a signed package says so; one that is not known says not known", (rows["os-agent"]["note"], rows["os-agent"]["stateLabel"], rows["server"]["note"]), ("", _("SELFUPD_STATE_UNKNOWN"), ""))
+    behind_unsigned = sl.view(sl.parse_status({"items": [su_item("server", signed=False)], "applyEnabled": True}), "", True, None, None, False, None, "", False)["rows"][0]
+    check("updates: behind without a signed package cannot be updated and says why", (behind_unsigned["canUpdate"], behind_unsigned["note"]), (False, _("SELFUPD_NO_PACKAGE")))
+    off = sl.view(status, "", False, None, None, False, None, "", False)
+    check("updates: with the switch off nothing can be started and the mode says check only", ([(r["canUpdate"], r["canGoBack"]) for r in off["rows"]], off["mode"]), ([(False, False)] * 3, _("SELFUPD_MODE_CHECK_ONLY")))
+    server_off = sl.view(sl.parse_status({**SU_STATUS, "applyEnabled": False, "rateLimited": True}), "", True, None, None, False, None, "", False)
+    check("updates: the server with applying off wins over the switch, and the quota is said", (server_off["rows"][0]["canUpdate"], server_off["mode"]), (False, _("SELFUPD_MODE_SERVER_OFF") + " " + _("SELFUPD_RATE_LIMITED")))
+    check("updates: the mode with both switches on", sl.view(status, "", True, None, None, False, None, "", False)["mode"], _("SELFUPD_MODE_APPLY"))
+    asked = sl.view(status, "", True, None, None, False, {"action": "apply", "component": "server"}, "", False)
+    back = sl.view(status, "", True, None, None, False, {"action": "rollback", "component": "server"}, "", False)
+    check("updates: the confirmation names the program and the two versions", (asked["confirm"], back["confirm"]),
+          (_("SELFUPD_CONFIRM_APPLY", program=_("SELFUPD_COMPONENT_SERVER"), versions="1.0.0 -> 1.1.0"), _("SELFUPD_CONFIRM_ROLLBACK", program=_("SELFUPD_COMPONENT_SERVER"), versions="1.0.0 -> 0.9.0")))
+    check("updates: a confirmation for a program that is not in the table shows nothing", sl.view(status, "", True, None, None, False, {"action": "apply", "component": "toaster"}, "", False)["confirm"], "")
+    check("updates: no program shown when the read failed, with the sentence of each failure",
+          [(sl.view(None, kind, True, None, None, False, None, "", False)["rows"], sl.view(None, kind, True, None, None, False, None, "", False)["failure"]) for kind in ("unsupported", "forbidden", "network", "no_server")],
+          [([], _("SELFUPD_UNSUPPORTED")), ([], _("SELFUPD_FORBIDDEN")), ([], _("SELFUPD_LOAD_ERROR")), ([], _("LBL_ES_NO_ACTIVE_SERVER"))])
+    waiting = sl.job_view(sl.parse_job(su_job(state="restarting")), 12, False)
+    check("updates: the job card says it waits, how long, and that the update goes on without the window", (waiting["waiting"], waiting["running"], waiting["gaveUp"]), (_("SELFUPD_WAITING", seconds=12), True, ""))
+    gave = sl.job_view(sl.parse_job(su_job(state="restarting")), 240, True)
+    check("updates: after the limit of silence it says so and stops saying it waits", (gave["gaveUp"], gave["waiting"]), (_("SELFUPD_GAVE_UP"), ""))
+    done = sl.job_view(sl.parse_job(su_job(state="done")), None, False)
+    check("updates: a finished job says the version in use", (done["done"], done["failed"], done["running"]), (_("SELFUPD_DONE_APPLY", version="1.1.0"), "", False))
+    back_done = sl.job_view(sl.parse_job(su_job(state="done", action="rollback", targetVersion="0.9.0")), None, False)
+    check("updates: a way back says it is back", back_done["done"], _("SELFUPD_DONE_ROLLBACK", version="0.9.0"))
+    fail = sl.job_view(failed, None, False)
+    check("updates: a failed job says why, in words", (fail["failed"], fail["done"]), (_("SELFUPD_ERR_SIGNATURE_INVALID"), ""))
+    check("updates: the start failures have their sentences", [sl.start_failure_text(k) for k in sl.START_FAILURES] == [_("SELFUPD_START_" + k.upper()) for k in sl.START_FAILURES] and len(set(sl.start_failure_text(k) for k in sl.START_FAILURES)) == 5, True)
+    keys = ["SELFUPD_" + k for k in ("TITLE", "INTRO", "SWITCH_TITLE", "SWITCH_HINT", "CHECK", "UPDATE", "ROLLBACK", "NO_PACKAGE", "CONFIRM_TITLE", "CONFIRM_NOTE", "LOOK_AGAIN", "GAVE_UP", "WAITING", "RATE_LIMITED")]
+    keys += [f"SELFUPD_COL_{x}" for x in ("PROGRAM", "INSTALLED", "PREVIOUS", "LATEST", "STATE")] + [f"SELFUPD_STATE_{x.upper()}" for x in sl.ITEM_STATES]
+    keys += [f"SELFUPD_STEP_{x.upper()}" for x in sl.PROGRESS_STEPS] + [f"SELFUPD_COMPONENT_{x.replace('-', '_').upper()}" for x in sl.COMPONENTS] + ["HELP_SELFUPDATE_Q", "HELP_SELFUPDATE_S1", "HELP_SELFUPDATE_S2", "HELP_SELFUPDATE_S3"]
+    check("updates: every sentence of the section exists", [k for k in keys if _(k) == k], [])
+
+    # the follower, with a clock that only moves when it sleeps: through a restart (a cut, a 502), to the end, to the limit of silence, stopped
+    def scripted(answers):
+        left = list(answers)
+
+        async def read(_job_id):
+            return left.pop(0) if len(left) > 1 else left[0]
+
+        return read
+
+    def clock():
+        state = {"t": 0.0}
+
+        async def sleep(seconds):
+            state["t"] += seconds
+
+        return (lambda: state["t"]), sleep
+
+    async def follow(answers, **options):
+        now, sleep = clock()
+        seen, waits = [], []
+        end = await sl.follow_job("j1", scripted(answers), seen.append, waits.append, now=now, sleep=sleep, **options)
+        return end, [j["state"] for j in seen], waits
+
+    job = lambda state: ("job", sl.parse_job(su_job(state=state)))  # noqa: E731
+    end, seen, waits = asyncio.run(follow([job("checking"), ("wait", None), ("wait", None), job("restarting"), ("wait", None), job("done")]))
+    check("follower: it keeps asking through the restart and ends with the job that ends", (end[0], end[1]["state"], seen, waits), ("ended", "done", ["checking", "restarting", "done"], [1, 3, 1]))
+    end, seen, waits = asyncio.run(follow([job("applying"), job("failed")]))
+    check("follower: a failure the job reports is a result, not a silence", (end[0], end[1]["state"], waits), ("ended", "failed", []))
+    end, seen, waits = asyncio.run(follow([("wait", None)], silence_limit=10.0, interval=1.0))
+    check("follower: it gives up only after the limit of silence, counted from the first look", (end, waits[-1], len(waits)), (("silent", 10), 10, 11))
+    end, seen, waits = asyncio.run(follow([job("checking"), ("wait", None)], silence_limit=5.0, interval=1.0))
+    check("follower: the silence is counted from the last answer", (end[0], seen, waits[0]), ("silent", ["checking"], 1))
+    end, seen, waits = asyncio.run(follow([("stop", None)]))
+    check("follower: a refused session stops it", end, ("stopped", "forbidden"))
+    state = {"n": 0}
+
+    def cancelled():
+        state["n"] += 1
+        return state["n"] > 3
+
+    end, seen, waits = asyncio.run(follow([("wait", None)], cancelled=cancelled))
+    check("follower: it stops when it is cancelled", end, ("stopped", "cancelled"))
+
+
+def self_update_screen(loop, port):
+    sl = __import__("hydra_suite.panel_logic.self_update", fromlist=["x"])
+    controller = SuiteController()
+    bridge = qs.SuiteQtBridge(controller)
+    conn = HydraConnection(ServerInfo(host="127.0.0.1", port=port, username="ana", password="pw"))
+    conn._token = "tok"
+    conn.login_ok = True
+    conn.role = "admin"
+    controller.connections["s"] = conn
+    controller._active_id = "s"
+    for timers in bridge._poller_gates().values():
+        for timer in timers:
+            timer.stop()
+    saved = []
+    qs.save_config = lambda update: saved.append(update) or True  # the switch never writes the configuration file of the machine that runs the check
+    sl.INTERVAL_S, sl.SILENCE_LIMIT_S = 0.02, 0.4
+
+    def read():
+        loop.run_until_complete(bridge._refresh_self_update(True))
+
+    def wait_until(condition, seconds=8.0):
+        end = time.monotonic() + seconds
+        while time.monotonic() < end and not condition():
+            pump(loop, 0.02)
+        return condition()
+
+    def server_row(name="server"):
+        return next((r for r in bridge.selfUpdateView["rows"] if r["id"] == name), None)
+
+    def ask_and_confirm(action="apply", component="server"):
+        SelfUpdateSim.reads = 0
+        bridge.requestSelfUpdate(action, component)
+        bridge.confirmSelfUpdate()
+
+    SelfUpdateSim.status, SelfUpdateSim.body, SelfUpdateSim.posted = 200, SU_STATUS, []
+    read()
+    view = bridge.selfUpdateView
+    check("updates screen: the three programs, nothing failed, the switch is off", ([r["id"] for r in view["rows"]], view["failure"], view["applyOn"], view["loaded"]), (["server", "studio", "os-agent"], "", False, True))
+    check("updates screen: with the switch off no button is on and the mode says check only", ([(r["canUpdate"], r["canGoBack"]) for r in view["rows"]], view["mode"]), ([(False, False)] * 3, _("SELFUPD_MODE_CHECK_ONLY")))
+    bridge.requestSelfUpdate("apply", "server")
+    check("updates screen: asking with the switch off asks nothing", bridge.selfUpdateView["confirm"], "")
+    bridge.setSelfUpdateApply(True)
+    check("updates screen: the switch is kept in the configuration and turns the buttons on", (saved, server_row()["canUpdate"], server_row()["canGoBack"], server_row("studio")["canUpdate"]), ([{"self_update_apply": True}], True, True, False))
+    bridge.requestSelfUpdate("apply", "studio")
+    check("updates screen: a program that is up to date cannot be asked for", bridge.selfUpdateView["confirm"], "")
+    bridge.requestSelfUpdate("delete", "server")
+    check("updates screen: an action that is not an update or a way back asks nothing", bridge.selfUpdateView["confirm"], "")
+    bridge.requestSelfUpdate("apply", "server")
+    check("updates screen: the confirmation names the program and the two versions", bridge.selfUpdateView["confirm"], _("SELFUPD_CONFIRM_APPLY", program=_("SELFUPD_COMPONENT_SERVER"), versions="1.0.0 -> 1.1.0"))
+    bridge.cancelSelfUpdate()
+    pump(loop)
+    check("updates screen: cancelling sends nothing", (bridge.selfUpdateView["confirm"], SelfUpdateSim.posted), ("", []))
+    bridge.requestSelfUpdate("rollback", "server")
+    bridge.setSelfUpdateApply(False)
+    check("updates screen: turning the switch off drops a confirmation that waits", (bridge.selfUpdateView["confirm"], saved[-1]), ("", {"self_update_apply": False}))
+    bridge.setSelfUpdateApply(True)
+
+    # an update through a restart of the server: a cut connection and a 502 between the answers
+    SelfUpdateSim.body = {**SU_STATUS, "items": [su_item("server", installed="1.1.0", previous="1.0.0", latest="1.1.0", state="current"), *SU_STATUS["items"][1:]]}
+    SelfUpdateSim.start = (202, su_job(state="checking"))
+    SelfUpdateSim.jobs = [(200, su_job("downloading")), None, (502, {}), (200, su_job("restarting")), None, (200, su_job("done"))]
+    ask_and_confirm()
+    ended = wait_until(lambda: bridge._su_following is None and bridge._su_job is not None and bridge._su_job["state"] == "done" and server_row()["state"] == "current")
+    check("updates screen: the confirmation travels with the request", SelfUpdateSim.posted, [("/api/admin/self-update/apply", {"component": "server", "confirm": True})])
+    check("updates screen: the job ends done through the restart and the table is read again", (ended, bridge.selfUpdateView["job"].get("done")), (True, _("SELFUPD_DONE_APPLY", version="1.1.0")))
+    check("updates screen: every step is done and nothing is said to wait any more", ({s["mark"] for s in bridge.selfUpdateView["job"]["steps"]}, bridge.selfUpdateView["job"]["waiting"]), ({"done"}, ""))
+    check("updates screen: an update that has been done cannot be done again", server_row()["canUpdate"], False)
+
+    # a long silence: it says so and offers to look again, which finds the result
+    SelfUpdateSim.body = SU_STATUS
+    read()
+    SelfUpdateSim.start = (202, su_job(state="applying"))
+    SelfUpdateSim.jobs = [None]
+    ask_and_confirm()
+    silent = wait_until(lambda: bridge._su_gave_up)
+    view = bridge.selfUpdateView["job"]
+    check("updates screen: after the limit of silence it says so and is not stuck", (silent, view["gaveUp"], view["waiting"], view["running"]), (True, _("SELFUPD_GAVE_UP"), "", True))
+    SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("failed", error="rolled_back", detail="unit did not answer"))]
+    bridge.lookAgainSelfUpdate()
+    wait_until(lambda: bridge._su_job is not None and bridge._su_job["state"] == "failed" and bridge._su_following is None)
+    view = bridge.selfUpdateView["job"]
+    check("updates screen: looking again finds the failure and says why and what was put back", (view["failed"], view["detail"], view["gaveUp"]), (_("SELFUPD_ERR_ROLLED_BACK"), "unit did not answer", ""))
+
+    # why it could not start
+    for status, reason in ((409, "busy"), (404, "disabled"), (403, "forbidden"), (500, "refused")):
+        SelfUpdateSim.start = (status, {})
+        SelfUpdateSim.posted = []
+        read()
+        ask_and_confirm()
+        wait_until(lambda: bridge.selfUpdateView["message"] != "")
+        check(f"updates screen: a {status} on start says {reason}", (bridge.selfUpdateView["message"], len(SelfUpdateSim.posted)), (_("SELFUPD_START_" + reason.upper()), 1))
+        bridge.requestSelfUpdate("apply", "server")
+        check(f"updates screen: asking again clears the old message ({status})", bridge.selfUpdateView["message"], "")
+        bridge.cancelSelfUpdate()
+
+    # the two switches: the server with applying off wins over the switch of this program
+    SelfUpdateSim.body = {**SU_STATUS, "applyEnabled": False}
+    read()
+    check("updates screen: a server with applying off allows nothing, whatever this program says", ([(r["canUpdate"], r["canGoBack"]) for r in bridge.selfUpdateView["rows"]], bridge.selfUpdateView["mode"]), ([(False, False)] * 3, _("SELFUPD_MODE_SERVER_OFF")))
+    # a job that was going on when the screen was opened is picked up
+    SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("applying")), (200, su_job("done"))]
+    SelfUpdateSim.body = {**SU_STATUS, "job": su_job("applying")}
+    read()
+    check("updates screen: a job that was going on is shown at once", (bridge.selfUpdateView["job"]["running"], bridge.selfUpdateView["canCheck"]), (True, False))
+    check("updates screen: it is followed to its end", wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None), True)
+
+    # what the screen says when the table cannot be read
+    for status, kind, sentence in ((404, "unsupported", _("SELFUPD_UNSUPPORTED")), (403, "forbidden", _("SELFUPD_FORBIDDEN")), (500, "http", _("SELFUPD_LOAD_ERROR"))):
+        SelfUpdateSim.status, SelfUpdateSim.body = status, {}
+        read()
+        view = bridge.selfUpdateView
+        check(f"updates screen: a {status} says {kind} and shows no program", (view["failure"], view["rows"], view["loaded"]), (sentence, [], False))
+    SelfUpdateSim.status, SelfUpdateSim.body = 200, {"items": "x"}
+    read()
+    check("updates screen: an answer that is not the table says it could not be read", (bridge.selfUpdateView["failure"], bridge.selfUpdateView["rows"]), (_("SELFUPD_LOAD_ERROR"), []))
+    SelfUpdateSim.body = SU_STATUS
+    bridge._su_status = None
+    bridge.navigatePanel("updates")
+    check("updates screen: opening the screen reads the table", wait_until(lambda: bridge.selfUpdateView["loaded"]), True)
+    controller._active_id = None
+    read()
+    check("updates screen: no server selected", (bridge.selfUpdateView["failure"], bridge.selfUpdateView["rows"]), (_("LBL_ES_NO_ACTIVE_SERVER"), []))
+
 
 def main():
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
@@ -315,6 +625,8 @@ def main():
     logic()
     screen(loop, server.server_address[1])
     switch(loop)
+    self_update_logic()
+    self_update_screen(loop, server.server_address[1])
     server.shutdown()
     print("FAILURES:", failures)
     return 1 if failures else 0
