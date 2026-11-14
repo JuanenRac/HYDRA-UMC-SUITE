@@ -45,7 +45,7 @@ check("the view lists the pending proposals with a title and a meta line", (view
 check("the view says the last decisions", view["decided"], [_("OPSPROP_DECIDED_REJECTED", id="old", by="root", at="d")])
 check("an empty list says there is none", ops.view({"pending": [], "decided": []})["none"], True)
 check("no view without the channel", ops.view(None), {"available": False, "pending": [], "decided": [], "none": False})
-for key in ("OPSPROP_TITLE", "OPSPROP_DESC", "OPSPROP_NONE", "OPSPROP_APPROVE", "OPSPROP_REJECT", "OPSPROP_REFRESH", "OPSPROP_APPROVED", "OPSPROP_REJECTED", "OPSPROP_CONFIRM_TITLE", "OPSPROP_CONFIRM_MESSAGE"):
+for key in ("OPSPROP_TITLE", "OPSPROP_DESC", "OPSPROP_NONE", "COMMON_APPROVE", "OPSPROP_REJECT", "OPSPROP_REFRESH", "OPSPROP_APPROVED", "OPSPROP_REJECTED", "OPSPROP_CONFIRM_TITLE", "OPSPROP_CONFIRM_MESSAGE"):
     check(f"sentence {key} exists", _(key) != key, True)
 
 print(f"FAILURES: {failures}")

@@ -3587,7 +3587,7 @@ class SuiteQtBridge(QObject):
         else:
             self._hub_gate_error = ""
             self._hub_gate = connector_hub_gate.parse_settings(result[1])  # type: ignore[index]
-            self._hub_gate_message = _("HUBGATE_SAVED")
+            self._hub_gate_message = _("COMMON_SAVED")
         self.adminSwitchesChanged.emit()
 
     # -- Switch of the identity of the approval of a plan (administrators) ---------------
@@ -3635,7 +3635,7 @@ class SuiteQtBridge(QObject):
         else:
             self._planner_identity_error = ""
             self._planner_identity = planner_identity.parse_settings(result[1])  # type: ignore[index]
-            self._planner_identity_message = _("PLANNERID_SAVED")
+            self._planner_identity_message = _("COMMON_SAVED")
         self.adminSwitchesChanged.emit()
 
     # -- Identity of the server in its calls to the services (administrators) ----------------
@@ -4550,7 +4550,7 @@ class SuiteQtBridge(QObject):
                 if state is not None:
                     self._security_state = state
                 self._security_warning = server_security.known_warning(body.get("warnings"))
-                self._security_message = _("SECURITY_SAVED")
+                self._security_message = _("COMMON_SAVED")
                 if self._dispatcher_reload_pending():
                     asyncio.ensure_future(self._follow_dispatcher_reload())
         self.changed.emit()
