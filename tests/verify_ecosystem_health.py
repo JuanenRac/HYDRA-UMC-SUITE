@@ -564,9 +564,17 @@ def self_update_screen(loop, port):
     SelfUpdateSim.body = SU_STATUS
     read()
     SelfUpdateSim.start = (202, su_job(state="applying"))
-    SelfUpdateSim.jobs = [None]
+    real_read = conn.fetch_self_update_job
+
+    async def no_answer(_job_id):
+        return None  # the server does not answer at all, as while it restarts
+
+    conn.fetch_self_update_job = no_answer
+    sl.SILENCE_LIMIT_S = 0.4
     ask_and_confirm()
     silent = wait_until(lambda: bridge._su_gave_up)
+    conn.fetch_self_update_job = real_read
+    sl.SILENCE_LIMIT_S = 3.0
     view = bridge.selfUpdateView["job"]
     check("updates screen: after the limit of silence it says so and is not stuck", (silent, view["gaveUp"], view["waiting"], view["running"]), (True, _("SELFUPD_GAVE_UP"), "", True))
     SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("failed", error="rolled_back", detail="unit did not answer"))]
