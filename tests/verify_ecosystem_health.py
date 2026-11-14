@@ -505,6 +505,15 @@ def self_update_screen(loop, port):
     for timers in bridge._poller_gates().values():
         for timer in timers:
             timer.stop()
+    import logging
+
+    warnings = []
+
+    class Collect(logging.Handler):
+        def emit(self, record):
+            warnings.append(record.getMessage())
+
+    logging.getLogger(qs.__name__).addHandler(Collect(logging.WARNING))
     saved = []
     qs.save_config = lambda update: saved.append(update) or True  # the switch never writes the configuration file of the machine that runs the check
     sl.INTERVAL_S, sl.SILENCE_LIMIT_S = 0.02, 3.0  # long enough for a slow runner between two answers of the restart
@@ -606,7 +615,7 @@ def self_update_screen(loop, port):
     SelfUpdateSim.body = SU_STATUS  # by the time the table is read again at the end of the job, the server no longer reports it as going on
     check("updates screen: a job that was going on is shown at once", (bridge.selfUpdateView["job"]["running"], bridge.selfUpdateView["canCheck"]), (True, False))
     followed = wait_until(lambda: bridge._su_job["state"] == "done" and bridge._su_following is None)
-    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following, SelfUpdateSim.reads, bridge._su_gave_up, bridge._su_silent), (True, "done", None, 2, False, None))
+    check("updates screen: it is followed to its end", (followed, bridge._su_job["state"], bridge._su_following, SelfUpdateSim.reads, bridge._su_gave_up, bridge._su_silent, warnings), (True, "done", None, 2, False, None, []))
 
     # what the screen says when the table cannot be read
     for status, kind, sentence in ((404, "unsupported", _("SELFUPD_UNSUPPORTED")), (403, "forbidden", _("SELFUPD_FORBIDDEN")), (500, "http", _("SELFUPD_LOAD_ERROR"))):
