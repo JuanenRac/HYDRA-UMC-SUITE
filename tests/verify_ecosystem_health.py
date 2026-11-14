@@ -376,7 +376,7 @@ SU_STATUS = {"checkedAt": "2026-01-01T12:00:00Z", "owner": "JuanenRac", "rateLim
              "items": [su_item("server", previous="0.9.0"), su_item("studio", state="current", latest="1.0.0"), su_item("os-agent", state="weird", signed=False)]}
 
 
-def self_update_logic():
+def self_update_logic(loop):
     sl = __import__("hydra_suite.panel_logic.self_update", fromlist=["x"])
     status = sl.parse_status(SU_STATUS)
     check("updates: the three programs are read and a state that is not known is shown as not known", ([i["id"] for i in status["items"]], [i["state"] for i in status["items"]]),
@@ -472,15 +472,15 @@ def self_update_logic():
         return end, [j["state"] for j in seen], waits
 
     job = lambda state: ("job", sl.parse_job(su_job(state=state)))  # noqa: E731
-    end, seen, waits = asyncio.run(follow([job("checking"), ("wait", None), ("wait", None), job("restarting"), ("wait", None), job("done")]))
+    end, seen, waits = loop.run_until_complete(follow([job("checking"), ("wait", None), ("wait", None), job("restarting"), ("wait", None), job("done")]))
     check("follower: it keeps asking through the restart and ends with the job that ends", (end[0], end[1]["state"], seen, waits), ("ended", "done", ["checking", "restarting", "done"], [1, 3, 1]))
-    end, seen, waits = asyncio.run(follow([job("applying"), job("failed")]))
+    end, seen, waits = loop.run_until_complete(follow([job("applying"), job("failed")]))
     check("follower: a failure the job reports is a result, not a silence", (end[0], end[1]["state"], waits), ("ended", "failed", []))
-    end, seen, waits = asyncio.run(follow([("wait", None)], silence_limit=10.0, interval=1.0))
+    end, seen, waits = loop.run_until_complete(follow([("wait", None)], silence_limit=10.0, interval=1.0))
     check("follower: it gives up only after the limit of silence, counted from the first look", (end, waits[-1], len(waits)), (("silent", 10), 10, 11))
-    end, seen, waits = asyncio.run(follow([job("checking"), ("wait", None)], silence_limit=5.0, interval=1.0))
+    end, seen, waits = loop.run_until_complete(follow([job("checking"), ("wait", None)], silence_limit=5.0, interval=1.0))
     check("follower: the silence is counted from the last answer", (end[0], seen, waits[0]), ("silent", ["checking"], 1))
-    end, seen, waits = asyncio.run(follow([("stop", None)]))
+    end, seen, waits = loop.run_until_complete(follow([("stop", None)]))
     check("follower: a refused session stops it", end, ("stopped", "forbidden"))
     state = {"n": 0}
 
@@ -488,7 +488,7 @@ def self_update_logic():
         state["n"] += 1
         return state["n"] > 3
 
-    end, seen, waits = asyncio.run(follow([("wait", None)], cancelled=cancelled))
+    end, seen, waits = loop.run_until_complete(follow([("wait", None)], cancelled=cancelled))
     check("follower: it stops when it is cancelled", end, ("stopped", "cancelled"))
 
 
@@ -625,7 +625,7 @@ def main():
     logic()
     screen(loop, server.server_address[1])
     switch(loop)
-    self_update_logic()
+    self_update_logic(loop)
     self_update_screen(loop, server.server_address[1])
     server.shutdown()
     print("FAILURES:", failures)
