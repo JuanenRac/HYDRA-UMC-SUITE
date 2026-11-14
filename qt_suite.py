@@ -94,6 +94,7 @@ from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import flasher as flasher_logic
+from hydra_suite.panel_logic import tours as tours_logic
 from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
@@ -328,6 +329,7 @@ class SuiteQtBridge(QObject):
     # to them, and their own clocks and handlers announce only them.
     _accessChanged = Signal()
     _ecoHealthChanged = Signal()
+    tourChanged = Signal()
     flasherChanged = Signal()
     # The Rack Manager, Pick and Place and XY Table screens: public names, because the robot pickers and the preview of the vacuum table
     # of the screens listen to them from QML.
@@ -557,6 +559,9 @@ class SuiteQtBridge(QObject):
         self._help_level = help_levels.level_from_config(load_config())  # the level of the Help, kept in the configuration file
         self._help_search = ""
         self._ui_scale = preferences.scale_from_config(load_config())  # the scale of the interface in percent, kept in the configuration file
+        self._tours_on = preferences.tours_from_config(load_config())  # whether the guided tours are offered (off by default)
+        self._tour_id = ""  # the tour that is open ("" : none) and its step
+        self._tour_index = 0
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -2520,7 +2525,7 @@ class SuiteQtBridge(QObject):
             return {}
         if key == "setup_preferences":
             # personal preferences need no server
-            return preferences.view(self._ui_scale, self._help_level, setup_screens.empty_view("PREFS_TITLE", "PREFS_INTRO"))
+            return preferences.view(self._ui_scale, self._help_level, setup_screens.empty_view("PREFS_TITLE", "PREFS_INTRO"), self._tours_on)
         if key == "setup_help":
             # the guides need no server
             return help_levels.view(self._help_level, self._help_search, setup_screens.empty_view("HELP_TITLE", "HELP_INTRO"))
@@ -2549,6 +2554,62 @@ class SuiteQtBridge(QObject):
             self._setup_history_part, admin, connection_history.client_rows(self._connection_clients), connection_history.event_rows(self._connection_events),
             self._audit_rows, self._connection_status_text or self._audit_error,
         )
+
+    # -- Guided tours (off until "Offer the guided tours" is turned on in the Preferences) ---------------------------------------------------
+
+    @Property(bool, notify=tourChanged)
+    def toursEnabled(self) -> bool:
+        return self._tours_on
+
+    @Property("QVariantMap", notify=tourChanged)
+    def tourView(self) -> dict[str, object]:
+        """The card of the open tour; empty when no tour is open."""
+        return tours_logic.card(self._tour_id, self._tour_index) if self._tour_id and self._tours_on else {}
+
+    @Property(str, notify=tourChanged)
+    def welcomeTourLabel(self) -> str:
+        return tours_logic.start_label("welcome")
+
+    @Property(str, notify=tourChanged)
+    def screenTourLabel(self) -> str:
+        return tours_logic.start_label("health")
+
+    @Slot(str)
+    def startTour(self, tour_id: str) -> None:
+        if self._tours_on and tour_id in tours_logic.TOURS:
+            self._tour_id, self._tour_index = tour_id, 0
+            self.tourChanged.emit()
+
+    @Slot()
+    def tourNext(self) -> None:
+        if not self._tour_id:
+            return
+        if self._tour_index >= tours_logic.TOURS[self._tour_id] - 1:
+            self._tour_id = ""
+        else:
+            self._tour_index += 1
+        self.tourChanged.emit()
+
+    @Slot()
+    def tourBack(self) -> None:
+        if self._tour_id and self._tour_index > 0:
+            self._tour_index -= 1
+            self.tourChanged.emit()
+
+    @Slot()
+    def tourClose(self) -> None:
+        if self._tour_id:
+            self._tour_id = ""
+            self.tourChanged.emit()
+
+    @Slot()
+    def tourNever(self) -> None:
+        """Do not offer tours again: the preference goes off and the open tour closes."""
+        self._tours_on = False
+        self._tour_id = ""
+        save_config(preferences.config_update_tours(False))
+        self.tourChanged.emit()
+        self.changed.emit()
 
     @Property(float, notify=serversChanged)
     def uiScaleFactor(self) -> float:
@@ -2595,7 +2656,13 @@ class SuiteQtBridge(QObject):
             if choice is None:
                 return
             group, value = choice
-            if group == "scale":
+            if group == "tours":
+                self._tours_on = value == "on"
+                save_config(preferences.config_update_tours(self._tours_on))
+                if not self._tours_on and self._tour_id:
+                    self._tour_id = ""  # turning the tours off closes a tour that is open
+                self.tourChanged.emit()
+            elif group == "scale":
                 self._ui_scale = int(value)
                 save_config(preferences.config_update_scale(self._ui_scale))
             else:

@@ -296,6 +296,7 @@ ApplicationWindow {
                                 }
                             }
                         }
+                        MenuItem { objectName: "menuGuidedTour"; visible: suiteBackend.toursEnabled; height: visible ? implicitHeight : 0; text: suiteBackend.welcomeTourLabel; onTriggered: suiteBackend.startTour("welcome") }
                         MenuItem { text: suiteBackend.uiText("BTN_EXPORT_DIAGNOSTICS"); onTriggered: diagnosticsDialog.open() }
                         MenuItem { text: suiteBackend.uiText("MENU_SHORTCUTS").replace("&", ""); onTriggered: shortcutsDialog.open() }
                         MenuItem { text: suiteBackend.uiText("MENU_ABOUT"); onTriggered: aboutDialog.open() }
@@ -373,6 +374,43 @@ ApplicationWindow {
         fileMode: FileDialog.SaveFile
         nameFilters: ["Zip (*.zip)"]
         onAccepted: suiteBackend.exportDiagnostics(selectedFile.toString())
+    }
+
+    Dialog {
+        id: tourDialog
+        objectName: "tourDialog"
+        anchors.centerIn: parent
+        modal: false
+        width: 440
+        closePolicy: Popup.CloseOnEscape
+        onClosed: suiteBackend.tourClose()
+        Connections {
+            target: suiteBackend
+            function onTourChanged() {
+                if (suiteBackend.tourView.title !== undefined) tourDialog.open()
+                else tourDialog.close()
+            }
+        }
+        background: Rectangle { color: window.panel; radius: 16; border.width: 1; border.color: window.cyan }
+        contentItem: ColumnLayout {
+            spacing: 8
+            focus: true
+            Keys.onRightPressed: suiteBackend.tourNext()
+            Keys.onLeftPressed: suiteBackend.tourBack()
+            Text { objectName: "tourStep"; text: suiteBackend.tourView.step || ""; color: "#556070"; font.pixelSize: window.fs(9) }
+            Text { objectName: "tourTitle"; text: suiteBackend.tourView.title || ""; color: window.cyan; font.bold: true; font.pixelSize: window.fs(14); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { objectName: "tourBody"; text: suiteBackend.tourView.body || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Text { text: suiteBackend.tourView.keys || ""; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+                Button { objectName: "tourNever"; flat: true; text: suiteBackend.tourView.neverLabel || ""; onClicked: suiteBackend.tourNever() }
+                Item { Layout.fillWidth: true }
+                Button { objectName: "tourBack"; text: suiteBackend.tourView.backLabel || ""; enabled: suiteBackend.tourView.canBack === true; onClicked: suiteBackend.tourBack() }
+                Button { objectName: "tourNext"; text: suiteBackend.tourView.nextLabel || ""; onClicked: suiteBackend.tourNext() }
+                Button { objectName: "tourClose"; text: suiteBackend.tourView.closeLabel || ""; onClicked: suiteBackend.tourClose() }
+            }
+        }
     }
 
     Dialog {
@@ -7168,6 +7206,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Text { text: suiteBackend.uiText("DOCK_ECOSYSTEM_HEALTH"); color: window.cyan; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(16) }
                 Item { Layout.fillWidth: true }
+                Button { objectName: "ecoHealthTour"; visible: suiteBackend.toursEnabled; text: suiteBackend.screenTourLabel; onClicked: suiteBackend.startTour("health") }
                 Button { objectName: "ecoHealthRefresh"; text: suiteBackend.uiText("ECOHEALTH_REFRESH"); onClicked: suiteBackend.refreshEcoHealth() }
             }
             Text { text: suiteBackend.uiText("ECOHEALTH_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
