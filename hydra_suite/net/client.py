@@ -719,6 +719,36 @@ class HydraConnection(QObject):
         except ValueError:
             return resp.status_code, None
 
+    async def _status_and_body(self, method: str, path: str, **kwargs) -> tuple[int, object] | None:
+        """One request whose status counts even when the body is not JSON (a plain 404 or 502 page); only a request that got no answer returns None."""
+        try:
+            resp = await self._http(method, path, **kwargs)
+        except httpx.HTTPError:
+            return None
+        try:
+            return resp.status_code, resp.json()
+        except ValueError:
+            return resp.status_code, None
+
+    async def fetch_self_update(self, refresh: bool = False) -> tuple[int, object] | None:
+        """GET /api/admin/self-update (administrator): the server, Studio and the agent of the operating system against the newest signed release of each.
+        404 until an administrator switches on the look at the newest versions in Server Admin. `refresh` makes the server look again instead of using what it
+        remembers, which can take a while (it asks GitHub)."""
+        return await self._status_and_body("GET", "/api/admin/self-update", params={"refresh": 1} if refresh else None, timeout=20.0)
+
+    async def start_self_update(self, action: str, component: str) -> tuple[int, object] | None:
+        """POST /api/admin/self-update/apply or /rollback (administrator) for one program, with the confirmation the person gave. 404 when the server has
+        applying switched off, 409 when another job is going on or there is no earlier release. Listen-only mode refuses it before it leaves the program."""
+        if action not in ("apply", "rollback"):
+            raise ValueError(f"unknown self-update action {action!r}")
+        return await self._status_and_body("POST", f"/api/admin/self-update/{action}", json={"component": component, "confirm": True}, timeout=15.0)
+
+    async def fetch_self_update_job(self, job_id: str) -> tuple[int, object] | None:
+        """GET /api/admin/self-update/jobs/{id}: where an update or a way back is. The server restarts in the middle of its own update, so this fails for a
+        while; a short timeout keeps the follower asking."""
+        safe_id = urllib.parse.quote(str(job_id), safe="")
+        return await self._status_and_body("GET", f"/api/admin/self-update/jobs/{safe_id}", timeout=5.0)
+
     async def relay_request(self, service: str, method: str, path: str, json_body: dict | None = None) -> tuple[int, object] | None:
         """One of the few requests of the Planning screen through the relay of the server (/api/ai/<service><path>): the dry run of a plan, the
         estimates of the job dispatcher, the remaining useful life and a read of the window statistics of the data lake. Anything else is

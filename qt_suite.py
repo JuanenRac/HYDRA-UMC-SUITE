@@ -95,6 +95,7 @@ from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import tours as tours_logic
+from hydra_suite.panel_logic import self_update as self_update_logic
 from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
@@ -330,6 +331,8 @@ class SuiteQtBridge(QObject):
     _accessChanged = Signal()
     _ecoHealthChanged = Signal()
     tourChanged = Signal()
+    # The section "HYDRA-UMC updates" of the Updates screen: the table, the job and the confirmation have a signal of their own.
+    selfUpdateChanged = Signal()
     flasherChanged = Signal()
     # The Rack Manager, Pick and Place and XY Table screens: public names, because the robot pickers and the preview of the vacuum table
     # of the screens listen to them from QML.
@@ -562,6 +565,18 @@ class SuiteQtBridge(QObject):
         self._tours_on = preferences.tours_from_config(load_config())  # whether the guided tours are offered (off by default)
         self._tour_id = ""  # the tour that is open ("" : none) and its step
         self._tour_index = 0
+        # The updates of the programs of the machine (GET /api/admin/self-update): applying is off until the switch is turned on (kept in the configuration file)
+        self._su_apply_on = self_update_logic.apply_from_config(load_config())
+        self._su_status: dict | None = None
+        self._su_failure = ""
+        self._su_busy = False
+        self._su_job: dict | None = None
+        self._su_silent: int | None = None
+        self._su_gave_up = False
+        self._su_pending: dict | None = None
+        self._su_message = ""
+        self._su_following: str | None = None
+        controller.active_connection_changed.connect(self._on_self_update_connection_changed)
         self._developer_nodes: dict | None = None  # the latest status of each developer node (None: not read or not available)
         self._developer_nodes_problem = ""
         self._security_message = ""
@@ -914,6 +929,8 @@ class SuiteQtBridge(QObject):
                 asyncio.ensure_future(self._refresh_eco_health())
             elif key == "ecosystem_map":
                 asyncio.ensure_future(self._refresh_map())
+            elif key == "updates":
+                asyncio.ensure_future(self._refresh_self_update(False))
             elif key in setup_screens.SCREEN_KEYS:
                 self._setup_allow_rotation = False
                 self._setup_notice = ""
@@ -2610,6 +2627,147 @@ class SuiteQtBridge(QObject):
         save_config(preferences.config_update_tours(False))
         self.tourChanged.emit()
         self.changed.emit()
+
+    # -- Updates of the programs of the machine (applying is off until the switch is turned on) ---------------------------------------------
+
+    @Property("QVariantMap", notify=selfUpdateChanged)
+    def selfUpdateView(self) -> dict[str, object]:
+        """The section "HYDRA-UMC updates": the table, the switch, the confirmation and the job."""
+        return self_update_logic.view(
+            self._su_status, self._su_failure, self._su_apply_on, self._su_job, self._su_silent, self._su_gave_up, self._su_pending, self._su_message, self._su_busy,
+        )
+
+    @Slot(bool)
+    def setSelfUpdateApply(self, on: bool) -> None:
+        """The switch "Allow applying updates from this program" (off by default, kept in the configuration file). Turning it off drops a confirmation that waits."""
+        self._su_apply_on = bool(on)
+        if not save_config(self_update_logic.config_update_apply(self._su_apply_on)):
+            self._set_notice(_("MSG_EXTRAS_NOT_SAVED"), "warn")
+        if not self._su_apply_on:
+            self._su_pending = None
+        self.selfUpdateChanged.emit()
+
+    @Slot()
+    def refreshSelfUpdate(self) -> None:
+        asyncio.ensure_future(self._refresh_self_update(True))
+
+    @Slot(str, str)
+    def requestSelfUpdate(self, action: str, component: str) -> None:
+        """Asks for the confirmation of an update or a way back; nothing is sent until confirmSelfUpdate."""
+        self._su_message = ""
+        allowed = self_update_logic.may_start(action, component, self._su_apply_on, self._su_status, self._su_job) is not None
+        self._su_pending = {"action": action, "component": component} if allowed else None
+        self.selfUpdateChanged.emit()
+
+    @Slot()
+    def cancelSelfUpdate(self) -> None:
+        self._su_pending = None
+        self.selfUpdateChanged.emit()
+
+    @Slot()
+    def confirmSelfUpdate(self) -> None:
+        asyncio.ensure_future(self._start_self_update())
+
+    @Slot()
+    def lookAgainSelfUpdate(self) -> None:
+        """After a long silence: ask again for the job that was going on."""
+        if self._su_job is not None:
+            self._su_following = None
+            asyncio.ensure_future(self._follow_self_update(self._su_job["id"]))
+
+    def _on_self_update_connection_changed(self, _conn_id: str) -> None:
+        # another server: nothing of the old one stays on screen and its job is no longer followed
+        self._su_status, self._su_failure, self._su_job, self._su_silent = None, "", None, None
+        self._su_pending, self._su_message, self._su_following, self._su_gave_up = None, "", None, False
+        if self._active_key == "updates":
+            asyncio.ensure_future(self._refresh_self_update(False))
+        self.selfUpdateChanged.emit()
+
+    async def _refresh_self_update(self, refresh: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None:
+            self._su_status, self._su_failure = None, "no_server"
+            self.selfUpdateChanged.emit()
+            return
+        self._su_busy = True
+        self.selfUpdateChanged.emit()
+        try:
+            kind, status = self_update_logic.classify_read(await conn.fetch_self_update(refresh))
+        except Exception as error:  # a damaged answer must not stop the screen
+            logger.warning("reading the updates of the programs failed: %s", error)
+            kind, status = "malformed", None
+        self._su_busy = False
+        if self._controller.active_connection is not conn:
+            return  # another server was chosen meanwhile
+        if status is None:
+            self._su_status, self._su_failure = None, kind
+        else:
+            self._su_status, self._su_failure = status, ""
+            job = status["job"]
+            if job is not None:
+                self._su_job = job
+                if self_update_logic.running(job):
+                    asyncio.ensure_future(self._follow_self_update(job["id"]))
+        self.selfUpdateChanged.emit()
+
+    async def _start_self_update(self) -> None:
+        pending, conn = self._su_pending, self._controller.active_connection
+        self._su_pending, self._su_message = None, ""
+        if pending is None or conn is None:
+            self.selfUpdateChanged.emit()
+            return
+        # asked again here: the switches or the table may have changed since the question was shown
+        if self_update_logic.may_start(pending["action"], pending["component"], self._su_apply_on, self._su_status, self._su_job) is None:
+            self.selfUpdateChanged.emit()
+            return
+        try:
+            kind, job = self_update_logic.classify_start(await conn.start_self_update(pending["action"], pending["component"]))
+        except Exception as error:
+            logger.warning("starting the update of a program failed: %s", error)
+            kind, job = "network", None
+        if kind != "ok" or job is None:
+            self._su_message = self_update_logic.start_failure_text(kind)
+        else:
+            self._su_job, self._su_silent, self._su_gave_up = job, None, False
+            asyncio.ensure_future(self._follow_self_update(job["id"]))
+        self.selfUpdateChanged.emit()
+
+    async def _follow_self_update(self, job_id: str) -> None:
+        """Follows one job to its end; the server restarts in the middle of its own update, so a failed look is only a reason to wait."""
+        if self._su_following == job_id:
+            return
+        conn = self._controller.active_connection
+        if conn is None:
+            return
+        self._su_following, self._su_gave_up = job_id, False
+
+        async def read(identifier: str) -> tuple[str, dict | None]:
+            try:
+                return self_update_logic.classify_job_read(await conn.fetch_self_update_job(identifier), identifier)
+            except Exception as error:  # nothing says the update failed
+                logger.warning("reading the job of an update failed: %s", error)
+                return "wait", None
+
+        def on_job(job: dict) -> None:
+            self._su_job, self._su_silent = job, None
+            self.selfUpdateChanged.emit()
+
+        def on_waiting(seconds: int) -> None:
+            self._su_silent = seconds
+            self.selfUpdateChanged.emit()
+
+        kind, _value = await self_update_logic.follow_job(job_id, read, on_job, on_waiting, cancelled=lambda: self._su_following != job_id)
+        if self._su_following != job_id:
+            return
+        self._su_following = None
+        if kind == "silent":
+            self._su_gave_up = True
+            self.selfUpdateChanged.emit()
+            return
+        self._su_silent = None
+        if kind == "ended":
+            await self._refresh_self_update(True)
+        self.selfUpdateChanged.emit()
 
     @Property(float, notify=serversChanged)
     def uiScaleFactor(self) -> float:
