@@ -68,6 +68,7 @@ def read_settings(config: dict[str, Any]) -> tuple[bool, dict[str, dict[str, str
 def fetch_certificate(host: str, port: int, timeout: float = 5.0) -> tuple[str, str]:
     """(PEM, fingerprint) of the certificate the server shows. Only the handshake is made; nothing is trusted or sent."""
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     try:

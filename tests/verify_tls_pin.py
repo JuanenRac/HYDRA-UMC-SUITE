@@ -80,6 +80,7 @@ class TlsServer:
 
     def __init__(self, cert: Path, key: Path):
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        self.context.minimum_version = ssl.TLSVersion.TLSv1_2
         self.context.load_cert_chain(str(cert), str(key))
         self.sock = socket.socket()
         self.sock.bind(("127.0.0.1", 0))
