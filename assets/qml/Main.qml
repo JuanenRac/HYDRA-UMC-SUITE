@@ -2780,6 +2780,28 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.nodeHealthAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_NODEHEALTH"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        CheckBox {
+                            id: nodeHealthBox
+                            objectName: "securityNodeHealthBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_NODEHEALTH_ENABLED")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.nodeHealthEnabledLocked
+                            checked: suiteBackend.securityView.nodeHealthEnabled === true
+                        }
+                        Text { text: suiteBackend.securityView.nodeHealthEnabledSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_NODEHEALTH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityNodeHealthSave"
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: !suiteBackend.securityView.nodeHealthEnabledLocked
+                            onClicked: suiteBackend.saveNodeHealthOptions(nodeHealthBox.checked)
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.ecosystemHealthAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
@@ -7208,6 +7230,30 @@ ApplicationWindow {
                             Text { visible: modelData.drift; text: modelData.driftLabel; color: window.amber; font.bold: true; font.pixelSize: window.fs(9) }
                         }
                         Text { text: modelData.seen; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
+                    }
+                }
+            }
+            ColumnLayout {
+                objectName: "nodeHealthPanel"
+                visible: suiteBackend.nodeHealthRows.length > 0
+                Layout.fillWidth: true
+                spacing: 2
+                Text { text: suiteBackend.nodeHealthTitle; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                Text { text: suiteBackend.nodeHealthHelp; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                Repeater {
+                    model: suiteBackend.nodeHealthRows
+                    delegate: ColumnLayout {
+                        required property var modelData
+                        objectName: "nodeHealthRow_" + modelData.slot
+                        Layout.fillWidth: true
+                        spacing: 0
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { text: modelData.title; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10) }
+                            Text { text: modelData.stateLabel; color: modelData.state === "heard" ? window.green : (modelData.state === "silent" ? window.amber : "#556070"); font.bold: true; font.pixelSize: window.fs(9) }
+                        }
+                        Text { visible: modelData.detail !== ""; text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
+                        Text { visible: modelData.flags !== ""; text: modelData.flags; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
                     }
                 }
             }

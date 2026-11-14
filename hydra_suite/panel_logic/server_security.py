@@ -265,6 +265,7 @@ def parse_state(body: object) -> dict | None:
         "auth": None,
         "health": None,
         "ecosystemHealth": None,
+        "nodeHealth": None,
         "twinRelay": None,
         "trustedNetworks": None,
         "rul": None,
@@ -335,6 +336,11 @@ def parse_state(body: object) -> dict | None:
         enabled = _option(ecosystem_health.get("enabled"), bool)
         if enabled is not None:
             state["ecosystemHealth"] = {"enabled": enabled}
+    node_health = body.get("nodeHealth")
+    if isinstance(node_health, dict):
+        node_enabled = _option(node_health.get("enabled"), bool)
+        if node_enabled is not None:
+            state["nodeHealth"] = {"enabled": node_enabled}
     twin_relay = body.get("twinRelay")
     if isinstance(twin_relay, dict):
         relay_enabled = _option(twin_relay.get("enabled"), bool)
@@ -560,6 +566,12 @@ def trusted_networks_patch(enabled: bool) -> dict:
     """The request body for the option that refuses to administer the server from outside the house network and the VPN (off by default).
     The ranges, the policy for the outside and the second-factor rule are edited in the configuration file of the server, not here."""
     return {"trustedNetworks": {"enabled": bool(enabled)}}
+
+
+def node_health_patch(enabled: bool) -> dict:
+    """The request body for the option that lets operators and administrators read GET /api/ecosystem/node-health (off by default). Turning it on never asks:
+    the route is read only and sends nothing to the boards."""
+    return {"nodeHealth": {"enabled": bool(enabled)}}
 
 
 def ecosystem_health_patch(enabled: bool) -> dict:
@@ -947,6 +959,7 @@ EMPTY_VIEW: dict = {
     "authAcceptHs256": True, "authAcceptHs256Locked": False, "authAcceptHs256Source": "",
     "healthAvailable": False, "healthOpen": False, "healthOpenLocked": False, "healthOpenSource": "",
     "trustedNetworksAvailable": False, "trustedNetworksEnabled": False, "trustedNetworksEnabledLocked": False, "trustedNetworksEnabledSource": "",
+    "nodeHealthAvailable": False, "nodeHealthEnabled": False, "nodeHealthEnabledLocked": False, "nodeHealthEnabledSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
@@ -1078,6 +1091,16 @@ def view(state: dict | None) -> dict:
                 "healthOpen": health["open"]["value"],
                 "healthOpenLocked": is_locked(health["open"]["source"]),
                 "healthOpenSource": source_text(health["open"]["source"]),
+            }
+        )
+    node_health = state.get("nodeHealth")
+    if node_health is not None:
+        out.update(
+            {
+                "nodeHealthAvailable": True,
+                "nodeHealthEnabled": node_health["enabled"]["value"],
+                "nodeHealthEnabledLocked": is_locked(node_health["enabled"]["source"]),
+                "nodeHealthEnabledSource": source_text(node_health["enabled"]["source"]),
             }
         )
     ecosystem_health = state.get("ecosystemHealth")
