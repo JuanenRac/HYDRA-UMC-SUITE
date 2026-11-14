@@ -94,7 +94,7 @@ from hydra_suite.panel_logic.admin_logs import _extract_tag
 from hydra_suite.panel_logic.admin_server import _format_uptime
 from hydra_suite.panel_logic import audit_record
 from hydra_suite.panel_logic import flasher as flasher_logic
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -823,6 +823,7 @@ class SuiteQtBridge(QObject):
         self._eco_health: dict | None = None
         self._eco_health_filter = "all"
         self._eco_health_status = ""
+        self._node_health: list[tuple[str, dict | None]] = []  # the eight slots of the panel of the controller boards (GET /api/ecosystem/node-health)
         self._eco_health_timer = self._scheduler.add("ecosystem_health", ecosystem_health.POLL_MS, lambda: asyncio.ensure_future(self._refresh_eco_health()))
         self._eco_health_tick = self._scheduler.add("ecosystem_health_clock", 1000, self._ecoHealthChanged.emit)
         controller.active_connection_changed.connect(self._on_eco_health_connection_changed)
@@ -2391,6 +2392,19 @@ class SuiteQtBridge(QObject):
     def ecoHealthCards(self) -> list[dict[str, object]]:
         return ecosystem_health.card_rows(self._eco_health["services"], self._eco_health_filter) if self._eco_health else []
 
+    @Property("QVariantList", notify=_ecoHealthChanged)
+    def nodeHealthRows(self) -> list[dict[str, object]]:
+        """The controller boards as the brain heard them; empty (the panel is not shown) when the server does not offer the route."""
+        return node_health.rows(self._node_health)
+
+    @Property(str, notify=_ecoHealthChanged)
+    def nodeHealthTitle(self) -> str:
+        return _("NODEHEALTH_TITLE")
+
+    @Property(str, notify=_ecoHealthChanged)
+    def nodeHealthHelp(self) -> str:
+        return _("NODEHEALTH_HELP")
+
     @Slot(str)
     def setEcoHealthFilter(self, key: str) -> None:
         if key in ecosystem_health.FILTERS and key != self._eco_health_filter:
@@ -2404,6 +2418,7 @@ class SuiteQtBridge(QObject):
     def _on_eco_health_connection_changed(self, _conn_id: str) -> None:
         # another server: nothing of the old one stays on screen
         self._eco_health, self._eco_health_status = None, ""
+        self._node_health = []
         if self._active_key == "ecosystem_health":
             asyncio.ensure_future(self._refresh_eco_health())
 
@@ -2422,7 +2437,17 @@ class SuiteQtBridge(QObject):
             logger.warning("reading the health of the ecosystem failed: %s", error)
             problem = _("ECOHEALTH_LOAD_ERROR")
         self._eco_health_status = problem
+        await self._refresh_node_health(conn)
         self.changed.emit()
+
+    async def _refresh_node_health(self, conn) -> None:
+        """The eight slots, one request each; any failure leaves the panel out of the way, never the screen of the health of the services."""
+        try:
+            answers = await asyncio.gather(*(conn.fetch_node_health(slot) for slot in node_health.SLOTS), return_exceptions=True)
+            self._node_health = [node_health.classify(None if isinstance(answer, BaseException) else answer, slot) for slot, answer in zip(node_health.SLOTS, answers)]
+        except Exception as error:  # a damaged answer must not stop the screen
+            logger.warning("reading the health of the controller boards failed: %s", error)
+            self._node_health = []
 
     # -- Map of the ecosystem ------------------------------------------------
 
@@ -4321,6 +4346,13 @@ class SuiteQtBridge(QObject):
         if state is None or not state.get("twinRelay"):
             return
         asyncio.ensure_future(self._save_security(server_security.twin_relay_patch(enabled)))
+
+    @Slot(bool)
+    def saveNodeHealthOptions(self, enabled: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("nodeHealth"):
+            return
+        asyncio.ensure_future(self._save_security(server_security.node_health_patch(enabled)))
 
     @Slot(bool)
     def saveEcosystemHealthOptions(self, enabled: bool) -> None:

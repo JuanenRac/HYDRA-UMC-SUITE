@@ -355,5 +355,16 @@ check("already live asks nothing", sec.job_executor_goes_live(already, live_patc
 check("knows the two warnings of the executor", (sec.known_warning(["job_executor_on"]) == _("SECURITY_JD_WARNING_EXEC"), sec.known_warning(["job_executor_live"]) == _("SECURITY_JD_WARNING_EXEC_LIVE")), (True, True))
 check("every sentence of the executor exists", all(_(k) != k for k in ("LBL_SECURITY_JD_EXEC_TITLE", "LBL_SECURITY_JD_EXEC_ENABLED", "LBL_SECURITY_JD_EXEC_ENABLED_HELP", "LBL_SECURITY_JD_EXEC_LIVE", "LBL_SECURITY_JD_EXEC_LIVE_HELP", "MSG_SECURITY_JD_EXEC_CONFIRM", "SECURITY_JD_WARNING_EXEC", "SECURITY_JD_WARNING_EXEC_LIVE")), True)
 
+# ---- the switch for the health of the controller boards
+NH = {"enabled": {"value": False, "source": "default"}}
+nh_state = sec.parse_state({**GOOD, "nodeHealth": NH})
+check("reads the switch of the health of the boards with its source", nh_state["nodeHealth"], {"enabled": {"value": False, "source": "default"}})
+check("a server without it, or with a damaged one, shows nothing", (sec.parse_state(GOOD)["nodeHealth"], sec.parse_state({**GOOD, "nodeHealth": {"enabled": {"value": "no", "source": "default"}}})["nodeHealth"],
+      sec.parse_state({**GOOD, "nodeHealth": {"enabled": {"value": True, "source": "nowhere"}}})["nodeHealth"], sec.parse_state({**GOOD, "nodeHealth": 5})["nodeHealth"]), (None, None, None, None))
+nv = sec.view(sec.parse_state({**GOOD, "nodeHealth": {"enabled": {"value": True, "source": "env"}}}))
+check("the view of the switch", (nv["nodeHealthAvailable"], nv["nodeHealthEnabled"], nv["nodeHealthEnabledLocked"]), (True, True, True))
+check("a server without it hides the switch", sec.view(sec.parse_state(GOOD))["nodeHealthAvailable"], False)
+check("the request is the switch as it is", (sec.node_health_patch(True), sec.node_health_patch(False)), ({"nodeHealth": {"enabled": True}}, {"nodeHealth": {"enabled": False}}))
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

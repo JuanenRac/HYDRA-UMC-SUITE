@@ -706,6 +706,19 @@ class HydraConnection(QObject):
         except ValueError:
             return resp.status_code, None
 
+    async def fetch_node_health(self, slot: int) -> tuple[int, object] | None:
+        """GET /api/ecosystem/node-health?slot=N: the last health frame the brain heard from the controller board in a slot (an operator or an administrator;
+        404 until an administrator turns the option on in Server Admin). Read only. The status counts even when the body is not JSON: only a request that did
+        not get an answer at all returns None."""
+        try:
+            resp = await self._http("GET", "/api/ecosystem/node-health", params={"slot": int(slot)})
+        except httpx.HTTPError:
+            return None
+        try:
+            return resp.status_code, resp.json()
+        except ValueError:
+            return resp.status_code, None
+
     async def relay_request(self, service: str, method: str, path: str, json_body: dict | None = None) -> tuple[int, object] | None:
         """One of the few requests of the Planning screen through the relay of the server (/api/ai/<service><path>): the dry run of a plan, the
         estimates of the job dispatcher, the remaining useful life and a read of the window statistics of the data lake. Anything else is
