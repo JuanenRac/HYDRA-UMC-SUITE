@@ -544,6 +544,9 @@ class SuiteQtBridge(QObject):
         self._hil_bridge: dict | None = None  # the switch of the HIL bridge that requires a pass verdict of the twin (None: no such bridge)
         self._hil_bridge_message = ""
         self._hil_bridge_error = ""
+        self._ros2_security: dict | None = None  # the requirement of ROS 2 security of the ROS 2 bridge, as the bridge reported it (None: not reachable)
+        self._ros2_security_problem = ""
+        self._ros2_security_message = ""
         self._ops_proposals: dict | None = None  # the proposals of the node watchdog that wait for a person (None: no channel to the watchdog)
         self._ops_proposals_message = ""
         self._ops_proposals_error = ""
@@ -3954,6 +3957,7 @@ class SuiteQtBridge(QObject):
         await self._refresh_planner_identity(conn)
         await self._refresh_ops_proposals(conn)
         await self._refresh_hil_bridge(conn)
+        await self._refresh_ros2_security(conn)
         await self._refresh_service_identity(conn)
         self._detection_hef = detection_hef.parse_state(body)
         self._live_activity = live_activity.parse_state(body)
@@ -4339,12 +4343,61 @@ class SuiteQtBridge(QObject):
             self._hil_bridge_message = _("HILBRIDGE_SAVED")
         self.adminSwitchesChanged.emit()
 
-    # -- SROS2 requirement of the ROS 2 bridge (prepared lines only: the bridge does not report it to the server) ---------------
+    # -- SROS2 requirement of the ROS 2 bridge (read and changed through the server; lines to add by hand when the server cannot reach the bridge) ---------------
+
+    async def _refresh_ros2_security(self, conn) -> None:
+        try:
+            result = await conn.fetch_ros2_bridge_settings()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the ROS 2 bridge settings failed: %s", error)
+            result = None
+        self._ros2_security_problem = ros2_security.problem_for(result)
+        self._ros2_security = ros2_security.parse_settings(result[1]) if result is not None and not self._ros2_security_problem else None
+
+    @Property("QVariantMap", notify=adminSwitchesChanged)
+    def ros2SecurityLive(self) -> dict:
+        view = ros2_security.live_view(self._ros2_security)
+        view["problem"] = self._ros2_security_problem
+        view["message"] = self._ros2_security_message
+        return view
 
     @Slot(bool, result="QVariantMap")
     def ros2SecurityView(self, required: bool) -> dict:
-        """The sentences and, only when the requirement is switched on, the lines to add to the file of the bridge."""
+        """The sentences and, only when the requirement is switched on, the lines to add by hand to the file of the bridge (the section when the bridge is not reachable)."""
         return ros2_security.view(required)
+
+    @Slot(bool, result=str)
+    def ros2SecurityBlockedText(self, wanted: bool) -> str:
+        """The sentence for what the bridge would refuse for this wish, empty when it would accept it."""
+        if self._ros2_security is None:
+            return ""
+        reason = ros2_security.blocked_reason(self._ros2_security, wanted)
+        return _("ROS2SEC_" + reason.upper()) if reason else ""
+
+    @Slot(bool, result=bool)
+    def ros2SecurityNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._ros2_security is not None and ros2_security.needs_confirmation(self._ros2_security["require"], wanted)
+
+    @Slot(bool)
+    def saveRos2Security(self, wanted: bool) -> None:
+        if self._ros2_security is None or ros2_security.blocked_reason(self._ros2_security, wanted):
+            return
+        asyncio.ensure_future(self._save_ros2_security(wanted))
+
+    async def _save_ros2_security(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._ros2_security_message = ""
+        result = await conn.put_ros2_bridge_settings(ros2_security.body_for(wanted))
+        problem = ros2_security.problem_for(result)
+        if problem:
+            self._ros2_security_problem = problem
+        else:
+            self._ros2_security_problem = ""
+            self._ros2_security = ros2_security.parse_settings(result[1])  # type: ignore[index]
+            self._ros2_security_message = _("ROS2SEC_SAVED")
+        self.adminSwitchesChanged.emit()
 
     # -- Proposals of the node watchdog that wait for a person (administrators) ---------------
 

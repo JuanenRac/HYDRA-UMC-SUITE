@@ -48,6 +48,7 @@
   "/api/robot/{p}/command",
   "/api/robot/{p}/jog-arm",
   "/api/robot/{p}/release",
+  "/api/ros2-bridge/settings",
   "/api/safety-limits",
   "/api/semantic-planner/settings",
   "/api/settings",
