@@ -97,7 +97,7 @@ from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import tours as tours_logic
 from hydra_suite.panel_logic import self_update as self_update_logic
 from hydra_suite.panel_logic import fleet_update as fleet_update_logic
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, droid_estop, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -544,6 +544,9 @@ class SuiteQtBridge(QObject):
         self._hil_bridge: dict | None = None  # the switch of the HIL bridge that requires a pass verdict of the twin (None: no such bridge)
         self._hil_bridge_message = ""
         self._hil_bridge_error = ""
+        self._droid_estop: dict | None = None  # the switch of the safety zones service that reads the droid emergency stop (None: no such service)
+        self._droid_estop_message = ""
+        self._droid_estop_error = ""
         self._ros2_security: dict | None = None  # the requirement of ROS 2 security of the ROS 2 bridge, as the bridge reported it (None: not reachable)
         self._ros2_security_problem = ""
         self._ros2_security_message = ""
@@ -3957,6 +3960,7 @@ class SuiteQtBridge(QObject):
         await self._refresh_planner_identity(conn)
         await self._refresh_ops_proposals(conn)
         await self._refresh_hil_bridge(conn)
+        await self._refresh_droid_estop(conn)
         await self._refresh_ros2_security(conn)
         await self._refresh_service_identity(conn)
         self._detection_hef = detection_hef.parse_state(body)
@@ -4341,6 +4345,54 @@ class SuiteQtBridge(QObject):
             self._hil_bridge_error = ""
             self._hil_bridge = hil_bridge.parse_settings(result[1])  # type: ignore[index]
             self._hil_bridge_message = _("HILBRIDGE_SAVED")
+        self.adminSwitchesChanged.emit()
+
+    # -- Switch of the reading of the droid emergency stop in the safety zones service (administrators) ---------------
+
+    async def _refresh_droid_estop(self, conn) -> None:
+        try:
+            result = await conn.fetch_droid_estop_settings()
+        except Exception as error:  # a damaged answer must not stop the Server Admin screen
+            logger.warning("reading the droid emergency stop settings failed: %s", error)
+            result = None
+        self._droid_estop_error = ""
+        if droid_estop.hidden_for(result):
+            self._droid_estop = None
+            return
+        self._droid_estop_error = droid_estop.status_for(result)
+        self._droid_estop = droid_estop.parse_settings(result[1]) if result is not None and not self._droid_estop_error else None
+
+    @Property("QVariantMap", notify=adminSwitchesChanged)
+    def droidEstopView(self) -> dict:
+        view = droid_estop.view(self._droid_estop)
+        view["message"] = self._droid_estop_message
+        view["error"] = self._droid_estop_error
+        view["visible"] = self._droid_estop is not None or bool(self._droid_estop_error)
+        return view
+
+    @Slot(bool, result=bool)
+    def droidEstopNeedsConfirmation(self, wanted: bool) -> bool:
+        return self._droid_estop is not None and droid_estop.needs_confirmation(self._droid_estop["enabled"], wanted)
+
+    @Slot(bool)
+    def saveDroidEstop(self, wanted: bool) -> None:
+        if self._droid_estop is None:
+            return
+        asyncio.ensure_future(self._save_droid_estop(wanted))
+
+    async def _save_droid_estop(self, wanted: bool) -> None:
+        conn = self._controller.active_connection
+        if conn is None or not conn.is_admin:
+            return
+        self._droid_estop_message = ""
+        result = await conn.put_droid_estop_settings(droid_estop.body_for(wanted))
+        problem = droid_estop.status_for(result)
+        if problem:
+            self._droid_estop_error = problem
+        else:
+            self._droid_estop_error = ""
+            self._droid_estop = droid_estop.parse_settings(result[1])  # type: ignore[index]
+            self._droid_estop_message = _("DROIDESTOP_SAVED")
         self.adminSwitchesChanged.emit()
 
     # -- SROS2 requirement of the ROS 2 bridge (read and changed through the server; lines to add by hand when the server cannot reach the bridge) ---------------

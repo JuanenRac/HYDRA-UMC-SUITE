@@ -62,6 +62,25 @@ check("both views say the bridge does not report it", (off_view["notReported"], 
 for key in ("TITLE", "DESC", "NOT_REPORTED", "LABEL", "STATE_OFF", "STATE_ON", "CONFIG_TITLE", "ENV_TITLE"):
     check(f"sentence ROS2SEC_{key} exists", _(f"ROS2SEC_{key}") != f"ROS2SEC_{key}", True)
 
+# ---- the switch of the reading of the droid emergency stop in the safety zones service (same shape as the one above)
+from hydra_suite.panel_logic import droid_estop as droid  # noqa: E402
+
+DROID_OFF = {"enabled": False, "default": False, "running": False}
+droid_settings = droid.parse_settings(DROID_OFF)
+check("droid: reads the switch", droid_settings, {"enabled": False, "running": False})
+check("droid: nothing from a damaged answer", (droid.parse_settings({"enabled": "yes"}), droid.parse_settings(None), droid.parse_settings([])), (None, None, None))
+check("droid: confirm in both directions", (droid.body_for(True), droid.body_for(False)), ({"enabled": True, "confirm": True}, {"enabled": False, "confirm": True}))
+check("droid: asks before any change", (droid.needs_confirmation(False, True), droid.needs_confirmation(True, False), droid.needs_confirmation(True, True)), (True, True, False))
+check("droid: hidden when there is no such service", (droid.hidden_for((404, {})), droid.hidden_for((503, {"available": False})), droid.hidden_for((200, DROID_OFF)), droid.hidden_for((403, {})), droid.hidden_for(None)), (True, True, False, False, False))
+check("droid: a refused account and a network failure have their own sentence", (droid.status_for((403, {})), droid.status_for(None), droid.status_for((200, DROID_OFF))), (_("DROIDESTOP_FORBIDDEN"), _("DROIDESTOP_LOAD_ERROR"), ""))
+check("droid: a refusal of the service shows its reason", droid.status_for((502, {"error": "stays as it was"})), _("DROIDESTOP_SAVE_ERROR", reason="stays as it was"))
+check("droid: a 500 without a reason is a read error", droid.status_for((500, {})), _("DROIDESTOP_LOAD_ERROR"))
+droid_view = droid.view(droid_settings)
+check("droid: off by default in the view", (droid_view["available"], droid_view["enabled"], droid_view["state"], droid_view["link"]), (True, False, _("DROIDESTOP_STATE_OFF"), ""))
+check("droid: the link is said only when it is on", (droid.view({"enabled": True, "running": True})["link"], droid.view({"enabled": True, "running": False})["link"]), (_("DROIDESTOP_RUNNING"), _("DROIDESTOP_NOT_RUNNING")))
+check("droid: no view without the service", droid.view(None), {"available": False, "enabled": False, "state": "", "link": ""})
+for key in ("TITLE", "DESC", "LABEL", "STATE_ON", "STATE_OFF", "FORBIDDEN", "LOAD_ERROR", "RUNNING", "NOT_RUNNING", "SAVED", "CONFIRM_ON_TITLE", "CONFIRM_ON_MESSAGE", "CONFIRM_ON_BUTTON", "CONFIRM_OFF_TITLE", "CONFIRM_OFF_MESSAGE", "CONFIRM_OFF_BUTTON"):
+    check(f"droid: sentence DROIDESTOP_{key} exists", _(f"DROIDESTOP_{key}") != f"DROIDESTOP_{key}", True)
 # The same requirement read and changed through the server: the answers, the body, what the bridge would refuse, the sentences.
 OFF2 = {"requireSros2": False, "active": False, "restartNeeded": False, "canChange": True, "environmentReady": False}
 live = sros2.parse_settings(OFF2)

@@ -31,6 +31,7 @@
   "/api/connections/events",
   "/api/connector-hub/gate/settings",
   "/api/dev-server/status",
+  "/api/droid-estop/settings",
   "/api/ecosystem/health",
   "/api/ecosystem/node-health",
   "/api/ecosystem/service/{p}/{p}",

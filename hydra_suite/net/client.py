@@ -900,6 +900,14 @@ class HydraConnection(QObject):
         """POST /api/hil-bridge/settings (admin-only): {"requireTwinPass": bool, "confirm": true}."""
         return await self._request_json("POST", "/api/hil-bridge/settings", auth=True, json_body=body)
 
+    async def fetch_droid_estop_settings(self) -> tuple[int, object] | None:
+        """GET /api/droid-estop/settings (any signed-in account): the switch of the safety zones service that makes it read the droid emergency stop.
+        404 on a server that predates the route or a service without a state file; 503 with available false while the service is not configured."""
+        return await self._request_json("GET", "/api/droid-estop/settings", auth=True)
+
+    async def put_droid_estop_settings(self, body: dict) -> tuple[int, object] | None:
+        """POST /api/droid-estop/settings (admin-only): {"enabled": bool, "confirm": true}."""
+        return await self._request_json("POST", "/api/droid-estop/settings", auth=True, json_body=body)
     async def fetch_ros2_bridge_settings(self) -> tuple[int, object] | None:
         """GET /api/ros2-bridge/settings (any signed-in account): the requirement of ROS 2 security of the ROS 2 bridge (the value in its file, the value it started
         with, whether a restart is needed). 404 on a server that predates the route; 503 with available false while the bridge is not configured."""
