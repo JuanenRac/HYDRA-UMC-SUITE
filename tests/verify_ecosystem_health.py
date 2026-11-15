@@ -612,6 +612,48 @@ def self_update_screen(loop, port):
     view = bridge.selfUpdateView["job"]
     check("updates screen: looking again finds the failure and says why and what was put back", (view["failed"], view["detail"], view["gaveUp"]), (_("SELFUPD_ERR_ROLLED_BACK"), "unit did not answer", ""))
 
+    # the table read again once the job has ended, with the order forced: the job says done at once and the first looks at the table fail (a raised error,
+    # a cut, a 502, an answer that is not the table). Whatever the cause (the server has just restarted, a task stepped outside the loop), one failed look
+    # must not leave the screen without its table: it keeps what it had, asks again, and ends with the table read.
+    SelfUpdateSim.body = SU_STATUS
+    read()
+    SelfUpdateSim.start = (202, su_job(state="checking"))
+    SelfUpdateSim.reads, SelfUpdateSim.jobs = 0, [(200, su_job("done"))]
+    real_table = conn.fetch_self_update
+    rows_when_asked = []
+    failing_looks = [RuntimeError("not on any event loop"), None, (502, {}), (200, {"items": "x"})]
+
+    async def flaky_table(refresh=False):
+        rows_when_asked.append(len(bridge.selfUpdateView["rows"]))
+        step = failing_looks.pop(0) if failing_looks else "real"
+        if isinstance(step, Exception):
+            raise step
+        return await real_table(refresh) if step == "real" else step
+
+    conn.fetch_self_update = flaky_table
+    ask_and_confirm()
+    finished = finish(lambda: bridge._su_following is None and len(rows_when_asked) >= 5)
+    conn.fetch_self_update = real_table
+    view = bridge.selfUpdateView
+    check("updates screen: after the end of the job a failed look at the table is asked again and the table is read", (finished, rows_when_asked, view["failure"], bridge._su_gave_up, len(view["rows"])), (True, [3] * 5, "", False, 3))
+
+    # ... and a server that never answers again: it says so after the limit of silence, with the table it had still on screen
+    SelfUpdateSim.reads = 0
+
+    async def never_answers(refresh=False):
+        rows_when_asked.append(len(bridge.selfUpdateView["rows"]))
+        return None
+
+    del rows_when_asked[:]
+    conn.fetch_self_update = never_answers
+    sl.SILENCE_LIMIT_S = 0.3
+    ask_and_confirm()
+    gave_up = wait_until(lambda: bridge._su_gave_up and bridge._su_following is None)
+    conn.fetch_self_update = real_table
+    sl.SILENCE_LIMIT_S = 3.0
+    check("updates screen: a table that is never answered after the job says so and keeps the table it had", (gave_up, len(rows_when_asked) >= 2, {n for n in rows_when_asked}, len(bridge.selfUpdateView["rows"])), (True, True, {3}, 3))
+    read()
+
     # why it could not start
     for status, reason in ((409, "busy"), (404, "disabled"), (403, "forbidden"), (500, "refused")):
         SelfUpdateSim.start = (status, {})

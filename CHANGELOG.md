@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The Updates screen keeps its table and asks again when the first look after an update fails:** once a job ended, the table was read a single time, and a server that had just restarted (or any failed look) left the screen without programs for good; now the table that was on screen stays, the look is repeated at the interval of the follower until it is answered, and after the limit of silence the screen says so and offers Look again. The verifier forces that order (the job says done at once and the first four looks fail).
+
 - **The signature check of firmware and the pinning of certificates notify the signal of settings and security, and the verifier of the bridge lists the properties that keep the general signal:** a change in either of those two forms re-evaluates only the properties of settings and security, not the other screens; the verifier fails when a new property is put on the general signal without being listed with its reason.
 
 - **The 44 new common words of the shared texts are in the eight language files:** `COMMON_STOP`, `COMMON_START`, `COMMON_SETTINGS`, `COMMON_SIGN_OUT` and the rest of the 100 words of `contracts/i18n/common.json` of the SDK, written by `tools/i18n_common.py render lng`; the language-file test expects 100 common words.
