@@ -250,5 +250,28 @@ check("an edit of a camera that does not exist announces nothing", (len(cards["c
 bridge.changed.emit()
 check("a general change reaches the camera cards", len(cards["cameraCardsChanged"]), 2)
 
+# --- the settings of this computer (signature check of firmware, pinning of certificates) and the guard of the general signal ------------------
+for prop in ("firmwareSigningView", "tlsPinningView"):
+    check(f"{prop} notifies the signal of settings and security", notify_of(prop), "securityChanged")
+
+# The properties that still notify the general `changed` are listed here on purpose: the global status line (stop state, connection, notices),
+# the page that is on view, the selected robot of Robot Control (reservations, works, trajectory and the 3D view read it), the planning view,
+# the about box and the 3D viewport state. A new property goes to the signal of its screen; adding it here needs a reason.
+KEEPS_GENERAL_SIGNAL = {
+    "activePanel", "stopAllText", "stopAllDetail", "stopAllSeverity", "stopStateText", "stopStateDetail", "stopStateSeverity",
+    "connectionStatus", "aboutInfo", "shutdownDone", "noticeText", "noticeSeverity", "conditionalMode", "planningView", "robotOptions",
+    "selectedRobotId", "canControlRobot", "selectedRobotLabel", "selectedRobotJoints", "selectedRobotSpeed", "selectedRobotAcceleration",
+    "selectedRobotTransport", "selectedRobotTool", "selectedRobotValves", "selectedRobotPumps", "viewportHasRobot", "viewportSupported",
+    "viewportUnsupportedMessage",
+}
+on_general = set()
+for index in range(meta.propertyOffset(), meta.propertyCount()):
+    prop = meta.property(index)
+    if prop.hasNotifySignal() and bytes(prop.notifySignal().name()).decode() == "changed":
+        name = prop.name()
+        on_general.add(name.decode() if isinstance(name, bytes) else name)
+check("no property was added to the general signal without a reason", sorted(on_general - KEEPS_GENERAL_SIGNAL), [])
+check("no property of the list stays on the general signal after it moved to another", sorted(KEEPS_GENERAL_SIGNAL - on_general), [])
+
 print("BRIDGE_SIGNALS=PASS" if failures == 0 else f"BRIDGE_SIGNALS=FAIL ({failures})")
 sys.exit(1 if failures else 0)

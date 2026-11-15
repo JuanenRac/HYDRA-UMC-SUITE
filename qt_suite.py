@@ -4545,7 +4545,7 @@ class SuiteQtBridge(QObject):
     def _firmware_signing_settings(self) -> firmware_signature.SigningSettings:
         return firmware_signature.read_settings(i18n_module.load_config(), i18n_module.CONFIG_FILE_PATH)
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def firmwareSigningView(self) -> dict:
         settings = self._firmware_signing_settings()
         key, problem = firmware_signature.load_public_key(settings.key_file)
@@ -4583,11 +4583,11 @@ class SuiteQtBridge(QObject):
             self._set_notice(_("FW_SIG_SAVED"), "info")
         else:
             self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=i18n_module.CONFIG_FILE_PATH), "warn")
-        self.changed.emit()
+        self.securityChanged.emit()
 
     # --- pinning of the certificate of a server (configuration file; off unless the person turns it on) ---
 
-    @Property("QVariantMap", notify=changed)
+    @Property("QVariantMap", notify=securityChanged)
     def tlsPinningView(self) -> dict:
         enabled, pins = tls_pin.read_settings(load_config())
         return {
@@ -4601,7 +4601,7 @@ class SuiteQtBridge(QObject):
             self._set_notice(_("TLS_PIN_SAVED"), "info")
         else:
             self._set_notice(_("MSG_LANGUAGE_NOT_SAVED", path=CONFIG_FILE_PATH), "warn")
-        self.changed.emit()
+        self.securityChanged.emit()
 
     @Slot(bool)
     def setTlsPinningEnabled(self, enabled: bool) -> None:
