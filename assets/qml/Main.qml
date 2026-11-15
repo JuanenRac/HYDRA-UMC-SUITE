@@ -2780,9 +2780,9 @@ ApplicationWindow {
                         objectName: "droidEstopPanel"
                         Layout.fillWidth: true
                         spacing: 6
-                        Text { text: suiteBackend.uiText("DROIDESTOP_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
-                        Text { text: suiteBackend.uiText("DROIDESTOP_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.droidEstopView.error !== ""; text: suiteBackend.droidEstopView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.uiText("DROIDESTOP_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("DROIDESTOP_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.droidEstopView.error !== ""; text: suiteBackend.droidEstopView.error; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: droidEstopBox
                             objectName: "droidEstopBox"
@@ -2791,9 +2791,9 @@ ApplicationWindow {
                             palette.windowText: window.textPrimary
                             checked: suiteBackend.droidEstopView.enabled === true
                         }
-                        Text { visible: suiteBackend.droidEstopView.available === true; objectName: "droidEstopState"; text: suiteBackend.droidEstopView.state; color: suiteBackend.droidEstopView.enabled === true ? "#4cc38a" : "#8a96a8"; font.pixelSize: 10; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.droidEstopView.link !== ""; text: suiteBackend.droidEstopView.link; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: suiteBackend.droidEstopView.message !== ""; text: suiteBackend.droidEstopView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Text { visible: suiteBackend.droidEstopView.available === true; objectName: "droidEstopState"; text: suiteBackend.droidEstopView.state; color: suiteBackend.droidEstopView.enabled === true ? "#4cc38a" : "#8a96a8"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.droidEstopView.link !== ""; text: suiteBackend.droidEstopView.link; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.droidEstopView.message !== ""; text: suiteBackend.droidEstopView.message; color: "#4cc38a"; font.pixelSize: window.fs(10) }
                         Button {
                             objectName: "droidEstopSave"
                             visible: suiteBackend.droidEstopView.available === true
