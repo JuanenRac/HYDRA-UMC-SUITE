@@ -25,7 +25,7 @@ from hydra_suite.i18n import _
 from hydra_suite.panel_logic import downsample_plan as dp
 
 try:  # the screen needs Qt; the rules above do not, so they are still checked on a machine without it
-    import qasync
+    from steady_qasync_loop import SteadyLoop
     from PySide6.QtGui import QGuiApplication
 
     import qt_suite as qs
@@ -238,7 +238,7 @@ def main():
         print("FAILURES:", failures)
         return 1 if failures else 0
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()

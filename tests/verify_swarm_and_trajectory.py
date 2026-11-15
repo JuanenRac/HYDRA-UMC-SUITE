@@ -26,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import qasync
+from steady_qasync_loop import SteadyLoop
 from PySide6.QtGui import QGuiApplication
 
 from hydra_suite import i18n, swarm, trajectory_view, update_check
@@ -209,7 +209,7 @@ def bridge_checks() -> None:
     import qt_suite as qs
 
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)
     controller = SuiteController()
     bridge = qs.SuiteQtBridge(controller)

@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, ".")
 
-import qasync
+from steady_qasync_loop import SteadyLoop
 from PySide6.QtGui import QGuiApplication
 
 from hydra_suite import access
@@ -333,7 +333,7 @@ async def run(port):
 
 def main():
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)
     port = start_http().server_address[1]
     loop.run_until_complete(run(port))

@@ -2711,12 +2711,14 @@ class SuiteQtBridge(QObject):
             asyncio.ensure_future(self._refresh_self_update(False))
         self.selfUpdateChanged.emit()
 
-    async def _refresh_self_update(self, refresh: bool) -> None:
+    async def _refresh_self_update(self, refresh: bool, keep_on_failure: bool = False) -> bool:
+        """Reads the table. True when there is nothing more to try (it was read, or there is no server / another server was chosen); False when the read
+        failed and `keep_on_failure` kept what was on screen, so the caller can ask again."""
         conn = self._controller.active_connection
         if conn is None:
             self._su_status, self._su_failure = None, "no_server"
             self.selfUpdateChanged.emit()
-            return
+            return True
         self._su_busy = True
         self._su_conn = conn
         self.selfUpdateChanged.emit()
@@ -2727,8 +2729,11 @@ class SuiteQtBridge(QObject):
             kind, status = "malformed", None
         self._su_busy = False
         if self._controller.active_connection is not conn:
-            return  # another server was chosen meanwhile
+            return True  # another server was chosen meanwhile
         if status is None:
+            if keep_on_failure:
+                self.selfUpdateChanged.emit()
+                return False  # the table that was on screen stays; the caller asks again
             self._su_status, self._su_failure = None, kind
         else:
             self._su_status, self._su_failure = status, ""
@@ -2738,6 +2743,20 @@ class SuiteQtBridge(QObject):
                 if self_update_logic.running(job):
                     asyncio.ensure_future(self._follow_self_update(job["id"]))
         self.selfUpdateChanged.emit()
+        return True
+
+    async def _read_table_after_job(self, job_id: str) -> None:
+        """The table once a job has ended. The server has just restarted, so the first look may fail (no answer yet, a 502, an answer that does not
+        come): it is asked again at the interval of the follower until it answers, and it says so (Look again) after the same limit of silence. The table
+        that was on screen is kept meanwhile; it is not blanked by one failed look."""
+        deadline = time.monotonic() + self_update_logic.SILENCE_LIMIT_S
+        while not await self._refresh_self_update(True, keep_on_failure=True):
+            if self._su_following != job_id:
+                return  # cancelled, or another server was chosen
+            if time.monotonic() >= deadline:
+                self._su_gave_up = True
+                return
+            await asyncio.sleep(self_update_logic.INTERVAL_S)
 
     async def _start_self_update(self) -> None:
         pending, conn = self._su_pending, self._controller.active_connection
@@ -2787,23 +2806,25 @@ class SuiteQtBridge(QObject):
 
         kind = "error"
         try:
-            kind, _value = await self_update_logic.follow_job(job_id, read, on_job, on_waiting, cancelled=lambda: self._su_following != job_id)
-        except Exception as error:  # the follower must never die and leave the screen waiting for ever
-            logger.warning("following the job of an update failed: %s", error)
+            try:
+                kind, _value = await self_update_logic.follow_job(job_id, read, on_job, on_waiting, cancelled=lambda: self._su_following != job_id)
+            except Exception as error:  # the follower must never die and leave the screen waiting for ever
+                logger.warning("following the job of an update failed: %s", error)
+            if self._su_following != job_id:
+                return
+            if kind in ("silent", "error"):
+                self._su_following = None
+                self._su_gave_up = True
+                self.selfUpdateChanged.emit()
+                return
+            self._su_silent = None
+            if kind == "ended":
+                # still the follower of this job while the table is read again, so a Look again or another server can cancel it
+                await self._read_table_after_job(job_id)
         finally:
             # whatever ended it, a follower that is gone must not block the next one
-            current = self._su_following == job_id
-            if current:
+            if self._su_following == job_id:
                 self._su_following = None
-        if not current:
-            return
-        if kind in ("silent", "error"):
-            self._su_gave_up = True
-            self.selfUpdateChanged.emit()
-            return
-        self._su_silent = None
-        if kind == "ended":
-            await self._refresh_self_update(True)
         self.selfUpdateChanged.emit()
 
     # -- Update of every program installed on the device (the same switch as above: off until it is turned on) ---------------------------------
