@@ -33,9 +33,9 @@ def load(name: str) -> dict[str, str]:
 
 
 # The words every app of the ecosystem shows the same way live in contracts/i18n/common.json of HYDRA-UMC-SDK; the language files carry them as COMMON_<ID>.
-# The 56 words are in the eight files, none empty, and (when a checkout of the SDK is at hand: HYDRA_UMC_SDK_DIR or the sibling folder) exactly as the contract writes them.
+# The 100 words are in the eight files, none empty, and (when a checkout of the SDK is at hand: HYDRA_UMC_SDK_DIR or the sibling folder) exactly as the contract writes them.
 # The keys that said the same thing in the same words were removed and the screens ask for the common one: they must not come back.
-COMMON_IDS = 56
+COMMON_IDS = 100
 REMOVED_AS_DUPLICATES = ["ACCESS_DISABLE", "ACCESS_ENABLE", "AUDIT_COL_ACCOUNT", "AUDIT_COL_ROBOT", "AUDIT_COL_TIME", "AUDIT_COL_TYPE", "BTN_CLEAR", "BTN_CLEAR_LOGS", "BTN_CLOSE", "BTN_PAUSE", "BTN_PLAYBACK_PAUSE", "BTN_SAVE", "CAMERA_MEDIA_DELETE", "CAMERA_MEDIA_PAUSE", "COL_ROBOT", "COL_ROBOTS", "COL_ROLE", "DOCK_USERS", "HUBGATE_SAVED", "LBL_ADMIN_SERVER_STAT_CONTROLLERS", "LBL_ADMIN_SERVER_STAT_ROBOTS", "LBL_COL_TIME", "LBL_IP_PASSWORD", "LBL_MEMORY", "LBL_NAME", "LBL_PASSWORD", "LBL_ROBOTS", "LBL_SPEED", "LBL_SUPERVISOR_MEMORY", "LBL_SUPERVISOR_TEMP_TREND", "LBL_TEMP", "MODELS_COL_NAME", "OPSPROP_APPROVE", "PLANNERID_SAVED", "SECURITY_SAVED", "SETUP_HISTORY_COL_ACCOUNT", "SETUP_HISTORY_COL_ROBOT", "SETUP_HISTORY_COL_TIME", "SETUP_HISTORY_COL_TYPE", "SETUP_HISTORY_COL_WHO", "SETUP_SECURITY_COL_KEY", "SWARM_COL_ROBOT", "TOTP_CANCEL", "TOTP_KEY", "TRJ_CANCEL", "USERS_DELETE", "USERS_NEW_PASSWORD", "USERS_ROLE_ADMIN", "USERS_ROLE_OPERATOR"]
 
 
