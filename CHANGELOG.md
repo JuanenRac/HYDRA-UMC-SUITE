@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+
+## [0.8.0.7]
+
 - **Simulation bench: a cut answer and a server that is off, comes up, drops the connection and comes back:** `tests/verify_session_and_errors.py` now checks that a settings answer cut in the middle of its body fails the read with a network error and the next read works, and that the reconnect loop of the connection keeps trying while the server is off, connects when it comes up, comes back by itself after the server drops the connection, keeps the session without a new login, ignores text that is not JSON and a message that is not an object, and shows the state of the connection that survives. `docs/SIMULATION.md` lists every scenario of the bench and the physical tests that are still pending, and the evidence of the manifest is now `simulator`.
 
 - **The Updates screen keeps its table and asks again when the first look after an update fails:** once a job ended, the table was read a single time, and a server that had just restarted (or any failed look) left the screen without programs for good; now the table that was on screen stays, the look is repeated at the interval of the follower until it is answered, and after the limit of silence the screen says so and offers Look again. The verifier forces that order (the job says done at once and the first four looks fail).
@@ -65,6 +68,8 @@
 - **A server in read-only mode is told in the language of the program:** a request refused with `server-read-only` (423) is no longer shown as a robot in safe mode. The program says that the server is read-only and that only STOP and the safe-mode disable go through, in the eight languages (`MSG_ACCESS_SERVER_READ_ONLY`, `MSG_NET_REJ_READ_ONLY`). Checks in `tests/verify_access.py` and `tests/verify_bridge_access.py`.
 
 - **Listen only can be set for one server (off by default):** next to the general switch, the access panel has a switch for the server of the selected robot (`listenOnlyServers` in the configuration, the list of `host:port`). While it is on, that server gets no command but STOP and the safe-mode disable and no write but the session and STOP (423, told to the operator in the language of the program); other servers are not affected, the switch is locked while the general one is on, and a damaged list leaves none. The text is in the eight languages. Checks in `tests/verify_access.py` and `tests/verify_access_network.py`.
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.8.0.6] - Listen-only mode, one stop state in the header, the kinematic table of the SDK and the F-RAM self-test and erase in the Flasher
 
