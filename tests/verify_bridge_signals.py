@@ -265,11 +265,12 @@ KEEPS_GENERAL_SIGNAL = {
     "viewportUnsupportedMessage",
 }
 on_general = set()
-for index in range(meta.propertyOffset(), meta.propertyCount()):
+for index in range(meta.propertyCount()):
     prop = meta.property(index)
     if prop.hasNotifySignal() and bytes(prop.notifySignal().name()).decode() == "changed":
         name = prop.name()
         on_general.add(name.decode() if isinstance(name, bytes) else name)
+check("the guard saw the properties of the bridge", len(on_general) > 20, True)
 check("no property was added to the general signal without a reason", sorted(on_general - KEEPS_GENERAL_SIGNAL), [])
 check("no property of the list stays on the general signal after it moved to another", sorted(KEEPS_GENERAL_SIGNAL - on_general), [])
 
