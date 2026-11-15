@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **The SDK pin and the shared tools are up to date:** the SDK dependency names the newest release tag, and the shared tools are the canonical copies again.
 - **The status of the developer server is read from `GET /api/dev-server/status`:** the client and the list of routes of the tests follow the route that the SDK declares and the server registers; the server still serves the old `developer-node` route as an alias.
 
 - **Server Admin has a section for the SROS2 requirement of the ROS 2 bridge, off by default and honest about what it can do:** the bridge keeps `security.require_sros2` in its own configuration file and does not report it to the server, so the section says plainly that SUITE can neither read nor change it and never says the bridge is secured. Switching it on only shows the section to add to the file of the bridge and the three environment variables the bridge checks at start (`ROS_SECURITY_ENABLE`, `ROS_SECURITY_STRATEGY`, `ROS_SECURITY_KEYSTORE`); nothing is sent to the server. All the sentences are in the eight languages and `tests/verify_hil_bridge.py` covers the lines. Reading and changing it from here needs a route that the bridge and the server do not offer yet.
