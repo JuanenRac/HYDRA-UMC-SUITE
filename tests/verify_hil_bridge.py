@@ -62,5 +62,34 @@ check("both views say the bridge does not report it", (off_view["notReported"], 
 for key in ("TITLE", "DESC", "NOT_REPORTED", "LABEL", "STATE_OFF", "STATE_ON", "CONFIG_TITLE", "ENV_TITLE"):
     check(f"sentence ROS2SEC_{key} exists", _(f"ROS2SEC_{key}") != f"ROS2SEC_{key}", True)
 
+# The same requirement read and changed through the server: the answers, the body, what the bridge would refuse, the sentences.
+OFF2 = {"requireSros2": False, "active": False, "restartNeeded": False, "canChange": True, "environmentReady": False}
+live = sros2.parse_settings(OFF2)
+check("reads the requirement", live, {"require": False, "active": False, "restartNeeded": False, "canChange": True, "environmentReady": False})
+check("nothing from a damaged answer", (sros2.parse_settings({"requireSros2": "yes"}), sros2.parse_settings(None), sros2.parse_settings([])), (None, None, None))
+check("confirm in both directions", (sros2.body_for(True), sros2.body_for(False)), ({"requireSros2": True, "confirm": True}, {"requireSros2": False, "confirm": True}))
+check("asks before any change", (sros2.needs_confirmation(False, True), sros2.needs_confirmation(True, False), sros2.needs_confirmation(True, True)), (True, True, False))
+check("knows what the bridge would refuse", (sros2.blocked_reason(live, True), sros2.blocked_reason(dict(live, canChange=False), True), sros2.blocked_reason(dict(live, canChange=False), False)), ("", "blocked_no_change", ""))
+check("a missing route, a bridge not configured, one that does not answer and a refused account have their own sentence", (
+    sros2.problem_for((404, {})),
+    sros2.problem_for((503, {"available": False})),
+    sros2.problem_for((503, {"error": "unavailable"})),
+    sros2.problem_for((403, {})),
+    sros2.problem_for(None),
+    sros2.problem_for((200, OFF2)),
+), (_("ROS2SEC_UNSUPPORTED"), _("ROS2SEC_NOT_CONFIGURED"), _("ROS2SEC_UNREACHABLE"), _("ROS2SEC_FORBIDDEN"), _("ROS2SEC_LOAD_ERROR"), ""))
+check("a refusal of the bridge shows its reason", sros2.problem_for((403, {"error": "not allowed"})), _("ROS2SEC_SAVE_ERROR", reason="not allowed"))
+check("a conflict shows its reason", sros2.problem_for((409, {"error": "the file would not load"})), _("ROS2SEC_SAVE_ERROR", reason="the file would not load"))
+off_live = sros2.live_view(live)
+check("off by default in the live view", (off_live["live"], off_live["require"], off_live["state"], off_live["active"], off_live["restart"], off_live["environment"]),
+      (True, False, _("ROS2SEC_STATE_FILE_OFF"), _("ROS2SEC_ACTIVE_OFF"), "", _("ROS2SEC_ENV_NOT_READY")))
+on_live = sros2.live_view(sros2.parse_settings(dict(OFF2, requireSros2=True, restartNeeded=True, environmentReady=True)))
+check("a change not yet applied says so", (on_live["state"], on_live["restart"], on_live["environment"]), (_("ROS2SEC_STATE_FILE_ON"), _("ROS2SEC_RESTART_NEEDED"), _("ROS2SEC_ENV_READY")))
+check("no live view without the bridge", sros2.live_view(None)["live"], False)
+for key in ("LABEL_LIVE", "STATE_FILE_ON", "STATE_FILE_OFF", "ACTIVE_ON", "ACTIVE_OFF", "RESTART_NEEDED", "ENV_NOT_READY", "ENV_READY", "BLOCKED_NO_CHANGE", "SAVED",
+            "SAVE_ERROR", "LOAD_ERROR", "UNSUPPORTED", "NOT_CONFIGURED", "UNREACHABLE", "FORBIDDEN", "CONFIRM_ON_TITLE", "CONFIRM_ON_MESSAGE", "CONFIRM_ON_BUTTON",
+            "CONFIRM_OFF_TITLE", "CONFIRM_OFF_MESSAGE", "CONFIRM_OFF_BUTTON"):
+    check(f"sentence ROS2SEC_{key} exists", _(f"ROS2SEC_{key}") != f"ROS2SEC_{key}", True)
+
 print(f"FAILURES: {failures}")
 sys.exit(1 if failures else 0)

@@ -24,6 +24,7 @@ SDK = Path(os.environ.get("HYDRA_UMC_SDK_DIR") or ROOT.parent / "HYDRA-UMC-SDK")
 CONTRACT = SDK / "contracts" / "openapi" / "v1" / "server.full.openapi.json"
 # Routes that the contract of the SDK declares in its unreleased part and the pinned tag of the continuous integration does not hold yet. Drop an entry when the
 # pin moves to a tag that has it.
+UNRELEASED = {"/api/ros2-bridge/settings"}
 LITERAL = re.compile(r"""["'](/api/[^"'\s]*)["']""")
 
 
@@ -50,7 +51,7 @@ def test_routes_exist_in_the_server_contract():
     def matches(route: str, path: str) -> bool:
         return re.fullmatch(route.replace("{p}", "[^/]+"), re.sub(r"\{[^}]+\}", "x", path)) is not None
 
-    unknown = [r for r in called_routes() if not r.startswith("/api/ai/") and not any(matches(r, p) for p in paths)]
+    unknown = [r for r in called_routes() if not r.startswith("/api/ai/") and r not in UNRELEASED and not any(matches(r, p) for p in paths)]
     assert unknown == []
 
 
@@ -65,5 +66,5 @@ def test_routes_exist_in_the_generated_route_table():
     def matches(route: str, path: str) -> bool:
         return re.fullmatch(route.replace("{p}", "[^/]+"), re.sub(r"\{[^}]+\}", "x", path)) is not None
 
-    unknown = [r for r in called_routes() if not r.startswith("/api/ai/") and not any(matches(r, p) for p in paths)]
+    unknown = [r for r in called_routes() if not r.startswith("/api/ai/") and r not in UNRELEASED and not any(matches(r, p) for p in paths)]
     assert unknown == []

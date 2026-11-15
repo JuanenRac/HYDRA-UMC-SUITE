@@ -2779,22 +2779,50 @@ ApplicationWindow {
                         objectName: "ros2SecurityPanel"
                         Layout.fillWidth: true
                         spacing: 6
+                        property var live: suiteBackend.ros2SecurityLive
                         property var sros2: suiteBackend.ros2SecurityView(ros2SecurityBox.checked)
                         Text { text: suiteBackend.uiText("ROS2SEC_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         Text { text: suiteBackend.uiText("ROS2SEC_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { objectName: "ros2SecurityNotReported"; text: parent.sros2.notReported; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.problem !== ""; objectName: "ros2SecurityProblem"; text: parent.live.problem; color: "#ee6b80"; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.live !== true; objectName: "ros2SecurityNotReported"; text: parent.sros2.notReported; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
                             id: ros2SecurityBox
                             objectName: "ros2SecurityBox"
-                            text: suiteBackend.uiText("ROS2SEC_LABEL")
+                            text: suiteBackend.uiText(parent.live.live === true ? "ROS2SEC_LABEL_LIVE" : "ROS2SEC_LABEL")
                             palette.windowText: window.textPrimary
-                            checked: false
+                            checked: parent.live.live === true && parent.live.require === true
                         }
-                        Text { objectName: "ros2SecurityState"; text: parent.sros2.state; color: parent.sros2.prepared ? "#6cb4ee" : "#8a95a5"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: parent.sros2.prepared; text: suiteBackend.uiText("ROS2SEC_CONFIG_TITLE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: parent.sros2.prepared; objectName: "ros2SecurityConfig"; text: parent.sros2.config; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                        Text { visible: parent.sros2.prepared; text: suiteBackend.uiText("ROS2SEC_ENV_TITLE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
-                        Text { visible: parent.sros2.prepared; objectName: "ros2SecurityEnvironment"; text: parent.sros2.environment; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { visible: parent.live.live !== true; objectName: "ros2SecurityState"; text: parent.sros2.state; color: parent.sros2.prepared ? "#6cb4ee" : "#8a95a5"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.live !== true && parent.sros2.prepared; text: suiteBackend.uiText("ROS2SEC_CONFIG_TITLE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.live !== true && parent.sros2.prepared; objectName: "ros2SecurityConfig"; text: parent.sros2.config; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { visible: parent.live.live !== true && parent.sros2.prepared; text: suiteBackend.uiText("ROS2SEC_ENV_TITLE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.live !== true && parent.sros2.prepared; objectName: "ros2SecurityEnvironment"; text: parent.sros2.environment; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { visible: parent.live.live === true; objectName: "ros2SecurityFileState"; text: parent.live.state; color: parent.live.require === true ? "#4cc38a" : "#8a95a5"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.live === true; objectName: "ros2SecurityActive"; text: parent.live.active; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.restart !== ""; objectName: "ros2SecurityRestart"; text: parent.live.restart; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.live.live === true; objectName: "ros2SecurityEnvironmentState"; text: parent.live.environment; color: parent.live.environmentReady === true ? "#556070" : "#e0a030"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text {
+                            id: ros2SecurityBlocked
+                            property string reason: parent.live.live === true ? suiteBackend.ros2SecurityBlockedText(ros2SecurityBox.checked) : ""
+                            visible: reason !== ""
+                            objectName: "ros2SecurityBlocked"
+                            text: reason
+                            color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        }
+                        Text { visible: parent.live.message !== ""; objectName: "ros2SecuritySaved"; text: parent.live.message; color: "#4cc38a"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "ros2SecuritySave"
+                            visible: parent.live.live === true
+                            text: suiteBackend.uiText("COMMON_SAVE")
+                            enabled: ros2SecurityBox.checked !== (parent.live.require === true) && ros2SecurityBlocked.reason === ""
+                            onClicked: {
+                                var wanted = ros2SecurityBox.checked
+                                window.requestConfirm(
+                                    suiteBackend.uiText(wanted ? "ROS2SEC_CONFIRM_ON_TITLE" : "ROS2SEC_CONFIRM_OFF_TITLE"),
+                                    suiteBackend.uiText(wanted ? "ROS2SEC_CONFIRM_ON_MESSAGE" : "ROS2SEC_CONFIRM_OFF_MESSAGE"),
+                                    function() { suiteBackend.saveRos2Security(wanted) })
+                            }
+                        }
                     }
                     ColumnLayout {
                         visible: suiteBackend.opsProposalsView.visible === true

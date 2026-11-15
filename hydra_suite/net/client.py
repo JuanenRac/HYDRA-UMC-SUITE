@@ -900,6 +900,15 @@ class HydraConnection(QObject):
         """POST /api/hil-bridge/settings (admin-only): {"requireTwinPass": bool, "confirm": true}."""
         return await self._request_json("POST", "/api/hil-bridge/settings", auth=True, json_body=body)
 
+    async def fetch_ros2_bridge_settings(self) -> tuple[int, object] | None:
+        """GET /api/ros2-bridge/settings (any signed-in account): the requirement of ROS 2 security of the ROS 2 bridge (the value in its file, the value it started
+        with, whether a restart is needed). 404 on a server that predates the route; 503 with available false while the bridge is not configured."""
+        return await self._request_json("GET", "/api/ros2-bridge/settings", auth=True)
+
+    async def put_ros2_bridge_settings(self, body: dict) -> tuple[int, object] | None:
+        """POST /api/ros2-bridge/settings (admin-only): {"requireSros2": bool, "confirm": true}; the bridge applies it when it restarts."""
+        return await self._request_json("POST", "/api/ros2-bridge/settings", auth=True, json_body=body)
+
     async def fetch_admin_jwt_keys(self) -> tuple[int, object] | None:
         """GET /api/admin/jwt-keys (admin-only): the public state of the token signing keys (name and dates; never the private part).
         404 on a server that predates the route."""
