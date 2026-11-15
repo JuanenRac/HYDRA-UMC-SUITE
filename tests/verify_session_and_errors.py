@@ -15,16 +15,21 @@
 #   - the WebSocket sends the token as the "hydra.bearer" subprotocol (never
 #     in the address); a server that only reads ?token= is never given it
 #   - an error message pushed over the WebSocket is reported and re-read
+#   - an answer that is cut in the middle fails the read with a network error and the next read works
+#   - a server that is off, then comes up, then drops the connection and comes back: the reconnect loop keeps the
+#     session, never logs in again, ignores garbage and shows the state of the connection that survives
 #   - the version tag "1.2.0" gives bootloader version 1.2 (not 1.0)
 # =============================================================================
 import asyncio
 import json
+import socket
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, ".")
 
+import httpx
 import websockets
 from websockets.asyncio.server import serve
 
@@ -55,6 +60,7 @@ class Behaviour:
     logins = 0
     refreshes = 0
     last_command_auth = ""
+    cut_settings = 0  # answers to GET /api/settings that are cut in the middle of the body, then normal
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -78,6 +84,15 @@ class Handler(BaseHTTPRequestHandler):
         if auth.removeprefix("Bearer ") in Behaviour.expired_tokens:
             return self._send(403, {"error": "expired", "code": "TOKEN_EXPIRED"})
         if self.path == "/api/settings":
+            if Behaviour.cut_settings > 0:
+                Behaviour.cut_settings -= 1
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", "1000")
+                self.end_headers()
+                self.wfile.write(b'{"controllers":')
+                self.close_connection = True
+                return
             return self._send(200, {"controllers": [], "activeControllerId": ""})
         self._send(404, {})
 
@@ -192,6 +207,18 @@ async def run():
     check("WS error message: shown to the operator", any("Access denied" in e for e in conn.errors), True)
     check("WS error message: the local copy was re-read", conn.state.raw.get("controllers"), [])
 
+    # --- an answer cut in the middle of its body: the read fails with a network error, the next one works -----
+    Behaviour.cut_settings = 1
+    conn = make_conn(port, username="a", password="b")
+    try:
+        await conn.fetch_state()
+        outcome = "read"
+    except httpx.HTTPError:
+        outcome = "network error"
+    check("cut answer: the read fails with a network error", outcome, "network error")
+    again = await conn.fetch_state()
+    check("cut answer: the next read gives the state", again.raw.get("activeControllerId"), "")
+
     http_server.shutdown()
 
     # --- WebSocket: the token travels as a subprotocol and never in the address -----
@@ -234,6 +261,55 @@ async def run():
         conn._closing = True
         task.cancel()
         check("WS: a server that only reads ?token= is never given the token in the address", seen["old"], None)
+
+    # --- the server is off, comes up, drops the connection and comes back -----------------------------------------
+    client_module.RECONNECT_DELAY_S = 0.1
+    probe = socket.socket()
+    probe.bind(("127.0.0.1", 0))
+    flaky_port = probe.getsockname()[1]
+    probe.close()  # a port that nobody listens on yet
+    life = {"connections": 0, "subprotocols": []}
+
+    def settings_message(label):
+        return json.dumps({"type": "settings", "payload": {"controllers": [], "activeControllerId": label}})
+
+    async def flaky(ws):
+        life["connections"] += 1
+        life["subprotocols"].append(ws.subprotocol)
+        if life["connections"] == 1:
+            await ws.send(settings_message("before-the-drop"))
+            await asyncio.sleep(0.15)
+            await ws.close(code=1011)  # the server goes away in the middle of the session
+            return
+        await ws.send("this is not json")
+        await ws.send(json.dumps([1, 2, 3]))
+        await ws.send(settings_message("after-the-drop"))
+        await asyncio.sleep(1.0)
+
+    statuses = []
+    logins_before_drop = Behaviour.logins
+    conn = make_conn(flaky_port, username="a", password="b")
+    conn.status_changed.connect(statuses.append)
+    conn._token = "tok.en-3"
+    task = asyncio.ensure_future(conn._run())
+    waited = 0.0
+    while "disconnected" not in statuses and waited < 8.0:  # a refused connection is slow to be told on some systems
+        await asyncio.sleep(0.05)
+        waited += 0.05
+    check("server off: the client says it is disconnected and keeps trying", ("disconnected" in statuses, "connected" in statuses), (True, False))
+    async with serve(flaky, "127.0.0.1", flaky_port, subprotocols=["hydra.bearer"]):
+        waited = 0.0
+        while conn.state.raw.get("activeControllerId") != "after-the-drop" and waited < 8.0:
+            await asyncio.sleep(0.05)
+            waited += 0.05
+        conn._closing = True
+        task.cancel()
+    check("link drop: the client came back by itself and shows the state of the second connection", conn.state.raw.get("activeControllerId"), "after-the-drop")
+    check("link drop: it connected twice", life["connections"], 2)
+    check("link drop: both connections carried the token as the subprotocol", life["subprotocols"], ["hydra.bearer", "hydra.bearer"])
+    check("link drop: it connected, dropped and connected again", [s for s in statuses if s in ("connected", "disconnected")][-3:], ["connected", "disconnected", "connected"])
+    check("link drop: the session was kept and no new login was made", (conn._token, Behaviour.logins), ("tok.en-3", logins_before_drop))
+    client_module.RECONNECT_DELAY_S = 3.0
 
     # --- the bootloader version -------------------------------------------
     check("version tag 1.2.0 -> (1, 2)", parse_version_tag("1.2.0"), (1, 2))
