@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0-or-later - see LICENSE
 #
-# The latest status that each developer node sent to the server (GET /api/developer-node/status, read only). The route answers 404 while
+# The latest status that each developer node sent to the server (GET /api/dev-server/status, read only). The route answers 404 while
 # its switch is off (the screen says so) and on a server that predates it. Only plain texts, numbers and yes/no values of the status are
 # shown, as text; nothing the node sends is interpreted. Read without any window toolkit.
 # =============================================================================

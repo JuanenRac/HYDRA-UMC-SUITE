@@ -2776,6 +2776,27 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        objectName: "ros2SecurityPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        property var sros2: suiteBackend.ros2SecurityView(ros2SecurityBox.checked)
+                        Text { text: suiteBackend.uiText("ROS2SEC_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("ROS2SEC_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { objectName: "ros2SecurityNotReported"; text: parent.sros2.notReported; color: "#e0a030"; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: ros2SecurityBox
+                            objectName: "ros2SecurityBox"
+                            text: suiteBackend.uiText("ROS2SEC_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: false
+                        }
+                        Text { objectName: "ros2SecurityState"; text: parent.sros2.state; color: parent.sros2.prepared ? "#6cb4ee" : "#8a95a5"; font.pixelSize: window.fs(10); font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.sros2.prepared; text: suiteBackend.uiText("ROS2SEC_CONFIG_TITLE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.sros2.prepared; objectName: "ros2SecurityConfig"; text: parent.sros2.config; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Text { visible: parent.sros2.prepared; text: suiteBackend.uiText("ROS2SEC_ENV_TITLE"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: parent.sros2.prepared; objectName: "ros2SecurityEnvironment"; text: parent.sros2.environment; color: window.textPrimary; font.family: "monospace"; font.pixelSize: window.fs(10); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.opsProposalsView.visible === true
                         objectName: "opsProposalsPanel"
                         Layout.fillWidth: true

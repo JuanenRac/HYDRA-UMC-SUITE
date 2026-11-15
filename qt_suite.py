@@ -97,7 +97,7 @@ from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import tours as tours_logic
 from hydra_suite.panel_logic import self_update as self_update_logic
 from hydra_suite.panel_logic import fleet_update as fleet_update_logic
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -4338,6 +4338,13 @@ class SuiteQtBridge(QObject):
             self._hil_bridge = hil_bridge.parse_settings(result[1])  # type: ignore[index]
             self._hil_bridge_message = _("HILBRIDGE_SAVED")
         self.adminSwitchesChanged.emit()
+
+    # -- SROS2 requirement of the ROS 2 bridge (prepared lines only: the bridge does not report it to the server) ---------------
+
+    @Slot(bool, result="QVariantMap")
+    def ros2SecurityView(self, required: bool) -> dict:
+        """The sentences and, only when the requirement is switched on, the lines to add to the file of the bridge."""
+        return ros2_security.view(required)
 
     # -- Proposals of the node watchdog that wait for a person (administrators) ---------------
 

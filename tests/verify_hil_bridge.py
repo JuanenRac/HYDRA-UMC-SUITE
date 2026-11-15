@@ -13,6 +13,7 @@ sys.path.insert(0, ".")
 
 from hydra_suite.i18n import _
 from hydra_suite.panel_logic import hil_bridge as hil
+from hydra_suite.panel_logic import ros2_security as sros2
 
 failures = 0
 
@@ -48,6 +49,18 @@ check("memory-only and locked are said", (hil.view(dict(settings, persisted=Fals
 check("no view without the bridge", hil.view(None)["available"], False)
 for key in ("TITLE", "DESC", "LABEL", "NOT_READY", "NO_IDENTITY", "SAVED", "CONFIRM_ON_TITLE", "CONFIRM_ON_MESSAGE", "CONFIRM_OFF_TITLE", "CONFIRM_OFF_MESSAGE"):
     check(f"sentence HILBRIDGE_{key} exists", _(f"HILBRIDGE_{key}") != f"HILBRIDGE_{key}", True)
+
+# The SROS2 requirement of the ROS 2 bridge: off by default, only prepares lines, never says the bridge is secured.
+check("nothing to add by default", sros2.preparation(False), None)
+prepared = sros2.preparation(True)
+check("prepares the one key", __import__("json").loads(prepared["config"]), {"security": {"require_sros2": True}})
+check("prepares the environment the bridge checks", [line.split("=")[0] for line in prepared["environment"]], ["ROS_SECURITY_ENABLE", "ROS_SECURITY_STRATEGY", "ROS_SECURITY_KEYSTORE"])
+off_view, on_view = sros2.view(False), sros2.view(True)
+check("off view shows no lines", (off_view["prepared"], off_view["config"], off_view["environment"], off_view["state"]), (False, "", "", _("ROS2SEC_STATE_OFF")))
+check("on view shows the lines", (on_view["prepared"], on_view["state"], "require_sros2" in on_view["config"], "ROS_SECURITY_STRATEGY=Enforce" in on_view["environment"]), (True, _("ROS2SEC_STATE_ON"), True, True))
+check("both views say the bridge does not report it", (off_view["notReported"], on_view["notReported"]), (_("ROS2SEC_NOT_REPORTED"), _("ROS2SEC_NOT_REPORTED")))
+for key in ("TITLE", "DESC", "NOT_REPORTED", "LABEL", "STATE_OFF", "STATE_ON", "CONFIG_TITLE", "ENV_TITLE"):
+    check(f"sentence ROS2SEC_{key} exists", _(f"ROS2SEC_{key}") != f"ROS2SEC_{key}", True)
 
 print(f"FAILURES: {failures}")
 sys.exit(1 if failures else 0)
