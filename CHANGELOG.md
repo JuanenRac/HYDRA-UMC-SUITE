@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The signature check of firmware and the pinning of certificates notify the signal of settings and security, and the verifier of the bridge lists the properties that keep the general signal:** a change in either of those two forms re-evaluates only the properties of settings and security, not the other screens; the verifier fails when a new property is put on the general signal without being listed with its reason.
+
 - **The 44 new common words of the shared texts are in the eight language files:** `COMMON_STOP`, `COMMON_START`, `COMMON_SETTINGS`, `COMMON_SIGN_OUT` and the rest of the 100 words of `contracts/i18n/common.json` of the SDK, written by `tools/i18n_common.py render lng`; the language-file test expects 100 common words.
 - **Server Admin shows and changes the switch that makes the safety zones service read the droid emergency stop (`hydra_suite/panel_logic/droid_estop.py`, `GET` and `POST /api/droid-estop/settings`):** off by default; the section is only for an administrator, a change in either direction asks for a confirmation on screen and sends `confirm: true` (the server asks for it again and records the change), it says whether the link to the droid bridge is up, and it stays out of the way on a server without the service or with one that has no state file for the setting. The sentences are in the eight languages (`DROIDESTOP_*`). The reading, the body, the confirmation, the refusals and the sentences are checked in `tests/verify_hil_bridge.py`; the route needs the server and the contract that declare it.
 
