@@ -2776,6 +2776,39 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.droidEstopView.visible === true
+                        objectName: "droidEstopPanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("DROIDESTOP_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: 11 }
+                        Text { text: suiteBackend.uiText("DROIDESTOP_DESC"); color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.droidEstopView.error !== ""; text: suiteBackend.droidEstopView.error; color: "#ee6b80"; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
+                            id: droidEstopBox
+                            objectName: "droidEstopBox"
+                            visible: suiteBackend.droidEstopView.available === true
+                            text: suiteBackend.uiText("DROIDESTOP_LABEL")
+                            palette.windowText: window.textPrimary
+                            checked: suiteBackend.droidEstopView.enabled === true
+                        }
+                        Text { visible: suiteBackend.droidEstopView.available === true; objectName: "droidEstopState"; text: suiteBackend.droidEstopView.state; color: suiteBackend.droidEstopView.enabled === true ? "#4cc38a" : "#8a96a8"; font.pixelSize: 10; font.bold: true; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.droidEstopView.link !== ""; text: suiteBackend.droidEstopView.link; color: "#556070"; font.pixelSize: 9; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.droidEstopView.message !== ""; text: suiteBackend.droidEstopView.message; color: "#4cc38a"; font.pixelSize: 10 }
+                        Button {
+                            objectName: "droidEstopSave"
+                            visible: suiteBackend.droidEstopView.available === true
+                            text: suiteBackend.uiText("BTN_SAVE")
+                            enabled: droidEstopBox.checked !== (suiteBackend.droidEstopView.enabled === true)
+                            onClicked: {
+                                var wanted = droidEstopBox.checked
+                                window.requestConfirm(
+                                    suiteBackend.uiText(wanted ? "DROIDESTOP_CONFIRM_ON_TITLE" : "DROIDESTOP_CONFIRM_OFF_TITLE"),
+                                    suiteBackend.uiText(wanted ? "DROIDESTOP_CONFIRM_ON_MESSAGE" : "DROIDESTOP_CONFIRM_OFF_MESSAGE"),
+                                    function() { suiteBackend.saveDroidEstop(wanted) })
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         objectName: "ros2SecurityPanel"
                         Layout.fillWidth: true
                         spacing: 6
