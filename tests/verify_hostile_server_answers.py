@@ -29,7 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 sys.path.insert(0, ".")
 
 import httpx
-import qasync
+from steady_qasync_loop import SteadyLoop
 from PySide6.QtWidgets import QApplication
 
 from hydra_suite.models import HydraState, ServerInfo
@@ -351,7 +351,7 @@ async def check_fetch_state(port):
 
 def main():
     app = QApplication.instance() or QApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)
     port = start_http().server_address[1]
 

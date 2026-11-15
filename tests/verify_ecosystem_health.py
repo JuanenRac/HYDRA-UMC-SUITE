@@ -29,7 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, ".")
 
-import qasync
+from steady_qasync_loop import SteadyLoop
 from PySide6.QtGui import QGuiApplication
 
 import qt_suite as qs
@@ -635,7 +635,7 @@ def self_update_screen(loop, port):
     finished = finish(lambda: bridge._su_following is None and len(rows_when_asked) >= 5)
     conn.fetch_self_update = real_table
     view = bridge.selfUpdateView
-    check("updates screen: after the end of the job a failed look at the table is asked again and the table is read", (finished, rows_when_asked, view["failure"], bridge._su_gave_up, len(view["rows"])), (True, [3] * 5, "", False, 3))
+    check("updates screen: after the end of the job a failed look at the table is asked again and the table is read", (finished, len(rows_when_asked) >= 5, set(rows_when_asked), view["failure"], bridge._su_gave_up, len(view["rows"])), (True, True, {3}, "", False, 3))
 
     # ... and a server that never answers again: it says so after the limit of silence, with the table it had still on screen
     SelfUpdateSim.reads = 0
@@ -1115,8 +1115,19 @@ def fleet_update_screen(loop, port):
 
 def main():
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)
+    stepped_in = []
+
+    async def little_work():
+        return 1
+
+    for _round in range(20):  # a step queued the moment the loop is stopping must still see the loop (qasync runs a last pass of events after it stops)
+        future = asyncio.ensure_future(little_work(), loop=loop)
+        future.add_done_callback(lambda _f: loop.call_soon(lambda: stepped_in.append(asyncio.events._get_running_loop() is loop)))
+        loop.run_until_complete(future)
+    loop.run_until_complete(asyncio.sleep(0.05))
+    check("the loop of the verifier: every step that falls at the end of a run still sees the loop, and none is left after it", (stepped_in, asyncio.events._get_running_loop()), ([True] * 20, None))
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     logic()

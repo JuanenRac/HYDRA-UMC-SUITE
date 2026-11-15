@@ -27,7 +27,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, ".")
 
-import qasync
+from steady_qasync_loop import SteadyLoop
 from PySide6.QtCore import QObject, Qt
 from PySide6.QtGui import QGuiApplication
 
@@ -305,7 +305,7 @@ def check_qml_shell():
 
 def main():
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
-    loop = qasync.QEventLoop(app)
+    loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)
     port = start_http().server_address[1]
 
