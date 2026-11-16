@@ -78,6 +78,7 @@ class Behaviour:
     drop_first = 0  # connections cut before answering, then normal
     requests: list = []
     command_requests: list = []
+    refuse_commands: set = set()  # commands answered with a 500
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -96,9 +97,10 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.dumps(Behaviour.stop_all_body).encode()
             self.send_response(Behaviour.stop_all_status)
         elif self.path.endswith("/command"):
-            Behaviour.command_requests.append((self.path, json.loads(raw or b"{}")))
+            sent = json.loads(raw or b"{}")
+            Behaviour.command_requests.append((self.path, sent))
             payload = b"{}"
-            self.send_response(200)
+            self.send_response(500 if sent.get("command") in Behaviour.refuse_commands else 200)
         else:
             payload = b"{}"
             self.send_response(404)
@@ -120,6 +122,7 @@ def reset(status=200, body=CLEAN_ANSWER, drop_first=0):
     Behaviour.drop_first = drop_first
     Behaviour.requests = []
     Behaviour.command_requests = []
+    Behaviour.refuse_commands = set()
 
 
 def make_conn(port):
@@ -189,7 +192,9 @@ async def run_client(port):
     reset(status=500, body={"error": "boom"})
     conn = make_conn(port)
     result = await conn.stop_all()
-    check("500: not confirmed and not retried", (result.confirmed, len(Behaviour.requests)), (False, 1))
+    check("500: the global call is not retried", len(Behaviour.requests), 1)
+    check("500: falls back to the stop of every known robot", sorted(p for p, _b in Behaviour.command_requests), ["/api/robot/1/command", "/api/robot/2/command"])
+    check("500: flagged as sent one by one and confirmed", (result.via_fallback, result.confirmed, result.stopped_count), (True, True, 2))
 
     reset(status=403, body={"error": "Access denied"})
     conn = make_conn(port)
@@ -205,6 +210,27 @@ async def run_client(port):
     check("429: flagged as sent one by one", result.via_fallback, True)
     check("429: both stopped", result.stopped_count, 2)
     check("429: the local mirror shows both robots stopped", playing(conn), [False, False])
+
+    # One by one: a valve or pump that is on is switched off too (one retry), and one that is not confirmed needs attention.
+    reset(status=500, body={"error": "boom"})
+    conn = make_conn(port)
+    conn.state.controllers[0].robots[0].set_valve(0, True)
+    conn.state.controllers[0].robots[1].set_pump(1, True)
+    result = await conn.stop_all()
+    sent = [b for _p, b in Behaviour.command_requests if b["command"] in ("valve", "pump")]
+    check("outputs: the valve and the pump that were on are switched off", sorted((b["command"], b["params"]["index"], b["params"]["state"]) for b in sent), [("pump", 1, False), ("valve", 0, False)])
+    check("outputs: confirmed off is clean", result.is_clean, True)
+
+    reset(status=500, body={"error": "boom"})
+    Behaviour.refuse_commands = {"pump"}
+    conn = make_conn(port)
+    conn.state.controllers[0].robots[1].set_pump(0, True)
+    result = await conn.stop_all()
+    check("outputs: a pump not confirmed off is tried twice", len([1 for _p, b in Behaviour.command_requests if b["command"] == "pump"]), 2)
+    check("outputs: the robot is stopped but needs attention", ([r.robot_id for r in result.attention_robots], result.is_clean), ([2], False))
+    summary = StopAllSummary("done", {"s": result})
+    headline, details, severity = describe_stop_all(summary)
+    check("outputs: shown as an error with the robot named", (severity, any("B" in d and "pump" in d for d in details)), ("error", True))
 
     check("parse: counts are derived when the server omits them", StopAllResult.from_json({"robots": [{"robotId": 3, "stopped": False}]}).failed_count, 1)
 

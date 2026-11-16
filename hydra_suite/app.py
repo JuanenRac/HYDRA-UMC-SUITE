@@ -90,6 +90,10 @@ def describe_stop_all(summary: StopAllSummary) -> tuple[str, list[str], str]:
             details.append(
                 _("STOP_ALL_ROBOT_FAILED", server=conn_id, name=robot.name or f"#{robot.robot_id}", error=robot.error or "-")
             )
+        for robot in result.attention_robots:
+            details.append(
+                _("STOP_ALL_OUTPUTS_UNCONFIRMED", server=conn_id, name=robot.name or f"#{robot.robot_id}", error=robot.error or "-")
+            )
         for robot in result.robots:
             if robot.reserved_by:
                 details.append(
