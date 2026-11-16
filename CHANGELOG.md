@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **A server error on the global STOP no longer ends the attempt:** when `POST /api/stop-all` answers with a 5xx status the SUITE stops the known robots one by one, as it already did for a rate limit or a missing route, and the banner starts with "STOP sent, no reply yet" (eight languages) until an answer arrives. A test covers it.
+- **The robot-by-robot STOP also switches the valves and pumps off:** like STUDIO, it sends a switch-off (with one retry) for every valve or pump the local mirror shows on, and a robot whose output is not confirmed off is listed as needing attention and the result is not shown as clean. A test covers it.
 - **PAUSE is sent without `If-Match`, like STOP:** a playing robot changes pose at every step, so a pause carrying the revision of the play was refused with a 412 almost every time.
 - **Text from the server is drawn as plain text in the administration log, the audit record and the lists of accounts and robots:** a name or a reason written by another client can no longer change how a line looks or load a remote image. `tests/verify_conditional_audit.py` checks it.
 

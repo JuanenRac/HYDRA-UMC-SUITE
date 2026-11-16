@@ -100,6 +100,8 @@ class StopAllRobot:
     # stop ignores reservations, but the operator should know).
     reserved_by: str | None = None
     error: str | None = None
+    # Valves or pumps that were on and are not confirmed off (only the robot-by-robot stop checks this).
+    outputs_unconfirmed: bool = False
 
 
 @dataclass
@@ -121,8 +123,13 @@ class StopAllResult:
 
     @property
     def is_clean(self) -> bool:
-        """Everything went as it should: confirmed, no robot failed, stopped state saved."""
-        return self.confirmed and self.success and self.failed_count == 0 and self.persisted
+        """Everything went as it should: confirmed, no robot failed, stopped state saved, no output left on."""
+        return self.confirmed and self.success and self.failed_count == 0 and self.persisted and not self.attention_robots
+
+    @property
+    def attention_robots(self) -> list[StopAllRobot]:
+        """Robots that stopped but have a valve or pump that is not confirmed off."""
+        return [r for r in self.robots if r.stopped and r.outputs_unconfirmed]
 
     @property
     def failed_robots(self) -> list[StopAllRobot]:
@@ -1615,7 +1622,7 @@ class HydraConnection(QObject):
         server, whoever reserved it. It goes out at once (no wait for a
         refresh), is retried once when nobody answers, falls back to the
         per-robot `stop` for every known robot when the server rate limits
-        (429), and never raises: a stop that nothing confirmed comes back
+        (429) or fails (5xx), and never raises: a stop that nothing confirmed comes back
         as `StopAllResult.not_confirmed(reason)` so the caller can keep a
         visible "not confirmed" state. A confirmed answer also stops the
         robots in the local mirror, so the UI shows it before the next
@@ -1629,9 +1636,10 @@ class HydraConnection(QObject):
                 if attempt == 0:
                     await asyncio.sleep(STOP_ALL_RETRY_DELAY_S)
                 continue
-            if resp.status_code in (404, 429):
+            if resp.status_code in (404, 429) or 500 <= resp.status_code <= 599:
                 # 429: over the server's rate limit. 404: a server that does not
-                # have the route yet. Either way the robots are stopped one by one.
+                # have the route yet. 5xx: the server failed, which says nothing
+                # about the robots. In every case they are stopped one by one.
                 return await self._stop_robots_one_by_one()
             if resp.status_code != 200:
                 message = describe_rejection(resp, _("MSG_NET_WHAT_STOP"))
@@ -1669,6 +1677,15 @@ class HydraConnection(QObject):
                     error = str(e) or e.__class__.__name__
                     if attempt == 0:
                         await asyncio.sleep(STOP_ALL_RETRY_DELAY_S)
+            stop_ok = error is None
+            # A stopped arm with a valve or pump still on is not a stopped robot: switch what the mirror shows on off.
+            unconfirmed: list[str] = []
+            for kind, states in (("valve", robot.valves), ("pump", robot.pumps)):
+                for index, is_on in enumerate(states):
+                    if is_on and not await self._switch_output_off(robot.id, kind, index):
+                        unconfirmed.append(f"{kind} {index + 1}")
+            if unconfirmed and error is None:
+                error = _("STOP_ALL_OUTPUTS_ERROR", outputs=", ".join(unconfirmed))
             try:
                 numeric_id = int(robot.id)
             except ValueError:
@@ -1676,7 +1693,9 @@ class HydraConnection(QObject):
             entries.append(
                 StopAllRobot(
                     robot_id=numeric_id, controller_id=controller_id, name=str(robot.raw.get("name") or ""),
-                    stopped=error is None, error=error,
+                    stopped=stop_ok, valves_off=not any(u.startswith("valve") for u in unconfirmed),
+                    pumps_off=not any(u.startswith("pump") for u in unconfirmed),
+                    error=error, outputs_unconfirmed=bool(unconfirmed),
                 )
             )
         failed = sum(1 for e in entries if not e.stopped)
@@ -1686,6 +1705,22 @@ class HydraConnection(QObject):
         )
         self._apply_stopped(result)
         return result
+
+    async def _switch_output_off(self, robot_id: str, kind: str, index: int) -> bool:
+        """One valve or pump off, with one retry; True when the server accepted it."""
+        for attempt in range(2):
+            try:
+                resp = await self._http(
+                    "POST", f"/api/robot/{robot_id}/command", timeout=STOP_ALL_TIMEOUT_S,
+                    json={"command": kind, "params": {"index": index, "state": False}, **command_sequence.next_for(kind)},
+                )
+                if resp.status_code < 400:
+                    return True
+            except (httpx.HTTPError, OSError):
+                pass
+            if attempt == 0:
+                await asyncio.sleep(STOP_ALL_RETRY_DELAY_S)
+        return False
 
     def _apply_stopped(self, result: StopAllResult) -> None:
         """Mirrors a confirmed stop into the local state (the next broadcast confirms or corrects it)."""
