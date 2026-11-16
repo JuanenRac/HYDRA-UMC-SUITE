@@ -707,8 +707,8 @@ _REVISION_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 
 
 def is_conditional(mode: str, command: str) -> bool:
-    """Whether a command carries If-Match in a mode. Reservations are "claim" and "release". STOP never does."""
-    if command == "stop" or mode == "off":
+    """Whether a command carries If-Match in a mode. Reservations are "claim" and "release". STOP and PAUSE never do (a playing robot changes at every step)."""
+    if command in ("stop", "pause") or mode == "off":
         return False
     if mode == "strict":
         return True

@@ -126,10 +126,23 @@ def chain(count, start=1):
     return lines
 
 
+def audit_texts_are_plain():
+    # The audit record and the log show text written by other clients: it must be drawn as plain text, never as styled text.
+    import re
+    from pathlib import Path
+    source = Path("assets/qml/Main.qml").read_text(encoding="utf-8").replace(chr(13) + chr(10), chr(10))
+    unmarked = re.findall(r"Text \{ text: modelData\.(?:seq|time|type|outcome|account|controller|address|robot|detail);", source)
+    check("audit: every Text of the audit row draws plain text", unmarked, [])
+    delegate = "required property string modelData" + chr(10) + " " * 20 + "width: ListView.view.width" + chr(10) + " " * 20 + "textFormat: Text.PlainText"
+    check("audit: the log delegate draws plain text", delegate in source, True)
+
+
 def pure():
+    audit_texts_are_plain()
     # --- which commands carry If-Match ---
     for mode in access.CONDITIONAL_MODES:
         check(f"conditional: STOP never ({mode})", access.is_conditional(mode, "stop"), False)
+        check(f"conditional: PAUSE never ({mode})", access.is_conditional(mode, "pause"), False)
     check("conditional: standard leaves out jog and speed", (access.is_conditional("standard", "jog"), access.is_conditional("standard", "speed")), (False, False))
     check("conditional: standard checks table, claim and valve", [access.is_conditional("standard", c) for c in ("table", "claim", "valve")], [True, True, True])
     check("conditional: strict checks jog", access.is_conditional("strict", "jog"), True)

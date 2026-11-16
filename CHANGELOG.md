@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **PAUSE is sent without `If-Match`, like STOP:** a playing robot changes pose at every step, so a pause carrying the revision of the play was refused with a 412 almost every time.
+- **Text from the server is drawn as plain text in the administration log, the audit record and the lists of accounts and robots:** a name or a reason written by another client can no longer change how a line looks or load a remote image. `tests/verify_conditional_audit.py` checks it.
 
 ## [0.8.0.7]
 
