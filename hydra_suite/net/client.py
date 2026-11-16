@@ -1296,7 +1296,10 @@ class HydraConnection(QObject):
         if access.LISTEN_ONLY.blocks(command, scope):
             self.error.emit(_("MSG_NET_LISTEN_ONLY_BLOCKED", command=command, robot=robot_id))
             return
-        if access.MODES.blocked(scope, [robot_id], command):
+        # The robots the server will move: the target and the robots combined with it, whatever the caller listed.
+        target_view = self.state.active_controller.robot_by_id(str(robot_id)) if self.state.active_controller is not None else None
+        combined = target_view.raw.get("combinedWith") if target_view is not None and isinstance(target_view.raw, dict) else None
+        if access.MODES.blocked(scope, access.affected_robot_ids(command, robot_id, combined), command, params):
             self.error.emit(_("MSG_NET_SIM_BLOCKED", command=command, robot=robot_id))
             return
         if command in ("jog", "table"):

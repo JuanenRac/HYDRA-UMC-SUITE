@@ -588,7 +588,7 @@ def flash_preflight(
 ) -> str | None:
     """Why a flash over the real bus must not start (the name of the refusal), or None when it may. The hardware path sends the version and the hardware id
     of the image and compares it with the installed version first: an image without a hardware id (a local file) or without a version is refused instead of
-    being sent as 0, an older image needs the explicit downgrade choice, and the F-RAM erase is refused unless the server announced it (the version query
+    being sent as 0, an older image needs the explicit downgrade choice, an image is also refused without that choice when the installed version is not known, and the F-RAM erase is refused unless the server announced it (the version query
     says `capabilities.fram_erase`) and the target is the kinematic brain, whose main board holds the chip."""
     try:
         number = int(hardware_id, 0) if hardware_id else 0
@@ -605,6 +605,8 @@ def flash_preflight(
         if tier is not None and tier != "kinematicBrain":
             return "fram_erase_wrong_tier"
     installed = parse_version_full(installed_version)
+    if installed is None and not allow_downgrade:
+        return "installed_unknown"   # the installed version could not be read, so the image cannot be compared with it
     if installed is not None and image < installed and not allow_downgrade:
         return "downgrade_blocked"
     return None

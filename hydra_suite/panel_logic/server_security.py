@@ -471,6 +471,16 @@ def ingest_patch(state: dict, wanted: object, keys_file: object = None) -> dict 
     return {"ingest": body}
 
 
+def tls_needs_confirmation(current: bool, new: bool) -> bool:
+    """Switching TLS off sends the session token and the passwords in the clear: ask first. Switching it on never asks."""
+    return bool(current) and not new
+
+
+def trusted_networks_needs_confirmation(current: bool, new: bool) -> bool:
+    """Switching off the restriction to the house network and the VPN opens the administration to every address: ask first. Switching it on never asks."""
+    return bool(current) and not new
+
+
 def info_auth_needs_confirmation(current: bool, new: bool) -> bool:
     """Turning the sign-in requirement of the host information off asks first."""
     return current and not new
