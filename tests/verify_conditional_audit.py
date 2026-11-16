@@ -130,6 +130,7 @@ def pure():
     # --- which commands carry If-Match ---
     for mode in access.CONDITIONAL_MODES:
         check(f"conditional: STOP never ({mode})", access.is_conditional(mode, "stop"), False)
+        check(f"conditional: PAUSE never ({mode})", access.is_conditional(mode, "pause"), False)
     check("conditional: standard leaves out jog and speed", (access.is_conditional("standard", "jog"), access.is_conditional("standard", "speed")), (False, False))
     check("conditional: standard checks table, claim and valve", [access.is_conditional("standard", c) for c in ("table", "claim", "valve")], [True, True, True])
     check("conditional: strict checks jog", access.is_conditional("strict", "jog"), True)

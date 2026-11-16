@@ -823,7 +823,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         anchors.leftMargin: 8
                         anchors.rightMargin: 8
-                        Text { text: modelData.name; color: window.textPrimary; font.bold: modelData.active; font.pixelSize: window.fs(11); Layout.preferredWidth: 192; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.name; color: window.textPrimary; font.bold: modelData.active; font.pixelSize: window.fs(11); Layout.preferredWidth: 192; elide: Text.ElideRight }
                         Text { text: modelData.hostPort; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 172 }
                         Text { text: modelData.robotCount; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 72 }
                         Text {
@@ -1537,7 +1537,7 @@ ApplicationWindow {
                                     ColumnLayout {
                                         spacing: 2
                                         Layout.fillWidth: true
-                                        Text { text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                                        Text { textFormat: Text.PlainText; text: modelData.name; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                                         Text { text: modelData.meta; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                                     }
                                     Text {
@@ -1631,7 +1631,7 @@ ApplicationWindow {
                         ColumnLayout {
                             spacing: 2
                             Layout.fillWidth: true
-                            Text { text: modelData.username; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                            Text { textFormat: Text.PlainText; text: modelData.username; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                             Text { text: modelData.address; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                         }
                         Text { text: modelData.roleLabel; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: window.fs(9) }
@@ -1775,6 +1775,7 @@ ApplicationWindow {
                 delegate: Text {
                     required property string modelData
                     width: ListView.view.width
+                    textFormat: Text.PlainText
                     text: modelData
                     color: window.muted
                     font.family: "Cascadia Mono"
@@ -8183,15 +8184,15 @@ ApplicationWindow {
                         required property var modelData
                         width: ListView.view.width
                         spacing: 8
-                        Text { text: modelData.seq; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 40 }
-                        Text { text: modelData.time; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
-                        Text { text: modelData.type; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130; elide: Text.ElideRight }
-                        Text { text: modelData.outcome; color: modelData.outcomeKind === "ok" ? window.green : (modelData.outcomeKind === "refused" ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
-                        Text { text: modelData.account; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90; elide: Text.ElideRight }
-                        Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 110; elide: Text.ElideRight }
-                        Text { text: modelData.address; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 100; elide: Text.ElideRight }
-                        Text { text: modelData.robot; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90; elide: Text.ElideRight }
-                        Text { text: modelData.detail; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.seq; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 40 }
+                        Text { textFormat: Text.PlainText; text: modelData.time; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 130 }
+                        Text { textFormat: Text.PlainText; text: modelData.type; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 130; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.outcome; color: modelData.outcomeKind === "ok" ? window.green : (modelData.outcomeKind === "refused" ? window.amber : "#ee6b80"); font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 70 }
+                        Text { textFormat: Text.PlainText; text: modelData.account; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 110; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.address; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 100; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.robot; color: window.muted; font.pixelSize: window.fs(10); Layout.preferredWidth: 90; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.detail; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                     }
                 }
             }
@@ -8267,7 +8268,7 @@ ApplicationWindow {
                         required property var modelData
                         width: ListView.view.width
                         spacing: 8
-                        Text { text: modelData.username + (modelData.own ? " (" + suiteBackend.uiText("USERS_YOU") + ")" : ""); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 180; elide: Text.ElideRight }
+                        Text { textFormat: Text.PlainText; text: modelData.username + (modelData.own ? " (" + suiteBackend.uiText("USERS_YOU") + ")" : ""); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 180; elide: Text.ElideRight }
                         Text { text: modelData.roleLabel; color: modelData.role === "admin" ? window.green : window.cyan; font.bold: true; font.pixelSize: window.fs(10); Layout.preferredWidth: 110 }
                         Text { text: modelData.created; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                         Button {
