@@ -154,7 +154,7 @@ async def check_stop_all(port):
         if not raised:
             check(f"stop 200 {json.dumps(body)[:60]}: is not shown as clean", result.is_clean, False)
 
-    for status in (404, 429):
+    for status in (404, 429, 500, 502, 503):
         reset(status=status, body=b'{"error":"x"}')
         conn = make_conn(port)
         result = await conn.stop_all()
@@ -180,7 +180,7 @@ async def check_stop_all(port):
     result = await conn.stop_all()
     check("200 JSON list: not confirmed", result.confirmed, False)
 
-    for status in (400, 401, 403, 409, 500, 502):
+    for status in (400, 401, 403, 409):
         reset(status=status, body=b"<html>no</html>")
         conn = make_conn(port)
         errors = []
