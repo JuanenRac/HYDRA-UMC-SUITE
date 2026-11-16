@@ -1023,6 +1023,10 @@ class SuiteQtBridge(QObject):
         return stop_state_logic.badge_text(self._stop_state_view())
 
     @Property(str, notify=changed)
+    def stopStateNotice(self) -> str:
+        return stop_state_logic.restored_notice([conn.stop_state for conn in self._controller.connections.values() if conn.stop_state is not None])
+
+    @Property(str, notify=changed)
     def stopStateDetail(self) -> str:
         return stop_state_logic.badge_tooltip(self._stop_state_view())
 
@@ -5020,7 +5024,7 @@ class SuiteQtBridge(QObject):
         new = body["safety"].get("framErase")
         return new is not None and server_security.fram_erase_needs_confirmation(state["safety"]["framErase"]["value"], new)
 
-    def _safety_body(self, publish_global_stop: bool, fram_erase: bool, estop_watch_text: str) -> dict | None:
+    def _safety_body(self, publish_global_stop: bool, fram_erase: bool, estop_watch_text: str, latch_global_stop: bool = False) -> dict | None:
         """The request for the safety block: only what the server reports and does not have fixed by its environment goes, and the F-RAM erase and the watch
         only when they changed. None when nothing is left to send."""
         state = self._security_state
@@ -5036,13 +5040,16 @@ class SuiteQtBridge(QObject):
             parsed = server_security.parse_estop_watch_text(estop_watch_text)
             if parsed is not None and parsed != safety["estopWatchMs"]["value"]:
                 watch = parsed
-        if publish is None and fram is None and watch is None:
+        latch = None
+        if "latchGlobalStop" in safety and not server_security.is_locked(safety["latchGlobalStop"]["source"]) and bool(latch_global_stop) != safety["latchGlobalStop"]["value"]:
+            latch = bool(latch_global_stop)
+        if publish is None and fram is None and watch is None and latch is None:
             return None
-        return server_security.safety_patch(publish, fram, watch)
+        return server_security.safety_patch(publish, fram, watch, latch)
 
-    @Slot(bool, bool, str)
-    def saveSafetyOptions(self, publish_global_stop: bool, fram_erase: bool = False, estop_watch_text: str = "") -> None:
-        body = self._safety_body(publish_global_stop, fram_erase, estop_watch_text)
+    @Slot(bool, bool, str, bool)
+    def saveSafetyOptions(self, publish_global_stop: bool, fram_erase: bool = False, estop_watch_text: str = "", latch_global_stop: bool = False) -> None:
+        body = self._safety_body(publish_global_stop, fram_erase, estop_watch_text, latch_global_stop)
         if body is not None:
             asyncio.ensure_future(self._save_security(body))
 

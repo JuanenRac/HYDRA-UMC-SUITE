@@ -241,6 +241,26 @@ ApplicationWindow {
                     ToolTip.text: suiteBackend.stopStateDetail
                     HoverHandler { id: stopStateHover }
                 }
+                // A server that came back stopped after a restart: an administrator has to release it.
+                Rectangle {
+                    objectName: "stopStateNotice"
+                    visible: suiteBackend.stopStateNotice !== ""
+                    Layout.preferredHeight: 32
+                    Layout.preferredWidth: stopStateNoticeLabel.implicitWidth + 24
+                    radius: 16
+                    color: "transparent"
+                    border.width: 1
+                    border.color: window.amber
+                    Text {
+                        id: stopStateNoticeLabel
+                        anchors.centerIn: parent
+                        text: suiteBackend.stopStateNotice
+                        color: window.amber
+                        font.family: "Bahnschrift"
+                        font.bold: true
+                        font.pixelSize: window.fs(10)
+                    }
+                }
                 // The global STOP: one click, always visible, on every panel (F12 too).
                 Button {
                     id: stopAllButton
@@ -2222,6 +2242,17 @@ ApplicationWindow {
                         Text { text: suiteBackend.securityView.safetyPublishStopSource; color: "#556070"; font.pixelSize: window.fs(9) }
                         Text { text: suiteBackend.uiText("LBL_SECURITY_STOP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         CheckBox {
+                            id: safetyLatchBox
+                            objectName: "securitySafetyLatchBox"
+                            visible: suiteBackend.securityView.safetyLatchAvailable === true
+                            text: suiteBackend.uiText("LBL_SECURITY_LATCH")
+                            palette.windowText: window.textPrimary
+                            enabled: !suiteBackend.securityView.safetyLatchStopLocked
+                            checked: suiteBackend.securityView.safetyLatchStop === true
+                        }
+                        Text { visible: suiteBackend.securityView.safetyLatchAvailable === true; text: suiteBackend.securityView.safetyLatchStopSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { visible: suiteBackend.securityView.safetyLatchAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_LATCH_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        CheckBox {
                             id: safetyFramBox
                             objectName: "securitySafetyFramBox"
                             visible: suiteBackend.securityView.safetyFramAvailable === true
@@ -2256,15 +2287,16 @@ ApplicationWindow {
                         Button {
                             objectName: "securitySafetySave"
                             text: suiteBackend.uiText("COMMON_SAVE")
-                            enabled: (!suiteBackend.securityView.safetyPublishStopLocked || suiteBackend.securityView.safetyFramAvailable === true || suiteBackend.securityView.safetyEstopWatchAvailable === true) && suiteBackend.estopWatchTextValid(safetyEstopWatchField.text)
+                            enabled: (!suiteBackend.securityView.safetyPublishStopLocked || suiteBackend.securityView.safetyLatchAvailable === true || suiteBackend.securityView.safetyFramAvailable === true || suiteBackend.securityView.safetyEstopWatchAvailable === true) && suiteBackend.estopWatchTextValid(safetyEstopWatchField.text)
                             onClicked: {
                                 var publish = safetyPublishBox.checked
                                 var fram = safetyFramBox.checked
                                 var watch = safetyEstopWatchField.text
+                                var latch = safetyLatchBox.checked
                                 if (suiteBackend.safetyNeedsConfirmation(fram, watch))
-                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_FRAMOP"), suiteBackend.uiText("MSG_SECURITY_FRAMOP_CONFIRM"), function() { suiteBackend.saveSafetyOptions(publish, fram, watch) })
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_FRAMOP"), suiteBackend.uiText("MSG_SECURITY_FRAMOP_CONFIRM"), function() { suiteBackend.saveSafetyOptions(publish, fram, watch, latch) })
                                 else
-                                    suiteBackend.saveSafetyOptions(publish, fram, watch)
+                                    suiteBackend.saveSafetyOptions(publish, fram, watch, latch)
                             }
                         }
                     }
