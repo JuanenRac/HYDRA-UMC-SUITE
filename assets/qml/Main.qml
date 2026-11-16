@@ -1027,9 +1027,9 @@ ApplicationWindow {
                                 required property var modelData
                                 Layout.fillWidth: true
                                 spacing: 10
-                                Text { text: modelData.robot; color: modelData.mine ? window.green : window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 150 }
+                                Text { textFormat: Text.PlainText; text: modelData.robot; color: modelData.mine ? window.green : window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); Layout.preferredWidth: 150 }
                                 Text { text: modelData.owner; color: window.muted; font.pixelSize: window.fs(11); Layout.preferredWidth: 130 }
-                                Text { text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
+                                Text { textFormat: Text.PlainText; text: modelData.controller; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true; elide: Text.ElideRight }
                                 Text { text: modelData.left; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10) }
                             }
                         }
@@ -1282,7 +1282,7 @@ ApplicationWindow {
                     RowLayout {
                         anchors.fill: parent
                         anchors.leftMargin: 6
-                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 94 }
+                        Text { textFormat: Text.PlainText; text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.preferredWidth: 94 }
                         Text { text: modelData.joints; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(10); Layout.fillWidth: true }
                     }
                     MouseArea { anchors.fill: parent; onClicked: trajectoryRoot.selectedRow = index }
@@ -1632,7 +1632,7 @@ ApplicationWindow {
                             spacing: 2
                             Layout.fillWidth: true
                             Text { textFormat: Text.PlainText; text: modelData.username; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
-                            Text { text: modelData.address; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
+                            Text { textFormat: Text.PlainText; text: modelData.address; color: "#556070"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                         }
                         Text { text: modelData.roleLabel; color: modelData.isAdmin ? window.green : "#38bdf8"; font.bold: true; font.pixelSize: window.fs(9) }
                         Text { text: modelData.duration; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
@@ -1665,7 +1665,7 @@ ApplicationWindow {
                             spacing: 2
                             Layout.fillWidth: true
                             Text { text: modelData.who; color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11); elide: Text.ElideRight; Layout.fillWidth: true }
-                            Text { text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
+                            Text { textFormat: Text.PlainText; text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(9); elide: Text.ElideRight; Layout.fillWidth: true }
                         }
                         Text { visible: modelData.twoFactor; text: "2FA"; color: window.green; font.bold: true; font.pixelSize: window.fs(9) }
                         Text { text: modelData.sessions; color: modelData.active ? window.green : window.muted; font.pixelSize: window.fs(9) }
@@ -1689,7 +1689,7 @@ ApplicationWindow {
                     width: ListView.view.width
                     spacing: 8
                     Text { text: modelData.action; color: modelData.failure ? "#ee6b80" : window.textPrimary; font.bold: modelData.failure; font.pixelSize: window.fs(10) }
-                    Text { text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(10); elide: Text.ElideRight; Layout.fillWidth: true }
+                    Text { textFormat: Text.PlainText; text: modelData.detail; color: "#556070"; font.pixelSize: window.fs(10); elide: Text.ElideRight; Layout.fillWidth: true }
                     Text { text: modelData.ago; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9) }
                 }
             }
@@ -6813,7 +6813,7 @@ ApplicationWindow {
                                     model: suiteBackend.testerFrames
                                     delegate: RowLayout {
                                         required property var modelData
-                                        Text { text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
+                                        Text { textFormat: Text.PlainText; text: modelData.time; color: window.textPrimary; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 80 }
                                         Text { text: modelData.id; color: "#38bdf8"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 70 }
                                         Text { text: modelData.dlc; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.preferredWidth: 40 }
                                         Text { text: modelData.data; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); Layout.fillWidth: true }
