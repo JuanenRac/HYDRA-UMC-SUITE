@@ -45,7 +45,7 @@ BRIDGE_CHOICE_TEXT = {
 }
 
 
-#: The eight numbers of the request limiters per address, in the order of the screen, with the key of the label of each.
+#: The six numbers of the request limiters per address, in the order of the screen, with the key of the label of each.
 RATE_LIMIT_KEYS = {
     "loginMax": "LBL_SECURITY_RL_LOGIN_MAX",
     "loginWindowSeconds": "LBL_SECURITY_RL_LOGIN_WINDOW",
@@ -53,8 +53,6 @@ RATE_LIMIT_KEYS = {
     "apiMax": "LBL_SECURITY_RL_API_MAX",
     "sensitiveMax": "LBL_SECURITY_RL_SENSITIVE_MAX",
     "apiWindowSeconds": "LBL_SECURITY_RL_API_WINDOW",
-    "stopAllMax": "LBL_SECURITY_RL_STOPALL_MAX",
-    "stopAllWindowSeconds": "LBL_SECURITY_RL_STOPALL_WINDOW",
 }
 
 
@@ -119,7 +117,7 @@ def _bridges(raw: object, signing: object = None) -> dict | None:
 
 
 def _rate_limits(raw: object) -> dict | None:
-    """The switch and the eight numbers of the request limiters, each with where it comes from and its range; None when damaged."""
+    """The switch and the six numbers of the request limiters, each with where it comes from and its range; None when damaged."""
     if not isinstance(raw, dict):
         return None
     enabled = _option(raw.get("enabled"), bool)
@@ -362,6 +360,9 @@ def parse_state(body: object) -> dict | None:
         if publish is not None:
             state["safety"] = {"publishGlobalStop": publish}
             # absent on a server that predates them: shown only when the server reports them
+            latch = _option(safety.get("latchGlobalStop"), bool)
+            if latch is not None:
+                state["safety"]["latchGlobalStop"] = latch
             fram_erase = _option(safety.get("framErase"), bool)
             if fram_erase is not None:
                 state["safety"]["framErase"] = fram_erase
@@ -670,10 +671,11 @@ def parse_estop_watch_text(text: str) -> int | None:
     return value if valid_estop_watch_ms(value) else None
 
 
-def safety_patch(publish_global_stop: bool | None, fram_erase: bool | None = None, estop_watch_ms: int | None = None) -> dict:
+def safety_patch(publish_global_stop: bool | None, fram_erase: bool | None = None, estop_watch_ms: int | None = None, latch_global_stop: bool | None = None) -> dict:
     """The request body for the options of the safety block: the announcement of a global stop on the MQTT bridge (off by default; announcing a stop never
     asks) and, only when given, the F-RAM erase of the kinematic brain (off by default; turning it on carries the confirmation the server asks for) and the
-    interval of the emergency stop watch. None leaves the announcement out: a server that has it fixed by its environment refuses a request that names it."""
+    interval of the emergency stop watch, and the latch of the global stop (off by default: while the stop is on the server refuses every command that moves a
+    robot; stop and disable still work). None leaves the announcement out: a server that has it fixed by its environment refuses a request that names it."""
     safety: dict = {}
     if publish_global_stop is not None:
         safety["publishGlobalStop"] = bool(publish_global_stop)
@@ -683,6 +685,8 @@ def safety_patch(publish_global_stop: bool | None, fram_erase: bool | None = Non
             safety["confirm"] = True
     if estop_watch_ms is not None:
         safety["estopWatchMs"] = int(estop_watch_ms)
+    if latch_global_stop is not None:
+        safety["latchGlobalStop"] = bool(latch_global_stop)
     return {"safety": safety}
 
 
@@ -964,6 +968,7 @@ EMPTY_VIEW: dict = {
     "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
+    "safetyLatchAvailable": False, "safetyLatchStop": False, "safetyLatchStopLocked": False, "safetyLatchStopSource": "",
     "safetyFramAvailable": False, "safetyFramErase": False, "safetyFramEraseLocked": False, "safetyFramEraseSource": "",
     "safetyEstopWatchAvailable": False, "safetyEstopWatchText": "", "safetyEstopWatchLocked": False, "safetyEstopWatchSource": "",
     "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
@@ -1183,6 +1188,15 @@ def view(state: dict | None) -> dict:
                 "safetyPublishStopSource": source_text(safety["publishGlobalStop"]["source"]),
             }
         )
+        if "latchGlobalStop" in safety:
+            out.update(
+                {
+                    "safetyLatchAvailable": True,
+                    "safetyLatchStop": safety["latchGlobalStop"]["value"],
+                    "safetyLatchStopLocked": is_locked(safety["latchGlobalStop"]["source"]),
+                    "safetyLatchStopSource": source_text(safety["latchGlobalStop"]["source"]),
+                }
+            )
         if "framErase" in safety:
             out.update(
                 {
