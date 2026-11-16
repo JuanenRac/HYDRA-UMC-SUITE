@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The SUITE tells when the server is stopped only because it restarted while stopped:** when the server comes back with the global stop still on, an amber notice next to the stop badge says that an administrator must release it (in all eight languages). The Security panel gets the new switch "While the global stop is on, refuse every command that moves a robot" (off by default; stop and disable still work), and the two limits of the global stop are gone because the global stop is never rate limited now.
+
 - **PAUSE is sent without `If-Match`, like STOP:** a playing robot changes pose at every step, so a pause carrying the revision of the play was refused with a 412 almost every time.
 - **Text from the server is drawn as plain text in the administration log, the audit record and the lists of accounts and robots:** a name or a reason written by another client can no longer change how a line looks or load a remote image. `tests/verify_conditional_audit.py` checks it.
 

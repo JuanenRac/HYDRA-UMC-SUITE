@@ -31,6 +31,8 @@ class StopStateView:
     software: str
     physical_link_ok: bool | None = None
     changed_at: int = 0
+    #: True while the server is stopped only because it restarted while stopped: an administrator has to release it.
+    restored_after_restart: bool = False
 
 
 def parse_stop_state(message: object) -> StopStateView | None:
@@ -51,6 +53,7 @@ def parse_stop_state(message: object) -> StopStateView | None:
         software=software,
         physical_link_ok=link if isinstance(link, bool) else None,
         changed_at=changed if isinstance(changed, int) and not isinstance(changed, bool) else 0,
+        restored_after_restart=body.get("restoredAfterRestart") is True,
     )
 
 
@@ -63,6 +66,14 @@ def sum_up(views: list[StopStateView]) -> StopStateView | None:
             if view.state == wanted:
                 return view
     return views[0]
+
+
+def restored_notice(views: list[StopStateView]) -> str:
+    """The sentence that tells that a server is stopped only because it restarted while stopped (an administrator has to release it); empty when none is."""
+    for view in views:
+        if view.software == "stopped" and view.restored_after_restart:
+            return _("STOP_STATE_RESTORED")
+    return ""
 
 
 def severity(view: StopStateView | None) -> str:

@@ -272,10 +272,10 @@ def rl_entry(value, low=1, high=100000, source="default"):
 RL_RAW = {
     "enabled": {"value": True, "source": "default"},
     "loginMax": rl_entry(10), "loginWindowSeconds": rl_entry(900, 1, 86400), "refreshMax": rl_entry(30), "apiMax": rl_entry(600),
-    "sensitiveMax": rl_entry(60), "apiWindowSeconds": rl_entry(60, 1, 3600), "stopAllMax": rl_entry(120), "stopAllWindowSeconds": rl_entry(60, 1, 3600),
+    "sensitiveMax": rl_entry(60), "apiWindowSeconds": rl_entry(60, 1, 3600),
 }
 rl_limits = sec._rate_limits(RL_RAW)
-check("reads the switch and the eight numbers", (rl_limits["enabled"]["value"], len(rl_limits["numbers"]), rl_limits["numbers"]["loginMax"]), (True, 8, {"value": 10, "min": 1, "max": 100000, "source": "default"}))
+check("reads the switch and the six numbers", (rl_limits["enabled"]["value"], len(rl_limits["numbers"]), rl_limits["numbers"]["loginMax"]), (True, 6, {"value": 10, "min": 1, "max": 100000, "source": "default"}))
 check("a damaged answer shows no section", (sec._rate_limits(None), sec._rate_limits({**RL_RAW, "loginMax": {"value": "x", "min": 1, "max": 2, "source": "env"}}), sec._rate_limits({**RL_RAW, "enabled": {"value": 1, "source": "env"}}), sec._rate_limits({**RL_RAW, "apiMax": rl_entry(True)}), sec._rate_limits({k: v for k, v in RL_RAW.items() if k != "apiMax"})), (None, None, None, None, None))
 state = {"rateLimits": rl_limits}
 texts = {k: str(v["value"]) for k, v in rl_limits["numbers"].items()}
@@ -408,6 +408,21 @@ check("every sentence exists", all(_(key) != key for key in ["NODEHEALTH_" + k f
     "FLAG_ESTOP_LATCHED", "FLAG_BUS_OFF_SEEN", "FLAG_WATCHDOG_RESET_AT_START", "FLAG_SETUP_FAILED_AT_START", "FLAG_APPLICATION_CONFIRMED", "FLAG_DRIVERS_ENABLED", "FLAG_SETUP_FAILED_SAFE_STATE")]
     + ["LBL_SECURITY_NODEHEALTH", "LBL_SECURITY_NODEHEALTH_ENABLED", "LBL_SECURITY_NODEHEALTH_HELP"]), True)
 
+
+# the latch of the global stop (an option of the safety block, reported only by a server that has it)
+LATCH = {**HEALTH, "safety": {**STOP, "latchGlobalStop": {"value": True, "source": "env"}}}
+lv = sec.view(sec.parse_state(LATCH))
+check("reads the latch when the server reports it", sec.parse_state(LATCH)["safety"]["latchGlobalStop"], {"value": True, "source": "env"})
+check("a damaged latch is dropped and the announcement stays", (
+    sec.parse_state({**HEALTH, "safety": {**STOP, "latchGlobalStop": {"value": "yes", "source": "default"}}})["safety"],
+    sec.parse_state({**HEALTH, "safety": {**STOP, "latchGlobalStop": {"value": True, "source": "nowhere"}}})["safety"],
+), (STOP, STOP))
+check("the view of the latch", (lv["safetyLatchAvailable"], lv["safetyLatchStop"], lv["safetyLatchStopLocked"]), (True, True, True))
+check("no latch section on a server without it", (sec.view(hs)["safetyLatchAvailable"], sec.view(None)["safetyLatchAvailable"]), (False, False))
+check("the latch goes in the request only when given", (sec.safety_patch(None, None, None, True), sec.safety_patch(False, None, None, False), sec.safety_patch(False)), ({"safety": {"latchGlobalStop": True}}, {"safety": {"publishGlobalStop": False, "latchGlobalStop": False}}, {"safety": {"publishGlobalStop": False}}))
+check("the global stop has no limiter numbers any more", ("stopAllMax" in sec.RATE_LIMIT_KEYS, "stopAllWindowSeconds" in sec.RATE_LIMIT_KEYS), (False, False))
+check("a server that still reports the old numbers is read the same", sorted(sec._rate_limits({**RL_RAW, "stopAllMax": rl_entry(60), "stopAllWindowSeconds": rl_entry(60, 1, 3600)})["numbers"]), sorted(sec.RATE_LIMIT_KEYS))
+check("every key of the view exists without a server (the latch included)", set(sec.view(None)) == set(lv), True)
 
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

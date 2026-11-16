@@ -46,6 +46,10 @@ damaged = [None, 3, "stop-state", [], {}, {"type": "claims"}, {"type": "stop-sta
            message(state="PAUSED"), message(physical="maybe"), message(software="on"), message(state=7), message(physical=None)]
 check("every damaged or foreign message is ignored", [d for d in damaged if ss.parse_stop_state(d) is not None], [])
 
+check("the restored flag is read only when it is exactly true", (ss.parse_stop_state(message(restoredAfterRestart=True)).restored_after_restart, ss.parse_stop_state(message(restoredAfterRestart="yes")).restored_after_restart, view.restored_after_restart), (True, False, False))
+restored = ss.StopStateView("STOPPED", "unknown", "stopped", None, 0, True)
+check("the notice names the restart only for a server that is stopped and restored", (ss.restored_notice([restored]), ss.restored_notice([ss.StopStateView("STOPPED", "unknown", "stopped")]), ss.restored_notice([ss.StopStateView("READY", "ready", "ready", None, 0, True)]), ss.restored_notice([])), (_("STOP_STATE_RESTORED"), "", "", ""))
+
 stopped = ss.StopStateView("STOPPED", "latched", "ready")
 ready = ss.StopStateView("READY", "ready", "ready")
 unknown = ss.StopStateView("UNKNOWN", "unknown", "ready")
@@ -74,7 +78,7 @@ check("the next one replaces it", (connection.stop_state.state, len(heard)), ("R
 source = inspect.getsource(ss)
 check("the logic never sends anything", any(token in source for token in (".send(", "post(", "requests", "httpx")), False)
 
-KEYS = ["STOPPED", "READY", "UNKNOWN", "TOOLTIP", "PHYSICAL_LATCHED", "PHYSICAL_READY", "PHYSICAL_UNKNOWN", "SOFTWARE_STOPPED", "SOFTWARE_READY"]
+KEYS = ["STOPPED", "READY", "UNKNOWN", "TOOLTIP", "PHYSICAL_LATCHED", "PHYSICAL_READY", "PHYSICAL_UNKNOWN", "SOFTWARE_STOPPED", "SOFTWARE_READY", "RESTORED"]
 holes = lambda text: sorted(re.findall(r"\{\w+\}", text))
 english = {}
 files = sorted(Path("language").glob("*.lng"), key=lambda p: (p.name != "english.lng", p.name))
@@ -95,7 +99,8 @@ for path in files:
 qml = Path("assets/qml/Main.qml").read_text(encoding="utf-8")
 check("the header has the badge, drawn only when there is a text, and it reads the backend", all(token in qml for token in ('objectName: "stopStateBadge"', 'visible: suiteBackend.stopStateText !== ""', "suiteBackend.stopStateSeverity", "suiteBackend.stopStateDetail")), True)
 bridge = Path("qt_suite.py").read_text(encoding="utf-8")
-check("the backend exposes the three properties", all(token in bridge for token in ("def stopStateText", "def stopStateDetail", "def stopStateSeverity")), True)
+check("the backend exposes the three properties and the notice", all(token in bridge for token in ("def stopStateText", "def stopStateDetail", "def stopStateSeverity", "def stopStateNotice")), True)
+check("the header draws the notice only when there is a text", all(token in qml for token in ('objectName: "stopStateNotice"', 'visible: suiteBackend.stopStateNotice !== ""')), True)
 
 print(f"FAILURES: {failures}")
 sys.exit(1 if failures else 0)

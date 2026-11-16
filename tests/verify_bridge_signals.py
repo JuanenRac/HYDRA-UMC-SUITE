@@ -258,7 +258,7 @@ for prop in ("firmwareSigningView", "tlsPinningView"):
 # the page that is on view, the selected robot of Robot Control (reservations, works, trajectory and the 3D view read it), the planning view,
 # the about box and the 3D viewport state. A new property goes to the signal of its screen; adding it here needs a reason.
 KEEPS_GENERAL_SIGNAL = {
-    "activePanel", "stopAllText", "stopAllDetail", "stopAllSeverity", "stopStateText", "stopStateDetail", "stopStateSeverity",
+    "activePanel", "stopAllText", "stopAllDetail", "stopAllSeverity", "stopStateText", "stopStateDetail", "stopStateSeverity", "stopStateNotice",
     "connectionStatus", "aboutInfo", "shutdownDone", "noticeText", "noticeSeverity", "conditionalMode", "planningView", "robotOptions",
     "selectedRobotId", "canControlRobot", "selectedRobotLabel", "selectedRobotJoints", "selectedRobotSpeed", "selectedRobotAcceleration",
     "selectedRobotTransport", "selectedRobotTool", "selectedRobotValves", "selectedRobotPumps", "viewportHasRobot", "viewportSupported",
