@@ -5010,30 +5010,38 @@ class SuiteQtBridge(QObject):
             "executor_live": None if server_security.is_locked(executor["live"]["source"]) else bool(exec_live),
         }
 
-    @Slot(bool, str, bool, str, bool, bool, result=bool)
-    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> bool:
+    @staticmethod
+    def _silent_switch(current: dict, silent_robot: str) -> dict:
+        """The choice for a robot the server has not heard from, only when the server offers it and not when the environment fixes it."""
+        silent = current.get("silent")
+        if not silent or server_security.is_locked(silent["source"]) or silent_robot not in server_security.SILENT_ROBOT_CHOICES:
+            return {}
+        return {"silent_robot": silent_robot}
+
+    @Slot(bool, str, bool, str, bool, bool, str, result=bool)
+    def jobDispatcherNeedsConfirmation(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False, silent_robot: str = "") -> bool:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return False
         current = state["jobDispatcher"]
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live))
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live), **self._silent_switch(current, silent_robot))
         return patch is not None and server_security.job_dispatcher_needs_confirmation(current, patch)
 
-    @Slot(bool, str, bool, str, bool, bool, result=bool)
-    def jobExecutorGoesLive(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> bool:
+    @Slot(bool, str, bool, str, bool, bool, str, result=bool)
+    def jobExecutorGoesLive(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False, silent_robot: str = "") -> bool:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return False
         current = state["jobDispatcher"]
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live))
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, current["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(current, exec_enabled, exec_live), **self._silent_switch(current, silent_robot))
         return patch is not None and server_security.job_executor_goes_live(current, patch)
 
-    @Slot(bool, str, bool, str, bool, bool)
-    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False) -> None:
+    @Slot(bool, str, bool, str, bool, bool, str)
+    def saveJobDispatcherOptions(self, relay_enabled: bool, map_text: str, allow_unconfirmed: bool, timeout_text: str, exec_enabled: bool = False, exec_live: bool = False, silent_robot: str = "") -> None:
         state = self._security_state
         if state is None or not state.get("jobDispatcher"):
             return
-        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(state["jobDispatcher"], exec_enabled, exec_live))
+        patch = server_security.job_dispatcher_patch(relay_enabled, map_text, state["jobDispatcher"]["editable"], allow_unconfirmed, timeout_text, **self._executor_switches(state["jobDispatcher"], exec_enabled, exec_live), **self._silent_switch(state["jobDispatcher"], silent_robot))
         if patch is None:
             self._security_message = ""
             self._security_warning = ""

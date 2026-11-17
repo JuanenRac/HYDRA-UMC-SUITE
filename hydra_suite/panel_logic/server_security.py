@@ -183,6 +183,10 @@ def parse_dispatcher_reload(raw: object) -> str:
     return raw if isinstance(raw, str) and raw in RELOAD_STATES else "none"
 
 
+#: What the server may do with the stop of a robot it has not heard from: leave it unacknowledged, or acknowledge it from its own state.
+SILENT_ROBOT_CHOICES = ("withhold", "server-state")
+
+
 def _job_dispatcher(raw: object) -> dict | None:
     """The options of the job dispatcher in the answer of the server; None for a server that predates them or answers nonsense."""
     if not isinstance(raw, dict):
@@ -201,6 +205,7 @@ def _job_dispatcher(raw: object) -> dict | None:
         for dispatcher_id, number in raw_map.items():
             if isinstance(dispatcher_id, str) and isinstance(number, int) and not isinstance(number, bool):
                 robot_map[dispatcher_id] = number
+    silent = _option(relay.get("silentRobot"), str, SILENT_ROBOT_CHOICES)
     executor = None
     raw_executor = raw.get("executor")
     if isinstance(raw_executor, dict):
@@ -211,6 +216,7 @@ def _job_dispatcher(raw: object) -> dict | None:
         "relay": enabled,
         "robotMap": robot_map,
         "executor": executor,
+        "silent": silent,
         "relayAppliesOnRestart": relay.get("appliesOnRestart") is True,
         "allow": allow,
         "timeout": timeout,
@@ -619,12 +625,17 @@ def parse_timeout(text: str) -> float | None:
     return value if 0 < value <= MAX_STOP_ACK_TIMEOUT_SECONDS else None
 
 
-def job_dispatcher_patch(relay_enabled: bool, map_text: str, replan_editable: bool, allow_unconfirmed: bool, timeout_text: str, *, executor_enabled: bool | None = None, executor_live: bool | None = None) -> dict | None:
+def job_dispatcher_patch(relay_enabled: bool, map_text: str, replan_editable: bool, allow_unconfirmed: bool, timeout_text: str, *, executor_enabled: bool | None = None, executor_live: bool | None = None, silent_robot: str | None = None) -> dict | None:
     """The request body for the job dispatcher options; None when the robot map or the wait is not valid. The replanning part is left out when the server cannot write the file of the dispatcher."""
     robot_map = parse_robot_map_text(map_text)
     if robot_map is None:
         return None
     body: dict = {"stopRelay": {"enabled": bool(relay_enabled), "robotMap": robot_map}}
+    if silent_robot is not None:
+        # only sent when the server offers the choice, and only a value it knows
+        if silent_robot not in SILENT_ROBOT_CHOICES:
+            return None
+        body["stopRelay"]["silentRobot"] = silent_robot
     if executor_enabled is not None or executor_live is not None:
         # only the switches that are not locked by the environment; `live` false is the dry run
         body["executor"] = {}
@@ -829,6 +840,8 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_JD_WARNING_EXEC")
     if "job_executor_live" in warnings:
         sentence = _("SECURITY_JD_WARNING_EXEC_LIVE")
+    if "job_stop_silent_server_state" in warnings:
+        sentence = _("SECURITY_JD_WARNING_SILENT")
     if "replan_unconfirmed_allowed" in warnings:
         sentence = _("SECURITY_JD_WARNING_REPLAN")
     if "mavlink_unsigned_allowed" in warnings:
@@ -971,7 +984,7 @@ EMPTY_VIEW: dict = {
     "safetyLatchAvailable": False, "safetyLatchStop": False, "safetyLatchStopLocked": False, "safetyLatchStopSource": "",
     "safetyFramAvailable": False, "safetyFramErase": False, "safetyFramEraseLocked": False, "safetyFramEraseSource": "",
     "safetyEstopWatchAvailable": False, "safetyEstopWatchText": "", "safetyEstopWatchLocked": False, "safetyEstopWatchSource": "",
-    "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdAllow": False, "jdTimeout": "30",
+    "jdAvailable": False, "jdRelay": False, "jdRelayLocked": False, "jdRelaySource": "", "jdMapText": "", "jdSilentAvailable": False, "jdSilent": "withhold", "jdSilentLocked": False, "jdSilentSource": "", "jdAllow": False, "jdTimeout": "30",
     "jdReplanEditable": False, "jdReplanNote": "",
     "jdExecAvailable": False, "jdExecEnabled": False, "jdExecEnabledLocked": False, "jdExecEnabledSource": "", "jdExecLive": False, "jdExecLiveLocked": False, "jdExecLiveSource": "",
     "productionAvailable": False, "productionRdp": False, "productionRdpLocked": False, "productionRdpSource": "",
@@ -1224,6 +1237,10 @@ def view(state: dict | None) -> dict:
                 "jdRelayLocked": is_locked(job_dispatcher["relay"]["source"]),
                 "jdRelaySource": source_text(job_dispatcher["relay"]["source"]) + (" " + _("SECURITY_RESTART_NOTE") if job_dispatcher["relayAppliesOnRestart"] else ""),
                 "jdMapText": robot_map_text(job_dispatcher["robotMap"]),
+                "jdSilentAvailable": job_dispatcher.get("silent") is not None,
+                "jdSilent": job_dispatcher["silent"]["value"] if job_dispatcher.get("silent") else "withhold",
+                "jdSilentLocked": bool(job_dispatcher.get("silent") and is_locked(job_dispatcher["silent"]["source"])),
+                "jdSilentSource": (source_text(job_dispatcher["silent"]["source"]) + " " + _("SECURITY_RESTART_NOTE")) if job_dispatcher.get("silent") else "",
                 "jdAllow": job_dispatcher["allow"]["value"],
                 "jdTimeout": f"{job_dispatcher['timeout']['value']:g}",
                 "jdReplanEditable": job_dispatcher["editable"],

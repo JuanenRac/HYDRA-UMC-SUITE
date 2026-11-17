@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **The job dispatcher options offer the choice for a robot the server has not heard from:** the Security tab of the Server admin screen shows the selector (do not acknowledge its stop, or acknowledge it from the state of this server), sends it with the other dispatcher options, shows when the environment fixes it, and warns after saving that the acknowledgement applies from the next start of the server. Available in the eight languages.
 - **Two-step sign-in offers new recovery codes:** when two or fewer recovery codes are left the Server admin screen suggests generating new ones, and a button asks the server for them (it asks for the password and a current or unused recovery code; the old codes stop working). Available in the eight languages.
 - **A server error on the global STOP no longer ends the attempt:** when `POST /api/stop-all` answers with a 5xx status the SUITE stops the known robots one by one, as it already did for a rate limit or a missing route, and the banner starts with "STOP sent, no reply yet" (eight languages) until an answer arrives. A test covers it.
 - **The robot-by-robot STOP also switches the valves and pumps off:** like STUDIO, it sends a switch-off (with one retry) for every valve or pump the local mirror shows on, and a robot whose output is not confirmed off is listed as needing attention and the result is not shown as clean. A test covers it.
