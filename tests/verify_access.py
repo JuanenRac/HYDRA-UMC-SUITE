@@ -194,6 +194,33 @@ def live_sim():
     check("sim: damaged configuration", (access.ModeState.from_config(None).modes, access.ModeState.from_config({"robotModes": {"x": "sim", "s#1": "fast", "s#2": "sim"}}).modes), ({}, {"s#2": "sim"}))
 
 
+def sim_combined_and_lowering():
+    check("sim: resuming a paused playback is a real command, pausing is not", (access.is_real_command("pause", {"paused": False}), access.is_real_command("pause", {"paused": True}), access.is_real_command("pause")), (True, False, False))
+    check("sim: setting the joints is a real command", access.is_real_command("joints"), True)
+    state = access.ModeState()
+    state.set_mode("s", 2, "sim")
+    check("sim: the robots a command reaches, as the server works them out", (access.affected_robot_ids("play", 1, [2, 3]), access.affected_robot_ids("valve", 1, None), access.affected_robot_ids("table", 1, [2]), access.affected_robot_ids("trajectory", 1, [2]), access.affected_robot_ids("play", 1, [2], [1])), ([1, 2, 3], [1], [1], [1], [1, 2]))
+    check("sim: a Live robot combined with one in Sim cannot play", state.blocked("s", access.affected_robot_ids("play", 1, [2]), "play"), True)
+    check("sim: a table move reaches only its robot", state.blocked("s", access.affected_robot_ids("table", 1, [2]), "table"), False)
+    check("sim: resuming a paused playback of a robot in Sim is refused", (state.blocked("s", [2], "pause", {"paused": False}), state.blocked("s", [2], "pause", {"paused": True})), (True, False))
+    read = access.form_from_limits(access.parse_safety_limits({"limits": {"jog": {"armRequired": True}, "claims": {"requireControllerId": True}}}).limits)
+    check("limits: the same form lowers nothing", access.lowers_protection(read, dict(read)), False)
+    check("limits: the arming and the reservation rule off lower the protection", (access.lowers_protection(read, {**read, "armRequired": False}), access.lowers_protection(read, {**read, "requireControllerId": False})), (True, True))
+    check("limits: a higher limit, a longer arming and a rarer audit lower it", [access.lowers_protection(read, {**read, name: str(float(read[name]) + 1)}) for name in ("defaultMaxAmount", "armTtlSeconds", "auditMotionSeconds")], [True, True, True])
+    check("limits: a lower limit does not", access.lowers_protection(read, {**read, "defaultMaxAmount": "1"}), False)
+    row = {"model": "parol6", "maxAmount": "20", "maxAbsolute": "", "bedMaxC": ""}
+    with_row = {**read, "rows": [row]}
+    check("limits: removing or emptying a limit by model lowers it, tightening it does not", (access.lowers_protection(with_row, {**read, "rows": []}), access.lowers_protection(with_row, {**read, "rows": [{**row, "maxAmount": ""}]}), access.lowers_protection(with_row, {**read, "rows": [{**row, "maxAmount": "15"}]})), (True, True, False))
+    hard = access.HardLimits()
+    base = access.build_patch(read, hard)["patch"]
+    edited = access.build_patch({**read, "auditMotionSeconds": "30"}, hard)["patch"]
+    check("limits: only the changed value is sent", access.changed_only(base, edited), {"audit": {"motionIntervalSeconds": 30}})
+    check("limits: nothing changed, nothing sent", access.changed_only(base, base), {})
+    models_a = access.build_patch({**read, "rows": [row, {**row, "model": "ar4"}]}, hard)["patch"]
+    models_b = access.build_patch({**read, "rows": [{**row, "maxAmount": "10"}, {**row, "model": "ar4"}]}, hard)["patch"]
+    check("limits: a changed models map goes whole", access.changed_only(models_a, models_b), {"jog": {"models": models_b["jog"]["models"]}})
+
+
 def listen_only_servers():
     state = access.ListenOnlyState()
     check("listen only servers: none by default", (state.servers, state.applies("a:1"), state.blocks("jog", "a:1")), (set(), False, False))
@@ -261,6 +288,7 @@ def main():
     form()
     warnings()
     live_sim()
+    sim_combined_and_lowering()
     listen_only()
     listen_only_servers()
     joints()
