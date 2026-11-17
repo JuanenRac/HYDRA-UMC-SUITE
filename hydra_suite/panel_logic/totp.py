@@ -14,6 +14,9 @@ import re
 from hydra_suite.i18n import _
 from hydra_suite.panel_logic.qr_code import encode_qr, qr_svg_path
 
+# From this many recovery codes down, the screen suggests asking for new ones.
+RECOVERY_LOW = 2
+
 _KEY = re.compile(r"^[A-Z2-7]{16,128}$")
 _RECOVERY = re.compile(r"^[0-9a-f]{5}-[0-9a-f]{5}$")
 
@@ -24,6 +27,11 @@ def parse_status(body: object) -> tuple[bool, int] | None:
         return None
     left = body.get("recoveryLeft")
     return body["enabled"], left if isinstance(left, int) and not isinstance(left, bool) and left >= 0 else 0
+
+
+def recovery_low(left: int) -> bool:
+    """Whether so few recovery codes are left that the screen should suggest generating new ones."""
+    return left <= RECOVERY_LOW
 
 
 def parse_enrolment(body: object) -> tuple[str, str] | None:

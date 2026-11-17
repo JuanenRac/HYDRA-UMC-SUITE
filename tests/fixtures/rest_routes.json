@@ -63,6 +63,7 @@
   "/api/totp/begin",
   "/api/totp/confirm",
   "/api/totp/disable",
+  "/api/totp/recovery-codes",
   "/api/totp/status",
   "/api/upload-work",
   "/api/users"
