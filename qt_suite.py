@@ -2107,6 +2107,14 @@ class SuiteQtBridge(QObject):
         return _("TOTP_STATUS_ON", count=self._totp_left) if self._totp_step == "on" else _("TOTP_STATUS_OFF")
 
     @Property(str, notify=securityChanged)
+    def totpRecoveryHint(self) -> str:
+        return _("TOTP_REGENERATE_HINT", count=self._totp_left)
+
+    @Property(bool, notify=securityChanged)
+    def totpRecoveryLow(self) -> bool:
+        return self._totp_step == "on" and totp_panel.recovery_low(self._totp_left)
+
+    @Property(str, notify=securityChanged)
     def totpKey(self) -> str:
         return totp_panel.grouped_key(self._totp_key) if self._totp_key else ""
 
@@ -2236,6 +2244,25 @@ class SuiteQtBridge(QObject):
             await self._refresh_totp()
             return
         self._totp_error = totp_panel.failure_text(status or 0, body, retry)
+        self.securityChanged.emit()
+
+    @Slot(str, str)
+    def regenerateTotp(self, password: str, code: str) -> None:
+        asyncio.ensure_future(self._regenerate_totp(password, code))
+
+    async def _regenerate_totp(self, password: str, code: str) -> None:
+        conn = self._totp_conn()
+        if conn is None or not password or not code.strip():
+            return
+        self._totp_busy, self._totp_error, self._totp_message = True, "", ""
+        self.securityChanged.emit()
+        status, body, retry = await conn.totp_call("POST", "/api/totp/recovery-codes", {"password": password, "code": totp_panel.normalize_code(code)})
+        self._totp_busy = False
+        codes = totp_panel.parse_recovery_codes(body) if status == 200 else None
+        if codes is None:
+            self._totp_error = totp_panel.failure_text(status or 0, body, retry)
+        else:
+            self._totp_recovery, self._totp_step = codes, "recovery"
         self.securityChanged.emit()
 
     @Slot(str)

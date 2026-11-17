@@ -3423,6 +3423,7 @@ ApplicationWindow {
                     Text { visible: suiteBackend.totpStep === "loading"; text: suiteBackend.uiText("TOTP_LOADING"); color: window.muted; font.pixelSize: window.fs(10) }
                     Text { visible: suiteBackend.totpStep === "unsupported"; text: suiteBackend.uiText("TOTP_ERR_UNSUPPORTED"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
                     Text { visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"; text: suiteBackend.totpStatusText; color: suiteBackend.totpStep === "on" ? window.green : window.muted; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { objectName: "totpRecoveryLowText"; visible: suiteBackend.totpRecoveryLow; text: suiteBackend.totpRecoveryHint; color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
 
                     ColumnLayout {
                         visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"
@@ -3459,6 +3460,14 @@ ApplicationWindow {
                             text: suiteBackend.uiText("TOTP_TURN_OFF")
                             enabled: !suiteBackend.totpBusy && totpPasswordField.text !== "" && totpOffCodeField.text !== ""
                             onClicked: { suiteBackend.disableTotp(totpPasswordField.text, totpOffCodeField.text); totpPasswordField.text = ""; totpOffCodeField.text = "" }
+                        }
+                        Text { visible: suiteBackend.totpStep === "on"; text: suiteBackend.uiText("TOTP_REGENERATE_HELP"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
+                        Button {
+                            objectName: "totpRegenerateButton"
+                            visible: suiteBackend.totpStep === "on"
+                            text: suiteBackend.uiText("TOTP_REGENERATE")
+                            enabled: !suiteBackend.totpBusy && totpPasswordField.text !== "" && totpOffCodeField.text !== ""
+                            onClicked: { suiteBackend.regenerateTotp(totpPasswordField.text, totpOffCodeField.text); totpPasswordField.text = ""; totpOffCodeField.text = "" }
                         }
                     }
 
