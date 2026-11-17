@@ -46,6 +46,7 @@ check("an enrolment that is not an otpauth address or a base32 key is refused",
 check("recovery codes", totp.parse_recovery_codes({"recoveryCodes": ["0a1b2-c3d4e", "ffeed-00112"]}), ["0a1b2-c3d4e", "ffeed-00112"])
 check("a recovery list with one odd code is refused",
       (totp.parse_recovery_codes({"recoveryCodes": ["0a1b2-c3d4e", "<x>"]}), totp.parse_recovery_codes({"recoveryCodes": []}), totp.parse_recovery_codes({})), (None, None, None))
+check("new recovery codes are suggested from two left down", (totp.recovery_low(3), totp.recovery_low(2), totp.recovery_low(0)), (False, True, True))
 check("the key by groups of four", totp.grouped_key("JBSWY3DPEHPK3PXP"), "JBSW Y3DP EHPK 3PXP")
 check("codes as typed", (totp.normalize_code(" 123 456 "), totp.normalize_code("123-456"), totp.normalize_code("0A1B2-C3D4E")), ("123456", "123456", "0a1b2-c3d4e"))
 
@@ -143,6 +144,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"success": True, "token": "jwt-2", "refreshToken": "r-2", "role": "admin"})
         if self.path == "/api/totp/disable":
             return self._send(401, {"error": "Invalid credentials"})
+        if self.path == "/api/totp/recovery-codes":
+            return self._send(200, {"success": True, "recoveryCodes": ["aaaaa-bbbbb", "ccccc-ddddd"]})
         if self.path == "/api/totp/confirm":
             return self._send(429, {"error": "wait"}, {"Retry-After": "17"})
         self._send(404, {})
@@ -181,6 +184,8 @@ async def run():
     check("the state is read with the session token", (status, totp.parse_status(body), State.calls[-1][3]), (200, (True, 8), "Bearer jwt-1"))
     status, _body, _retry = await conn.reset_user_totp("ana lópez")
     check("an administrator's reset names the account", (status, State.calls[-1][:2]), (200, ("DELETE", "/api/users/ana%20l%C3%B3pez/totp")))
+    status, body, retry = await conn.totp_call("POST", "/api/totp/recovery-codes", {"password": "pw", "code": "1"})
+    check("new recovery codes are asked with the password and the code", (status, totp.parse_recovery_codes(body), State.calls[-1][:3]), (200, ["aaaaa-bbbbb", "ccccc-ddddd"], ("POST", "/api/totp/recovery-codes", {"password": "pw", "code": "1"})))
     check("a dead server is status 0", (await HydraConnection(ServerInfo(host="127.0.0.1", port=1)).totp_call("GET", "/api/totp/status"))[0], 0)
     server.shutdown()
 

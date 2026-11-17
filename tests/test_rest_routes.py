@@ -24,7 +24,7 @@ SDK = Path(os.environ.get("HYDRA_UMC_SDK_DIR") or ROOT.parent / "HYDRA-UMC-SDK")
 CONTRACT = SDK / "contracts" / "openapi" / "v1" / "server.full.openapi.json"
 # Routes that the contract of the SDK declares in its unreleased part and the pinned tag of the continuous integration does not hold yet. Drop an entry when the
 # pin moves to a tag that has it.
-UNRELEASED = {"/api/ros2-bridge/settings"}
+UNRELEASED = {"/api/ros2-bridge/settings", "/api/totp/recovery-codes"}
 LITERAL = re.compile(r"""["'](/api/[^"'\s]*)["']""")
 
 

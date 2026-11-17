@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **Two-step sign-in offers new recovery codes:** when two or fewer recovery codes are left the Server admin screen suggests generating new ones, and a button asks the server for them (it asks for the password and a current or unused recovery code; the old codes stop working). Available in the eight languages.
 - **A server error on the global STOP no longer ends the attempt:** when `POST /api/stop-all` answers with a 5xx status the SUITE stops the known robots one by one, as it already did for a rate limit or a missing route, and the banner starts with "STOP sent, no reply yet" (eight languages) until an answer arrives. A test covers it.
 - **The robot-by-robot STOP also switches the valves and pumps off:** like STUDIO, it sends a switch-off (with one retry) for every valve or pump the local mirror shows on, and a robot whose output is not confirmed off is listed as needing attention and the result is not shown as clean. A test covers it.
 - **The SUITE tells when the server is stopped only because it restarted while stopped:** when the server comes back with the global stop still on, an amber notice next to the stop badge says that an administrator must release it (in all eight languages). The Security panel gets the new switch "While the global stop is on, refuse every command that moves a robot" (off by default; stop and disable still work), and the two limits of the global stop are gone because the global stop is never rate limited now.
