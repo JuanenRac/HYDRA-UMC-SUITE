@@ -3,8 +3,8 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0-or-later - see LICENSE
 #
-# One scheduler for every poller of the interface. Each screen that asks the server on a timer used to own a QTimer
-# of its own (ten of them), started and stopped by the screen that was on view. Now a poller is a job of this
+# One scheduler for every poller of the interface. Each screen that asks the server on a timer would otherwise own a QTimer
+# of its own, started and stopped by the screen that was on view. A poller is a job of this
 # scheduler: it has a period and a callback, it runs only while it is started (the interface starts the jobs of the
 # screen on view and stops the others), and a single QTimer of the interface calls `tick()` a few times a second.
 # A job offers the small surface of a QTimer (start, stop, isActive, setInterval), so the code that gated the old

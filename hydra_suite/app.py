@@ -126,8 +126,8 @@ class SuiteController(QObject):
     connection_login_changed = Signal(str, bool, str)  # (conn_id, ok, detail)
     # HydraConnection.error covers real network failures (an initial fetch
     # that raced a server restart, a push_state() that never reached the
-    # server) that previously had nowhere to go once emitted - nothing
-    # anywhere connected to that signal, so a failed write looked
+    # server) that has nowhere to go unless this relay passes it on: nothing
+    # else connects to that signal, so without it a failed write would look
     # identical to a successful one from the UI's own point of view.
     # Relayed for every connection like the two signals above, not just
     # the active one, for the same reason: a background server in the
