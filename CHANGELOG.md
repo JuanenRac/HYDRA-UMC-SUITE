@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The Security panel has the switch that requires the Ed25519 signature of a flash:** `production.requireAsymmetricSignature` (off by default, locked when its environment variable fixes it) is read from the server and saved on its own, with its text in the eight languages. The SDK is pinned to its newest release.
+
 - **Five comments describe what the code does now, not what it used to do:** in the relay of connection errors, the operator's local settings edit, the delta of the WebSocket state, the edits of one robot and the scheduler. Comments only: no behaviour changes.
 ## [0.8.0.8]
 

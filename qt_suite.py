@@ -4858,6 +4858,10 @@ class SuiteQtBridge(QObject):
     def saveProductionOptions(self, on: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.production_patch(on)))
 
+    @Slot(bool)
+    def saveAsymmetricSignature(self, on: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.asymmetric_signature_patch(on)))
+
     @Slot(bool, result=bool)
     def connectionsNeedsConfirmation(self, record_address: bool) -> bool:
         state = self._security_state

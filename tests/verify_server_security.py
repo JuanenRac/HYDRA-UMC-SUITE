@@ -187,6 +187,10 @@ check("every key of the view exists without a server (exposure and connections i
 PROD = {**EXPO, "production": {"rdpLevel": _opt(0)}}
 ps = sec.parse_state(PROD)
 check("the production flash option is read, off by default, sent as 0 or 1 and asks only when turned on", (ps["production"]["rdpLevel"]["value"], sec.view(ps)["productionAvailable"], sec.view(es)["productionAvailable"], sec.view(ps)["productionRdp"], sec.production_patch(True), sec.production_patch(False), [sec.production_needs_confirmation(a, b) for a, b in ((False, True), (True, False), (True, True), (False, False))]), (0, True, False, False, {"production": {"rdpLevel": 1}}, {"production": {"rdpLevel": 0}}, [True, False, False, False]))
+PROD_ASYM = {**EXPO, "production": {"rdpLevel": _opt(0), "requireAsymmetricSignature": _opt(False)}}
+pa = sec.parse_state(PROD_ASYM)
+check("the switch that requires the Ed25519 signature of a flash is read, off by default, sent as it is and never asks", (sec.view(pa)["productionAsymAvailable"], sec.view(pa)["productionAsym"], sec.view(ps)["productionAsymAvailable"], sec.view(es)["productionAsymAvailable"], sec.asymmetric_signature_patch(True), sec.asymmetric_signature_patch(False)), (True, False, False, False, {"production": {"requireAsymmetricSignature": True}}, {"production": {"requireAsymmetricSignature": False}}))
+check("a damaged value of that switch is left out and a locked one cannot be changed", ("requireAsymmetricSignature" in sec.parse_state({**EXPO, "production": {"rdpLevel": _opt(0), "requireAsymmetricSignature": {"value": "yes", "source": "default"}}})["production"], sec.view(sec.parse_state({**EXPO, "production": {"rdpLevel": _opt(0), "requireAsymmetricSignature": {"value": True, "source": "env"}}}))["productionAsymLocked"]), (False, True))
 check("a level other than 0 or 1 is not shown", (sec.parse_state({**EXPO, "production": {"rdpLevel": _opt(2)}})["production"], sec.parse_state({**EXPO, "production": {"rdpLevel": _opt(True)}})["production"]), (None, None))
 
 # -- the installation options (password of an IP camera through the environment, TLS of a new installation) --

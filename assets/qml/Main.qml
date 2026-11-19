@@ -3061,6 +3061,27 @@ ApplicationWindow {
                                     suiteBackend.saveProductionOptions(on)
                             }
                         }
+                        ColumnLayout {
+                            visible: suiteBackend.securityView.productionAsymAvailable === true
+                            Layout.fillWidth: true
+                            spacing: 6
+                            CheckBox {
+                                id: productionAsymBox
+                                objectName: "securityProductionAsymBox"
+                                text: suiteBackend.uiText("LBL_SECURITY_ASYMMETRIC")
+                                palette.windowText: window.textPrimary
+                                enabled: !suiteBackend.securityView.productionAsymLocked
+                                checked: suiteBackend.securityView.productionAsym === true
+                            }
+                            Text { text: suiteBackend.securityView.productionAsymSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                            Text { text: suiteBackend.uiText("LBL_SECURITY_ASYMMETRIC_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Button {
+                                objectName: "securityProductionAsymSave"
+                                text: suiteBackend.uiText("COMMON_SAVE")
+                                enabled: !suiteBackend.securityView.productionAsymLocked
+                                onClicked: suiteBackend.saveAsymmetricSignature(productionAsymBox.checked)
+                            }
+                        }
                     }
                     ColumnLayout {
                         id: ingestSection
