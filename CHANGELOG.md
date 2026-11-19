@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **Five comments describe what the code does now, not what it used to do:** in the relay of connection errors, the operator's local settings edit, the delta of the WebSocket state, the edits of one robot and the scheduler. Comments only: no behaviour changes.
 ## [0.8.0.8]
 
 - **The SDK is pinned to its newest release:** the continuous integration now fetches the contracts of that release, which already holds the routes the REST route check used to treat as not yet released.
