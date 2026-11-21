@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The screenshots of the README can be taken on a GitHub runner:** the manual workflow `screenshots.yml` (started by hand only, read-only token, no secrets) runs `tools/capture_screenshots.py` on the offscreen Qt platform and keeps the pictures as an artifact; `docs/SCREENSHOTS.md` says how to start it and use them.
+
 - **Five comments describe what the code does now, not what it used to do:** in the relay of connection errors, the operator's local settings edit, the delta of the WebSocket state, the edits of one robot and the scheduler. Comments only: no behaviour changes.
 ## [0.8.0.8]
 
