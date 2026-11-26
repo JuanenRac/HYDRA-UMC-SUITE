@@ -9,8 +9,10 @@
 #   - the version each connected server reports (`appVersion`) with the newest one of HYDRA-UMC-SERVER,
 #   - the `remoteApiVersion` each server reports with the lowest one this program works with.
 # Nothing is installed here: the answer says what is behind, and installing is the job of HYDRA-UMC-UPDATER.
-# The check reaches out to the Internet, so it runs only when the operator presses the button and only after the
-# switch is on (off until switched on). The addresses and the lowest API version are in assets/update_check.json.
+# This check reaches out to the Internet, so it runs only when the operator presses the button and only after the
+# switch is on (off until switched on).
+# Apart from it, the notice of a newer SUITE reads one manifest (its own) when the program starts and shows a bar with
+# the link to the releases page. It is on by default, has its own switch and a bar that can be hidden for a version. The addresses and the lowest API version are in assets/update_check.json.
 # A version is MAJOR.MINOR.PATCH with an optional fourth number (0.8.0 equals 0.8.0.0), as in the UPDATER.
 # =============================================================================
 from __future__ import annotations
@@ -27,6 +29,7 @@ ECOSYSTEM_ID = "HYDRA-UMC"
 
 _FALLBACK: dict[str, Any] = {
     "enabledByDefault": False,
+    "noticeEnabledByDefault": True,
     "owner": "JuanenRac",
     "branch": "main",
     "manifestFile": "hydra-umc.project.json",
@@ -104,6 +107,34 @@ def fetch_text(url: str, timeout: float) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": "hydra-umc-suite-update-check", "Accept": "application/json"})
     with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 - the scheme was checked above
         return response.read(256 * 1024).decode("utf-8", "replace")
+
+
+_NAME_RE = re.compile(r"[A-Za-z0-9._-]{1,100}")
+
+
+def releases_url(settings: dict[str, Any] | None = None) -> str:
+    """The releases page of this program, or "" when the configured names could turn it into another address."""
+    cfg = settings or SETTINGS
+    names = (cfg["owner"], cfg["suiteRepository"])
+    if any(_NAME_RE.fullmatch(name) is None for name in names):
+        return ""
+    return f"https://github.com/{names[0]}/{names[1]}/releases/latest"
+
+
+def newest_suite(fetch: Fetcher = fetch_text, settings: dict[str, Any] | None = None) -> str | None:
+    """The newest published version of this program, or None when it cannot be read (the notice then stays silent)."""
+    cfg = settings or SETTINGS
+    try:
+        return manifest_version(fetch(manifest_url(cfg["suiteRepository"], cfg), float(cfg["timeoutSeconds"])), cfg["suiteRepository"])
+    except Exception:  # a network failure only means there is nothing to announce
+        return None
+
+
+def suite_notice(installed: str, latest: str | None, dismissed: str) -> dict[str, str] | None:
+    """The newer version to announce, or None when this one is current or ahead, the newest is not known or its notice was hidden."""
+    if latest is None or latest == dismissed or compare(installed, latest) != "outdated":
+        return None
+    return {"installed": installed, "latest": latest}
 
 
 def api_state(remote_api_version: object, minimum: int | None = None) -> str:

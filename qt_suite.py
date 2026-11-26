@@ -4882,6 +4882,10 @@ class SuiteQtBridge(QObject):
     def saveProductionOptions(self, on: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.production_patch(on)))
 
+    @Slot(bool)
+    def saveAsymmetricSignature(self, on: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.asymmetric_signature_patch(on)))
+
     @Slot(bool, result=bool)
     def connectionsNeedsConfirmation(self, record_address: bool) -> bool:
         state = self._security_state
@@ -9152,6 +9156,7 @@ def run_qtquick() -> int:
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))
+    bridge.extras.lookForNewerSuite()
     if not engine.rootObjects():
         return 1
 

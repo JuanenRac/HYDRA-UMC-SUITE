@@ -1,5 +1,6 @@
 {
   "enabledByDefault": false,
+  "noticeEnabledByDefault": true,
   "owner": "JuanenRac",
   "branch": "main",
   "manifestFile": "hydra-umc.project.json",

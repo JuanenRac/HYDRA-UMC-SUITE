@@ -383,6 +383,9 @@ def parse_state(body: object) -> dict | None:
         level = _option(production.get("rdpLevel"), int)
         if level is not None and level["value"] in (0, 1):
             state["production"] = {"rdpLevel": level}
+            asymmetric = _option(production.get("requireAsymmetricSignature"), bool)
+            if asymmetric is not None:
+                state["production"]["requireAsymmetricSignature"] = asymmetric
     connections = body.get("connections")
     if isinstance(connections, dict):
         record = _option(connections.get("recordAddress"), bool)
@@ -721,6 +724,11 @@ def production_patch(on: bool) -> dict:
     return {"production": {"rdpLevel": 1 if on else 0}}
 
 
+def asymmetric_signature_patch(on: bool) -> dict:
+    """The request body of the switch that makes a firmware flash require the Ed25519 signature of its image (off by default; turning it on never asks, it only refuses more)."""
+    return {"production": {"requireAsymmetricSignature": bool(on)}}
+
+
 def production_needs_confirmation(current: bool, new: bool) -> bool:
     """Turning the protection on is the change only a full erase of the chip undoes: ask first. Turning it off never asks."""
     return (not current) and bool(new)
@@ -998,6 +1006,7 @@ EMPTY_VIEW: dict = {
     "jdReplanEditable": False, "jdReplanNote": "",
     "jdExecAvailable": False, "jdExecEnabled": False, "jdExecEnabledLocked": False, "jdExecEnabledSource": "", "jdExecLive": False, "jdExecLiveLocked": False, "jdExecLiveSource": "",
     "productionAvailable": False, "productionRdp": False, "productionRdpLocked": False, "productionRdpSource": "",
+    "productionAsymAvailable": False, "productionAsym": False, "productionAsymLocked": False, "productionAsymSource": "",
     "ingestAvailable": False, "ingestRows": [], "ingestKeysFile": "", "ingestKeysLocked": False, "ingestKeysSource": "", "ingestRestart": "",
     "connectionsAvailable": False, "connectionsRecord": False, "connectionsRecordLocked": False, "connectionsRecordSource": "",
     "exposureAvailable": False,
@@ -1276,6 +1285,16 @@ def view(state: dict | None) -> dict:
                 "productionRdpSource": source_text(production["rdpLevel"]["source"]),
             }
         )
+        asymmetric = production.get("requireAsymmetricSignature")
+        if asymmetric is not None:
+            out.update(
+                {
+                    "productionAsymAvailable": True,
+                    "productionAsym": asymmetric["value"] is True,
+                    "productionAsymLocked": is_locked(asymmetric["source"]),
+                    "productionAsymSource": source_text(asymmetric["source"]),
+                }
+            )
     ingest = state.get("ingest")
     if ingest is not None:
         out.update(
