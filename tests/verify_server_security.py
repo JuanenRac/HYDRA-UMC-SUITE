@@ -434,5 +434,18 @@ check("the global stop has no limiter numbers any more", ("stopAllMax" in sec.RA
 check("a server that still reports the old numbers is read the same", sorted(sec._rate_limits({**RL_RAW, "stopAllMax": rl_entry(60), "stopAllWindowSeconds": rl_entry(60, 1, 3600)})["numbers"]), sorted(sec.RATE_LIMIT_KEYS))
 check("every key of the view exists without a server (the latch included)", set(sec.view(None)) == set(lv), True)
 
+# the signed release of the global stop: a switch and a key that is only written
+SIGN_RAW = {"value": False, "source": "default", "keyStored": False, "external": False}
+KEY = "k" * 40
+sg = sec.parse_state({**HEALTH, "safety": {**STOP, "globalStopSigning": SIGN_RAW}})
+check("reads the signed release when the server reports it", sg["safety"]["globalStopSigning"], SIGN_RAW)
+check("a damaged one is dropped and the rest stays", sec.parse_state({**HEALTH, "safety": {**STOP, "globalStopSigning": {"value": "no", "source": "default"}}})["safety"], STOP)
+check("the view of the signed release", (sec.view(sg)["safetySignAvailable"], sec.view(sg)["safetySignStop"], sec.view(hs)["safetySignAvailable"]), (True, False, False))
+check("the switch and a typed key go together", sec.stop_signing_patch(SIGN_RAW, True, KEY), {"safety": {"globalStopKey": KEY, "signGlobalStop": True}})
+check("the switch alone needs a stored key", (sec.stop_signing_patch(SIGN_RAW, True, ""), sec.stop_signing_patch({**SIGN_RAW, "keyStored": True}, True, "")), (None, {"safety": {"signGlobalStop": True}}))
+check("nothing refused is sent", (sec.stop_signing_patch(SIGN_RAW, False, ""), sec.stop_signing_patch(SIGN_RAW, False, "short"), sec.stop_signing_patch({**SIGN_RAW, "external": True}, True, KEY), sec.valid_stop_key("a b" * 20)), (None, None, None, False))
+check("removing the key turns the switch off", sec.remove_stop_key_patch(), {"safety": {"signGlobalStop": False, "globalStopKey": None}})
+check("the warnings of the switch are said", all(sec.known_warning([name]) for name in ("global_stop_signed", "global_stop_unsigned", "global_stop_key_stored")), True)
+
 print("FAILURES:", failures)
 sys.exit(1 if failures else 0)

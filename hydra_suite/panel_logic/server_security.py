@@ -375,6 +375,10 @@ def parse_state(body: object) -> dict | None:
             watch = _option(safety.get("estopWatchMs"), int)
             if watch is not None and valid_estop_watch_ms(watch["value"]):
                 state["safety"]["estopWatchMs"] = watch
+            signing = safety.get("globalStopSigning")
+            checked = _option(signing, bool)
+            if checked is not None:
+                state["safety"]["globalStopSigning"] = {**checked, "keyStored": signing.get("keyStored") is True, "external": signing.get("external") is True}
     job_dispatcher = _job_dispatcher(body.get("jobDispatcher"))
     if job_dispatcher is not None:
         state["jobDispatcher"] = job_dispatcher
@@ -714,6 +718,29 @@ def safety_patch(publish_global_stop: bool | None, fram_erase: bool | None = Non
     return {"safety": safety}
 
 
+def valid_stop_key(text: str) -> bool:
+    """What the server accepts as the key of the signed release: 32 to 256 printable ASCII characters without spaces."""
+    return re.fullmatch(r"[\x21-\x7e]{32,256}", text) is not None
+
+
+def stop_signing_patch(current: dict, sign: bool, key_text: str) -> dict | None:
+    """The request for the switch of the signed release and, when one was typed, the new key. None when there is nothing to send or the server would refuse
+    it: a typed key that is not a key, the switch on without any key, or a key file of the server that decides."""
+    if current["external"] or (key_text and not valid_stop_key(key_text)) or (sign and not key_text and not current["keyStored"]):
+        return None
+    safety: dict = {}
+    if key_text:
+        safety["globalStopKey"] = key_text
+    if bool(sign) != current["value"]:
+        safety["signGlobalStop"] = bool(sign)
+    return {"safety": safety} if safety else None
+
+
+def remove_stop_key_patch() -> dict:
+    """Removing the stored key turns the switch off with it."""
+    return {"safety": {"signGlobalStop": False, "globalStopKey": None}}
+
+
 def fram_erase_needs_confirmation(current: bool, new: bool) -> bool:
     """Offering the erase of the F-RAM asks first; switching it off never does."""
     return bool(new) and not current
@@ -820,6 +847,12 @@ def known_warning(warnings: object) -> str:
     if not isinstance(warnings, list):
         return ""
     sentence = ""
+    if "global_stop_key_stored" in warnings:
+        sentence = _("SECURITY_STOPSIGN_KEY_WARNING")
+    if "global_stop_signed" in warnings:
+        sentence = _("SECURITY_STOPSIGN_ON_WARNING")
+    if "global_stop_unsigned" in warnings:
+        sentence = _("SECURITY_STOPSIGN_OFF_WARNING")
     if "info_auth_off" in warnings:
         sentence = _("SECURITY_INFO_OFF_WARNING")
     if "ble_commands_unencrypted" in warnings:
@@ -998,6 +1031,7 @@ EMPTY_VIEW: dict = {
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
+    "safetySignAvailable": False, "safetySignStop": False, "safetySignExternal": False, "safetySignKeyStored": False, "safetySignSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
     "safetyLatchAvailable": False, "safetyLatchStop": False, "safetyLatchStopLocked": False, "safetyLatchStopSource": "",
     "safetyFramAvailable": False, "safetyFramErase": False, "safetyFramEraseLocked": False, "safetyFramEraseSource": "",
@@ -1236,6 +1270,17 @@ def view(state: dict | None) -> dict:
                     "safetyFramErase": safety["framErase"]["value"],
                     "safetyFramEraseLocked": is_locked(safety["framErase"]["source"]),
                     "safetyFramEraseSource": source_text(safety["framErase"]["source"]),
+                }
+            )
+        if "globalStopSigning" in safety:
+            signing = safety["globalStopSigning"]
+            out.update(
+                {
+                    "safetySignAvailable": True,
+                    "safetySignStop": signing["value"],
+                    "safetySignExternal": signing["external"],
+                    "safetySignKeyStored": signing["keyStored"],
+                    "safetySignSource": source_text(signing["source"]),
                 }
             )
         if "estopWatchMs" in safety:

@@ -5125,6 +5125,33 @@ class SuiteQtBridge(QObject):
         if body is not None:
             asyncio.ensure_future(self._save_security(body))
 
+    def _stop_signing(self) -> dict | None:
+        state = self._security_state
+        safety = state.get("safety") if state else None
+        return safety.get("globalStopSigning") if safety else None
+
+    @Slot(str, result=bool)
+    def stopKeyTextValid(self, text: str) -> bool:
+        return not text or server_security.valid_stop_key(text)
+
+    @Slot(bool, str, result=bool)
+    def stopSigningCanSave(self, sign: bool, key_text: str) -> bool:
+        current = self._stop_signing()
+        return current is not None and server_security.stop_signing_patch(current, sign, key_text) is not None
+
+    @Slot(bool, str)
+    def saveStopSigning(self, sign: bool, key_text: str) -> None:
+        """The key goes to the server once and is not kept here: the field is emptied by the screen as soon as it is sent."""
+        current = self._stop_signing()
+        patch = server_security.stop_signing_patch(current, sign, key_text) if current is not None else None
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
+
+    @Slot()
+    def removeStopKey(self) -> None:
+        if self._stop_signing() is not None:
+            asyncio.ensure_future(self._save_security(server_security.remove_stop_key_patch()))
+
     @Slot(str, result=bool)
     def estopWatchTextValid(self, text: str) -> bool:
         return server_security.parse_estop_watch_text(text) is not None
