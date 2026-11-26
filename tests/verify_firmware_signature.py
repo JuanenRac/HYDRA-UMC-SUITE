@@ -189,7 +189,7 @@ with tempfile.TemporaryDirectory() as folder:
     qs.hardware_start_flash = fake_start_flash
     qs.resolve_hardware_target = lambda target: object()
     bridge._flasher_is_hardware = True
-    bridge._flasher_board_state = lambda key: {}
+    bridge._flasher_board_state = lambda key: {"firmwareVersion": "0.0.1"}  # a version that can be read: an unreadable one needs the downgrade choice
 
     class _Controller:
         active_connection = object()

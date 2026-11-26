@@ -467,6 +467,58 @@ def build_patch(form: dict, hard: HardLimits) -> dict:
     }
 
 
+def _raised_text(before: object, after: object) -> bool:
+    """A text field raised or emptied (an emptied limit falls back to the default, which may be higher)."""
+    b, a = str(before).strip(), str(after).strip()
+    if b == "" or b == a:
+        return False
+    if a == "":
+        return True
+    try:
+        return float(a) > float(b)
+    except ValueError:
+        return False
+
+
+def lowers_protection(before: dict, after: dict) -> bool:
+    """Whether saving the form `after` instead of `before` lowers the protection: the jog no longer has to be armed or a reservation no longer has to
+    name its controller, the arming lasts longer, a limit is raised or removed, or the audit of motion is taken less often."""
+    if before.get("armRequired") and not after.get("armRequired"):
+        return True
+    if before.get("requireControllerId") and not after.get("requireControllerId"):
+        return True
+    for name in ("armTtlSeconds", "auditMotionSeconds", "defaultMaxAmount", "defaultMaxAbsolute", "defaultBedMaxC"):
+        if _raised_text(before.get(name, ""), after.get(name, "")):
+            return True
+    now_rows = {model_key(r.get("model", "")): r for r in after.get("rows", []) or []}
+    for row in before.get("rows", []) or []:
+        key = model_key(row.get("model", ""))
+        fields = ("maxAmount", "maxAbsolute", "bedMaxC")
+        now = now_rows.get(key)
+        if now is None:
+            if any(str(row.get(f, "")).strip() != "" for f in fields):
+                return True
+            continue
+        if any(_raised_text(row.get(f, ""), now.get(f, "")) for f in fields):
+            return True
+    return False
+
+
+def changed_only(base: dict, new: dict) -> dict:
+    """Only what differs from `base` (the patch of the values the server reported): a save that changed the audit interval does not resend the jog arming,
+    the reservation rule or the limits by model that were not touched. The `models` maps go whole when anything in them changed. Empty when nothing changed."""
+    out: dict = {}
+    for key, value in new.items():
+        before = base.get(key)
+        if isinstance(value, dict) and isinstance(before, dict) and key != "models":
+            inner = changed_only(before, value)
+            if inner:
+                out[key] = inner
+        elif before != value:
+            out[key] = value
+    return out
+
+
 def form_from_limits(limits: SafetyLimits) -> dict:
     """The form values that show what the server holds (numbers as text, one row per model)."""
 
@@ -551,11 +603,32 @@ def parse_warnings(body: object) -> list[ServerWarning]:
 # --- Live or Sim -------------------------------------------------------------------------------------------------
 
 #: The commands that move a robot or switch something on: refused while the robot is in Sim.
-REAL_COMMANDS = frozenset({"jog", "table", "play", "reset", "tool", "valve", "pump", "trajectory", "speed"})
+REAL_COMMANDS = frozenset({"jog", "table", "play", "reset", "tool", "valve", "pump", "trajectory", "speed", "joints"})
+
+#: The commands the server applies to one robot only; every other command reaches the robot and the robots combined with it.
+SINGLE_ROBOT_COMMANDS = frozenset({"trajectory", "table", "enable", "disable"})
 
 
-def is_real_command(command: str) -> bool:
-    return command in REAL_COMMANDS
+def is_real_command(command: str, params: dict | None = None) -> bool:
+    """Whether a command moves the robot or switches something on. Resuming a paused playback (`pause` with `paused: false`) makes it move again."""
+    return command in REAL_COMMANDS or (command == "pause" and isinstance(params, dict) and params.get("paused") is False)
+
+
+def affected_robot_ids(command: str, target_id: int, combined_with: list | None, listed: list[int] | None = None) -> list[int]:
+    """The robots a command reaches, worked out the way the server does: the target alone for a trajectory, a table move, enable and disable, and the
+    target with the robots combined with it for everything else. The robots the caller already named are kept."""
+    ids: list[int] = list(dict.fromkeys(list(listed) if listed else [target_id]))
+    if target_id not in ids:
+        ids.append(target_id)
+    if command not in SINGLE_ROBOT_COMMANDS:
+        for other in combined_with or []:
+            try:
+                number = int(other)
+            except (TypeError, ValueError):
+                continue
+            if number not in ids:
+                ids.append(number)
+    return ids
 
 
 def mode_key(scope: str, robot_id: int) -> str:
@@ -574,9 +647,9 @@ class ModeState:
     def mode_of(self, scope: str, robot_id: int) -> str:
         return self.modes.get(mode_key(scope, robot_id), self.default_mode)
 
-    def blocked(self, scope: str, robot_ids: list[int], command: str) -> bool:
+    def blocked(self, scope: str, robot_ids: list[int], command: str, params: dict | None = None) -> bool:
         """Whether a command is refused: a real command while any of the robots is in Sim."""
-        return is_real_command(command) and any(self.mode_of(scope, r) == "sim" for r in robot_ids)
+        return is_real_command(command, params) and any(self.mode_of(scope, r) == "sim" for r in robot_ids)
 
     def set_mode(self, scope: str, robot_id: int, mode: str) -> None:
         if mode in ("live", "sim"):
