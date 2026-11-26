@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **The Security panel can switch on the signed release of the global stop:** a switch (off by default) and a write-only key field next to the other stop options; the field is emptied as soon as the key is sent and the key is never shown again. A server whose key file is named in its environment or security file shows it as fixed.
 - **The flasher works with format 2:** it reads `<image>.hdr2` and `<image>.sig2` from the release, checks the signature over that header and the image before anything is sent, and passes both to the server; a release without `firmware_manifest.json` lists its application images from those records. The check of the old format is gone: no board accepts it.
 - **Watch notice of the phones:** the server security page shows, read only, which phones say they tell their watch about a newer release of the app (hidden on a server without that route).
 - **SUITE tells you when a newer release of itself exists:** a bar at the bottom of the window names the version and links to the releases page; it can be hidden for that version, and the Updates screen has the switch (on by default). At start the program reads its own published version on GitHub; it never installs anything. Eight languages.
