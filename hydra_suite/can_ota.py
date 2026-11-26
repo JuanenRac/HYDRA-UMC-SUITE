@@ -342,6 +342,7 @@ class GithubFirmwareAsset:
     sha256: str | None = None  # SHA-256 of the image (lowercase hex) when the manifest or the release states one
     target: str | None = None  # the board the manifest says the image is for (for example g474), when it names one
     min_bootloader: str | None = None  # the oldest bootloader (major.minor.patch) the manifest says may take the image
+    header: str | None = None  # the 64-byte header of format 2 (<image>.hdr2 of the release, 128 hexadecimal digits)
 
 
 # Repos whose firmware images are NOT kept in git: they are built in GitHub Actions and published only as assets
@@ -360,6 +361,48 @@ def _headers_for(url: str) -> dict[str, str] | None:
     return _OCTET_STREAM if url.startswith("https://api.github.com/") else None
 
 
+async def _release_record(http, asset: dict | None) -> str | None:
+    """The 64 bytes of a record asset (<image>.hdr2 or <image>.sig2) as 128 hexadecimal digits; None when it is missing or has another size."""
+    if not asset:
+        return None
+    resp = await http.get(asset["url"], headers=_OCTET_STREAM, timeout=10.0)
+    content = getattr(resp, "content", b"") if resp.status_code == 200 else b""
+    return content.hex() if len(content) == 64 else None
+
+
+async def _release_records(http, by_name: dict, bin_name: str) -> tuple[str, str] | None:
+    """(header, signature) of format 2 published next to an application image: both or nothing, since neither is of any use alone."""
+    stem = re.sub(r"\.bin$", "", bin_name, flags=re.IGNORECASE)
+    header = await _release_record(http, by_name.get(f"{stem}.hdr2"))
+    signature = await _release_record(http, by_name.get(f"{stem}.sig2"))
+    return (header, signature) if header and signature else None
+
+
+# the boards whose application images carry a header of format 2, by the hardware id the header states
+_HEADER_TIERS = {0x47343031: "controllerBoard", 0x48374334: "kinematicBrain", 0x48374337: "kinematicBrain"}
+
+
+async def _list_from_headers(http, by_name: dict, tier: CanOtaTier, published_at: str) -> list[GithubFirmwareAsset]:
+    """A release without firmware_manifest.json: the application images that come with their .hdr2 and .sig2 describe themselves (the header
+    names the board, the file name states the version). Bootloaders are never offered this way."""
+    assets: list[GithubFirmwareAsset] = []
+    for name, image in by_name.items():
+        match = re.fullmatch(r"HYDRA_[A-Z0-9_]+_APP_v(\d+\.\d+\.\d+)\.bin", name)
+        if not match:
+            continue
+        records = await _release_records(http, by_name, name)
+        if not records or not records[0].startswith("485944520200"):  # "HYDR", format 2
+            continue
+        hardware_id = int.from_bytes(bytes.fromhex(records[0][16:24]), "little")
+        if _HEADER_TIERS.get(hardware_id) != tier:
+            continue
+        assets.append(GithubFirmwareAsset(
+            name=name, url=image["url"], size=image.get("size", 0), release_tag=match.group(1), published_at=published_at or image.get("updated_at") or "",
+            hardware_id=f"0x{hardware_id:08X}", header=records[0], signature=records[1], sha256=sha256_from_digest(image.get("digest")),
+        ))
+    return assets
+
+
 async def fetch_release_asset_firmware(repo: str, tier: CanOtaTier, client: "httpx.AsyncClient | None" = None) -> list[GithubFirmwareAsset]:
     """Manifest, images and their .sig files of the latest release of a repo that keeps no images in git."""
     own = client is None
@@ -375,7 +418,7 @@ async def fetch_release_asset_firmware(repo: str, tier: CanOtaTier, client: "htt
         by_name = {a["name"]: a for a in release.get("assets", [])}
         manifest_asset = by_name.get("firmware_manifest.json")
         if not manifest_asset:
-            return []
+            return await _list_from_headers(http, by_name, tier, release.get("published_at") or "")
         manifest_resp = await http.get(manifest_asset["url"], headers=_OCTET_STREAM, timeout=10.0)
         if manifest_resp.status_code != 200:
             raise RuntimeError(f"GitHub release asset {manifest_resp.status_code} fetching firmware_manifest.json")
@@ -395,6 +438,10 @@ async def fetch_release_asset_firmware(repo: str, tier: CanOtaTier, client: "htt
                 sig_resp = await http.get(sig_asset["url"], headers=_OCTET_STREAM, timeout=10.0)
                 if sig_resp.status_code == 200:
                     signature = normalize_signature(sig_resp.text)
+            # the header and signature of format 2 win: they are what the bootloader of a HYDRA-UMC board verifies
+            records = await _release_records(http, by_name, bin_info["filename"])
+            if records:
+                signature = records[1]
             manifest_sha = bin_info.get("sha256")
             assets.append(
                 GithubFirmwareAsset(
@@ -408,6 +455,7 @@ async def fetch_release_asset_firmware(repo: str, tier: CanOtaTier, client: "htt
                     chip=comp.get("chip"),
                     hardware_id=comp.get("hardware_id"),
                     signature=signature,
+                    header=records[0] if records else None,
                     sha256=manifest_sha.lower() if isinstance(manifest_sha, str) else sha256_from_digest(image.get("digest")),
                     **manifest_flash_requirements(comp, bin_info),
                 )
@@ -588,7 +636,7 @@ def flash_preflight(
 ) -> str | None:
     """Why a flash over the real bus must not start (the name of the refusal), or None when it may. The hardware path sends the version and the hardware id
     of the image and compares it with the installed version first: an image without a hardware id (a local file) or without a version is refused instead of
-    being sent as 0, an older image needs the explicit downgrade choice, and the F-RAM erase is refused unless the server announced it (the version query
+    being sent as 0, an older image needs the explicit downgrade choice, an image is also refused without that choice when the installed version is not known, and the F-RAM erase is refused unless the server announced it (the version query
     says `capabilities.fram_erase`) and the target is the kinematic brain, whose main board holds the chip."""
     try:
         number = int(hardware_id, 0) if hardware_id else 0
@@ -605,6 +653,8 @@ def flash_preflight(
         if tier is not None and tier != "kinematicBrain":
             return "fram_erase_wrong_tier"
     installed = parse_version_full(installed_version)
+    if installed is None and not allow_downgrade:
+        return "installed_unknown"   # the installed version could not be read, so the image cannot be compared with it
     if installed is not None and image < installed and not allow_downgrade:
         return "downgrade_blocked"
     return None
@@ -656,7 +706,7 @@ def normalize_signature(text: str | None) -> str | None:
     return clean if re.fullmatch(r"[0-9a-f]{128}", clean) else None
 
 
-def flash_signing_options(image_version: str | None, installed_version: str | None, signature: str | None, requirements: dict | None = None) -> dict:
+def flash_signing_options(image_version: str | None, installed_version: str | None, signature: str | None, requirements: dict | None = None, header: str | None = None) -> dict:
     """What an image needs besides its bytes to be accepted by a HYDRA-UMC bootloader: the patch of its version, its
     signature and, when it is older than the installed one (the bootloader's anti-rollback rule), that installed version."""
     image = parse_version_full(image_version)
@@ -670,6 +720,8 @@ def flash_signing_options(image_version: str | None, installed_version: str | No
     for key, value in (requirements or {}).items():
         if key in ("target", "min_bootloader") and value:
             options[key] = value
+    if header:
+        options["header"] = header
     return options
 
 
@@ -708,6 +760,8 @@ async def hardware_start_flash(
         params["version_patch"] = signing["version_patch"]
     if normalize_signature(signing.get("signature")):
         params["signature"] = normalize_signature(signing["signature"])
+    if normalize_signature(signing.get("header")):  # the same shape as a signature: 128 hexadecimal digits
+        params["header"] = normalize_signature(signing["header"])
     if signing.get("downgrade_from") and parse_version_full(signing["downgrade_from"]):
         params["downgrade_from"] = signing["downgrade_from"]
     # The relay passes them on and the bridge refuses a foreign board or an older bootloader before it sends a byte.

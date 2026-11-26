@@ -60,6 +60,7 @@ from hydra_suite.can_ota import (
     has_advanced_expansion,
     hop_description,
     parse_version_tag,
+    parse_version_full,
     mock_bus_monitor,
     mock_flash,
     mock_query_version,
@@ -97,7 +98,7 @@ from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import tours as tours_logic
 from hydra_suite.panel_logic import self_update as self_update_logic
 from hydra_suite.panel_logic import fleet_update as fleet_update_logic
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, droid_estop, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, droid_estop, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed, watch_notice
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -553,6 +554,7 @@ class SuiteQtBridge(QObject):
         self._ops_proposals: dict | None = None  # the proposals of the node watchdog that wait for a person (None: no channel to the watchdog)
         self._ops_proposals_message = ""
         self._ops_proposals_error = ""
+        self._watch_notices: list[dict] | None = None  # what the phones said about their watch (None: a server without the route)
         self._service_identity: dict | None = None  # the identity the server presents to the services (None: a server without the route)
         self._service_identity_message = ""
         self._service_identity_error = ""
@@ -823,6 +825,7 @@ class SuiteQtBridge(QObject):
         self._models_message = ""
         self._models_error = ""
         self._models_busy = False
+        self._models_read = 0  # the newest read of the list; the answer of an older one still in flight is dropped
         self._users_rows: list[dict[str, object]] = []
         self._users_message = ""
         self._users_error = ""
@@ -1688,6 +1691,15 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         return access.form_from_limits(conn.safety.defaults if conn is not None else access.SafetyLimits())
 
+    @Slot("QVariant", result=bool)
+    def safetyLimitsNeedsConfirmation(self, form) -> bool:
+        """Whether saving this form lowers a protection (the screen asks first)."""
+        conn = self._controller.active_connection
+        if conn is None:
+            return False
+        values = form.toVariant() if hasattr(form, "toVariant") else form
+        return access.lowers_protection(access.form_from_limits(conn.safety.limits), dict(values))
+
     @Slot("QVariant")
     def saveSafetyLimits(self, form) -> None:
         conn = self._controller.active_connection
@@ -1704,7 +1716,14 @@ class SuiteQtBridge(QObject):
             self._safety_error = _(f"MSG_SAFETY_PROBLEM_{str(built['problem']).upper()}", field=built.get("field", ""))
             self.securityChanged.emit()
             return
-        asyncio.ensure_future(self._save_safety(conn, built["patch"]))
+        # Only what the person changed is sent, so a value they did not touch is never written over the server's.
+        base = access.build_patch(access.form_from_limits(conn.safety.limits), conn.safety.hard)
+        patch = access.changed_only(base["patch"], built["patch"]) if base["ok"] else built["patch"]
+        if not patch:
+            self._safety_message = _("MSG_SAFETY_NOTHING_CHANGED")
+            self.securityChanged.emit()
+            return
+        asyncio.ensure_future(self._save_safety(conn, patch))
 
     async def _save_safety(self, conn, patch: dict) -> None:
         result = await conn.put_safety_limits(patch)
@@ -1925,17 +1944,22 @@ class SuiteQtBridge(QObject):
 
     async def _refresh_models(self) -> None:
         conn = self._controller.active_connection
+        self._models_read += 1
+        read = self._models_read
         self._models_message = ""
         self._models_error = ""
         if conn is None or conn.login_ok is not True:
             self._models_rows = []
             self._models_list = []
+            self._models_busy = False
             self.catalogChanged.emit()
             return
         self._models_busy = True
         self.catalogChanged.emit()
         try:
             result = await conn.fetch_submitted_models()
+            if read != self._models_read:
+                return  # a newer read was started: this answer (or silence) must not replace its result
             status = 0 if result is None else result[0]
             if result is None or status != 200:
                 self._models_rows = []
@@ -1945,8 +1969,9 @@ class SuiteQtBridge(QObject):
             self._models_list = submitted_models.parse_models(result[1])
             self._models_rows = submitted_models.rows(self._models_list)
         finally:
-            self._models_busy = False
-            self.catalogChanged.emit()
+            if read == self._models_read:
+                self._models_busy = False
+                self.catalogChanged.emit()
 
     @Slot(str, str, str)
     def saveModelUrdf(self, category: str, slug: str, path: str) -> None:
@@ -4015,6 +4040,10 @@ class SuiteQtBridge(QObject):
         await self._refresh_droid_estop(conn)
         await self._refresh_ros2_security(conn)
         await self._refresh_service_identity(conn)
+        try:
+            self._watch_notices = watch_notice.parse_devices(await conn.fetch_watch_release_notice())
+        except Exception:  # a server without the route, or a stand-in connection of a check
+            self._watch_notices = None
         self._detection_hef = detection_hef.parse_state(body)
         self._live_activity = live_activity.parse_state(body)
         await self._refresh_tool_arms(conn)
@@ -4139,6 +4168,10 @@ class SuiteQtBridge(QObject):
             return
         self._service_identity_error = service_identity.status_for(result)
         self._service_identity = service_identity.parse_status(result[1]) if result is not None and not self._service_identity_error else None
+
+    @Property("QVariantMap", notify=securityChanged)
+    def watchNoticeView(self) -> dict:
+        return watch_notice.view(self._watch_notices, _)
 
     @Property("QVariantMap", notify=securityChanged)
     def serviceIdentityView(self) -> dict:
@@ -4858,6 +4891,10 @@ class SuiteQtBridge(QObject):
     def saveProductionOptions(self, on: bool) -> None:
         asyncio.ensure_future(self._save_security(server_security.production_patch(on)))
 
+    @Slot(bool)
+    def saveAsymmetricSignature(self, on: bool) -> None:
+        asyncio.ensure_future(self._save_security(server_security.asymmetric_signature_patch(on)))
+
     @Slot(bool, result=bool)
     def connectionsNeedsConfirmation(self, record_address: bool) -> bool:
         state = self._security_state
@@ -5088,6 +5125,33 @@ class SuiteQtBridge(QObject):
         if body is not None:
             asyncio.ensure_future(self._save_security(body))
 
+    def _stop_signing(self) -> dict | None:
+        state = self._security_state
+        safety = state.get("safety") if state else None
+        return safety.get("globalStopSigning") if safety else None
+
+    @Slot(str, result=bool)
+    def stopKeyTextValid(self, text: str) -> bool:
+        return not text or server_security.valid_stop_key(text)
+
+    @Slot(bool, str, result=bool)
+    def stopSigningCanSave(self, sign: bool, key_text: str) -> bool:
+        current = self._stop_signing()
+        return current is not None and server_security.stop_signing_patch(current, sign, key_text) is not None
+
+    @Slot(bool, str)
+    def saveStopSigning(self, sign: bool, key_text: str) -> None:
+        """The key goes to the server once and is not kept here: the field is emptied by the screen as soon as it is sent."""
+        current = self._stop_signing()
+        patch = server_security.stop_signing_patch(current, sign, key_text) if current is not None else None
+        if patch is not None:
+            asyncio.ensure_future(self._save_security(patch))
+
+    @Slot()
+    def removeStopKey(self) -> None:
+        if self._stop_signing() is not None:
+            asyncio.ensure_future(self._save_security(server_security.remove_stop_key_patch()))
+
     @Slot(str, result=bool)
     def estopWatchTextValid(self, text: str) -> bool:
         return server_security.parse_estop_watch_text(text) is not None
@@ -5114,6 +5178,17 @@ class SuiteQtBridge(QObject):
     @Slot(bool)
     def setInfoAuth(self, value: bool) -> None:
         asyncio.ensure_future(self._save_security({"infoAuth": bool(value)}))
+
+    @Slot(bool, result=bool)
+    def tlsNeedsConfirmation(self, enabled: bool) -> bool:
+        state = self._security_state
+        return state is not None and server_security.tls_needs_confirmation(state["tls"]["enabled"], enabled)
+
+    @Slot(bool, result=bool)
+    def trustedNetworksNeedsConfirmation(self, enabled: bool) -> bool:
+        state = self._security_state
+        trusted = state.get("trustedNetworks") if state is not None else None
+        return bool(trusted) and server_security.trusted_networks_needs_confirmation(trusted["enabled"]["value"], enabled)
 
     @Slot(bool, str, str)
     def saveTlsOptions(self, enabled: bool, cert_path: str, key_path: str) -> None:
@@ -8200,7 +8275,7 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
         try:
             data = await download_github_firmware(asset)
-            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature, "target": asset.target, "min_bootloader": asset.min_bootloader}
+            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature, "header": asset.header, "target": asset.target, "min_bootloader": asset.min_bootloader}
             if not asset.signature:
                 # the .sig file published next to the image; an image without one is left to the board to judge
                 try:
@@ -8413,11 +8488,14 @@ class SuiteQtBridge(QObject):
                     self._flasher_push_log(key, _("FLASHER_PREFLIGHT_" + refusal.upper()), "error")
                     self._flasher_progress[key] = {"label": "", "percent": 0}
                     return
+                # The installed version could not be read and the downgrade choice is ticked: the flash goes on and the log says it was not compared.
+                if self._flasher_allow_downgrade.get(key, False) and parse_version_full(self._flasher_board_state(key).get("firmwareVersion")) is None:
+                    self._flasher_push_log(key, _("FLASHER_INSTALLED_UNKNOWN_ALLOWED"), "info")
                 version_major, version_minor = parse_version_tag(file.get("version_tag"))
                 hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
                 # the signature is checked here, on this computer, before a single byte goes to the flashing service
                 verdict = firmware_signature.evaluate(
-                    self._firmware_signing_settings(), file["bytes"], hardware_id_number or None, file.get("version_tag"), file.get("signature"),
+                    self._firmware_signing_settings(), file["bytes"], hardware_id_number or None, file.get("version_tag"), file.get("signature"), file.get("header"),
                 )
                 if not verdict.ok:
                     self._flasher_push_log(key, f"{_('FW_SIG_REFUSED')}: {_(verdict.reason)}", "error")
@@ -8444,7 +8522,7 @@ class SuiteQtBridge(QObject):
                         version_major,
                         version_minor,
                         hardware_id_number,
-                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature"), {"target": file.get("target"), "min_bootloader": file.get("min_bootloader")}),
+                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature"), {"target": file.get("target"), "min_bootloader": file.get("min_bootloader")}, file.get("header")),
                     )
                 finally:
                     if progress_signal is not None:
@@ -9114,6 +9192,7 @@ def run_qtquick() -> int:
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))
+    bridge.extras.lookForNewerSuite()
     if not engine.rootObjects():
         return 1
 

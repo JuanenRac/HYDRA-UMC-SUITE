@@ -160,6 +160,27 @@ ApplicationWindow {
         }
     }
 
+    // A newer SUITE exists: it only says so and links to the releases page. Switch: Updates.
+    footer: Rectangle {
+        id: suiteNoticeBar
+        objectName: "suiteUpdateNotice"
+        property var notice: suiteBackend.extras.updateNotice
+        visible: (notice.text || "") !== ""
+        implicitHeight: visible ? suiteNoticeRow.implicitHeight + 12 : 0
+        color: "#0e3045"
+        border.width: 1
+        border.color: "#2d7695"
+        RowLayout {
+            id: suiteNoticeRow
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 10
+            Text { objectName: "suiteUpdateNoticeText"; text: suiteNoticeBar.notice.text || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Button { objectName: "suiteUpdateNoticeOpen"; visible: (suiteNoticeBar.notice.url || "") !== ""; text: suiteBackend.uiText("UPD_NOTICE_DOWNLOAD"); onClicked: Qt.openUrlExternally(suiteNoticeBar.notice.url) }
+            Button { objectName: "suiteUpdateNoticeHide"; text: suiteBackend.uiText("UPD_NOTICE_HIDE"); onClicked: suiteBackend.extras.dismissUpdateNotice() }
+        }
+    }
+
     header: ToolBar {
         // Explicit, not left implicit like the sibling apps' own header
         // ToolBars - a real on-screen check here showed those relying on
@@ -1963,7 +1984,13 @@ ApplicationWindow {
                     }
                     RowLayout {
                         spacing: 8
-                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("COMMON_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: suiteBackend.saveTlsOptions(tlsBox.checked, tlsCertField.text, tlsKeyField.text) }
+                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("COMMON_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: {
+                            var wantedTls = tlsBox.checked
+                            if (suiteBackend.tlsNeedsConfirmation(wantedTls))
+                                window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_TLS_OFF"), suiteBackend.uiText("MSG_SECURITY_TLS_OFF_CONFIRM"), function() { suiteBackend.saveTlsOptions(wantedTls, tlsCertField.text, tlsKeyField.text) })
+                            else
+                                suiteBackend.saveTlsOptions(wantedTls, tlsCertField.text, tlsKeyField.text)
+                        } }
                         Text { text: suiteBackend.securityView.tlsSource; color: "#556070"; font.pixelSize: window.fs(9) }
                     }
                     Text { text: suiteBackend.uiText("LBL_SECURITY_TLS_FINGERPRINT") + ": " + suiteBackend.securityView.tlsFingerprint; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
@@ -2299,6 +2326,63 @@ ApplicationWindow {
                                     suiteBackend.saveSafetyOptions(publish, fram, watch, latch)
                             }
                         }
+                        ColumnLayout {
+                            objectName: "securityStopSigning"
+                            visible: suiteBackend.securityView.safetySignAvailable === true
+                            Layout.fillWidth: true
+                            spacing: 6
+                            CheckBox {
+                                id: stopSignBox
+                                objectName: "securityStopSignBox"
+                                text: suiteBackend.uiText("LBL_SECURITY_STOPSIGN")
+                                palette.windowText: window.textPrimary
+                                enabled: !suiteBackend.securityView.safetySignExternal
+                                checked: suiteBackend.securityView.safetySignStop === true
+                            }
+                            Text { text: suiteBackend.securityView.safetySignSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                            Text { text: suiteBackend.uiText("LBL_SECURITY_STOPSIGN_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { visible: suiteBackend.securityView.safetySignExternal === true; text: suiteBackend.uiText("LBL_SECURITY_STOPSIGN_EXTERNAL"); color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { visible: suiteBackend.securityView.safetySignExternal !== true; text: suiteBackend.uiText(suiteBackend.securityView.safetySignKeyStored === true ? "LBL_SECURITY_STOPSIGN_STORED" : "LBL_SECURITY_STOPSIGN_NONE"); color: "#556070"; font.pixelSize: window.fs(9) }
+                            RowLayout {
+                                visible: suiteBackend.securityView.safetySignExternal !== true
+                                spacing: 8
+                                Text { text: suiteBackend.uiText("LBL_SECURITY_STOPSIGN_KEY"); color: window.textPrimary; font.pixelSize: window.fs(10) }
+                                TextField {
+                                    id: stopKeyField
+                                    objectName: "securityStopKeyField"
+                                    Layout.preferredWidth: 260
+                                    echoMode: TextInput.Password
+                                    inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
+                                    maximumLength: 256
+                                }
+                            }
+                            Text { visible: !suiteBackend.stopKeyTextValid(stopKeyField.text); text: suiteBackend.uiText("LBL_SECURITY_STOPSIGN_INVALID"); color: window.amber; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Text { visible: suiteBackend.securityView.safetySignExternal !== true; text: suiteBackend.uiText("LBL_SECURITY_STOPSIGN_HTTPS"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            RowLayout {
+                                visible: suiteBackend.securityView.safetySignExternal !== true
+                                spacing: 8
+                                Button {
+                                    objectName: "securityStopSignSave"
+                                    text: suiteBackend.uiText("BTN_SECURITY_STOPSIGN_SAVE")
+                                    // securityView is named so that the state of the button follows each answer of the server
+                                    enabled: suiteBackend.securityView.safetySignAvailable === true && suiteBackend.stopSigningCanSave(stopSignBox.checked, stopKeyField.text)
+                                    onClicked: {
+                                        var key = stopKeyField.text
+                                        stopKeyField.clear()
+                                        suiteBackend.saveStopSigning(stopSignBox.checked, key)
+                                    }
+                                }
+                                Button {
+                                    objectName: "securityStopKeyRemove"
+                                    visible: suiteBackend.securityView.safetySignKeyStored === true
+                                    text: suiteBackend.uiText("BTN_SECURITY_STOPSIGN_REMOVE")
+                                    onClicked: {
+                                        stopKeyField.clear()
+                                        suiteBackend.removeStopKey()
+                                    }
+                                }
+                            }
+                        }
                     }
                     ColumnLayout {
                         visible: suiteBackend.securityView.jdAvailable === true
@@ -2534,7 +2618,13 @@ ApplicationWindow {
                             objectName: "securityTrustedNetworksSave"
                             text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.trustedNetworksEnabledLocked
-                            onClicked: suiteBackend.saveTrustedNetworksOptions(trustedNetworksBox.checked)
+                            onClicked: {
+                                var wantedTrusted = trustedNetworksBox.checked
+                                if (suiteBackend.trustedNetworksNeedsConfirmation(wantedTrusted))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_TRUSTED_OFF"), suiteBackend.uiText("MSG_SECURITY_TRUSTED_OFF_CONFIRM"), function() { suiteBackend.saveTrustedNetworksOptions(wantedTrusted) })
+                                else
+                                    suiteBackend.saveTrustedNetworksOptions(wantedTrusted)
+                            }
                         }
                     }
                     ColumnLayout {
@@ -2612,6 +2702,15 @@ ApplicationWindow {
                                     suiteBackend.savePlannerIdentity(wanted)
                             }
                         }
+                    }
+                    ColumnLayout {
+                        visible: suiteBackend.watchNoticeView.visible === true
+                        objectName: "watchNoticePanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("WATCHNOTICE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("WATCHNOTICE_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.watchNoticeView.lines || ""; textFormat: Text.PlainText; color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                     }
                     ColumnLayout {
                         visible: suiteBackend.serviceIdentityView.visible === true
@@ -3059,6 +3158,27 @@ ApplicationWindow {
                                     window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_PRODUCTION"), suiteBackend.uiText("MSG_SECURITY_PRODUCTION_CONFIRM"), function() { suiteBackend.saveProductionOptions(on) })
                                 else
                                     suiteBackend.saveProductionOptions(on)
+                            }
+                        }
+                        ColumnLayout {
+                            visible: suiteBackend.securityView.productionAsymAvailable === true
+                            Layout.fillWidth: true
+                            spacing: 6
+                            CheckBox {
+                                id: productionAsymBox
+                                objectName: "securityProductionAsymBox"
+                                text: suiteBackend.uiText("LBL_SECURITY_ASYMMETRIC")
+                                palette.windowText: window.textPrimary
+                                enabled: !suiteBackend.securityView.productionAsymLocked
+                                checked: suiteBackend.securityView.productionAsym === true
+                            }
+                            Text { text: suiteBackend.securityView.productionAsymSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                            Text { text: suiteBackend.uiText("LBL_SECURITY_ASYMMETRIC_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            Button {
+                                objectName: "securityProductionAsymSave"
+                                text: suiteBackend.uiText("COMMON_SAVE")
+                                enabled: !suiteBackend.securityView.productionAsymLocked
+                                onClicked: suiteBackend.saveAsymmetricSignature(productionAsymBox.checked)
                             }
                         }
                     }
@@ -4699,6 +4819,14 @@ ApplicationWindow {
                     }
                 }
                 Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                CheckBox {
+                    objectName: "updateNoticeSwitch"
+                    text: suiteBackend.uiText("UPD_NOTICE_SWITCH")
+                    palette.windowText: window.textPrimary
+                    checked: suiteBackend.extras.updateNoticeEnabled
+                    onToggled: suiteBackend.extras.setUpdateNoticeEnabled(checked)
+                }
+                Text { text: suiteBackend.uiText("UPD_NOTICE_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Button {
                     objectName: "updatesCheck"
                     visible: suiteBackend.extras.updatesEnabled
@@ -8127,7 +8255,13 @@ ApplicationWindow {
                             objectName: "safetySaveButton"
                             text: suiteBackend.uiText("BTN_SAFETY_SAVE")
                             enabled: safetyBody.dirty
-                            onClicked: suiteBackend.saveSafetyLimits(safetyBody.form)
+                            onClicked: {
+                                var wantedForm = safetyBody.form
+                                if (suiteBackend.safetyLimitsNeedsConfirmation(wantedForm))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SAFETY_LOWER"), suiteBackend.uiText("MSG_SAFETY_LOWER_CONFIRM"), function() { suiteBackend.saveSafetyLimits(wantedForm) })
+                                else
+                                    suiteBackend.saveSafetyLimits(wantedForm)
+                            }
                         }
                         Button {
                             text: suiteBackend.uiText("BTN_SAFETY_DEFAULTS")

@@ -6,8 +6,8 @@
 """Checks the Ed25519 signature of a firmware image on this computer, before the image is sent to the flashing service.
 
 The bootloader of every board verifies the signature again; this check only keeps an unsigned or tampered image from
-travelling to the service and the board at all, and tells the person why. The signature covers the 64-byte image header
-(rebuilt here from the hardware id, the version and the image itself) followed by the image, under a domain tag.
+travelling to the service and the board at all, and tells the person why. The signature (<image>.sig2) covers the 64-byte header of format 2
+(<image>.hdr2, which must describe this image, board and version) followed by the image, under a domain tag.
 
 The public key is read from a file whose path is in the configuration of the program (`firmwareSignature` in
 `hydra_suite_config.json`, editable by hand or from the settings page):
@@ -35,9 +35,9 @@ CONFIG_KEY = "firmwareSignature"
 DEFAULT_KEY_FILE_NAME = "firmware_public_key.txt"
 
 _MAGIC = 0x52445948
-_FORMAT = 1
-_HEADER = struct.Struct("<IHHIHHHHIIIII24s")
-_IMAGE_DOMAIN = b"hydra-umc-image-sig\x00"
+_FORMAT = 2
+_HEADER = struct.Struct("<IHHIHHHHIIIIII8s12s")
+_IMAGE_DOMAIN = b"hydra-umc-image-sig/2\x00"
 
 # Where each bootloader runs its application image (the same table the signing tool uses).
 LINK_ADDRESS_BY_HARDWARE_ID = {
@@ -105,18 +105,19 @@ def key_fingerprint(public_key: bytes) -> str:
     return " ".join(digest[i:i + 4] for i in range(0, 32, 4))
 
 
-def image_header(hardware_id: int, version: tuple[int, int, int], image: bytes) -> bytes | None:
-    """The 64-byte header of `image`, as the signing tool builds it; None for a board without a known link address or an image too short."""
+def image_header(hardware_id: int, version: tuple[int, int, int], image: bytes, rollback_counter: int, key_id: bytes) -> bytes | None:
+    """The 64-byte header of format 2 of `image`, as the signing tool builds it; None for a board without a known link address or an image too short."""
     link = LINK_ADDRESS_BY_HARDWARE_ID.get(hardware_id)
     if link is None or len(image) < 8:
         return None
     sp, reset = struct.unpack_from("<II", image, 0)
     return _HEADER.pack(_MAGIC, _FORMAT, 0, hardware_id, version[0], version[1], version[2], 0,
-                        len(image), link, sp, reset, zlib.crc32(image) & 0xFFFFFFFF, b"\x00" * 24)
+                        len(image), link, sp, reset, zlib.crc32(image) & 0xFFFFFFFF, rollback_counter, key_id, bytes(12))
 
 
-def check_image(image: bytes, hardware_id: int | None, version_tag: str | None, signature: str | None, public_key: bytes) -> Verdict:
-    """Whether `signature` is the valid signature, under `public_key`, of this image for this board and version."""
+def check_image(image: bytes, hardware_id: int | None, version_tag: str | None, signature: str | None, public_key: bytes, header: str | None = None) -> Verdict:
+    """Whether `signature` is the valid signature, under `public_key`, of `header` (128 hexadecimal digits) and this image, and the header describes
+    this image, board and version."""
     sig_hex = normalize_signature(signature)
     if sig_hex is None:
         return Verdict(False, "FW_SIG_UNSIGNED")
@@ -125,20 +126,26 @@ def check_image(image: bytes, hardware_id: int | None, version_tag: str | None, 
         return Verdict(False, "FW_SIG_NO_VERSION")
     if hardware_id is None or hardware_id not in LINK_ADDRESS_BY_HARDWARE_ID:
         return Verdict(False, "FW_SIG_NO_HARDWARE")
-    header = image_header(hardware_id, version, image)
-    if header is None:
+    if len(image) < 8:
         return Verdict(False, "FW_SIG_IMAGE_SHORT")
-    message = _IMAGE_DOMAIN + hashlib.sha256(header + image).digest()
+    header_hex = normalize_signature(header)  # the same shape as a signature: 128 hexadecimal digits
+    if header_hex is None:
+        return Verdict(False, "FW_SIG_NO_HEADER")
+    given = bytes.fromhex(header_hex)
+    fields = _HEADER.unpack(given)
+    if given != image_header(hardware_id, version, image, fields[13], fields[14]):
+        return Verdict(False, "FW_SIG_BAD")
+    message = _IMAGE_DOMAIN + hashlib.sha256(given + image).digest()
     if ed25519_verify.verify(public_key, message, bytes.fromhex(sig_hex)):
         return Verdict(True, "FW_SIG_OK")
     return Verdict(False, "FW_SIG_BAD")
 
 
-def evaluate(settings: SigningSettings, image: bytes, hardware_id: int | None, version_tag: str | None, signature: str | None) -> Verdict:
+def evaluate(settings: SigningSettings, image: bytes, hardware_id: int | None, version_tag: str | None, signature: str | None, header: str | None = None) -> Verdict:
     """The decision before an image is sent: verifying off lets it go (skipped); otherwise only a valid signature does."""
     if not settings.verify:
         return Verdict(True, "FW_SIG_OFF", skipped=True)
     key, problem = load_public_key(settings.key_file)
     if key is None:
         return Verdict(False, problem)
-    return check_image(image, hardware_id, version_tag, signature, key)
+    return check_image(image, hardware_id, version_tag, signature, key, header)
