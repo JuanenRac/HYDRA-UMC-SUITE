@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **A slow answer no longer replaces a newer one in Submitted models:** a read of the list that was still waiting (for a server that did not answer, for example) could arrive after a newer read and overwrite its result with "The server did not answer", or mark the panel as idle while the newer one was running. Only the newest read counts now.
 - **Sim covers the robots combined with the one pressed, and says it belongs to this program:** the check before a command leaves works out the robots it reaches the way the server does (the target and the robots combined with it, except for a trajectory, a table move, enable and disable), setting the joints counts as a real command, and resuming a paused playback of a robot in Sim is refused. The hint of the Sim mode (eight languages) says that another program, the STUDIO or a phone can still move the robot.
 - **The safety limits send only what was changed and ask before lowering a protection:** a save no longer rewrites the jog arming, the reservation rule or the limits by model that were not touched, says when nothing changed, and asks for a confirmation (eight languages) when the jog no longer has to be armed, a reservation no longer names its controller, the arming lasts longer, a limit is raised or removed or the audit is taken less often.
 - **Switching TLS off or the restriction to trusted networks off asks first:** both show a confirmation (eight languages) before they are sent; switching them on does not ask.
