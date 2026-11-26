@@ -393,12 +393,16 @@ def main():
     async def fetch_refused():
         return 401, {"error": "Authentication required"}
 
-    # Nothing of the earlier reads may still be in flight when the answer is swapped, and the check waits for this read to end
-    # (a fixed number of rounds was too short on a slow runner: an earlier read that found no server wrote its sentence last).
-    for _round in range(200):
-        settle(loop, 2)
-        if not bridge.modelsBusy:
-            break
+    # A read that is still waiting for the server must not replace the result of a newer one when it answers at last.
+    late = asyncio.Event()
+
+    async def fetch_late():
+        await late.wait()
+        return None
+
+    conn.fetch_submitted_models = fetch_late
+    bridge.refreshModels()
+    settle(loop)
     conn.fetch_submitted_models = fetch_refused
     bridge.refreshModels()
     for _round in range(200):
@@ -406,6 +410,9 @@ def main():
         if not bridge.modelsBusy and bridge.modelsError:
             break
     check("models: a server that asks for a sign-in says so and lists nothing", (bridge.modelsError, bridge.modelsRows), (_("MODELS_ERROR_LOGIN"), []))
+    late.set()
+    settle(loop, 6)
+    check("models: the late answer of an older read changes nothing", (bridge.modelsError, bridge.modelsBusy), (_("MODELS_ERROR_LOGIN"), False))
 
     async def fetch_dead():
         return None

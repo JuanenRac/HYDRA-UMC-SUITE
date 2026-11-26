@@ -824,6 +824,7 @@ class SuiteQtBridge(QObject):
         self._models_message = ""
         self._models_error = ""
         self._models_busy = False
+        self._models_read = 0  # the newest read of the list; the answer of an older one still in flight is dropped
         self._users_rows: list[dict[str, object]] = []
         self._users_message = ""
         self._users_error = ""
@@ -1942,17 +1943,22 @@ class SuiteQtBridge(QObject):
 
     async def _refresh_models(self) -> None:
         conn = self._controller.active_connection
+        self._models_read += 1
+        read = self._models_read
         self._models_message = ""
         self._models_error = ""
         if conn is None or conn.login_ok is not True:
             self._models_rows = []
             self._models_list = []
+            self._models_busy = False
             self.catalogChanged.emit()
             return
         self._models_busy = True
         self.catalogChanged.emit()
         try:
             result = await conn.fetch_submitted_models()
+            if read != self._models_read:
+                return  # a newer read was started: this answer (or silence) must not replace its result
             status = 0 if result is None else result[0]
             if result is None or status != 200:
                 self._models_rows = []
@@ -1962,8 +1968,9 @@ class SuiteQtBridge(QObject):
             self._models_list = submitted_models.parse_models(result[1])
             self._models_rows = submitted_models.rows(self._models_list)
         finally:
-            self._models_busy = False
-            self.catalogChanged.emit()
+            if read == self._models_read:
+                self._models_busy = False
+                self.catalogChanged.emit()
 
     @Slot(str, str, str)
     def saveModelUrdf(self, category: str, slug: str, path: str) -> None:
