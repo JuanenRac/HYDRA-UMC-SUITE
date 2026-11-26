@@ -8141,7 +8141,7 @@ ApplicationWindow {
                             enabled: safetyBody.dirty
                             onClicked: {
                                 var wantedForm = safetyBody.form
-                                if (suiteBackend.safetyNeedsConfirmation(wantedForm))
+                                if (suiteBackend.safetyLimitsNeedsConfirmation(wantedForm))
                                     window.requestConfirm(suiteBackend.uiText("TITLE_SAFETY_LOWER"), suiteBackend.uiText("MSG_SAFETY_LOWER_CONFIRM"), function() { suiteBackend.saveSafetyLimits(wantedForm) })
                                 else
                                     suiteBackend.saveSafetyLimits(wantedForm)

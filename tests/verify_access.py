@@ -13,6 +13,7 @@
 #   - Live or Sim: what Sim blocks, what it lets through, and how the choice is kept
 #   - the range of every joint of the models that have one
 # =============================================================================
+import ast
 import random
 import sys
 import time
@@ -279,6 +280,15 @@ def joints():
     check("joints: every range is ordered", all(low < high for table in JOINT_LIMITS_DEG.values() for low, high in table.values()), True)
 
 
+def one_definition_per_slot():
+    """A second method with the same name silently replaces the first: the screen then calls a slot with the wrong arguments."""
+    tree = ast.parse((Path(__file__).resolve().parent.parent / "qt_suite.py").read_text(encoding="utf-8"))
+    bridge = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "SuiteQtBridge")
+    names = [item.name for item in bridge.body if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+             and not any(ast.unparse(decorator).endswith(".setter") for decorator in item.decorator_list)]
+    check("bridge: no method of the window is defined twice", sorted({name for name in names if names.count(name) > 1}), [])
+
+
 def main():
     controller_id()
     claims()
@@ -292,6 +302,7 @@ def main():
     listen_only()
     listen_only_servers()
     joints()
+    one_definition_per_slot()
     print("FAILURES:", failures)
     return 1 if failures else 0
 

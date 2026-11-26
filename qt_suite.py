@@ -1690,7 +1690,7 @@ class SuiteQtBridge(QObject):
         return access.form_from_limits(conn.safety.defaults if conn is not None else access.SafetyLimits())
 
     @Slot("QVariant", result=bool)
-    def safetyNeedsConfirmation(self, form) -> bool:
+    def safetyLimitsNeedsConfirmation(self, form) -> bool:
         """Whether saving this form lowers a protection (the screen asks first)."""
         conn = self._controller.active_connection
         if conn is None:
