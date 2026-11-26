@@ -2647,6 +2647,15 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.watchNoticeView.visible === true
+                        objectName: "watchNoticePanel"
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("WATCHNOTICE_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        Text { text: suiteBackend.uiText("WATCHNOTICE_DESC"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { text: suiteBackend.watchNoticeView.lines || ""; textFormat: Text.PlainText; color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.serviceIdentityView.visible === true
                         objectName: "serviceIdentityPanel"
                         Layout.fillWidth: true

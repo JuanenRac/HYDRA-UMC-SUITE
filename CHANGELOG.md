@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The flasher works with format 2:** it reads `<image>.hdr2` and `<image>.sig2` from the release, checks the signature over that header and the image before anything is sent, and passes both to the server; a release without `firmware_manifest.json` lists its application images from those records. The check of the old format is gone: no board accepts it.
+- **Watch notice of the phones:** the server security page shows, read only, which phones say they tell their watch about a newer release of the app (hidden on a server without that route).
 - **SUITE tells you when a newer release of itself exists:** a bar at the bottom of the window names the version and links to the releases page; it can be hidden for that version, and the Updates screen has the switch (on by default). At start the program reads its own published version on GitHub; it never installs anything. Eight languages.
 - **The Security panel has the switch that requires the Ed25519 signature of a flash:** `production.requireAsymmetricSignature` (off by default, locked when its environment variable fixes it) is read from the server and saved on its own, with its text in the eight languages. The SDK is pinned to its newest release.
 - **A slow answer no longer replaces a newer one in Submitted models:** a read of the list that was still waiting (for a server that did not answer, for example) could arrive after a newer read and overwrite its result with "The server did not answer", or mark the panel as idle while the newer one was running. Only the newest read counts now.
