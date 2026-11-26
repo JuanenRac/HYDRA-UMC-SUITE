@@ -15,6 +15,7 @@
   "/api/admin/self-update/{p}",
   "/api/admin/server-config",
   "/api/admin/service-identity",
+  "/api/admin/watch/release-notice",
   "/api/ai/{p}{p}",
   "/api/audit",
   "/api/camera/discover-rtsp-path",

@@ -98,7 +98,7 @@ from hydra_suite.panel_logic import flasher as flasher_logic
 from hydra_suite.panel_logic import tours as tours_logic
 from hydra_suite.panel_logic import self_update as self_update_logic
 from hydra_suite.panel_logic import fleet_update as fleet_update_logic
-from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, droid_estop, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed
+from hydra_suite.panel_logic import connection_history, connector_hub_gate, developer_node_status, ecosystem_health, node_health, ecosystem_map, droid_estop, hil_bridge, ops_proposals, planner_identity, ros2_security, planning, server_security, service_identity, setup_screens, detection_hef, help_levels, live_activity, preferences, tool_arms, twin_feed, watch_notice
 from hydra_suite.panel_logic import submitted_models
 from hydra_suite.panel_logic import totp as totp_panel
 from hydra_suite.panel_logic import users as users_panel
@@ -554,6 +554,7 @@ class SuiteQtBridge(QObject):
         self._ops_proposals: dict | None = None  # the proposals of the node watchdog that wait for a person (None: no channel to the watchdog)
         self._ops_proposals_message = ""
         self._ops_proposals_error = ""
+        self._watch_notices: list[dict] | None = None  # what the phones said about their watch (None: a server without the route)
         self._service_identity: dict | None = None  # the identity the server presents to the services (None: a server without the route)
         self._service_identity_message = ""
         self._service_identity_error = ""
@@ -4039,6 +4040,10 @@ class SuiteQtBridge(QObject):
         await self._refresh_droid_estop(conn)
         await self._refresh_ros2_security(conn)
         await self._refresh_service_identity(conn)
+        try:
+            self._watch_notices = watch_notice.parse_devices(await conn.fetch_watch_release_notice())
+        except Exception:  # a server without the route, or a stand-in connection of a check
+            self._watch_notices = None
         self._detection_hef = detection_hef.parse_state(body)
         self._live_activity = live_activity.parse_state(body)
         await self._refresh_tool_arms(conn)
@@ -4163,6 +4168,10 @@ class SuiteQtBridge(QObject):
             return
         self._service_identity_error = service_identity.status_for(result)
         self._service_identity = service_identity.parse_status(result[1]) if result is not None and not self._service_identity_error else None
+
+    @Property("QVariantMap", notify=securityChanged)
+    def watchNoticeView(self) -> dict:
+        return watch_notice.view(self._watch_notices, _)
 
     @Property("QVariantMap", notify=securityChanged)
     def serviceIdentityView(self) -> dict:
@@ -8239,7 +8248,7 @@ class SuiteQtBridge(QObject):
         self.changed.emit()
         try:
             data = await download_github_firmware(asset)
-            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature, "target": asset.target, "min_bootloader": asset.min_bootloader}
+            self._flasher_file[key] = {"name": asset.name, "bytes": data, "hardware_id": asset.hardware_id, "version_tag": asset.release_tag, "signature": asset.signature, "header": asset.header, "target": asset.target, "min_bootloader": asset.min_bootloader}
             if not asset.signature:
                 # the .sig file published next to the image; an image without one is left to the board to judge
                 try:
@@ -8459,7 +8468,7 @@ class SuiteQtBridge(QObject):
                 hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
                 # the signature is checked here, on this computer, before a single byte goes to the flashing service
                 verdict = firmware_signature.evaluate(
-                    self._firmware_signing_settings(), file["bytes"], hardware_id_number or None, file.get("version_tag"), file.get("signature"),
+                    self._firmware_signing_settings(), file["bytes"], hardware_id_number or None, file.get("version_tag"), file.get("signature"), file.get("header"),
                 )
                 if not verdict.ok:
                     self._flasher_push_log(key, f"{_('FW_SIG_REFUSED')}: {_(verdict.reason)}", "error")
@@ -8486,7 +8495,7 @@ class SuiteQtBridge(QObject):
                         version_major,
                         version_minor,
                         hardware_id_number,
-                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature"), {"target": file.get("target"), "min_bootloader": file.get("min_bootloader")}),
+                        flash_signing_options(file.get("version_tag"), self._flasher_board_state(key).get("firmwareVersion"), file.get("signature"), {"target": file.get("target"), "min_bootloader": file.get("min_bootloader")}, file.get("header")),
                     )
                 finally:
                     if progress_signal is not None:

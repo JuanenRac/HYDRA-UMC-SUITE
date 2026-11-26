@@ -838,6 +838,10 @@ class HydraConnection(QObject):
         can sign, and which services take it). 404 on a server that predates the route."""
         return await self._request_json("GET", "/api/admin/service-identity", auth=True)
 
+    async def fetch_watch_release_notice(self) -> tuple[int, object] | None:
+        """GET /api/admin/watch/release-notice (admin-only): what the phones said about telling their watch of a newer release. 404 on a server that predates the route."""
+        return await self._request_json("GET", "/api/admin/watch/release-notice", auth=True)
+
     async def put_service_identity(self, body: dict) -> tuple[int, object] | None:
         """PUT /api/admin/server-config (admin-only) with {"auth": {"serviceIdentity": {"enabled": bool, "confirm": true to turn it on}}}."""
         return await self._request_json("PUT", "/api/admin/server-config", auth=True, json_body=body)

@@ -68,8 +68,12 @@ def _sign(seed: bytes, message: bytes) -> tuple[bytes, bytes]:
     return a_bytes, r_bytes + int.to_bytes((r + h * scalar) % _Q, 32, "little")
 
 
+def _header(hardware_id, version, image):
+    return fs.image_header(hardware_id, version, image, 1, b"\x11" * 8)
+
+
 def _image_message(hardware_id, version, image):
-    header = fs.image_header(hardware_id, version, image)
+    header = _header(hardware_id, version, image)
     return fs._IMAGE_DOMAIN + hashlib.sha256(header + image).digest()
 
 
@@ -102,18 +106,20 @@ PUBLIC, SIGNATURE = _sign(SEED, _image_message(HW, (0, 2, 3), IMAGE))
 SIG_HEX = SIGNATURE.hex()
 OTHER_PUBLIC, OTHER_SIGNATURE = _sign(b"another-throwaway-seed-for-test!", _image_message(HW, (0, 2, 3), IMAGE))
 
-header = fs.image_header(HW, (0, 2, 3), IMAGE)
+header = _header(HW, (0, 2, 3), IMAGE)
+HEADER_HEX = header.hex()
 check("the header is 64 bytes and carries size and CRC of the image", (len(header), header[20:24] == len(IMAGE).to_bytes(4, "little"), header[36:40] == (zlib.crc32(IMAGE) & 0xFFFFFFFF).to_bytes(4, "little")), (64, True, True))
-check("an unknown board has no header", fs.image_header(0x12345678, (0, 2, 3), IMAGE), None)
+check("an unknown board has no header", _header(0x12345678, (0, 2, 3), IMAGE), None)
 
 
-def verdict(image=IMAGE, hw=HW, version="v0.2.3", signature=SIG_HEX, key=PUBLIC):
-    v = fs.check_image(image, hw, version, signature, key)
+def verdict(image=IMAGE, hw=HW, version="v0.2.3", signature=SIG_HEX, key=PUBLIC, head=HEADER_HEX):
+    v = fs.check_image(image, hw, version, signature, key, head)
     return v.ok, v.reason
 
 
 check("a valid signature is accepted", verdict(), (True, "FW_SIG_OK"))
 check("a signature with capitals and a newline is accepted", verdict(signature=SIG_HEX.upper() + "\n"), (True, "FW_SIG_OK"))
+check("no header is refused", verdict(head=None), (False, "FW_SIG_NO_HEADER"))
 check("no signature is refused", verdict(signature=None), (False, "FW_SIG_UNSIGNED"))
 check("a damaged signature text is refused as unsigned", verdict(signature="abc"), (False, "FW_SIG_UNSIGNED"))
 check("a changed byte is refused", verdict(image=IMAGE[:-1] + b"\x00"), (False, "FW_SIG_BAD"))
@@ -147,7 +153,7 @@ with tempfile.TemporaryDirectory() as folder:
 
     on = fs.SigningSettings(True, key_file)
     off = fs.SigningSettings(False, key_file)
-    args = (IMAGE, HW, "v0.2.3", SIG_HEX)
+    args = (IMAGE, HW, "v0.2.3", SIG_HEX, HEADER_HEX)
     check("no key file refuses the image", (fs.evaluate(on, *args).ok, fs.evaluate(on, *args).reason), (False, "FW_SIG_NO_KEY"))
     key_file.write_text("not a key")
     check("a damaged key file refuses the image", (fs.evaluate(on, *args).ok, fs.evaluate(on, *args).reason), (False, "FW_SIG_KEY_BAD"))
@@ -204,7 +210,7 @@ with tempfile.TemporaryDirectory() as folder:
         return [e["text"] for e in bridge._flasher_log["k"]]
 
     try:
-        good = {"name": "app.bin", "bytes": IMAGE, "hardware_id": hex(HW), "version_tag": "v0.2.3", "signature": SIG_HEX}
+        good = {"name": "app.bin", "bytes": IMAGE, "hardware_id": hex(HW), "version_tag": "v0.2.3", "signature": SIG_HEX, "header": HEADER_HEX}
         log = flash(good)
         check("flasher: a signed image is sent", len(sent), 1)
         check("flasher: the log says the signature was verified", any(_("FW_SIG_OK") in t for t in log), True)
