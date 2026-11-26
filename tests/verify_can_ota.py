@@ -223,7 +223,10 @@ def _run() -> None:
     assert flash_preflight("0x1", "v0.9", "1.0.0", False, False) == "downgrade_blocked"
     assert flash_preflight("0x1", "v1.2.2", "1.2.3", True, False) is None  # the downgrade was asked for
     assert flash_preflight("0x1", "v1.2.4", "1.2.3", False, False) is None
-    assert flash_preflight("0x1", "v1.2.3", "unreadable", False, False) is None  # an unreadable installed version cannot show a downgrade
+    assert flash_preflight("0x1", "v1.2.3", "unreadable", False, False) == "installed_unknown"  # an unreadable installed version cannot be compared: the downgrade choice is needed
+    assert flash_preflight("0x1", "v1.2.3", None, False, False) == "installed_unknown"
+    assert flash_preflight("0x1", "v1.2.3", "unreadable", True, False) is None
+    assert flash_preflight("", "v1.2.3", "unreadable", False, False) == "no_hardware_id"  # the image itself is checked first
     print("preflight of the flash over the real bus: PASS")
 
     # --- the F-RAM of the kinematic brain: the announcement, the preflight and the operations ------------

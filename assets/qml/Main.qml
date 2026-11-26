@@ -1984,7 +1984,13 @@ ApplicationWindow {
                     }
                     RowLayout {
                         spacing: 8
-                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("COMMON_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: suiteBackend.saveTlsOptions(tlsBox.checked, tlsCertField.text, tlsKeyField.text) }
+                        Button { objectName: "securityTlsSave"; text: suiteBackend.uiText("COMMON_SAVE"); enabled: !suiteBackend.securityView.tlsLocked; onClicked: {
+                            var wantedTls = tlsBox.checked
+                            if (suiteBackend.tlsNeedsConfirmation(wantedTls))
+                                window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_TLS_OFF"), suiteBackend.uiText("MSG_SECURITY_TLS_OFF_CONFIRM"), function() { suiteBackend.saveTlsOptions(wantedTls, tlsCertField.text, tlsKeyField.text) })
+                            else
+                                suiteBackend.saveTlsOptions(wantedTls, tlsCertField.text, tlsKeyField.text)
+                        } }
                         Text { text: suiteBackend.securityView.tlsSource; color: "#556070"; font.pixelSize: window.fs(9) }
                     }
                     Text { text: suiteBackend.uiText("LBL_SECURITY_TLS_FINGERPRINT") + ": " + suiteBackend.securityView.tlsFingerprint; color: window.muted; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
@@ -2555,7 +2561,13 @@ ApplicationWindow {
                             objectName: "securityTrustedNetworksSave"
                             text: suiteBackend.uiText("COMMON_SAVE")
                             enabled: !suiteBackend.securityView.trustedNetworksEnabledLocked
-                            onClicked: suiteBackend.saveTrustedNetworksOptions(trustedNetworksBox.checked)
+                            onClicked: {
+                                var wantedTrusted = trustedNetworksBox.checked
+                                if (suiteBackend.trustedNetworksNeedsConfirmation(wantedTrusted))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_TRUSTED_OFF"), suiteBackend.uiText("MSG_SECURITY_TRUSTED_OFF_CONFIRM"), function() { suiteBackend.saveTrustedNetworksOptions(wantedTrusted) })
+                                else
+                                    suiteBackend.saveTrustedNetworksOptions(wantedTrusted)
+                            }
                         }
                     }
                     ColumnLayout {
@@ -8177,7 +8189,13 @@ ApplicationWindow {
                             objectName: "safetySaveButton"
                             text: suiteBackend.uiText("BTN_SAFETY_SAVE")
                             enabled: safetyBody.dirty
-                            onClicked: suiteBackend.saveSafetyLimits(safetyBody.form)
+                            onClicked: {
+                                var wantedForm = safetyBody.form
+                                if (suiteBackend.safetyLimitsNeedsConfirmation(wantedForm))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SAFETY_LOWER"), suiteBackend.uiText("MSG_SAFETY_LOWER_CONFIRM"), function() { suiteBackend.saveSafetyLimits(wantedForm) })
+                                else
+                                    suiteBackend.saveSafetyLimits(wantedForm)
+                            }
                         }
                         Button {
                             text: suiteBackend.uiText("BTN_SAFETY_DEFAULTS")

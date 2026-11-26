@@ -60,6 +60,7 @@ from hydra_suite.can_ota import (
     has_advanced_expansion,
     hop_description,
     parse_version_tag,
+    parse_version_full,
     mock_bus_monitor,
     mock_flash,
     mock_query_version,
@@ -1688,6 +1689,15 @@ class SuiteQtBridge(QObject):
         conn = self._controller.active_connection
         return access.form_from_limits(conn.safety.defaults if conn is not None else access.SafetyLimits())
 
+    @Slot("QVariant", result=bool)
+    def safetyLimitsNeedsConfirmation(self, form) -> bool:
+        """Whether saving this form lowers a protection (the screen asks first)."""
+        conn = self._controller.active_connection
+        if conn is None:
+            return False
+        values = form.toVariant() if hasattr(form, "toVariant") else form
+        return access.lowers_protection(access.form_from_limits(conn.safety.limits), dict(values))
+
     @Slot("QVariant")
     def saveSafetyLimits(self, form) -> None:
         conn = self._controller.active_connection
@@ -1704,7 +1714,14 @@ class SuiteQtBridge(QObject):
             self._safety_error = _(f"MSG_SAFETY_PROBLEM_{str(built['problem']).upper()}", field=built.get("field", ""))
             self.securityChanged.emit()
             return
-        asyncio.ensure_future(self._save_safety(conn, built["patch"]))
+        # Only what the person changed is sent, so a value they did not touch is never written over the server's.
+        base = access.build_patch(access.form_from_limits(conn.safety.limits), conn.safety.hard)
+        patch = access.changed_only(base["patch"], built["patch"]) if base["ok"] else built["patch"]
+        if not patch:
+            self._safety_message = _("MSG_SAFETY_NOTHING_CHANGED")
+            self.securityChanged.emit()
+            return
+        asyncio.ensure_future(self._save_safety(conn, patch))
 
     async def _save_safety(self, conn, patch: dict) -> None:
         result = await conn.put_safety_limits(patch)
@@ -5119,6 +5136,17 @@ class SuiteQtBridge(QObject):
     def setInfoAuth(self, value: bool) -> None:
         asyncio.ensure_future(self._save_security({"infoAuth": bool(value)}))
 
+    @Slot(bool, result=bool)
+    def tlsNeedsConfirmation(self, enabled: bool) -> bool:
+        state = self._security_state
+        return state is not None and server_security.tls_needs_confirmation(state["tls"]["enabled"], enabled)
+
+    @Slot(bool, result=bool)
+    def trustedNetworksNeedsConfirmation(self, enabled: bool) -> bool:
+        state = self._security_state
+        trusted = state.get("trustedNetworks") if state is not None else None
+        return bool(trusted) and server_security.trusted_networks_needs_confirmation(trusted["enabled"]["value"], enabled)
+
     @Slot(bool, str, str)
     def saveTlsOptions(self, enabled: bool, cert_path: str, key_path: str) -> None:
         patch = server_security.tls_patch(enabled, cert_path, key_path)
@@ -8417,6 +8445,9 @@ class SuiteQtBridge(QObject):
                     self._flasher_push_log(key, _("FLASHER_PREFLIGHT_" + refusal.upper()), "error")
                     self._flasher_progress[key] = {"label": "", "percent": 0}
                     return
+                # The installed version could not be read and the downgrade choice is ticked: the flash goes on and the log says it was not compared.
+                if self._flasher_allow_downgrade.get(key, False) and parse_version_full(self._flasher_board_state(key).get("firmwareVersion")) is None:
+                    self._flasher_push_log(key, _("FLASHER_INSTALLED_UNKNOWN_ALLOWED"), "info")
                 version_major, version_minor = parse_version_tag(file.get("version_tag"))
                 hardware_id_number = int(file["hardware_id"], 0) if file.get("hardware_id") else 0
                 # the signature is checked here, on this computer, before a single byte goes to the flashing service
