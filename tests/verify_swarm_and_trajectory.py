@@ -209,7 +209,7 @@ check("nothing when current, ahead, unknown or hidden", [update_check.suite_noti
 check("a later version than the hidden one is announced again", update_check.suite_notice("0.8.0.8", "0.8.1.0", "0.8.0.9") is not None, True)
 check("the releases page", update_check.releases_url(), "https://github.com/JuanenRac/HYDRA-UMC-SUITE/releases/latest")
 check("a strange name gives no address", update_check.releases_url({**update_check.SETTINGS, "owner": "x/../y"}), "")
-check("only the manifest of SUITE is read", update_check.newest_suite(fake_fetch), "9.9.9" if "9.9.9" in manifest else json.loads(manifest)["version"])
+check("only the manifest of SUITE is read", update_check.newest_suite(fake_fetch), "0.9.0")
 check("a failed read announces nothing", update_check.newest_suite(failing_fetch), None)
 check("the notice is on by default", update_check.SETTINGS["noticeEnabledByDefault"], True)
 
