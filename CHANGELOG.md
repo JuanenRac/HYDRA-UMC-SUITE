@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The screenshots of the README can be taken on a GitHub runner:** the manual workflow `screenshots.yml` (started by hand only, read-only token, no secrets) runs `tools/capture_screenshots.py` on the offscreen Qt platform and keeps the pictures as an artifact; `docs/SCREENSHOTS.md` says how to start it and use them.
+
 ## [0.8.0.9] - Global stop switch, format 2 flasher, newer release notice and safer confirmations
 
 - **The Security panel can switch on the signed release of the global stop:** a switch (off by default) and a write-only key field next to the other stop options; the field is emptied as soon as the key is sent and the key is never shown again. A server whose key file is named in its environment or security file shows it as fixed.
