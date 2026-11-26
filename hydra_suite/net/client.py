@@ -1212,7 +1212,7 @@ class HydraConnection(QObject):
             return  # unchanged since our own last confirmed send/receive - nothing to do
         if not self.may_edit_settings:
             # POST /api/settings and the `settings` message of the WebSocket take the whole tree from an administrator
-            # only. An operator's edit used to be sent and refused after every change; it stays in this window instead,
+            # only. An operator's edit is not sent (it would be refused after every change); it stays in this window,
             # and the person is told once. The robot commands (jog, play, stop, speed, table) go through the atomic route.
             if not self._operator_edit_told:
                 self._operator_edit_told = True
@@ -2002,10 +2002,9 @@ class HydraConnection(QObject):
         camera_patch = msg.get("cameraPatch")
         if target_camera is not None and isinstance(camera_patch, dict):
             target_camera.update(camera_patch)
-        # this used to leave _last_payload_json completely untouched
-        # (see this method's own docstring, which was right that a delta's
-        # OWN small payload is never compared against it - but wrong that
-        # nothing here needs to touch it at all). Real bug: settings #1 ->
+        # _last_payload_json has to follow the delta too. A delta's OWN small
+        # payload is never compared against it, but the next full tree is.
+        # Without this: settings #1 ->
         # this delta -> settings #2 that happens to be byte-for-byte
         # identical to settings #1 (e.g. the delta's own change gets
         # reverted/superseded server-side and the full tree converges back)

@@ -2332,6 +2332,20 @@ ApplicationWindow {
                             text: suiteBackend.securityView.jdMapText
                         }
                         Text { text: suiteBackend.uiText("LBL_SECURITY_JD_MAP_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: suiteBackend.securityView.jdSilentAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_JD_SILENT"); color: window.textPrimary; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        ComboBox {
+                            id: jdSilentCombo
+                            objectName: "securityJdSilentCombo"
+                            visible: suiteBackend.securityView.jdSilentAvailable === true
+                            Layout.preferredWidth: 420
+                            enabled: !suiteBackend.securityView.jdSilentLocked
+                            textRole: "label"
+                            valueRole: "value"
+                            model: [{ "label": suiteBackend.uiText("LBL_SECURITY_JD_SILENT_WITHHOLD"), "value": "withhold" }, { "label": suiteBackend.uiText("LBL_SECURITY_JD_SILENT_SERVER_STATE"), "value": "server-state" }]
+                            currentIndex: suiteBackend.securityView.jdSilent === "server-state" ? 1 : 0
+                        }
+                        Text { visible: suiteBackend.securityView.jdSilentAvailable === true; text: suiteBackend.securityView.jdSilentSource; color: "#556070"; font.pixelSize: window.fs(9) }
+                        Text { visible: suiteBackend.securityView.jdSilentAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_JD_SILENT_HELP"); color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                         Text { visible: suiteBackend.securityView.jdExecAvailable === true; text: suiteBackend.uiText("LBL_SECURITY_JD_EXEC_TITLE"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
                         CheckBox {
                             id: jdExecEnabledBox
@@ -2386,11 +2400,11 @@ ApplicationWindow {
                             text: suiteBackend.uiText("COMMON_SAVE")
                             onClicked: {
                                 var relay = jdRelayBox.checked, map = jdMapField.text, allow = jdAllowBox.checked, timeout = jdTimeoutField.text
-                                var execEnabled = jdExecEnabledBox.checked, execLive = jdExecLiveBox.checked
-                                if (suiteBackend.jobDispatcherNeedsConfirmation(relay, map, allow, timeout, execEnabled, execLive))
-                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_JD"), suiteBackend.uiText(suiteBackend.jobExecutorGoesLive(relay, map, allow, timeout, execEnabled, execLive) ? "MSG_SECURITY_JD_EXEC_CONFIRM" : "MSG_SECURITY_JD_CONFIRM"), function() { suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout, execEnabled, execLive) })
+                                var execEnabled = jdExecEnabledBox.checked, execLive = jdExecLiveBox.checked, silent = jdSilentCombo.currentValue
+                                if (suiteBackend.jobDispatcherNeedsConfirmation(relay, map, allow, timeout, execEnabled, execLive, silent))
+                                    window.requestConfirm(suiteBackend.uiText("TITLE_SECURITY_JD"), suiteBackend.uiText(suiteBackend.jobExecutorGoesLive(relay, map, allow, timeout, execEnabled, execLive, silent) ? "MSG_SECURITY_JD_EXEC_CONFIRM" : "MSG_SECURITY_JD_CONFIRM"), function() { suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout, execEnabled, execLive, silent) })
                                 else
-                                    suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout, execEnabled, execLive)
+                                    suiteBackend.saveJobDispatcherOptions(relay, map, allow, timeout, execEnabled, execLive, silent)
                             }
                         }
                     }
@@ -3435,6 +3449,7 @@ ApplicationWindow {
                     Text { visible: suiteBackend.totpStep === "loading"; text: suiteBackend.uiText("TOTP_LOADING"); color: window.muted; font.pixelSize: window.fs(10) }
                     Text { visible: suiteBackend.totpStep === "unsupported"; text: suiteBackend.uiText("TOTP_ERR_UNSUPPORTED"); color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
                     Text { visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"; text: suiteBackend.totpStatusText; color: suiteBackend.totpStep === "on" ? window.green : window.muted; font.pixelSize: window.fs(10); font.bold: true }
+                    Text { objectName: "totpRecoveryLowText"; visible: suiteBackend.totpRecoveryLow; text: suiteBackend.totpRecoveryHint; color: window.amber; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
 
                     ColumnLayout {
                         visible: suiteBackend.totpStep === "off" || suiteBackend.totpStep === "on"
@@ -3471,6 +3486,14 @@ ApplicationWindow {
                             text: suiteBackend.uiText("TOTP_TURN_OFF")
                             enabled: !suiteBackend.totpBusy && totpPasswordField.text !== "" && totpOffCodeField.text !== ""
                             onClicked: { suiteBackend.disableTotp(totpPasswordField.text, totpOffCodeField.text); totpPasswordField.text = ""; totpOffCodeField.text = "" }
+                        }
+                        Text { visible: suiteBackend.totpStep === "on"; text: suiteBackend.uiText("TOTP_REGENERATE_HELP"); color: window.muted; wrapMode: Text.WordWrap; Layout.fillWidth: true; font.pixelSize: window.fs(10) }
+                        Button {
+                            objectName: "totpRegenerateButton"
+                            visible: suiteBackend.totpStep === "on"
+                            text: suiteBackend.uiText("TOTP_REGENERATE")
+                            enabled: !suiteBackend.totpBusy && totpPasswordField.text !== "" && totpOffCodeField.text !== ""
+                            onClicked: { suiteBackend.regenerateTotp(totpPasswordField.text, totpOffCodeField.text); totpPasswordField.text = ""; totpOffCodeField.text = "" }
                         }
                     }
 

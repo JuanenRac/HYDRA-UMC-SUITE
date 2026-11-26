@@ -6,13 +6,20 @@
 - **The safety limits send only what was changed and ask before lowering a protection:** a save no longer rewrites the jog arming, the reservation rule or the limits by model that were not touched, says when nothing changed, and asks for a confirmation (eight languages) when the jog no longer has to be armed, a reservation no longer names its controller, the arming lasts longer, a limit is raised or removed or the audit is taken less often.
 - **Switching TLS off or the restriction to trusted networks off asks first:** both show a confirmation (eight languages) before they are sent; switching them on does not ask.
 - **A firmware image is refused when the installed version cannot be read, unless the downgrade choice is ticked:** the flash used to go through without any comparison; now the preflight says so (eight languages) and, when the choice is ticked, the log records that the version was not compared.
+- **Five comments describe what the code does now, not what it used to do:** in the relay of connection errors, the operator's local settings edit, the delta of the WebSocket state, the edits of one robot and the scheduler. Comments only: no behaviour changes.
+## [0.8.0.8]
 
+- **The SDK is pinned to its newest release:** the continuous integration now fetches the contracts of that release, which already holds the routes the REST route check used to treat as not yet released.
+- **The job dispatcher options offer the choice for a robot the server has not heard from:** the Security tab of the Server admin screen shows the selector (do not acknowledge its stop, or acknowledge it from the state of this server), sends it with the other dispatcher options, shows when the environment fixes it, and warns after saving that the acknowledgement applies from the next start of the server. Available in the eight languages.
+- **Two-step sign-in offers new recovery codes:** when two or fewer recovery codes are left the Server admin screen suggests generating new ones, and a button asks the server for them (it asks for the password and a current or unused recovery code; the old codes stop working). Available in the eight languages.
 - **A server error on the global STOP no longer ends the attempt:** when `POST /api/stop-all` answers with a 5xx status the SUITE stops the known robots one by one, as it already did for a rate limit or a missing route, and the banner starts with "STOP sent, no reply yet" (eight languages) until an answer arrives. A test covers it.
 - **The robot-by-robot STOP also switches the valves and pumps off:** like STUDIO, it sends a switch-off (with one retry) for every valve or pump the local mirror shows on, and a robot whose output is not confirmed off is listed as needing attention and the result is not shown as clean. A test covers it.
 - **The SUITE tells when the server is stopped only because it restarted while stopped:** when the server comes back with the global stop still on, an amber notice next to the stop badge says that an administrator must release it (in all eight languages). The Security panel gets the new switch "While the global stop is on, refuse every command that moves a robot" (off by default; stop and disable still work), and the two limits of the global stop are gone because the global stop is never rate limited now.
 
 - **PAUSE is sent without `If-Match`, like STOP:** a playing robot changes pose at every step, so a pause carrying the revision of the play was refused with a 412 almost every time.
 - **Text from the server is drawn as plain text in the administration log, the audit record and the lists of accounts and robots:** a name or a reason written by another client can no longer change how a line looks or load a remote image. `tests/verify_conditional_audit.py` checks it.
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
 
 ## [0.8.0.7]
 

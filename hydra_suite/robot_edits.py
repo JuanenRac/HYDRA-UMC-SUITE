@@ -4,7 +4,7 @@
 # GPL-3.0-or-later - see LICENSE
 #
 # The edits of one robot as commands. The recorded points, the repeat flag, the model, the role, the robots it is
-# combined with, the joint values of the sliders and the layout of the XY table used to travel only inside the
+# combined with, the joint values of the sliders and the layout of the XY table would otherwise travel only inside the
 # whole settings tree, which the server takes from an administrator alone and where the last writer wins. The server
 # has a command for each of them (points, loop, model, role, combine, joints, xyTableConfig), carried out under the
 # reservation, If-Match and arming rules of every other command. This file decides, from what a panel changed,

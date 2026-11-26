@@ -244,6 +244,12 @@ check("the wait is a number from above 0 to 86400", [sec.parse_timeout(x) for x 
 check("builds the request, with the replanning only when the server can write the file",
       (sec.job_dispatcher_patch(True, "arm-1 = 1", True, True, "45"), sec.job_dispatcher_patch(True, "arm-1 = 1", False, True, "nonsense"), sec.job_dispatcher_patch(True, "nonsense", True, True, "45"), sec.job_dispatcher_patch(True, "arm-1 = 1", True, True, "0")),
       ({"jobDispatcher": {"stopRelay": {"enabled": True, "robotMap": {"arm-1": 1}}, "replan": {"allowUnconfirmed": True, "stopAckTimeoutSeconds": 45.0}}}, {"jobDispatcher": {"stopRelay": {"enabled": True, "robotMap": {"arm-1": 1}}}}, None, None))
+JD_SILENT = {**JD, "stopRelay": {**JD["stopRelay"], "silentRobot": {"value": "server-state", "source": "config"}}}
+silent_state = sec.parse_state({**GOOD, "jobDispatcher": JD_SILENT})
+check("reads the choice for a robot the server has not heard from", (silent_state["jobDispatcher"]["silent"]["value"], sec.view(silent_state)["jdSilentAvailable"], sec.view(silent_state)["jdSilent"]), ("server-state", True, "server-state"))
+check("a server without the choice, or with an unknown value, does not show it", (jd_state["jobDispatcher"]["silent"], sec.view(jd_state)["jdSilentAvailable"], sec.parse_state({**GOOD, "jobDispatcher": {**JD, "stopRelay": {**JD["stopRelay"], "silentRobot": {"value": "nonsense", "source": "config"}}}})["jobDispatcher"]["silent"]), (None, False, None))
+check("the choice is sent only when it is known", (sec.job_dispatcher_patch(True, "arm-1 = 1", False, True, "45", silent_robot="server-state")["jobDispatcher"]["stopRelay"].get("silentRobot"), sec.job_dispatcher_patch(True, "arm-1 = 1", False, True, "45")["jobDispatcher"]["stopRelay"].get("silentRobot"), sec.job_dispatcher_patch(True, "arm-1 = 1", False, True, "45", silent_robot="other")), ("server-state", None, None))
+check("the warning for acknowledging a silent robot has its sentence", sec.known_warning(["job_stop_silent_server_state"]), _("SECURITY_JD_WARNING_SILENT"))
 cur = jd_state["jobDispatcher"]
 check("asks first when the delivery is switched on or a job may go without a confirmed stop",
       [sec.job_dispatcher_needs_confirmation(cur, sec.job_dispatcher_patch(*args)) for args in ((False, "a = 1", True, False, "30"), (True, "a = 1", True, False, "30"), (False, "a = 1", True, True, "30"), (False, "a = 1", True, False, "60"))],
