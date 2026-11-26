@@ -36,6 +36,8 @@ SWARM_KEY = "swarm_view"
 COMBINED_KEY = "combined_mode"
 PREVIEW_KEY = "trajectory_preview"
 UPDATES_KEY = "update_check"
+NOTICE_KEY = "update_notice"
+NOTICE_DISMISSED_KEY = "update_notice_dismissed"
 REFRESH_MS = 2000
 
 
@@ -58,6 +60,10 @@ class SuiteExtras(QObject):
         self._combined_on = _flag(config, COMBINED_KEY, swarm.SETTINGS["combinedModeByDefault"])
         self._preview_on = _flag(config, PREVIEW_KEY, trajectory_view.SETTINGS["previewBeforePlayByDefault"])
         self._updates_on = _flag(config, UPDATES_KEY, update_check.SETTINGS["enabledByDefault"])
+        self._notice_on = _flag(config, NOTICE_KEY, update_check.SETTINGS["noticeEnabledByDefault"])
+        hidden = config.get(NOTICE_DISMISSED_KEY)
+        self._notice_dismissed = hidden if isinstance(hidden, str) else ""
+        self._newest_suite: str | None = None
         self._swarm_filter = "all"
         self._swarm_text = ""
         self._swarm_rows_cache: list[dict[str, Any]] = []
@@ -124,6 +130,51 @@ class SuiteExtras(QObject):
     def setUpdatesEnabled(self, on: bool) -> None:
         self._updates_on = bool(on)
         self._store(UPDATES_KEY, self._updates_on)
+        self.changed.emit()
+
+    # -- notice of a newer SUITE --------------------------------------------------------------------------------
+
+    @Property(bool, notify=changed)
+    def updateNoticeEnabled(self) -> bool:
+        return self._notice_on
+
+    @Slot(bool)
+    def setUpdateNoticeEnabled(self, on: bool) -> None:
+        # Switching it forgets the version that was hidden, as in STUDIO.
+        self._notice_on = bool(on)
+        self._notice_dismissed = ""
+        self._store(NOTICE_KEY, self._notice_on)
+        if not save_config({NOTICE_DISMISSED_KEY: ""}):
+            self._bridge._set_notice(_("MSG_EXTRAS_NOT_SAVED"), "warn")
+        self.changed.emit()
+        if self._notice_on:
+            self.lookForNewerSuite()
+
+    @Property("QVariantMap", notify=changed)
+    def updateNotice(self) -> dict[str, Any]:
+        """The bar to show: its sentence and the releases page; empty when there is nothing to say."""
+        notice = update_check.suite_notice(__version__, self._newest_suite, self._notice_dismissed) if self._notice_on else None
+        if notice is None:
+            return {}
+        return {"text": _("UPD_NOTICE_TEXT", latest=notice["latest"], installed=notice["installed"]), "url": update_check.releases_url()}
+
+    @Slot()
+    def dismissUpdateNotice(self) -> None:
+        if self._newest_suite is None:
+            return
+        self._notice_dismissed = self._newest_suite
+        if not save_config({NOTICE_DISMISSED_KEY: self._notice_dismissed}):
+            self._bridge._set_notice(_("MSG_EXTRAS_NOT_SAVED"), "warn")
+        self.changed.emit()
+
+    @Slot()
+    def lookForNewerSuite(self) -> None:
+        """Called once by the program when its window is up, and when the notice is switched on. It only reads; nothing is installed."""
+        if self._notice_on:
+            asyncio.ensure_future(self._look_for_newer_suite())
+
+    async def _look_for_newer_suite(self) -> None:
+        self._newest_suite = await asyncio.get_running_loop().run_in_executor(None, update_check.newest_suite)
         self.changed.emit()
 
     def _tick(self) -> None:

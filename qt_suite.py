@@ -9118,6 +9118,7 @@ def run_qtquick() -> int:
     engine.rootContext().setContextProperty("suiteBackend", bridge)
     engine.rootContext().setContextProperty("controller", controller)
     engine.load(QUrl.fromLocalFile(str(QML_PATH)))
+    bridge.extras.lookForNewerSuite()
     if not engine.rootObjects():
         return 1
 

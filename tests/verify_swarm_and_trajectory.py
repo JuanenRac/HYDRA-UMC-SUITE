@@ -202,6 +202,17 @@ real = update_check.run_check("0.7.8", [{"name": "Bench", "appVersion": "0.8.2.0
 httpd.shutdown()
 check("a real read of the manifests from a local server", (real["suite"]["latest"], real["suite"]["state"], real["servers"][0]["latest"], real["servers"][0]["state"], real["errors"]), ("9.9.9", "outdated", "0.8.2.0", "current", []))
 
+# ---- the notice of a newer SUITE ----------------------------------------------------------------------------
+
+check("a newer published version is announced", update_check.suite_notice("0.8.0.8", "0.8.0.9", ""), {"installed": "0.8.0.8", "latest": "0.8.0.9"})
+check("nothing when current, ahead, unknown or hidden", [update_check.suite_notice("0.8.0.8", latest, hidden) for latest, hidden in (("0.8.0.8", ""), ("0.8.0.7", ""), (None, ""), ("0.8.0.9", "0.8.0.9"))], [None, None, None, None])
+check("a later version than the hidden one is announced again", update_check.suite_notice("0.8.0.8", "0.8.1.0", "0.8.0.9") is not None, True)
+check("the releases page", update_check.releases_url(), "https://github.com/JuanenRac/HYDRA-UMC-SUITE/releases/latest")
+check("a strange name gives no address", update_check.releases_url({**update_check.SETTINGS, "owner": "x/../y"}), "")
+check("only the manifest of SUITE is read", update_check.newest_suite(fake_fetch), "9.9.9" if "9.9.9" in manifest else json.loads(manifest)["version"])
+check("a failed read announces nothing", update_check.newest_suite(failing_fetch), None)
+check("the notice is on by default", update_check.SETTINGS["noticeEnabledByDefault"], True)
+
 # ---- the bridge ---------------------------------------------------------------------------------------------
 
 
@@ -316,6 +327,16 @@ def bridge_checks() -> None:
     sent.clear()
     extras.requestSend()
     check("with the check off, Send goes out as the trajectory of the robot", (sent[0][0], sent[0][1], len(sent[0][2]["points"]), sent[0][2]["points"][0]["motionType"], "x" in sent[0][2]["points"][0]), ("11", "points", 2, "model-joints", True))
+
+    # the notice: shown for a newer version, hidden for that version, off with its switch
+    extras._newest_suite = "999.0.0"
+    check("a newer SUITE is shown with its releases page", ("999.0.0" in extras.updateNotice.get("text", ""), extras.updateNotice.get("url", "").endswith("/releases/latest")), (True, True))
+    extras.dismissUpdateNotice()
+    check("hiding it is for that version and is kept", (extras.updateNotice, i18n.load_config().get("update_notice_dismissed")), ({}, "999.0.0"))
+    extras._newest_suite = "999.0.1"
+    check("the next version is shown", "999.0.1" in extras.updateNotice.get("text", ""), True)
+    extras.setUpdateNoticeEnabled(False)
+    check("switched off it says nothing, and is kept", (extras.updateNoticeEnabled, extras.updateNotice, i18n.load_config().get("update_notice")), (False, {}, False))
 
     # check of versions: nothing is read while the switch is off
     extras.checkUpdates()

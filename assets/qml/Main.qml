@@ -160,6 +160,26 @@ ApplicationWindow {
         }
     }
 
+    // A newer SUITE exists: it only says so and links to the releases page. Switch: Updates.
+    footer: Rectangle {
+        objectName: "suiteUpdateNotice"
+        property var notice: suiteBackend.extras.updateNotice
+        visible: (notice.text || "") !== ""
+        implicitHeight: visible ? suiteNoticeRow.implicitHeight + 12 : 0
+        color: "#0e3045"
+        border.width: 1
+        border.color: "#2d7695"
+        RowLayout {
+            id: suiteNoticeRow
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 10
+            Text { objectName: "suiteUpdateNoticeText"; text: parent.parent.notice.text || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+            Button { objectName: "suiteUpdateNoticeOpen"; visible: (parent.parent.notice.url || "") !== ""; text: suiteBackend.uiText("UPD_NOTICE_DOWNLOAD"); onClicked: Qt.openUrlExternally(parent.parent.notice.url) }
+            Button { objectName: "suiteUpdateNoticeHide"; text: suiteBackend.uiText("UPD_NOTICE_HIDE"); onClicked: suiteBackend.extras.dismissUpdateNotice() }
+        }
+    }
+
     header: ToolBar {
         // Explicit, not left implicit like the sibling apps' own header
         // ToolBars - a real on-screen check here showed those relying on
@@ -4720,6 +4740,14 @@ ApplicationWindow {
                     }
                 }
                 Text { text: suiteBackend.extras.updatesEnabled ? suiteBackend.uiText("UPD_DISCLAIMER") : suiteBackend.uiText("UPD_SWITCH_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                CheckBox {
+                    objectName: "updateNoticeSwitch"
+                    text: suiteBackend.uiText("UPD_NOTICE_SWITCH")
+                    palette.windowText: window.textPrimary
+                    checked: suiteBackend.extras.updateNoticeEnabled
+                    onToggled: suiteBackend.extras.setUpdateNoticeEnabled(checked)
+                }
+                Text { text: suiteBackend.uiText("UPD_NOTICE_HINT"); color: window.muted; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                 Button {
                     objectName: "updatesCheck"
                     visible: suiteBackend.extras.updatesEnabled
