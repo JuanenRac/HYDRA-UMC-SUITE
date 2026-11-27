@@ -187,6 +187,24 @@ def parse_dispatcher_reload(raw: object) -> str:
 SILENT_ROBOT_CHOICES = ("withhold", "server-state")
 
 
+def _orchestrator(raw: object) -> dict | None:
+    """The global stop retry of the orchestrator; None for a server that predates it or answers something else."""
+    if not isinstance(raw, dict):
+        return None
+    retry = _option(raw.get("retryServer"), bool)
+    return None if retry is None else {"retry": retry, "editable": raw.get("editable") is True}
+
+
+def orchestrator_patch(retry: bool) -> dict:
+    """The request body for the global stop retry of the orchestrator (on by default; the orchestrator reads it when it starts)."""
+    return {"orchestrator": {"retryServer": bool(retry)}}
+
+
+def orchestrator_needs_confirmation(current: bool, new: bool) -> bool:
+    """Switching the retry off leaves a stop the server did not confirm unasked: ask first."""
+    return bool(current) and not new
+
+
 def _job_dispatcher(raw: object) -> dict | None:
     """The options of the job dispatcher in the answer of the server; None for a server that predates them or answers nonsense."""
     if not isinstance(raw, dict):
@@ -275,6 +293,7 @@ def parse_state(body: object) -> dict | None:
         "rul": None,
         "safety": None,
         "jobDispatcher": None,
+        "orchestrator": None,
         "production": None,
         "ingest": None,
         "connections": None,
@@ -379,6 +398,7 @@ def parse_state(body: object) -> dict | None:
             checked = _option(signing, bool)
             if checked is not None:
                 state["safety"]["globalStopSigning"] = {**checked, "keyStored": signing.get("keyStored") is True, "external": signing.get("external") is True}
+    state["orchestrator"] = _orchestrator(body.get("orchestrator"))
     job_dispatcher = _job_dispatcher(body.get("jobDispatcher"))
     if job_dispatcher is not None:
         state["jobDispatcher"] = job_dispatcher
@@ -895,6 +915,8 @@ def known_warning(warnings: object) -> str:
         sentence = _("SECURITY_JD_WARNING_SILENT")
     if "replan_unconfirmed_allowed" in warnings:
         sentence = _("SECURITY_JD_WARNING_REPLAN")
+    if "orchestrator_stop_retry_off" in warnings:
+        sentence = _("SECURITY_ORCH_WARNING")
     if "mavlink_unsigned_allowed" in warnings:
         sentence = _("SECURITY_MAVLINK_UNSIGNED_WARNING")
     if "mavlink_signing_off" in warnings:
@@ -1030,6 +1052,7 @@ EMPTY_VIEW: dict = {
     "nodeHealthAvailable": False, "nodeHealthEnabled": False, "nodeHealthEnabledLocked": False, "nodeHealthEnabledSource": "",
     "ecosystemHealthAvailable": False, "ecosystemHealthEnabled": False, "ecosystemHealthEnabledLocked": False, "ecosystemHealthEnabledSource": "",
     "twinRelayAvailable": False, "twinRelayEnabled": False, "twinRelayEnabledLocked": False, "twinRelayEnabledSource": "",
+    "orchAvailable": False, "orchRetry": True, "orchEditable": False, "orchNote": "",
     "rulAvailable": False, "rulEnabled": False, "rulEnabledLocked": False, "rulEnabledSource": "",
     "safetySignAvailable": False, "safetySignStop": False, "safetySignExternal": False, "safetySignKeyStored": False, "safetySignSource": "",
     "safetyAvailable": False, "safetyPublishStop": False, "safetyPublishStopLocked": False, "safetyPublishStopSource": "",
@@ -1232,6 +1255,16 @@ def view(state: dict | None) -> dict:
                 "trustedNetworksEnabled": trusted["enabled"]["value"],
                 "trustedNetworksEnabledLocked": is_locked(trusted["enabled"]["source"]),
                 "trustedNetworksEnabledSource": source_text(trusted["enabled"]["source"]),
+            }
+        )
+    orchestrator = state.get("orchestrator")
+    if orchestrator is not None:
+        out.update(
+            {
+                "orchAvailable": True,
+                "orchRetry": orchestrator["retry"]["value"],
+                "orchEditable": orchestrator["editable"],
+                "orchNote": _("LBL_SECURITY_ORCH_HELP") if orchestrator["editable"] else _("LBL_SECURITY_ORCH_NOT_EDITABLE"),
             }
         )
     rul = state.get("rul")

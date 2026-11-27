@@ -259,6 +259,8 @@ check("asks first when the delivery is switched on or a job may go without a con
       [sec.job_dispatcher_needs_confirmation(cur, sec.job_dispatcher_patch(*args)) for args in ((False, "a = 1", True, False, "30"), (True, "a = 1", True, False, "30"), (False, "a = 1", True, True, "30"), (False, "a = 1", True, False, "60"))],
       [False, True, True, False])
 check("knows the two warnings", (sec.known_warning(["job_stop_relay_on"]) == _("SECURITY_JD_WARNING_RELAY"), sec.known_warning(["replan_unconfirmed_allowed"]) == _("SECURITY_JD_WARNING_REPLAN")), (True, True))
+check("the orchestrator retry is read and asks before it is switched off", (sec._orchestrator({"retryServer": {"value": True, "source": "default"}, "editable": True})["editable"], sec._orchestrator({}), sec.orchestrator_patch(False), sec.orchestrator_needs_confirmation(True, False), sec.orchestrator_needs_confirmation(False, True)), (True, None, {"orchestrator": {"retryServer": False}}, True, False))
+check("the orchestrator sentences exist", all(_(k) != k for k in ("LBL_SECURITY_ORCH", "LBL_SECURITY_ORCH_RETRY", "LBL_SECURITY_ORCH_HELP", "LBL_SECURITY_ORCH_NOT_EDITABLE", "MSG_SECURITY_ORCH_CONFIRM", "SECURITY_ORCH_WARNING")), True)
 check("every sentence exists", all(_(k) != k for k in ("TITLE_SECURITY_JD", "LBL_SECURITY_JD_RELAY", "LBL_SECURITY_JD_MAP", "MSG_SECURITY_JD_MAP_INVALID", "MSG_SECURITY_JD_TIMEOUT_INVALID", "MSG_SECURITY_JD_CONFIRM")), True)
 
 AUTH = {**raw, "auth": {"jwtAlgorithm": {"value": "HS256", "source": "default"}, "acceptHs256": {"value": True, "source": "default"}}}

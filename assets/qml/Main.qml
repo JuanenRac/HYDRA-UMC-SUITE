@@ -3112,6 +3112,33 @@ ApplicationWindow {
                         }
                     }
                     ColumnLayout {
+                        visible: suiteBackend.securityView.orchAvailable === true
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text { text: suiteBackend.uiText("LBL_SECURITY_ORCH"); color: window.textPrimary; font.bold: true; font.pixelSize: window.fs(11) }
+                        CheckBox {
+                            id: orchBox
+                            objectName: "securityOrchBox"
+                            text: suiteBackend.uiText("LBL_SECURITY_ORCH_RETRY")
+                            palette.windowText: window.textPrimary
+                            enabled: suiteBackend.securityView.orchEditable === true
+                            checked: suiteBackend.securityView.orchRetry === true
+                        }
+                        Text { text: suiteBackend.securityView.orchNote; color: "#556070"; font.pixelSize: window.fs(9); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Button {
+                            objectName: "securityOrchSave"
+                            text: suiteBackend.uiText("COMMON_SAVE")
+                            enabled: suiteBackend.securityView.orchEditable === true
+                            onClicked: {
+                                var retry = orchBox.checked
+                                if (suiteBackend.orchestratorNeedsConfirmation(retry))
+                                    window.requestConfirm(suiteBackend.uiText("LBL_SECURITY_ORCH"), suiteBackend.uiText("MSG_SECURITY_ORCH_CONFIRM"), function() { suiteBackend.saveOrchestratorOptions(retry) })
+                                else
+                                    suiteBackend.saveOrchestratorOptions(retry)
+                            }
+                        }
+                    }
+                    ColumnLayout {
                         visible: suiteBackend.securityView.rulAvailable === true
                         Layout.fillWidth: true
                         spacing: 6
