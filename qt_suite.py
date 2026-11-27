@@ -4990,6 +4990,20 @@ class SuiteQtBridge(QObject):
         asyncio.ensure_future(self._save_security(server_security.ecosystem_health_patch(enabled)))
 
     @Slot(bool)
+    def saveOrchestratorOptions(self, retry: bool) -> None:
+        state = self._security_state
+        if state is None or not state.get("orchestrator") or not state["orchestrator"]["editable"]:
+            return
+        asyncio.ensure_future(self._save_security(server_security.orchestrator_patch(retry)))
+
+    @Slot(bool, result=bool)
+    def orchestratorNeedsConfirmation(self, retry: bool) -> bool:
+        state = self._security_state
+        if state is None or not state.get("orchestrator"):
+            return False
+        return server_security.orchestrator_needs_confirmation(state["orchestrator"]["retry"]["value"], retry)
+
+    @Slot(bool)
     def saveRulOptions(self, enabled: bool) -> None:
         state = self._security_state
         if state is None or not state.get("rul"):
