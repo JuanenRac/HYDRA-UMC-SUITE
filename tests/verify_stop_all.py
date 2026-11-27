@@ -17,10 +17,15 @@
 #     that is not clean
 #   - the Qt Quick interface: the header button and the F12 shortcut call the
 #     bridge's stopAll(), with no confirmation, and its result shows as text
+#   - with every window, dialog and menu open, one at a time, at the smallest
+#     and at a large size, a press on the STOP still reaches the controller;
+#     no dialog is a native window of the system, which would block it
+#     (STOP_SHOTS_DIR=folder keeps a picture of each)
 # Run headless: QT_QPA_PLATFORM=offscreen.
 # =============================================================================
 import asyncio
 import json
+import os
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -327,9 +332,71 @@ def check_qml_shell():
     check("qml: a clean result is ok", bridge.stopAllSeverity, "ok")
     source = qt_suite.QML_PATH.read_text(encoding="utf-8")
     check("qml: F12 is an application-wide shortcut", 'sequence: "F12"' in source and "Qt.ApplicationShortcut" in source, True)
+    check_stop_over_every_window(roots[0], calls)
+
+
+def check_stop_over_every_window(root, calls):
+    """Opens every popup, dialog and menu of the window and presses where the STOP is drawn, with a real mouse event."""
+    from PySide6.QtCore import QMetaObject, QPoint, QPointF
+    from PySide6.QtTest import QTest
+
+    shots = os.environ.get("STOP_SHOTS_DIR", "")
+    slot = root.findChild(QObject, "stopAllButton")
+    guard = root.findChild(QObject, "stopGuard")
+    source = qt_main_source()
+    heads = [part.splitlines()[1:3] for kind in ("FileDialog {", "ColorDialog {") for part in source.split(kind)[1:]]
+    # a native dialog of the system, or a dialog in a window of its own, blocks the main window
+    check("qml: every file and colour dialog is drawn inside the window",
+          (len(heads) > 0, [head for head in heads if "DontUseNativeDialog" not in head[0] or "Popup.Item" not in head[1]]), (True, []))
+    check("qml: no message dialog of the system", "MessageDialog {" in source, False)
+
+    def is_window(item):
+        if item is guard:
+            return False
+        kind = item.metaObject().className()
+        if "ToolTip" in kind:
+            return False
+        return item.inherits("QQuickPopup") or item.inherits("QQuickAbstractDialog")
+
+    windows = [item for item in root.findChildren(QObject) if is_window(item)]
+    check("qml: the check finds the dialogs of the window", len(windows) >= 8, True)
+    root.setProperty("visibility", 2)  # a normal window, not maximized, so it takes the sizes below
+    for width, height in ((1280, 800), (1920, 1080)):
+        root.setProperty("width", width)
+        root.setProperty("height", height)
+        QTest.qWait(200)
+        blocked = []
+        for number, window in enumerate([None, *windows]):
+            name = "nothing-open" if window is None else (window.objectName() or f"{window.metaObject().className().split('_')[0]}-{number}")
+            if window is not None:
+                QMetaObject.invokeMethod(window, "open")
+            QTest.qWait(150)
+            centre = slot.mapToScene(QPointF(slot.property("width") / 2, slot.property("height") / 2))
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                root.grabWindow().save(os.path.join(shots, f"{width}x{height}-{name}.png"))
+            before = len(calls)
+            QTest.mouseClick(root, Qt.LeftButton, Qt.NoModifier, QPoint(round(centre.x()), round(centre.y())))
+            QTest.qWait(50)
+            inside = 0 <= centre.x() < width and 0 <= centre.y() < height
+            own_windows = [other for other in QGuiApplication.topLevelWindows() if other is not root and other.isVisible() and other.modality() != Qt.NonModal]
+            if len(calls) != before + 1 or not inside or own_windows:
+                blocked.append(name)
+            if window is not None:
+                QMetaObject.invokeMethod(window, "close")
+                QTest.qWait(150)
+        check(f"qml {width}x{height}: the STOP can be pressed with any window open ({len(windows)} windows)", blocked, [])
+
+
+def qt_main_source():
+    import qt_suite
+
+    return qt_suite.QML_PATH.read_text(encoding="utf-8")
 
 
 def main():
+    if os.environ.get("STOP_SHOTS_DIR") and sys.platform == "win32":
+        os.environ.setdefault("QT_QPA_FONTDIR", "C:/Windows/Fonts")  # the offscreen platform has no fonts of its own
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)
     loop = SteadyLoop(app)
     asyncio.set_event_loop(loop)

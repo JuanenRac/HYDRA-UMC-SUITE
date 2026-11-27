@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- **The STOP button can be pressed with any window open:** a modal dialog took the presses outside itself, so a first press on the STOP of the header only closed it or did nothing, and a file, colour or message dialog of the system blocked the whole program. The STOP is now drawn above every window, dialog and menu, the file and colour dialogs are drawn inside the main window, and the question before deleting a recording is the one of the program. The STOP verifier opens each of them at two sizes and fails when a press does not arrive.
+
 - **Server security has the switch of the global stop retry of the orchestrator:** whether the orchestrator keeps asking the server to confirm a global stop, as in HYDRA-UMC-STUDIO. On by default, switching it off asks first, and it can only be changed when the server knows the configuration file of the orchestrator. In the eight languages.
 
 - **The screenshots of the README can be taken on a GitHub runner:** the manual workflow `screenshots.yml` (started by hand only, read-only token, no secrets) runs `tools/capture_screenshots.py` on the offscreen Qt platform and keeps the pictures as an artifact; `docs/SCREENSHOTS.md` says how to start it and use them.

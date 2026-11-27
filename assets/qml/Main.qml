@@ -160,6 +160,51 @@ ApplicationWindow {
         }
     }
 
+    // The global STOP: one click, on every panel (F12 too) and over every window. A modal Dialog takes the presses outside itself, so a button
+    // of the header could not be pressed while one is open: it is drawn in a popup above all the others, on the place the header keeps for it
+    // (inside the window if the header does not fit).
+    Popup {
+        id: stopGuard
+        objectName: "stopGuard"
+        parent: Overlay.overlay
+        z: 1000000
+        modal: false
+        focus: false
+        closePolicy: Popup.NoAutoClose
+        padding: 0
+        background: null
+        width: 120
+        height: 52
+        x: placed(window.width, stopSlot.x, stopSlot.parent.width, true)
+        y: placed(window.height, stopSlot.y, stopSlot.parent.height, false)
+        Component.onCompleted: open()
+        // the first arguments only make the binding follow the layout
+        function placed(size, offset, rowSize, across) {
+            var at = stopSlot.mapToItem(null, 0, 0)
+            return across ? Math.max(0, Math.min(size - width, at.x)) : Math.max(0, Math.min(size - height, at.y))
+        }
+        contentItem: Button {
+            id: stopAllButton
+            objectName: "stopAllButton"
+            focusPolicy: Qt.NoFocus
+            onClicked: suiteBackend.stopAll()
+            Accessible.name: suiteBackend.uiText("STOP_ALL_TOOLTIP")
+            ToolTip.visible: hovered
+            ToolTip.text: suiteBackend.uiText("STOP_ALL_TOOLTIP")
+            background: Rectangle {
+                radius: 10
+                color: stopAllButton.down ? "#8f0012" : (stopAllButton.hovered ? "#e0001d" : "#c40018")
+                border.width: 2
+                border.color: "#ff5d6f"
+            }
+            contentItem: Column {
+                spacing: 0
+                Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_LABEL"); color: "#ffffff"; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(20) }
+                Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_CAPTION"); color: "#ffffff"; font.family: "Bahnschrift"; font.pixelSize: window.fs(10) }
+            }
+        }
+    }
+
     // A newer SUITE exists: it only says so and links to the releases page. Switch: Updates.
     footer: Rectangle {
         id: suiteNoticeBar
@@ -282,29 +327,8 @@ ApplicationWindow {
                         font.pixelSize: window.fs(10)
                     }
                 }
-                // The global STOP: one click, always visible, on every panel (F12 too).
-                Button {
-                    id: stopAllButton
-                    objectName: "stopAllButton"
-                    Layout.preferredWidth: 120
-                    Layout.preferredHeight: 52
-                    focusPolicy: Qt.NoFocus
-                    onClicked: suiteBackend.stopAll()
-                    Accessible.name: suiteBackend.uiText("STOP_ALL_TOOLTIP")
-                    ToolTip.visible: hovered
-                    ToolTip.text: suiteBackend.uiText("STOP_ALL_TOOLTIP")
-                    background: Rectangle {
-                        radius: 10
-                        color: stopAllButton.down ? "#8f0012" : (stopAllButton.hovered ? "#e0001d" : "#c40018")
-                        border.width: 2
-                        border.color: "#ff5d6f"
-                    }
-                    contentItem: Column {
-                        spacing: 0
-                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_LABEL"); color: "#ffffff"; font.family: "Bahnschrift"; font.bold: true; font.pixelSize: window.fs(20) }
-                        Text { width: stopAllButton.width; horizontalAlignment: Text.AlignHCenter; text: suiteBackend.uiText("STOP_ALL_CAPTION"); color: "#ffffff"; font.family: "Bahnschrift"; font.pixelSize: window.fs(10) }
-                    }
-                }
+                // Where the global STOP is drawn (stopGuard, below, holds the button).
+                Item { id: stopSlot; objectName: "stopSlot"; Layout.preferredWidth: 120; Layout.preferredHeight: 52 }
                 Text {
                     text: suiteBackend.connectionStatus === "connected" ? "● CONNECTED" : (suiteBackend.connectionStatus === "connecting" ? "● CONNECTING" : "● DISCONNECTED")
                     color: suiteBackend.connectionStatus === "connected" ? window.green : (suiteBackend.connectionStatus === "connecting" ? window.amber : window.muted)
@@ -410,6 +434,8 @@ ApplicationWindow {
     }
 
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: diagnosticsDialog
         title: suiteBackend.uiText("TITLE_EXPORT_DIAGNOSTICS")
         fileMode: FileDialog.SaveFile
@@ -507,6 +533,8 @@ ApplicationWindow {
     }
 
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: xyTableSaveDialog
         title: suiteBackend.uiText("BTN_SAVE_CONFIG")
         fileMode: FileDialog.SaveFile
@@ -515,6 +543,8 @@ ApplicationWindow {
     }
 
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: auditExportDialog
         title: suiteBackend.uiText("AUDIT_EXPORT")
         fileMode: FileDialog.SaveFile
@@ -5896,6 +5926,8 @@ ApplicationWindow {
     }
 
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: atcSaveDialog
         title: suiteBackend.uiText("BTN_SAVE_CONFIG")
         fileMode: FileDialog.SaveFile
@@ -5903,6 +5935,8 @@ ApplicationWindow {
         onAccepted: suiteBackend.saveAtcConfig(selectedFile.toString())
     }
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: atcLoadDialog
         title: suiteBackend.uiText("BTN_LOAD_CONFIG")
         fileMode: FileDialog.OpenFile
@@ -6533,7 +6567,7 @@ ApplicationWindow {
                             }
                             Button {
                                 text: suiteBackend.uiText("COMMON_DELETE")
-                                onClicked: cameraMediaDeleteConfirm.open()
+                                onClicked: window.requestConfirm(suiteBackend.uiText("COMMON_DELETE"), suiteBackend.uiText("CAMERA_MEDIA_DELETE_CONFIRM"), function() { suiteBackend.deleteCameraMediaSelected() }, suiteBackend.uiText("COMMON_DELETE"))
                             }
                         }
 
@@ -6550,24 +6584,20 @@ ApplicationWindow {
             }
 
             FileDialog {
+                options: FileDialog.DontUseNativeDialog
+                popupType: Popup.Item
                 id: cameraMediaSaveDialog
                 title: suiteBackend.uiText("CAMERA_MEDIA_SAVE_AS")
                 fileMode: FileDialog.SaveFile
                 onAccepted: suiteBackend.saveCameraMedia(selectedFile.toString())
             }
 
-            MessageDialog {
-                id: cameraMediaDeleteConfirm
-                text: suiteBackend.uiText("CAMERA_MEDIA_DELETE_CONFIRM")
-                buttons: MessageDialog.Yes | MessageDialog.No
-                onButtonClicked: function (button, role) {
-                    if (button === MessageDialog.Yes) suiteBackend.deleteCameraMediaSelected()
-                }
-            }
         }
     }
 
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: flasherBrowseDialog
         title: suiteBackend.uiText("BTN_BROWSE_BIN")
         fileMode: FileDialog.OpenFile
@@ -6801,6 +6831,8 @@ ApplicationWindow {
     }
 
     ColorDialog {
+        options: ColorDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: testerColorDialog
         title: suiteBackend.uiText("LBL_STATUS_LED")
         onAccepted: suiteBackend.setTesterStatusColor(selectedColor.toString())
@@ -7311,6 +7343,8 @@ ApplicationWindow {
     }
 
     FileDialog {
+        options: FileDialog.DontUseNativeDialog
+        popupType: Popup.Item
         id: trainPlanDialog
         title: suiteBackend.uiText("PLANNING_TRAIN_LOAD")
         fileMode: FileDialog.OpenFile
@@ -8607,6 +8641,8 @@ ApplicationWindow {
             height: contentLoader.height
             spacing: 8
             FileDialog {
+                options: FileDialog.DontUseNativeDialog
+                popupType: Popup.Item
                 id: modelUrdfSaveDialog
                 property string category: ""
                 property string slug: ""
