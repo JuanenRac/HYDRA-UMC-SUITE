@@ -5100,6 +5100,7 @@ ApplicationWindow {
                             Text { visible: modelData.detail !== ""; text: modelData.detail; color: "#7f8ea1"; font.family: "Cascadia Mono"; font.pixelSize: window.fs(9); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                             Text { objectName: "fleetUpdateUnit_" + modelData.name; visible: modelData.unitWarning !== ""; text: modelData.unitWarning; color: window.amber; font.pixelSize: window.fs(10); wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             Button { objectName: "fleetUpdateTakeUp_" + modelData.name; visible: modelData.canTakeUp === true; text: updatesRoot.fu.takeUpLabel || ""; onClicked: suiteBackend.requestFleetTakeUp(modelData.name) }
+                            Button { objectName: "fleetUpdateGoBack_" + modelData.name; visible: modelData.canGoBack === true; text: updatesRoot.fu.goBackLabel || ""; onClicked: suiteBackend.requestFleetGoBack(modelData.name) }
                         }
                     }
                 }
@@ -5121,10 +5122,20 @@ ApplicationWindow {
                         spacing: 6
                         Text { text: updatesRoot.fu.confirmTitle || ""; color: window.amber; font.bold: true; font.pixelSize: window.fs(12) }
                         Text { objectName: "fleetUpdateConfirmText"; text: updatesRoot.fu.confirm || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        Text { visible: updatesRoot.fu.needsCode === true; text: updatesRoot.fu.codeLabel || ""; color: window.textPrimary; font.pixelSize: window.fs(11); wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                        TextField {
+                            id: fleetUpdateCode
+                            objectName: "fleetUpdateCode"
+                            visible: updatesRoot.fu.needsCode === true
+                            maximumLength: 6
+                            inputMethodHints: Qt.ImhDigitsOnly
+                            validator: RegularExpressionValidator { regularExpression: /[0-9]{0,6}/ }
+                            Layout.preferredWidth: 140
+                        }
                         RowLayout {
                             spacing: 8
-                            Button { objectName: "fleetUpdateConfirmYes"; text: updatesRoot.fu.confirmYes || ""; onClicked: suiteBackend.confirmFleetUpdate() }
-                            Button { objectName: "fleetUpdateConfirmNo"; text: updatesRoot.fu.confirmNo || ""; onClicked: suiteBackend.cancelFleetUpdate() }
+                            Button { objectName: "fleetUpdateConfirmYes"; text: updatesRoot.fu.confirmYes || ""; enabled: updatesRoot.fu.needsCode !== true || fleetUpdateCode.text.length === 6; onClicked: { suiteBackend.confirmFleetUpdate(fleetUpdateCode.text); fleetUpdateCode.clear() } }
+                            Button { objectName: "fleetUpdateConfirmNo"; text: updatesRoot.fu.confirmNo || ""; onClicked: { fleetUpdateCode.clear(); suiteBackend.cancelFleetUpdate() } }
                         }
                     }
                 }

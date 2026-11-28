@@ -704,6 +704,25 @@ def self_update_screen(loop, port):
 # ---- the update of every program installed on the device (GET /api/admin/fleet-update and its POSTs): the reading, the buttons, the follower and the screen
 
 
+def fleet_root_helper_logic():
+    """The second step of the root helper of the device: the code, the identifier of the look and going back."""
+    fl = __import__("hydra_suite.panel_logic.fleet_update", fromlist=["x"])
+    plan = "0123456789abcdef0123456789abcdef"
+    rows = [fl_row("brain", previous="0.9.0"), fl_row("server")]
+    status = fl.parse_status(fl_status(fl_report(rows=rows, helper="root", planId=plan)))
+    plain = fl.parse_status(fl_status(fl_report(rows=rows, planId=plan, totpRequired=True)))
+    check("fleet root: a code is asked unless the device says it is not; any other device asks nothing", (fl.needs_code(status), fl.needs_code(plain), fl.confirmation(plain, "123456")), (True, False, {}))
+    check("fleet root: the second step brings the look and a six-digit code, and nothing else is accepted", [fl.confirmation(status, c) for c in ("123456", "", "12345", "abcdef")], [{"planId": plan, "code": "123456"}, None, None, None])
+    free = fl.parse_status(fl_status(fl_report(rows=rows, helper="root", planId="nope", totpRequired=False)))
+    check("fleet root: without a code asked and with an identifier that is not one, nothing is sent", fl.confirmation(free, ""), {})
+    check("fleet root: going back is for a program that keeps a version, with both switches on", [fl.may_start("rollback", [n], True, status) is not None for n in ("brain", "server")], [True, False])
+    check("fleet root: no going back on another device or with the switch off", (fl.may_start("rollback", ["brain"], True, plain), fl.may_start("rollback", ["brain"], False, status)), (None, None))
+    view = fl.view(status, "", True, None, False, {"action": "rollback", "names": ["brain"]}, "", False)
+    check("fleet root: the screen offers going back, asks for the code and names the program", ([r["name"] for r in view["rows"] if r["canGoBack"]], view["needsCode"], "brain" in view["confirm"]), (["brain"], True, True))
+    check("fleet root: every sentence of the new part exists", [k for k in ["FLEETUPD_GO_BACK", "FLEETUPD_CODE_LABEL", "FLEETUPD_CONFIRM_BACK"] + ["FLEETUPD_ERR_" + e.upper() for e in fl.ERRORS] + ["FLEETUPD_REASON_" + r.upper() for r in fl.REASONS] if _(k) == k], [])
+
+
+
 class FleetUpdateSim:
     """The routes of /api/admin/fleet-update of a simulated server: the table (or the answers of the progress in order, the last one staying; None cuts the connection)
     and the answers of the three POSTs."""
@@ -1135,6 +1154,7 @@ def main():
     switch(loop)
     self_update_logic(loop)
     self_update_screen(loop, server.server_address[1])
+    fleet_root_helper_logic()
     fleet_update_logic(loop)
     fleet_update_screen(loop, server.server_address[1])
     server.shutdown()
