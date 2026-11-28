@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- **The update of everything installed works with the root helper of the device:** the confirmation asks for its six-digit one-time code while the device says it needs one and sends the identifier of the look, a program that keeps an earlier version has a Go back button, and the reasons and failures of the signed packages have their sentences in the eight languages. Tests added.
+
 ## [0.8.1.0] - STOP button always reachable
 
 - **The STOP button can be pressed with any window open:** a modal dialog took the presses outside itself, so a first press on the STOP of the header only closed it or did nothing, and a file, colour or message dialog of the system blocked the whole program. The STOP is now drawn above every window, dialog and menu, the file and colour pickers are now the program's own, drawn inside the main window instead of the ones of the system, and the question before deleting a recording is the one of the program. The STOP verifier opens each of them at two sizes and fails when a press does not arrive.

@@ -2908,6 +2908,11 @@ class SuiteQtBridge(QObject):
         """Asks for the confirmation of taking up one program again from its first step."""
         self._request_fleet_update("resume", [name])
 
+    @Slot(str)
+    def requestFleetGoBack(self, name: str) -> None:
+        """Asks for the confirmation of going back to the version kept of one program (root helper of the device only)."""
+        self._request_fleet_update("rollback", [name])
+
     def _request_fleet_update(self, action: str, names: list[str]) -> None:
         self._fu_message = ""
         allowed = fleet_update_logic.may_start(action, names, self._su_apply_on, self._fu_status, self._fu_looking) is not None
@@ -2920,8 +2925,9 @@ class SuiteQtBridge(QObject):
         self.fleetUpdateChanged.emit()
 
     @Slot()
-    def confirmFleetUpdate(self) -> None:
-        asyncio.ensure_future(self._start_fleet_update())
+    @Slot(str)
+    def confirmFleetUpdate(self, code: str = "") -> None:
+        asyncio.ensure_future(self._start_fleet_update(code))
 
     @Slot()
     def lookAgainFleetUpdate(self) -> None:
@@ -2982,8 +2988,11 @@ class SuiteQtBridge(QObject):
             self._fu_message = fleet_update_logic.start_failure_text(kind)
         self.fleetUpdateChanged.emit()
 
-    async def _start_fleet_update(self) -> None:
+    async def _start_fleet_update(self, code: str = "") -> None:
         pending, conn = self._fu_pending, self._controller.active_connection
+        second = fleet_update_logic.confirmation(self._fu_status, code)
+        if pending is not None and second is None:
+            return  # the code the device asks for is missing or is not six digits: the question stays on screen
         self._fu_pending, self._fu_message = None, ""
         if pending is None or conn is None:
             self.fleetUpdateChanged.emit()
@@ -2993,10 +3002,10 @@ class SuiteQtBridge(QObject):
             self.fleetUpdateChanged.emit()
             return
         try:
-            if pending["action"] == "resume":
-                answer = await conn.resume_fleet_update(pending["names"][0])
+            if pending["action"] in ("resume", "rollback"):
+                answer = await conn.resume_fleet_update(pending["names"][0], second, rollback=pending["action"] == "rollback")
             else:
-                answer = await conn.start_fleet_update(pending["names"])
+                answer = await conn.start_fleet_update(pending["names"], second)
             kind, status = fleet_update_logic.classify_start(answer)
         except Exception as error:
             logger.warning("starting the update of the installed programs failed: %s", error)

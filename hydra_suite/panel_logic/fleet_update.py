@@ -11,7 +11,8 @@ not known, never as done or as up to date), decides what may be started, follows
 the end of its own update, so the answers fail for a while: a refused connection or a 502 is a reason to wait, never a failure, and the follower gives up with a
 message only after a limit of silence.
 
-Applying is off by default behind the same switch as the update of the three main programs (kept in the configuration file of the program); even with it on,
+A device with the root helper (signed packages) also asks, at the second step, for the identifier of the look the person saw (`planId`) and, while it says so, a
+one-time code of six digits; it can go back to the version kept of a program. Applying is off by default behind the same switch as the update of the three main programs (kept in the configuration file of the program); even with it on,
 every update and every taking up asks first, naming the programs and their versions. The same rules as the panel of STUDIO."""
 from __future__ import annotations
 
@@ -31,11 +32,18 @@ STEPS = ("disk", "fetching", "backup", "building", "installing", "verifying", "d
 ERRORS = (
     "low_disk", "fetch_failed", "tag_mismatch", "tag_unsigned", "checkout_failed", "backup_failed", "build_failed", "installer_failed", "version_mismatch",
     "not_healthy", "journal_errors", "sdk_not_importable", "interrupted", "unexpected",
+    # the root helper of the device (signed packages)
+    "account_failed", "bad_package", "deploy_failed", "download_failed", "first_install_off", "layout_unknown", "migration_failed", "missing_system_package",
+    "needs_first_setup", "no_earlier_release", "not_installed", "not_newer", "restart_failed", "rollback_failed", "signature_invalid", "units_failed",
+    "write_failed", "wrong_python",
 )
 REASONS = (
     "special_stack", "no_release", "version_unreadable", "installed_newer", "unit_inactive", "repo_dirty", "goes_with_server", "not_asked", "no_checkout",
-    "migrated_needs_packages", "migrated_no_package", "own_package",
+    "migrated_needs_packages", "migrated_no_package", "own_package", "first_install", "needs_newer_rustc", "no_signed_package",
 )
+#: What the root helper accepts: the one-time code and the identifier of a look.
+ONE_TIME_CODE = re.compile(r"^[0-9]{6}$")
+PLAN_ID = re.compile(r"^[0-9a-f]{32}$")
 START_FAILURES = ("disabled", "forbidden", "busy", "refused", "network")
 #: What the server needs free to build and install, in MB (the device checks the same numbers).
 SERVER_NEEDS_MB = 2500
@@ -92,6 +100,7 @@ def parse_row(data: object) -> dict | None:
         "needMb": _whole(data.get("needMb")),
         "unitRestored": data["unitRestored"] if isinstance(data.get("unitRestored"), bool) else None,
         "log": log[-30:],
+        "previous": _text(data.get("previous"), 40),
     }
 
 
@@ -111,6 +120,10 @@ def parse_report(data: object) -> dict | None:
         "rootFreeMb": _whole(disk.get("rootFreeMb")),
         "workspaceFreeMb": _whole(disk.get("workspaceFreeMb")),
         "services": [row for row in (parse_row(entry) for entry in data["services"]) if row is not None],
+        # root helper only: a missing totpRequired means a code is asked (the server decides the same way)
+        "helper": "root" if data.get("helper") == "root" else "",
+        "planId": data["planId"] if data.get("helper") == "root" and isinstance(data.get("planId"), str) and PLAN_ID.match(data["planId"]) else "",
+        "totpRequired": data.get("helper") == "root" and data.get("totpRequired") is not False,
     }
 
 
@@ -219,10 +232,33 @@ def can_apply(apply_on: bool, status: dict | None, busy: bool) -> bool:
     return bool(apply_on and status is not None and status["applyEnabled"] and not status["busy"] and not running(status) and not busy)
 
 
+def needs_code(status: dict | None) -> bool:
+    """Whether the second step must bring a one-time code."""
+    report = status["report"] if status else None
+    return bool(report and report["totpRequired"])
+
+
+def confirmation(status: dict | None, code: str) -> dict[str, str] | None:
+    """What the second step brings to the root helper ({} for any other device): the identifier of the look and the code. None when a code is needed and what was
+    typed is not six digits, or a code that is not six digits was typed at all."""
+    report = status["report"] if status else None
+    if report is None or report["helper"] != "root":
+        return {}
+    code = code.strip()
+    if (code and not ONE_TIME_CODE.match(code)) or (report["totpRequired"] and not code):
+        return None
+    return {**({"planId": report["planId"]} if report["planId"] else {}), **({"code": code} if code else {})}
+
+
+def can_go_back(report: dict | None, row: dict) -> bool:
+    """A program the root helper keeps an earlier version of."""
+    return bool(report and report["helper"] == "root" and row["previous"] and row["state"] != "running")
+
+
 def may_start(action: str, names: list[str], apply_on: bool, status: dict | None, busy: bool = False) -> list[dict] | None:
     """The programs `action` ("apply" or "resume") may start on, or None. An update needs programs the plan marks to update; taking up needs exactly one program
     in a state where it can be taken up. The screen only offers what this allows, and it is asked again at the confirmation."""
-    if action not in ("apply", "resume") or not can_apply(apply_on, status, busy) or not names or len(set(names)) != len(names):
+    if action not in ("apply", "resume", "rollback") or not can_apply(apply_on, status, busy) or not names or len(set(names)) != len(names):
         return None
     if not all(isinstance(name, str) and NAME.match(name) for name in names):
         return None
@@ -233,7 +269,10 @@ def may_start(action: str, names: list[str], apply_on: bool, status: dict | None
         fits = {row["name"]: row for row in updatable(report)}
         return [fits[name] for name in names] if all(name in fits for name in names) else None
     row = next((entry for entry in report["services"] if entry["name"] == names[0]), None)
-    return [row] if len(names) == 1 and row is not None and resumable(row) else None
+    if len(names) != 1 or row is None:
+        return None
+    fits = can_go_back(report, row) if action == "rollback" else resumable(row)
+    return [row] if fits else None
 
 
 async def follow_run(
@@ -323,7 +362,7 @@ def tone(row: dict) -> str:
     return "unknown" if row["state"] == "unknown" else "normal"
 
 
-def row_view(row: dict, allowed: bool) -> dict:
+def row_view(row: dict, allowed: bool, report: dict | None = None) -> dict:
     """One program of the table. The progress is shown for a program that will be updated or has left its first state; a button to take it up again only when
     both switches allow it."""
     shows_progress = row["action"] == "update" or row["state"] not in ("waiting",)
@@ -343,6 +382,7 @@ def row_view(row: dict, allowed: bool) -> dict:
         "detail": row["detail"] if shows_progress and (row["state"] == "running" or row["error"]) else "",
         "unitWarning": _("FLEETUPD_UNIT_NOT_RESTORED") if row["unitRestored"] is False else "",
         "canTakeUp": allowed and resumable(row),
+        "canGoBack": allowed and can_go_back(report, row),
     }
 
 
@@ -371,6 +411,8 @@ def confirm_text(pending: dict | None, status: dict | None) -> str:
     chosen = may_start(pending["action"], pending["names"], True, {**status, "applyEnabled": True, "busy": False}, False)
     if chosen is None:
         return ""
+    if pending["action"] == "rollback":
+        return _("FLEETUPD_CONFIRM_BACK", names=program_line(chosen[0]))
     if pending["action"] == "resume":
         return _("FLEETUPD_CONFIRM_RESUME", program=chosen[0]["name"], versions=versions_line(chosen[0]))
     text = _("FLEETUPD_CONFIRM_BODY", count=len(chosen), programs=", ".join(program_line(row) for row in chosen))
@@ -399,7 +441,7 @@ def view(
     report = status["report"] if status is not None else None
     is_running = running(status)
     allowed = can_apply(apply_on, status, looking)
-    rows = [row_view(row, allowed) for row in report["services"]] if report is not None else []
+    rows = [row_view(row, allowed, report) for row in report["services"]] if report is not None else []
     todo = [row["name"] for row in updatable(report)]
     return {
         "title": _("FLEETUPD_TITLE"),
@@ -414,6 +456,9 @@ def view(
         "updateAllLabel": _("FLEETUPD_UPDATE_ALL"),
         "canUpdateAll": allowed and bool(todo),
         "takeUpLabel": _("FLEETUPD_RESUME"),
+        "goBackLabel": _("FLEETUPD_GO_BACK"),
+        "needsCode": needs_code(status),
+        "codeLabel": _("FLEETUPD_CODE_LABEL"),
         "mode": mode_text(apply_on, status) if status is not None else "",
         "disk": _("FLEETUPD_DISK_LINE", root=report["rootFreeMb"], workspace=report["workspaceFreeMb"] if report["workspaceFreeMb"] is not None else "?")
         if report is not None and report["rootFreeMb"] is not None else "",
@@ -433,5 +478,5 @@ def view(
 
 
 EMPTY_VIEW: dict = {"title": "", "intro": "", "failure": "", "loaded": False, "runText": "", "rows": [], "columns": [], "lookLabel": "", "canLook": False, "updateAllLabel": "",
-                    "canUpdateAll": False, "takeUpLabel": "", "mode": "", "disk": "", "diskLow": "", "confirm": "", "confirmTitle": "", "confirmYes": "", "confirmNo": "",
+                    "canUpdateAll": False, "takeUpLabel": "", "goBackLabel": "", "needsCode": False, "codeLabel": "", "mode": "", "disk": "", "diskLow": "", "confirm": "", "confirmTitle": "", "confirmYes": "", "confirmNo": "",
                     "message": "", "interrupted": "", "waiting": "", "gaveUp": "", "lookAgain": "", "running": False, "todo": []}
